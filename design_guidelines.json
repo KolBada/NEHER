@@ -1,0 +1,127 @@
+{
+  "project_name": "NeuroVoltage - Electrophysiology Analysis Platform",
+  "design_philosophy": {
+    "theme": "Precision Dark",
+    "core_concept": "The Digital Oscilloscope",
+    "description": "A high-fidelity, high-contrast scientific instrument interface. It prioritizes data legibility, precision interactions, and long-session comfort. No decorative gradients; only functional colors.",
+    "emotional_tone": "Clinical, Precise, trustworthy, Fast"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "data": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl font-semibold tracking-tight",
+      "h2": "text-2xl font-medium tracking-tight",
+      "h3": "text-xl font-medium",
+      "body": "text-sm leading-relaxed",
+      "caption": "text-xs text-muted-foreground",
+      "data_label": "text-[10px] uppercase tracking-wider font-bold text-muted-foreground",
+      "data_value": "text-sm font-mono font-medium"
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "#09090b",
+      "surface": "#121212",
+      "surface_hover": "#18181b",
+      "overlay": "#000000"
+    },
+    "border": {
+      "default": "#27272a",
+      "active": "#3f3f46",
+      "subtle": "#18181b"
+    },
+    "text": {
+      "primary": "#fafafa",
+      "secondary": "#a1a1aa",
+      "tertiary": "#52525b",
+      "inverse": "#09090b"
+    },
+    "accents": {
+      "primary": "#f4f4f5",
+      "trace_voltage": "#22d3ee",
+      "trace_beat": "#a3e635",
+      "trace_artifact": "#fb7185",
+      "trace_stimulus": "#facc15",
+      "highlight": "#3b82f6",
+      "success": "#22c55e",
+      "warning": "#eab308",
+      "error": "#ef4444"
+    }
+  },
+  "layout_system": {
+    "grid_strategy": "The Lab Bench (High Density)",
+    "spacing": {
+      "container_padding": "p-4 md:p-6",
+      "section_gap": "gap-4",
+      "widget_gap": "gap-2"
+    },
+    "radius": {
+      "default": "rounded-sm",
+      "button": "rounded-sm",
+      "card": "rounded-sm"
+    },
+    "shadows": {
+      "card": "shadow-[0_1px_0_0_rgba(255,255,255,0.05)]",
+      "popover": "shadow-2xl border border-zinc-800"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 rounded-sm font-medium text-xs px-4 h-8",
+      "secondary": "bg-zinc-800 text-zinc-100 hover:bg-zinc-700 rounded-sm font-medium text-xs px-4 h-8 border border-zinc-700",
+      "ghost": "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 rounded-sm text-xs px-3 h-8",
+      "icon": "h-8 w-8 p-0 rounded-sm hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+    },
+    "cards": {
+      "base": "bg-[#0c0c0e] border border-zinc-800 rounded-sm p-4",
+      "interactive": "bg-[#0c0c0e] border border-zinc-800 rounded-sm p-4 hover:border-zinc-700 transition-colors cursor-pointer"
+    },
+    "inputs": {
+      "base": "bg-zinc-950 border-zinc-800 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 rounded-sm h-8 text-xs font-mono",
+      "slider": "accent-cyan-500"
+    },
+    "trace_viewer": {
+      "container": "relative w-full h-[50vh] bg-black border-y border-zinc-800 overflow-hidden",
+      "toolbar": "flex items-center gap-2 bg-zinc-900/50 border-b border-zinc-800 p-2 backdrop-blur-sm sticky top-0 z-10"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800",
+    "grid_lines": "bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]",
+    "loading_state": "animate-pulse bg-zinc-800/50"
+  },
+  "libraries": {
+    "charts": {
+      "summary": "Recharts (Bar, Line, Scatter)",
+      "trace": "Plotly.js (via react-plotly.js) or Recharts (with heavy decimation for performance)",
+      "preferred_trace_lib": "react-plotly.js"
+    },
+    "icons": "Lucide React",
+    "toasts": "Sonner"
+  },
+  "image_urls": {
+    "empty_states": {
+      "upload": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop",
+      "analysis": "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=2680&auto=format&fit=crop"
+    }
+  },
+  "universal_guidelines": [
+    "Always use a dark theme by default.",
+    "Do not use rounded-xl or rounded-2xl; stick to rounded-sm or rounded-md for a technical feel.",
+    "Use 'JetBrains Mono' for all numerical values and data tables.",
+    "Ensure the trace viewer takes up the maximum available space.",
+    "Use 'Sonner' for notifications (file upload success, error).",
+    "Add data-testid to all interactive elements."
+  ],
+  "instructions_to_main_agent": [
+    "Install 'lucide-react', 'recharts', 'react-plotly.js', 'plotly.js', 'clsx', 'tailwind-merge' if not present.",
+    "Modify 'tailwind.config.js' to include the specific colors defined in 'colors' section.",
+    "Create a 'Layout' component that enforces the dark theme and strict spacing.",
+    "Implement the 'Trace Viewer' using Plotly for performance with large datasets, or Recharts if Plotly is too complex, but ensure decimation is used.",
+    "Use the 'Manrope' font for headers. Add it via Google Fonts in index.html or CSS."
+  ]
+}
