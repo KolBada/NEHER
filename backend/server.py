@@ -842,7 +842,7 @@ async def export_pdf(request: ExportRequest):
                 avg_ttp = np.mean([r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')])
                 avg_amp = np.mean([r['amplitude'] for r in valid if r.get('amplitude')])
                 
-                stats_text = f"Summary Statistics:\n"
+                stats_text = "Summary Statistics:\n"
                 stats_text += f"Average Peak BF: {avg_peak:.1f} bpm  |  "
                 stats_text += f"Average Time to Peak: {avg_ttp:.1f} s  |  "
                 stats_text += f"Average Amplitude: {avg_amp:.1f} bpm"
