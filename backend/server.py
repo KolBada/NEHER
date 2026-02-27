@@ -363,7 +363,6 @@ async def export_xlsx(request: ExportRequest):
     # Style definitions
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
-    data_fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
     thin_border = Border(
         left=Side(style='thin'),
         right=Side(style='thin'),
