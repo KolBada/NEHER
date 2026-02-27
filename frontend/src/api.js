@@ -11,9 +11,21 @@ const api = {
 
   detectBeats: (data) => axios.post(`${API_URL}/detect-beats`, data),
 
-  computeMetrics: (data) => axios.post(`${API_URL}/compute-metrics`, data),
+  computeMetrics: (data) => axios.post(`${API_URL}/compute-metrics`, {
+    beat_times_sec: data.beat_times_sec,
+    filter_lower_pct: data.filter_lower_pct || 50,
+    filter_upper_pct: data.filter_upper_pct || 200,
+  }),
 
-  hrvAnalysis: (data) => axios.post(`${API_URL}/hrv-analysis`, data),
+  hrvAnalysis: (data) => axios.post(`${API_URL}/hrv-analysis`, {
+    beat_times_min: data.beat_times_min,
+    bf_filtered: data.bf_filtered,
+    readout_minute: data.readout_minute,
+    baseline_hrv_start: data.baseline_hrv_start ?? 0,
+    baseline_hrv_end: data.baseline_hrv_end ?? 3,
+    baseline_bf_start: data.baseline_bf_start ?? 1,
+    baseline_bf_end: data.baseline_bf_end ?? 2,
+  }),
 
   lightDetect: (data) => axios.post(`${API_URL}/light-detect`, data),
 
