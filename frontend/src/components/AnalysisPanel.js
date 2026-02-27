@@ -177,18 +177,48 @@ export default function AnalysisPanel({
     }));
   }, [perMinuteData, hrvResults]);
 
-  // Get specific readouts
+  // Get specific readouts - use calculated drug readout time
   const hrvReadout = useMemo(() => {
-    if (!enableHrvReadout || !hrvReadoutMinute || !hrvResults?.windows) return null;
-    const minute = parseInt(hrvReadoutMinute);
-    return hrvResults.windows.find(w => w.minute === minute) || null;
-  }, [hrvResults, hrvReadoutMinute, enableHrvReadout]);
+    if (!enableHrvReadout || !hrvResults?.windows) return null;
+    // Calculate actual readout minute: base + perfusion start + perfusion time
+    const baseMinute = parseInt(hrvReadoutMinute) || 0;
+    let actualMinute = baseMinute;
+    
+    if (selectedDrugs?.length > 0) {
+      const firstDrugKey = selectedDrugs[0];
+      const settings = drugSettings?.[firstDrugKey] || {};
+      const perfusionStart = settings.perfusionStart ?? 3;
+      const perfusionTime = settings.perfusionTime ?? 3;
+      actualMinute = baseMinute + perfusionStart + perfusionTime;
+    }
+    
+    return {
+      data: hrvResults.windows.find(w => w.minute === actualMinute) || null,
+      requestedMinute: baseMinute,
+      actualMinute: actualMinute,
+    };
+  }, [hrvResults, hrvReadoutMinute, enableHrvReadout, selectedDrugs, drugSettings]);
 
   const bfReadout = useMemo(() => {
-    if (!enableBfReadout || !bfReadoutMinute || !perMinuteData) return null;
-    const minute = parseInt(bfReadoutMinute);
-    return perMinuteData.find(r => r.minute === minute) || null;
-  }, [perMinuteData, bfReadoutMinute, enableBfReadout]);
+    if (!enableBfReadout || !perMinuteData) return null;
+    // Calculate actual readout minute: base + perfusion start + perfusion time
+    const baseMinute = parseInt(bfReadoutMinute) || 0;
+    let actualMinute = baseMinute;
+    
+    if (selectedDrugs?.length > 0) {
+      const firstDrugKey = selectedDrugs[0];
+      const settings = drugSettings?.[firstDrugKey] || {};
+      const perfusionStart = settings.perfusionStart ?? 3;
+      const perfusionTime = settings.perfusionTime ?? 3;
+      actualMinute = baseMinute + perfusionStart + perfusionTime;
+    }
+    
+    return {
+      data: perMinuteData.find(r => r.minute === actualMinute) || null,
+      requestedMinute: baseMinute,
+      actualMinute: actualMinute,
+    };
+  }, [perMinuteData, bfReadoutMinute, enableBfReadout, selectedDrugs, drugSettings]);
 
   if (!metrics) return (
     <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">
