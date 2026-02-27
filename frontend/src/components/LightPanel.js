@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -57,11 +57,13 @@ export default function LightPanel({
   });
   const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
   const [localPulses, setLocalPulses] = useState(null);
+  const [originalPulses, setOriginalPulses] = useState(null);
 
   // Sync local pulses with prop
   useMemo(() => {
     if (pulses && !localPulses) {
       setLocalPulses(pulses);
+      setOriginalPulses(pulses);
     }
   }, [pulses, localPulses]);
 
@@ -82,43 +84,111 @@ export default function LightPanel({
     }));
   }, [metrics]);
 
-  // Handle pulse adjustment - update local state only (don't push to parent until "Apply Changes")
-  const handleAdjustPulse = useCallback((direction) => {
-    if (selectedPulseIdx === null || !displayPulses) return;
-    const step = 5; // 5 seconds adjustment
+  // Get beat times array for beat-by-beat navigation
+  const beatTimesMin = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.filtered_beat_times_min;
+  }, [metrics]);
+
+  // Find nearest beat index for a given time
+  const findNearestBeatIdx = useCallback((timeMin) => {
+    if (!beatTimesMin.length) return -1;
+    let nearestIdx = 0;
+    let nearestDist = Math.abs(beatTimesMin[0] - timeMin);
+    for (let i = 1; i < beatTimesMin.length; i++) {
+      const dist = Math.abs(beatTimesMin[i] - timeMin);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestIdx = i;
+      }
+    }
+    return nearestIdx;
+  }, [beatTimesMin]);
+
+  // Handle pulse adjustment by beats (+1/-1 beat)
+  const handleAdjustPulseByBeat = useCallback((beatDelta) => {
+    if (selectedPulseIdx === null || !displayPulses || !beatTimesMin.length) return;
     
+    const pulse = displayPulses[selectedPulseIdx];
+    const pulseDuration = pulse.end_min - pulse.start_min;
+    
+    // Find current start beat index
+    const currentBeatIdx = findNearestBeatIdx(pulse.start_min);
+    const newBeatIdx = Math.max(0, Math.min(beatTimesMin.length - 1, currentBeatIdx + beatDelta));
+    
+    const newStartMin = beatTimesMin[newBeatIdx];
+    const newEndMin = newStartMin + pulseDuration;
+    const delta = newStartMin - pulse.start_min;
+    
+    // Update this pulse and cascade to all future pulses
     const updatedPulses = displayPulses.map((p, i) => {
-      if (i === selectedPulseIdx) {
-        const newStartSec = p.start_sec + (direction * step);
-        const newEndSec = p.end_sec + (direction * step);
+      if (i < selectedPulseIdx) {
+        // Previous pulses stay the same
+        return p;
+      } else {
+        // This pulse and all future pulses shift by delta
+        const newStart = p.start_min + delta;
+        const newEnd = p.end_min + delta;
         return {
           ...p,
-          start_sec: newStartSec,
-          end_sec: newEndSec,
-          start_min: newStartSec / 60.0,
-          end_min: newEndSec / 60.0,
+          start_sec: newStart * 60,
+          end_sec: newEnd * 60,
+          start_min: newStart,
+          end_min: newEnd,
         };
       }
-      return p;
     });
     
     setLocalPulses(updatedPulses);
-    // Don't call onPulsesUpdate here - wait for "Apply Changes" button
+  }, [selectedPulseIdx, displayPulses, beatTimesMin, findNearestBeatIdx]);
+
+  // Handle pulse adjustment by fixed seconds (for coarse adjustment)
+  const handleAdjustPulseBySeconds = useCallback((secondsDelta) => {
+    if (selectedPulseIdx === null || !displayPulses) return;
+    
+    const pulse = displayPulses[selectedPulseIdx];
+    const delta = secondsDelta / 60.0; // Convert to minutes
+    
+    // Update this pulse and cascade to all future pulses
+    const updatedPulses = displayPulses.map((p, i) => {
+      if (i < selectedPulseIdx) {
+        return p;
+      } else {
+        const newStart = p.start_min + delta;
+        const newEnd = p.end_min + delta;
+        return {
+          ...p,
+          start_sec: newStart * 60,
+          end_sec: newEnd * 60,
+          start_min: newStart,
+          end_min: newEnd,
+        };
+      }
+    });
+    
+    setLocalPulses(updatedPulses);
   }, [selectedPulseIdx, displayPulses]);
 
   // Reset pulses to original detection
   const handleResetPulses = useCallback(() => {
-    setLocalPulses(null);
+    setLocalPulses(originalPulses);
     setSelectedPulseIdx(null);
-  }, []);
+  }, [originalPulses]);
 
   // Apply local pulses changes
   const handleApplyPulseChanges = useCallback(() => {
     if (localPulses && onPulsesUpdate) {
       onPulsesUpdate(localPulses);
+      setOriginalPulses(localPulses);
     }
     setSelectedPulseIdx(null);
   }, [localPulses, onPulsesUpdate]);
+
+  // Check if pulses have been modified
+  const pulsesModified = useMemo(() => {
+    if (!localPulses || !originalPulses) return false;
+    return JSON.stringify(localPulses) !== JSON.stringify(originalPulses);
+  }, [localPulses, originalPulses]);
 
   // Median light-induced HRV
   const medianHrv = lightHrv?.final;
@@ -174,7 +244,7 @@ export default function LightPanel({
                       {displayPulses.length} pulses detected
                     </Badge>
                   )}
-                  {localPulses && localPulses !== pulses && (
+                  {pulsesModified && (
                     <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
                       Modified
                     </Badge>
@@ -231,28 +301,55 @@ export default function LightPanel({
                 {selectedPulseIdx !== null && displayPulses && (
                   <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm border border-zinc-800">
                     <span className="text-[10px] text-zinc-400">
-                      Adjust Stim {selectedPulseIdx + 1}:
+                      Stim {selectedPulseIdx + 1}:
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                      onClick={() => handleAdjustPulse(-1)}
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
+                    
+                    {/* Beat-by-beat adjustment */}
+                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
+                      <span className="text-[9px] text-zinc-500">Beat:</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustPulseByBeat(-1)}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustPulseByBeat(1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
+                    {/* Coarse adjustment (5s) */}
+                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
+                      <span className="text-[9px] text-zinc-500">±5s:</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustPulseBySeconds(-5)}
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustPulseBySeconds(5)}
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
                     <span className="text-[10px] font-data text-yellow-400 min-w-[100px] text-center">
                       {formatTimeMinSec(displayPulses[selectedPulseIdx].start_min)} - {formatTimeMinSec(displayPulses[selectedPulseIdx].end_min)}
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                      onClick={() => handleAdjustPulse(1)}
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-4 bg-zinc-700" />
+                    
                     <Button
                       variant="ghost"
                       size="sm"
@@ -264,8 +361,15 @@ export default function LightPanel({
                   </div>
                 )}
                 
+                {/* Info about cascade */}
+                {selectedPulseIdx !== null && selectedPulseIdx < (displayPulses?.length || 0) - 1 && (
+                  <p className="text-[9px] text-zinc-600 text-center mt-1">
+                    Note: Moving this pulse will automatically shift all following pulses to maintain intervals.
+                  </p>
+                )}
+                
                 {/* Apply/Reset buttons when modified */}
-                {localPulses && localPulses !== pulses && (
+                {pulsesModified && (
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <Button
                       variant="outline"
@@ -379,6 +483,7 @@ export default function LightPanel({
                   className="h-7 text-xs rounded-sm bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
                   onClick={() => {
                     setLocalPulses(null);
+                    setOriginalPulses(null);
                     onDetectPulses(localParams);
                   }}
                   disabled={loading}
