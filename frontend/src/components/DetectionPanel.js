@@ -1,20 +1,26 @@
-import { Loader2, RefreshCw, Check, RotateCcw } from 'lucide-react';
+import { Loader2, RefreshCw, Check, RotateCcw, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 export default function DetectionPanel({
   params, onChange, signalStats,
   onDetect, onValidate, onUnvalidate,
-  isValidated, detectLoading, beats
+  isValidated, detectLoading, beats,
+  filterParams, onFilterChange
 }) {
   const stats = signalStats || { min: -10, max: 10, mean: 0, std: 1 };
   const minDist = params.minDistance || 0.3;
   const threshold = params.threshold;
   const prominence = params.prominence;
+  
+  // Filter strictness defaults
+  const filterLower = filterParams?.lowerPct ?? 50;
+  const filterUpper = filterParams?.upperPct ?? 200;
 
   return (
     <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm" data-testid="detection-panel">
@@ -93,6 +99,75 @@ export default function DetectionPanel({
             step={0.001}
             disabled={isValidated}
           />
+        </div>
+
+        <Separator className="bg-zinc-800" />
+        
+        {/* Artifact Filter Strictness */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Filter className="w-3 h-3 text-zinc-500" />
+            <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Artifact Filter</p>
+          </div>
+          <p className="text-[9px] text-zinc-500">
+            Keep beats where BF is within {filterLower}% - {filterUpper}% of local median
+          </p>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-zinc-400">Lower Bound (%)</Label>
+              <span className="text-[10px] font-data text-zinc-300">{filterLower}%</span>
+            </div>
+            <Slider
+              data-testid="filter-lower-slider"
+              value={[filterLower]}
+              onValueChange={(v) => onFilterChange?.({ ...filterParams, lowerPct: v[0] })}
+              min={10}
+              max={90}
+              step={5}
+              disabled={isValidated}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-zinc-400">Upper Bound (%)</Label>
+              <span className="text-[10px] font-data text-zinc-300">{filterUpper}%</span>
+            </div>
+            <Slider
+              data-testid="filter-upper-slider"
+              value={[filterUpper]}
+              onValueChange={(v) => onFilterChange?.({ ...filterParams, upperPct: v[0] })}
+              min={110}
+              max={300}
+              step={5}
+              disabled={isValidated}
+            />
+          </div>
+          
+          <div className="flex gap-1 flex-wrap">
+            <Badge 
+              variant="outline" 
+              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              onClick={() => !isValidated && onFilterChange?.({ lowerPct: 50, upperPct: 200 })}
+            >
+              Default (50-200%)
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              onClick={() => !isValidated && onFilterChange?.({ lowerPct: 70, upperPct: 150 })}
+            >
+              Strict (70-150%)
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              onClick={() => !isValidated && onFilterChange?.({ lowerPct: 30, upperPct: 250 })}
+            >
+              Loose (30-250%)
+            </Badge>
+          </div>
         </div>
 
         <Separator className="bg-zinc-800" />
