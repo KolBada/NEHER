@@ -208,13 +208,25 @@ def per_minute_aggregation(beat_times_min, bf_filtered, nn_70):
     """
     Compute minute-by-minute summaries across the recording.
     Returns list of per-minute rows with mean BF, mean NN, mean NN_70.
+    
+    Note: beat_times_min has N values, bf_filtered and nn_70 have N-1 values.
+    We use beat_times_min[:-1] to align.
     """
-    bt = np.array(beat_times_min, dtype=np.float64)
+    # Align arrays - BF/NN arrays are N-1 (intervals), beat times are N
     bf = np.array(bf_filtered, dtype=np.float64)
     nn70 = np.array(nn_70, dtype=np.float64)
     
+    # Use beat_times_min[:-1] to align with intervals
+    if len(beat_times_min) > len(bf):
+        bt = np.array(beat_times_min[:len(bf)], dtype=np.float64)
+    else:
+        bt = np.array(beat_times_min, dtype=np.float64)
+    
     # Compute NN from BF for valid values
     nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
+    
+    if len(bt) == 0:
+        return []
     
     t_start = int(np.floor(bt[0]))
     t_end = int(np.floor(bt[-1]))
