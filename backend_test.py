@@ -15,7 +15,7 @@ class ElectroPhysiologyAPITester:
         self.test_results = []
         
         # Check for test file
-        self.test_file_path = "/tmp/test_recording.abf"
+        self.test_file_path = "/tmp/user_file.abf"
         if not os.path.exists(self.test_file_path):
             print(f"❌ Test file not found at {self.test_file_path}")
             sys.exit(1)
