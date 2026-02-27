@@ -37,15 +37,19 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - [x] **Configurable baseline metrics** (HRV 0-3min, BF 1-2min defaults)
 - [x] **Separate HRV and BF readout controls** with enable/disable checkboxes
 - [x] Baseline readout prominently displayed, drug readout smaller on right
+- [x] **Popover info tooltips** for SDNN, RMSSD, pNN50 explaining 3-min window
+- [x] **Popover explaining baseline vs per-minute difference**
 
 ### Light Stimulation (Light Induced HRA)
 - [x] **Enable/disable toggle** for light stimulation analysis
 - [x] Light stimulation mode with configurable pulses (start, duration, intervals)
 - [x] Improved auto-detection algorithm (finds BF rise above baseline)
 - [x] **BPM vs time chart with min:sec X-axis formatting** (e.g., "3min30s")
-- [x] **Pulse region highlighting** on trace and BF charts
-- [x] **Pulse modification** - click to select, left/right arrows to adjust timing
-- [x] "Modified" badge and "Apply Changes & Recompute" button when pulses adjusted
+- [x] **Light pulse highlights on main trace** with "Stim N" labels
+- [x] **Beat-by-beat pulse adjustment** (+1/-1 beat buttons)
+- [x] **±5s coarse adjustment** buttons
+- [x] **Cascade to future pulses** - moving one pulse shifts all following to maintain intervals
+- [x] "Modified" badge and "Apply Changes & Recompute" button
 - [x] Renamed to **"Light Induced HRA (Heart Rate Adaptation)"**
 - [x] Per-stim metrics: Beats, BF, NN, NN₇₀
 - [x] Response metrics using BPM: peak BF, normalized peak, time to peak
@@ -54,17 +58,17 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ### Recording Metadata & Drug Configuration
 - [x] **Recording name input field**
-- [x] **Drug configuration with 6 options**:
+- [x] **Drug configuration with 5 predefined options + Other**:
   - Propranolol (5µM, BF@12min, HRV@10min)
   - Nepicastat (30µM, BF@42min, HRV@40min)
   - Tetrodotoxin (1µM, BF@12min, HRV@10min)
   - Acetylcholine (1µM, BF@3min, HRV@2min)
   - Isoproterenol (1µM, manual peak selection)
-  - Other (custom drug name)
-- [x] **Editable drug concentrations**
+- [x] **Editable drug concentrations in µM**
 - [x] **Multiple drug selection** with checkboxes
-- [x] **Perfusion timing inputs** (start time, perfusion time)
-- [x] Default readout times displayed as badges
+- [x] **Independent perfusion settings per drug** (start and time)
+- [x] **Default perfusion: start=3min, time=3min**
+- [x] **Multiple "Other" drugs** can be added with custom names and concentrations
 
 ### UI/UX
 - [x] **App renamed to NeuCarS** (from NeuroVoltage)
@@ -114,3 +118,4 @@ All core workflow features implemented and tested.
 - `/app/frontend/src/App.js` - Main React component with drug config
 - `/app/frontend/src/components/LightPanel.js` - Light Induced HRA
 - `/app/frontend/src/components/AnalysisPanel.js` - HRV with baseline
+- `/app/frontend/src/components/TraceViewer.js` - Trace with pulse highlights
