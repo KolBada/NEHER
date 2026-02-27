@@ -1,0 +1,79 @@
+{
+  "summary": "Completed iteration 8 testing of NeuCarS Cardiac Electrophysiology Analysis Platform. All features verified working: 1) Baseline HRV defaults to minute 0 (0-3min window), BF defaults to minute 1 (1-2min window), 2) Drug readout time calculation: base + perfusionStart + perfusionTime with visual badge showing calculated minute, 3) Light Stim pulse highlights visible on trace and PDF export, 4) ExportRequest includes light_pulses field for PDF chart zones, 5) All backend APIs working correctly with 37/37 tests passing.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "✅ Backend /api/ returns 'NeuCarS API' (200 OK)",
+    "✅ Backend /api/compute-metrics calculates metrics with artifact filter (±5 beat local median)",
+    "✅ Backend /api/hrv-analysis computes baseline HRV (0-3min default) and BF (1-2min default)",
+    "✅ Backend /api/hrv-analysis accepts custom baseline_hrv_start, baseline_hrv_end, baseline_bf_start, baseline_bf_end",
+    "✅ Backend /api/export/pdf accepts light_pulses field and generates PDF with light stim zones",
+    "✅ Backend /api/export/pdf handles empty/null light_pulses gracefully",
+    "✅ Backend /api/export/xlsx accepts light_pulses field",
+    "✅ Backend /api/light-detect generates 5 pulses with decreasing intervals (60s-30s-20s-10s)",
+    "✅ Backend /api/light-detect returns pulses with both start_sec/end_sec and start_min/end_min",
+    "✅ Backend /api/per-minute-metrics returns per-minute aggregation aligned with baseline",
+    "✅ Frontend loads NeuCarS upload page",
+    "✅ Frontend AnalysisPanel baseline settings show HRV (min) 0-3, BF (min) 1-2 by default",
+    "✅ Frontend Drug Readout section displays formula 'Time = Base + Perf.Start + Perf.Time'",
+    "✅ Frontend Drug Readout calculation badge shows actual minute (e.g., 12+3+3 = → 18min)",
+    "✅ Frontend LightPanel shows BPM trace with detected pulse regions highlighted",
+    "✅ Frontend LightPanel shows detected intervals: 60s → 30s → 20s → 10s",
+    "✅ Frontend Drug configuration inputs work (concentration, perfusion start/time)",
+    "✅ Frontend Export panel shows CSV, Excel, PDF buttons with summary preview",
+    "✅ All 37 pytest backend tests pass (100%)"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_electrophysiology_api.py",
+    "/app/backend/tests/test_iteration7_features.py",
+    "/app/backend/tests/test_iteration8_features.py",
+    "/app/test_reports/pytest/pytest_results_iter8.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Code quality is good - baseline defaults correctly set in AnalysisPanel.js (lines 105-108)",
+    "Drug readout calculation correctly implements base + perfusionStart + perfusionTime (lines 129-131)",
+    "PDF export correctly adds light stim zones using axvspan (server.py lines 729-755)",
+    "ExportRequest model includes light_pulses field (server.py line 94)",
+    "buildExportData in App.js correctly passes light_pulses (line 464)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_iteration8_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (37/37 tests passed)",
+    "frontend": "100% (all requested features verified working)"
+  },
+
+  "seed_data_creation": "Used pyABF sample file (model_vc_step.abf) for UI testing - note this is electrophysiology step data, not real cardiac data, so HRV values appear unusual",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All iteration 8 features verified: 1) Baseline defaults: HRV window 0-3min (computed at minute 0), BF window 1-2min (computed at minute 1), 2) Drug readout calculation working: base + perfusionStart + perfusionTime with visual badge, 3) Light pulses field added to ExportRequest for PDF export, 4) PDF export adds light stim zones to BF and NN charts using axvspan, 5) Light Stim panel shows BPM trace with pulse ReferenceArea regions. For real HRV testing, use actual cardiac ABF files - the test sample is electrophysiology step data.",
+
+  "features_verified": {
+    "baseline_hrv_at_minute_0": "Working - HRV (min) default 0-3 in AnalysisPanel",
+    "baseline_bf_at_minute_1": "Working - BF (min) default 1-2 in AnalysisPanel",
+    "drug_readout_calculation": "Working - shows base + perfusionStart + perfusionTime with → Xmin badge",
+    "light_stim_pulse_highlights": "Working - ReferenceArea in LightPanel chart",
+    "pdf_export_light_zones": "Working - axvspan added to BF and NN charts",
+    "xlsx_export_light_data": "Working - accepts light_pulses field",
+    "per_minute_table_alignment": "Working - values align with baseline at corresponding minutes"
+  }
+}
