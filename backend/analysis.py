@@ -100,15 +100,19 @@ def compute_beat_metrics(beat_times_sec):
     return beat_times_min.tolist(), nn_intervals_ms.tolist(), beat_freq_bpm.tolist()
 
 
-def artifact_filter(beat_freq, window_half=5):
+def artifact_filter(beat_freq, window_half=5, lower_pct=50, upper_pct=200):
     """
     Apply local median filtering on beat frequency.
-    Keep beats where 0.5 * median <= BF <= 2.0 * median.
+    Keep beats where (lower_pct/100) * median <= BF <= (upper_pct/100) * median.
+    Default: 50-200% of local median.
     Returns: mask (list of bool).
     """
     bf = np.array(beat_freq, dtype=np.float64)
     n = len(bf)
     mask = np.ones(n, dtype=bool)
+    
+    lower_mult = lower_pct / 100.0
+    upper_mult = upper_pct / 100.0
 
     for k in range(n):
         start = max(0, k - window_half)
@@ -117,7 +121,7 @@ def artifact_filter(beat_freq, window_half=5):
         if local_median <= 0:
             mask[k] = False
             continue
-        if not (0.5 * local_median <= bf[k] <= 2.0 * local_median):
+        if not (lower_mult * local_median <= bf[k] <= upper_mult * local_median):
             mask[k] = False
 
     return mask.tolist()
