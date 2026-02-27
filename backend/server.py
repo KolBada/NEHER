@@ -529,139 +529,195 @@ async def export_pdf(request: ExportRequest):
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
     from datetime import datetime
+    import matplotlib.font_manager as fm
+
+    # CELL magazine style settings
+    plt.rcParams.update({
+        'font.family': 'sans-serif',
+        'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
+        'font.size': 10,
+        'axes.labelsize': 11,
+        'axes.titlesize': 12,
+        'axes.linewidth': 1,
+        'xtick.labelsize': 9,
+        'ytick.labelsize': 9,
+        'legend.fontsize': 9,
+        'figure.titlesize': 14,
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+    })
 
     buf = io.BytesIO()
     with PdfPages(buf) as pdf:
-        # Page 1: Title and Summary
-        fig1 = plt.figure(figsize=(11, 8.5))
+        # Page 1: Title and Summary (CELL style)
+        fig1 = plt.figure(figsize=(8.5, 11))
         fig1.patch.set_facecolor('white')
         
-        # Title
+        # Title section
         title = request.recording_name or request.filename or 'Electrophysiology Analysis'
-        fig1.text(0.5, 0.92, title, ha='center', fontsize=18, fontweight='bold')
-        fig1.text(0.5, 0.88, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', 
-                  ha='center', fontsize=10, color='gray')
+        fig1.text(0.5, 0.95, title, ha='center', fontsize=20, fontweight='bold', color='#1a1a1a')
+        fig1.text(0.5, 0.92, 'Cardiac Electrophysiology Analysis Report', 
+                  ha='center', fontsize=12, color='#4a4a4a', style='italic')
+        fig1.text(0.5, 0.89, f'Generated: {datetime.now().strftime("%B %d, %Y at %H:%M")}', 
+                  ha='center', fontsize=9, color='#6a6a6a')
         
         if request.drug_used:
-            fig1.text(0.5, 0.84, f'Drug: {request.drug_used}', ha='center', fontsize=11, 
-                      style='italic', color='#6B46C1')
-        
-        # Summary table
-        if request.summary:
-            ax1 = fig1.add_axes([0.15, 0.35, 0.7, 0.4])
-            ax1.axis('off')
+            fig1.text(0.5, 0.86, f'Treatment: {request.drug_used}', ha='center', fontsize=11, 
+                      fontweight='bold', color='#7c3aed')
+
+        # Summary metrics in a clean table format
+        if request.baseline or request.summary:
+            ax_summary = fig1.add_axes([0.1, 0.45, 0.8, 0.35])
+            ax_summary.axis('off')
             
-            table_data = [[k, str(v) if v is not None else '—'] for k, v in request.summary.items()]
-            table = ax1.table(
-                cellText=table_data,
-                colLabels=['Metric', 'Value'],
-                loc='center',
-                cellLoc='left',
-                colWidths=[0.5, 0.5]
-            )
-            table.auto_set_font_size(False)
-            table.set_fontsize(10)
-            table.scale(1.2, 1.8)
+            # Build summary data
+            summary_rows = []
             
-            # Style header
-            for (row, col), cell in table.get_celld().items():
-                if row == 0:
-                    cell.set_text_props(fontweight='bold', color='white')
-                    cell.set_facecolor('#1E3A5F')
-                else:
-                    cell.set_facecolor('#F8F9FA' if row % 2 == 0 else 'white')
-        
-        # Baseline section if available
-        if request.baseline:
-            ax_baseline = fig1.add_axes([0.15, 0.08, 0.7, 0.2])
-            ax_baseline.axis('off')
-            ax_baseline.text(0, 0.9, 'Baseline Metrics', fontsize=12, fontweight='bold')
+            if request.baseline:
+                b = request.baseline
+                if b.get('baseline_bf'):
+                    summary_rows.append(['Baseline BF', f"{b['baseline_bf']:.1f} bpm", b.get('baseline_bf_range', '1-2 min')])
+                if b.get('baseline_ln_rmssd70'):
+                    summary_rows.append(['Baseline ln(RMSSD₇₀)', f"{b['baseline_ln_rmssd70']:.3f}", b.get('baseline_hrv_range', '0-3 min')])
+                if b.get('baseline_rmssd70'):
+                    summary_rows.append(['Baseline RMSSD₇₀', f"{b['baseline_rmssd70']:.2f} ms", ''])
+                if b.get('baseline_sdnn'):
+                    summary_rows.append(['Baseline SDNN', f"{b['baseline_sdnn']:.2f} ms", ''])
+                if b.get('baseline_pnn50') is not None:
+                    summary_rows.append(['Baseline pNN50', f"{b['baseline_pnn50']:.1f}%", ''])
             
-            baseline_text = []
-            if request.baseline.get('baseline_bf'):
-                baseline_text.append(f"BF ({request.baseline.get('baseline_bf_range', '1-2 min')}): {request.baseline['baseline_bf']:.1f} bpm")
-            if request.baseline.get('baseline_ln_rmssd70'):
-                baseline_text.append(f"ln(RMSSD₇₀) ({request.baseline.get('baseline_hrv_range', '0-3 min')}): {request.baseline['baseline_ln_rmssd70']:.3f}")
-            if request.baseline.get('baseline_sdnn'):
-                baseline_text.append(f"SDNN: {request.baseline['baseline_sdnn']:.2f} ms")
+            if request.summary:
+                for k, v in request.summary.items():
+                    if v is not None and k not in ['Recording Name', 'Drug(s) Used']:
+                        summary_rows.append([k, str(v), ''])
             
-            ax_baseline.text(0, 0.5, '\n'.join(baseline_text), fontsize=10, color='#374151')
+            if summary_rows:
+                table = ax_summary.table(
+                    cellText=summary_rows,
+                    colLabels=['Metric', 'Value', 'Time Window'],
+                    loc='center',
+                    cellLoc='left',
+                    colWidths=[0.4, 0.3, 0.3]
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(10)
+                table.scale(1.0, 2.0)
+                
+                # CELL style table formatting
+                for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor('#e0e0e0')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_facecolor('#2563eb')
+                        cell.set_height(0.08)
+                    else:
+                        cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f8fafc')
+                        cell.set_height(0.06)
+
+        # Footer
+        fig1.text(0.5, 0.02, 'NeuCarS - Cardiac Electrophysiology Analysis Platform', 
+                  ha='center', fontsize=8, color='#9ca3af')
         
         pdf.savefig(fig1)
         plt.close(fig1)
 
-        # Page 2: BF and NN plots
+        # Page 2: BF and NN plots (ONLY KEPT BEATS - exclude filtered)
         if request.per_beat_data:
-            fig2, axes = plt.subplots(2, 1, figsize=(11, 8.5))
-            fig2.suptitle('Beat Frequency and NN Intervals', fontsize=14, fontweight='bold')
+            fig2, axes = plt.subplots(2, 1, figsize=(8.5, 11))
+            fig2.suptitle('Beat Frequency and NN Intervals (Filtered Data Only)', fontsize=14, fontweight='bold', y=0.96)
             
-            times = [r.get('time_min', 0) for r in request.per_beat_data]
-            bfs = [r.get('bf_bpm', 0) for r in request.per_beat_data]
-            nns = [r.get('nn_ms', 0) for r in request.per_beat_data]
-            statuses = [r.get('status', 'kept') for r in request.per_beat_data]
+            # Filter to only kept beats
+            kept_data = [r for r in request.per_beat_data if r.get('status') == 'kept']
             
-            # Color by status
-            colors_bf = ['#22D3EE' if s == 'kept' else '#EF4444' for s in statuses]
-            colors_nn = ['#A3E635' if s == 'kept' else '#EF4444' for s in statuses]
+            if kept_data:
+                times = [r.get('time_min', 0) for r in kept_data]
+                bfs = [r.get('bf_bpm', 0) for r in kept_data]
+                nns = [r.get('nn_ms', 0) for r in kept_data]
 
-            axes[0].scatter(times, bfs, c=colors_bf, s=2, alpha=0.7)
-            axes[0].set_xlabel('Time (min)', fontsize=10)
-            axes[0].set_ylabel('Beat Frequency (bpm)', fontsize=10)
-            axes[0].set_title('Beat Frequency vs Time (cyan=kept, red=filtered)', fontsize=10)
-            axes[0].grid(True, alpha=0.3)
-            axes[0].set_facecolor('#FAFAFA')
+                # BF plot - clean CELL style
+                axes[0].plot(times, bfs, 'o-', color='#0ea5e9', markersize=2, linewidth=0.8, alpha=0.8)
+                axes[0].set_xlabel('Time (min)', fontsize=11)
+                axes[0].set_ylabel('Beat Frequency (bpm)', fontsize=11)
+                axes[0].set_title('Beat Frequency Evolution', fontsize=12, fontweight='bold', pad=10)
+                axes[0].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+                axes[0].set_facecolor('#fafafa')
+                axes[0].spines['top'].set_visible(False)
+                axes[0].spines['right'].set_visible(False)
 
-            axes[1].scatter(times, nns, c=colors_nn, s=2, alpha=0.7)
-            axes[1].set_xlabel('Time (min)', fontsize=10)
-            axes[1].set_ylabel('NN Interval (ms)', fontsize=10)
-            axes[1].set_title('NN Intervals vs Time (green=kept, red=filtered)', fontsize=10)
-            axes[1].grid(True, alpha=0.3)
-            axes[1].set_facecolor('#FAFAFA')
+                # NN plot - clean CELL style
+                axes[1].plot(times, nns, 'o-', color='#22c55e', markersize=2, linewidth=0.8, alpha=0.8)
+                axes[1].set_xlabel('Time (min)', fontsize=11)
+                axes[1].set_ylabel('NN Interval (ms)', fontsize=11)
+                axes[1].set_title('NN Interval Evolution', fontsize=12, fontweight='bold', pad=10)
+                axes[1].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+                axes[1].set_facecolor('#fafafa')
+                axes[1].spines['top'].set_visible(False)
+                axes[1].spines['right'].set_visible(False)
 
-            plt.tight_layout()
+            plt.tight_layout(rect=[0, 0.02, 1, 0.94])
             pdf.savefig(fig2)
             plt.close(fig2)
 
-        # Page 3: HRV evolution
+        # Page 3: HRV evolution with FIXED Y-AXIS SCALES
         if request.hrv_windows:
-            fig3, axes3 = plt.subplots(3, 1, figsize=(11, 8.5))
-            fig3.suptitle('HRV Evolution (3-min Sliding Windows, Normalized to 70 bpm)', 
-                          fontsize=14, fontweight='bold')
+            fig3, axes3 = plt.subplots(3, 1, figsize=(8.5, 11))
+            fig3.suptitle('HRV Metrics Evolution\n(3-min Sliding Windows, Normalized to 70 bpm)', 
+                          fontsize=14, fontweight='bold', y=0.97)
             
             minutes = [w.get('minute', 0) for w in request.hrv_windows]
             ln_rmssd = [w.get('ln_rmssd70') for w in request.hrv_windows]
             sdnn = [w.get('sdnn', 0) for w in request.hrv_windows]
             pnn50 = [w.get('pnn50', 0) for w in request.hrv_windows]
 
-            axes3[0].plot(minutes, ln_rmssd, 'o-', color='#22D3EE', markersize=4, linewidth=1.5)
-            axes3[0].set_ylabel('ln(RMSSD₇₀)', fontsize=10)
-            axes3[0].grid(True, alpha=0.3)
-            axes3[0].set_facecolor('#FAFAFA')
+            # ln(RMSSD) - FIXED Y-AXIS 0-8
+            axes3[0].plot(minutes, ln_rmssd, 'o-', color='#0ea5e9', markersize=4, linewidth=1.5)
+            axes3[0].fill_between(minutes, ln_rmssd, alpha=0.2, color='#0ea5e9')
+            axes3[0].set_ylabel('ln(RMSSD₇₀)', fontsize=11, fontweight='bold')
+            axes3[0].set_ylim(0, 8)  # FIXED Y-AXIS
+            axes3[0].set_title('Parasympathetic Activity Index', fontsize=11, pad=10)
+            axes3[0].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+            axes3[0].set_facecolor('#fafafa')
+            axes3[0].spines['top'].set_visible(False)
+            axes3[0].spines['right'].set_visible(False)
 
-            axes3[1].plot(minutes, sdnn, 'o-', color='#C084FC', markersize=4, linewidth=1.5)
-            axes3[1].set_ylabel('SDNN (ms)', fontsize=10)
-            axes3[1].grid(True, alpha=0.3)
-            axes3[1].set_facecolor('#FAFAFA')
+            # SDNN - FIXED Y-AXIS 0-300
+            axes3[1].plot(minutes, sdnn, 'o-', color='#a855f7', markersize=4, linewidth=1.5)
+            axes3[1].fill_between(minutes, sdnn, alpha=0.2, color='#a855f7')
+            axes3[1].set_ylabel('SDNN (ms)', fontsize=11, fontweight='bold')
+            axes3[1].set_ylim(0, 300)  # FIXED Y-AXIS
+            axes3[1].set_title('Overall HRV', fontsize=11, pad=10)
+            axes3[1].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+            axes3[1].set_facecolor('#fafafa')
+            axes3[1].spines['top'].set_visible(False)
+            axes3[1].spines['right'].set_visible(False)
 
-            axes3[2].plot(minutes, pnn50, 'o-', color='#FB923C', markersize=4, linewidth=1.5)
-            axes3[2].set_xlabel('Window Start (min)', fontsize=10)
-            axes3[2].set_ylabel('pNN50 (%)', fontsize=10)
-            axes3[2].grid(True, alpha=0.3)
-            axes3[2].set_facecolor('#FAFAFA')
+            # pNN50 - FIXED Y-AXIS 0-100
+            axes3[2].plot(minutes, pnn50, 'o-', color='#f97316', markersize=4, linewidth=1.5)
+            axes3[2].fill_between(minutes, pnn50, alpha=0.2, color='#f97316')
+            axes3[2].set_xlabel('Window Start (min)', fontsize=11)
+            axes3[2].set_ylabel('pNN50 (%)', fontsize=11, fontweight='bold')
+            axes3[2].set_ylim(0, 100)  # FIXED Y-AXIS
+            axes3[2].set_title('Beat-to-Beat Variability', fontsize=11, pad=10)
+            axes3[2].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+            axes3[2].set_facecolor('#fafafa')
+            axes3[2].spines['top'].set_visible(False)
+            axes3[2].spines['right'].set_visible(False)
 
-            plt.tight_layout()
+            plt.tight_layout(rect=[0, 0.02, 1, 0.93])
             pdf.savefig(fig3)
             plt.close(fig3)
 
-        # Page 4: Light Response (if available)
+        # Page 4: Light Response (CELL magazine style table)
         if request.light_response:
             valid = [m for m in request.light_response if m is not None]
             if valid:
-                fig4, ax4 = plt.subplots(figsize=(11, 8.5))
-                fig4.suptitle('Light Stimulation Response', fontsize=14, fontweight='bold')
+                fig4 = plt.figure(figsize=(8.5, 11))
+                fig4.suptitle('Light Stimulation Response Analysis', fontsize=14, fontweight='bold', y=0.96)
+                
+                ax4 = fig4.add_axes([0.08, 0.4, 0.84, 0.45])
                 ax4.axis('off')
                 
-                headers = ['Stim', 'Beats', 'BF', 'Peak BF', 'Peak %', 'Time to Peak', 'Amplitude']
+                headers = ['Stim #', 'Beats', 'Avg BF\n(bpm)', 'Peak BF\n(bpm)', 'Peak\n(%)', 'Time to\nPeak (s)', 'Amplitude\n(bpm)']
                 table_data = []
                 for i, row in enumerate(valid):
                     table_data.append([
@@ -669,8 +725,8 @@ async def export_pdf(request: ExportRequest):
                         str(row.get('n_beats', 0)),
                         f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
                         f"{row.get('peak_bf', 0):.1f}",
-                        f"{row.get('peak_norm_pct', 0):.1f}%" if row.get('peak_norm_pct') else '—',
-                        f"{row.get('time_to_peak_sec', 0):.1f}s",
+                        f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—',
+                        f"{row.get('time_to_peak_sec', 0):.1f}",
                         f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—',
                     ])
                 
@@ -678,21 +734,89 @@ async def export_pdf(request: ExportRequest):
                     cellText=table_data,
                     colLabels=headers,
                     loc='center',
-                    cellLoc='center'
+                    cellLoc='center',
+                    colWidths=[0.1, 0.1, 0.14, 0.14, 0.12, 0.14, 0.14]
                 )
                 table.auto_set_font_size(False)
-                table.set_fontsize(10)
-                table.scale(1.2, 2.0)
+                table.set_fontsize(9)
+                table.scale(1.0, 2.5)
                 
+                # CELL style formatting
                 for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor('#d1d5db')
                     if row == 0:
                         cell.set_text_props(fontweight='bold', color='white')
-                        cell.set_facecolor('#B45309')
+                        cell.set_facecolor('#d97706')
+                        cell.set_height(0.1)
                     else:
-                        cell.set_facecolor('#FEF3C7' if row % 2 == 0 else 'white')
+                        cell.set_facecolor('#fffbeb' if row % 2 == 0 else '#ffffff')
+                        cell.set_height(0.07)
+                
+                # Add summary stats below table
+                ax_stats = fig4.add_axes([0.1, 0.15, 0.8, 0.15])
+                ax_stats.axis('off')
+                
+                # Calculate averages
+                avg_peak = np.mean([r['peak_bf'] for r in valid if r.get('peak_bf')])
+                avg_ttp = np.mean([r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')])
+                avg_amp = np.mean([r['amplitude'] for r in valid if r.get('amplitude')])
+                
+                stats_text = f"Summary Statistics:\n"
+                stats_text += f"Average Peak BF: {avg_peak:.1f} bpm  |  "
+                stats_text += f"Average Time to Peak: {avg_ttp:.1f} s  |  "
+                stats_text += f"Average Amplitude: {avg_amp:.1f} bpm"
+                ax_stats.text(0.5, 0.5, stats_text, ha='center', va='center', fontsize=10, 
+                             fontweight='bold', color='#374151',
+                             bbox=dict(boxstyle='round,pad=0.5', facecolor='#f3f4f6', edgecolor='#d1d5db'))
                 
                 pdf.savefig(fig4)
                 plt.close(fig4)
+
+        # Page 5: Light HRV metrics (if available)
+        if request.light_metrics:
+            valid_hrv = [m for m in request.light_metrics if m is not None]
+            if valid_hrv:
+                fig5 = plt.figure(figsize=(8.5, 11))
+                fig5.suptitle('Light-Induced HRV Analysis', fontsize=14, fontweight='bold', y=0.96)
+                
+                ax5 = fig5.add_axes([0.1, 0.5, 0.8, 0.35])
+                ax5.axis('off')
+                
+                headers = ['Pulse #', 'RMSSD₇₀\n(ms)', 'ln(RMSSD₇₀)', 'SDNN\n(ms)', 'pNN50\n(%)', 'Beats']
+                table_data = []
+                for i, row in enumerate(valid_hrv):
+                    table_data.append([
+                        str(i + 1),
+                        f"{row.get('rmssd70', 0):.2f}",
+                        f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
+                        f"{row.get('sdnn', 0):.2f}",
+                        f"{row.get('pnn50', 0):.1f}",
+                        str(row.get('n_beats', 0)),
+                    ])
+                
+                table = ax5.table(
+                    cellText=table_data,
+                    colLabels=headers,
+                    loc='center',
+                    cellLoc='center',
+                    colWidths=[0.12, 0.18, 0.18, 0.16, 0.16, 0.12]
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(9)
+                table.scale(1.0, 2.5)
+                
+                for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor('#d1d5db')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_facecolor('#0891b2')
+                        cell.set_height(0.1)
+                    else:
+                        cell.set_facecolor('#ecfeff' if row % 2 == 0 else '#ffffff')
+                        cell.set_height(0.07)
+                
+                pdf.savefig(fig5)
+                plt.close(fig5)
 
     buf.seek(0)
     return StreamingResponse(
