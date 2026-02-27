@@ -361,3 +361,67 @@ def compute_light_response(beat_times_min_list, bf_filtered_list, pulses):
         mean_metrics = None
 
     return per_stim, mean_metrics, baseline_bf
+
+
+def compute_per_minute_table(beat_times_min_list, bf_filtered_list):
+    """Compute per-minute averages: BF, NN, NN_70."""
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    nn = 60000.0 / bf
+
+    t_start = int(np.floor(bt[0]))
+    t_end = int(np.ceil(bt[-1]))
+
+    rows = []
+    for m in range(t_start, t_end):
+        mask = (bt >= m) & (bt < m + 1)
+        n = int(np.sum(mask))
+        if n < 2:
+            rows.append({
+                'minute': m, 'label': f'{m}-{m+1}',
+                'avg_bf': None, 'avg_nn': None, 'avg_nn_70': None, 'n_beats': n
+            })
+            continue
+
+        bf_m = bf[mask]
+        nn_m = nn[mask]
+        median_nn = np.median(nn_m)
+        nn_70 = nn_m * (857.0 / median_nn) if median_nn > 0 else nn_m
+
+        rows.append({
+            'minute': m, 'label': f'{m}-{m+1}',
+            'avg_bf': float(np.mean(bf_m)),
+            'avg_nn': float(np.mean(nn_m)),
+            'avg_nn_70': float(np.mean(nn_70)),
+            'n_beats': n
+        })
+    return rows
+
+
+def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_sec, search_range_sec=20):
+    """Auto-detect light stim start from BF increase."""
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+
+    approx_min = approx_start_sec / 60.0
+    search_min = search_range_sec / 60.0
+
+    mask = (bt >= approx_min - search_min) & (bt <= approx_min + search_min)
+    if np.sum(mask) < 5:
+        return approx_start_sec
+
+    bf_window = bf[mask]
+    bt_window = bt[mask]
+
+    # Smooth BF and find largest positive jump
+    kernel = min(5, len(bf_window))
+    if kernel < 2:
+        return approx_start_sec
+    bf_smooth = np.convolve(bf_window, np.ones(kernel) / kernel, mode='same')
+    bf_diff = np.diff(bf_smooth)
+
+    if len(bf_diff) > 0:
+        onset_idx = int(np.argmax(bf_diff))
+        return float(bt_window[onset_idx] * 60.0)
+
+    return approx_start_sec
