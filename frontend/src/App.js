@@ -10,10 +10,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 import FileUpload from '@/components/FileUpload';
 import TraceViewer from '@/components/TraceViewer';
@@ -29,11 +30,11 @@ import {
 
 // Drug configurations with default readout times
 const DRUG_CONFIG = {
-  propranolol: { name: 'Propranolol', defaultConc: '5µM', bfReadout: 12, hrvReadout: 10 },
-  nepicastat: { name: 'Nepicastat', defaultConc: '30µM', bfReadout: 42, hrvReadout: 40 },
-  tetrodotoxin: { name: 'Tetrodotoxin', defaultConc: '1µM', bfReadout: 12, hrvReadout: 10 },
-  acetylcholine: { name: 'Acetylcholine', defaultConc: '1µM', bfReadout: 3, hrvReadout: 2 },
-  isoproterenol: { name: 'Isoproterenol', defaultConc: '1µM', bfReadout: null, hrvReadout: null, manualPeak: true },
+  propranolol: { name: 'Propranolol', defaultConc: '5', bfReadout: 12, hrvReadout: 10 },
+  nepicastat: { name: 'Nepicastat', defaultConc: '30', bfReadout: 42, hrvReadout: 40 },
+  tetrodotoxin: { name: 'Tetrodotoxin', defaultConc: '1', bfReadout: 12, hrvReadout: 10 },
+  acetylcholine: { name: 'Acetylcholine', defaultConc: '1', bfReadout: 3, hrvReadout: 2 },
+  isoproterenol: { name: 'Isoproterenol', defaultConc: '1', bfReadout: null, hrvReadout: null, manualPeak: true },
 };
 
 // Format time as min:sec
@@ -97,12 +98,11 @@ function App() {
   // Recording metadata
   const [recordingName, setRecordingName] = useState('');
   
-  // Drug configuration
+  // Drug configuration - each drug has its own settings
   const [selectedDrugs, setSelectedDrugs] = useState([]);
-  const [drugConcentrations, setDrugConcentrations] = useState({});
-  const [customDrugName, setCustomDrugName] = useState('');
-  const [drugPerfusionStart, setDrugPerfusionStart] = useState('');
-  const [drugPerfusionTime, setDrugPerfusionTime] = useState('');
+  const [drugSettings, setDrugSettings] = useState({});
+  // For "Other" drugs - list of custom drugs
+  const [otherDrugs, setOtherDrugs] = useState([]);
 
   // Trace & detection
   const [traceData, setTraceData] = useState(null);
@@ -140,7 +140,7 @@ function App() {
   const [exportLoading, setExportLoading] = useState(false);
 
   const activeFile = files[activeFileIdx] || null;
-  const hasDrug = selectedDrugs.length > 0;
+  const hasDrug = selectedDrugs.length > 0 || otherDrugs.length > 0;
 
   // Load file data into state
   const loadFileData = useCallback((fileData) => {
@@ -349,20 +349,67 @@ function App() {
     }
   }, [metrics, lightPulses]);
 
-  // Drug selection toggle
+  // Drug selection toggle with default settings
   const toggleDrug = useCallback((drugKey) => {
     setSelectedDrugs(prev => {
       if (prev.includes(drugKey)) {
+        // Remove drug settings
+        setDrugSettings(s => {
+          const newSettings = { ...s };
+          delete newSettings[drugKey];
+          return newSettings;
+        });
         return prev.filter(d => d !== drugKey);
       } else {
-        // Set default concentration
-        if (DRUG_CONFIG[drugKey] && !drugConcentrations[drugKey]) {
-          setDrugConcentrations(c => ({ ...c, [drugKey]: DRUG_CONFIG[drugKey].defaultConc }));
-        }
+        // Add with default settings
+        const config = DRUG_CONFIG[drugKey];
+        setDrugSettings(s => ({
+          ...s,
+          [drugKey]: {
+            concentration: config?.defaultConc || '1',
+            perfusionStart: 3,
+            perfusionTime: 3,
+          }
+        }));
         return [...prev, drugKey];
       }
     });
-  }, [drugConcentrations]);
+  }, []);
+
+  // Update drug setting
+  const updateDrugSetting = useCallback((drugKey, field, value) => {
+    setDrugSettings(s => ({
+      ...s,
+      [drugKey]: {
+        ...s[drugKey],
+        [field]: value
+      }
+    }));
+  }, []);
+
+  // Add other drug
+  const addOtherDrug = useCallback(() => {
+    const newId = `other_${Date.now()}`;
+    setOtherDrugs(prev => [...prev, {
+      id: newId,
+      name: '',
+      concentration: '1',
+      perfusionStart: 3,
+      perfusionTime: 3,
+    }]);
+  }, []);
+
+  // Remove other drug
+  const removeOtherDrug = useCallback((id) => {
+    setOtherDrugs(prev => prev.filter(d => d.id !== id));
+  }, []);
+
+  // Update other drug
+  const updateOtherDrug = useCallback((id, field, value) => {
+    setOtherDrugs(prev => prev.map(d => 
+      d.id === id ? { ...d, [field]: value } : d
+    ));
+  }, []);
 
   // Build export payload
   const buildExportData = useCallback(() => {
@@ -377,15 +424,16 @@ function App() {
     if (recordingName) summary['Recording Name'] = recordingName;
     
     // Drug info
-    if (selectedDrugs.length > 0) {
-      const drugNames = selectedDrugs.map(d => {
+    const allDrugs = [
+      ...selectedDrugs.map(d => {
         const config = DRUG_CONFIG[d];
-        const conc = drugConcentrations[d] || config?.defaultConc || '';
-        return config ? `${config.name} ${conc}` : d;
-      }).join(', ');
-      summary['Drug(s) Used'] = drugNames;
-      if (drugPerfusionStart) summary['Perfusion Start'] = `${drugPerfusionStart} min`;
-      if (drugPerfusionTime) summary['Perfusion Time'] = `${drugPerfusionTime} min`;
+        const settings = drugSettings[d] || {};
+        return `${config?.name || d} ${settings.concentration || ''}µM`;
+      }),
+      ...otherDrugs.filter(d => d.name).map(d => `${d.name} ${d.concentration}µM`)
+    ];
+    if (allDrugs.length > 0) {
+      summary['Drug(s) Used'] = allDrugs.join(', ');
     }
     
     if (metrics) {
@@ -416,11 +464,11 @@ function App() {
       summary: Object.keys(summary).length > 0 ? summary : null,
       filename: recordingName || activeFile?.filename?.replace('.abf', '') || 'analysis',
       recording_name: recordingName,
-      drug_used: selectedDrugs.length > 0 ? selectedDrugs.join(',') : null,
+      drug_used: allDrugs.length > 0 ? allDrugs.join(',') : null,
       per_minute_data: perMinuteData,
       baseline: hrvResults?.baseline,
     };
-  }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, selectedDrugs, drugConcentrations, drugPerfusionStart, drugPerfusionTime, lightEnabled, perMinuteData]);
+  }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
@@ -469,9 +517,8 @@ function App() {
     setLightResponse(null);
     setRecordingName('');
     setSelectedDrugs([]);
-    setDrugConcentrations({});
-    setDrugPerfusionStart('');
-    setDrugPerfusionTime('');
+    setDrugSettings({});
+    setOtherDrugs([]);
     setLightEnabled(true);
   }, []);
 
@@ -555,12 +602,12 @@ function App() {
           <Separator orientation="vertical" className="h-8 bg-zinc-800" />
           
           {/* Drug selection */}
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2">
             <div className="flex items-center gap-1">
               <Beaker className="w-3 h-3 text-zinc-500" />
               <Label className="text-[10px] text-zinc-500">Drugs:</Label>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
               {Object.entries(DRUG_CONFIG).map(([key, config]) => (
                 <div key={key} className="flex items-center gap-1">
                   <Checkbox
@@ -572,76 +619,114 @@ function App() {
                   <Label htmlFor={`drug-${key}`} className="text-[9px] text-zinc-400 cursor-pointer">
                     {config.name}
                   </Label>
-                  {selectedDrugs.includes(key) && (
-                    <Input
-                      value={drugConcentrations[key] || config.defaultConc}
-                      onChange={(e) => setDrugConcentrations(c => ({ ...c, [key]: e.target.value }))}
-                      className="h-5 w-14 text-[9px] font-data bg-zinc-900 border-zinc-800 rounded-sm"
-                      placeholder="conc"
-                    />
-                  )}
                 </div>
               ))}
-              {/* Other drug option */}
-              <div className="flex items-center gap-1">
-                <Checkbox
-                  id="drug-other"
-                  checked={selectedDrugs.includes('other')}
-                  onCheckedChange={() => toggleDrug('other')}
-                  className="h-3 w-3"
-                />
-                <Label htmlFor="drug-other" className="text-[9px] text-zinc-400 cursor-pointer">Other:</Label>
-                {selectedDrugs.includes('other') && (
-                  <Input
-                    value={customDrugName}
-                    onChange={(e) => setCustomDrugName(e.target.value)}
-                    className="h-5 w-24 text-[9px] font-data bg-zinc-900 border-zinc-800 rounded-sm"
-                    placeholder="Drug name"
-                  />
-                )}
-              </div>
+              {/* Add Other drug button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 text-[9px] text-zinc-500 hover:text-zinc-300 px-1"
+                onClick={addOtherDrug}
+              >
+                <Plus className="w-3 h-3 mr-0.5" /> Other
+              </Button>
             </div>
           </div>
-          
-          {/* Perfusion timing (only if drugs selected) */}
-          {selectedDrugs.length > 0 && (
-            <>
-              <Separator orientation="vertical" className="h-8 bg-zinc-800" />
-              <div className="flex items-center gap-2">
-                <Clock className="w-3 h-3 text-zinc-500" />
-                <Label className="text-[9px] text-zinc-500">Perfusion start:</Label>
-                <Input
-                  value={drugPerfusionStart}
-                  onChange={(e) => setDrugPerfusionStart(e.target.value)}
-                  className="h-5 w-12 text-[9px] font-data bg-zinc-900 border-zinc-800 rounded-sm"
-                  placeholder="min"
-                />
-                <Label className="text-[9px] text-zinc-500">time:</Label>
-                <Input
-                  value={drugPerfusionTime}
-                  onChange={(e) => setDrugPerfusionTime(e.target.value)}
-                  className="h-5 w-12 text-[9px] font-data bg-zinc-900 border-zinc-800 rounded-sm"
-                  placeholder="min"
-                />
-              </div>
-            </>
-          )}
         </div>
         
-        {/* Drug readout info */}
-        {selectedDrugs.length > 0 && (
-          <div className="mt-2 flex items-center gap-2 text-[9px] text-zinc-600">
-            <span>Default readouts:</span>
-            {selectedDrugs.map(d => {
-              const config = DRUG_CONFIG[d];
-              if (!config) return null;
-              return (
-                <Badge key={d} variant="outline" className="text-[8px] border-zinc-700 text-zinc-500">
-                  {config.name}: BF@{config.bfReadout ?? 'peak'}min, HRV@{config.hrvReadout ?? 'peak'}min
-                </Badge>
-              );
-            })}
-          </div>
+        {/* Per-drug settings */}
+        {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
+          <ScrollArea className="mt-2 max-h-[150px]">
+            <div className="space-y-2">
+              {/* Predefined drugs with settings */}
+              {selectedDrugs.map(drugKey => {
+                const config = DRUG_CONFIG[drugKey];
+                const settings = drugSettings[drugKey] || {};
+                return (
+                  <div key={drugKey} className="flex items-center gap-3 p-2 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
+                    <span className="text-[10px] font-medium text-zinc-300 w-24">{config.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={settings.concentration || config.defaultConc}
+                        onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
+                        className="h-5 w-12 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      />
+                      <span className="text-[9px] text-zinc-500">µM</span>
+                    </div>
+                    <Separator orientation="vertical" className="h-4 bg-zinc-700" />
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-zinc-600" />
+                      <span className="text-[9px] text-zinc-500">Start:</span>
+                      <Input
+                        type="number"
+                        value={settings.perfusionStart ?? 3}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      />
+                      <span className="text-[9px] text-zinc-500">min, Time:</span>
+                      <Input
+                        type="number"
+                        value={settings.perfusionTime ?? 3}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      />
+                      <span className="text-[9px] text-zinc-500">min</span>
+                    </div>
+                    <Badge variant="outline" className="text-[8px] border-zinc-700 text-zinc-500">
+                      BF@{config.bfReadout ?? 'peak'}min HRV@{config.hrvReadout ?? 'peak'}min
+                    </Badge>
+                  </div>
+                );
+              })}
+              
+              {/* Other drugs */}
+              {otherDrugs.map(drug => (
+                <div key={drug.id} className="flex items-center gap-3 p-2 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
+                  <Input
+                    value={drug.name}
+                    onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
+                    className="h-5 w-24 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    placeholder="Drug name"
+                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={drug.concentration}
+                      onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
+                      className="h-5 w-12 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    />
+                    <span className="text-[9px] text-zinc-500">µM</span>
+                  </div>
+                  <Separator orientation="vertical" className="h-4 bg-zinc-700" />
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-zinc-600" />
+                    <span className="text-[9px] text-zinc-500">Start:</span>
+                    <Input
+                      type="number"
+                      value={drug.perfusionStart}
+                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
+                      className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    />
+                    <span className="text-[9px] text-zinc-500">min, Time:</span>
+                    <Input
+                      type="number"
+                      value={drug.perfusionTime}
+                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
+                      className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    />
+                    <span className="text-[9px] text-zinc-500">min</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 text-zinc-500 hover:text-red-400"
+                    onClick={() => removeOtherDrug(drug.id)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </div>
 
@@ -711,6 +796,9 @@ function App() {
               analysisLoading={analysisLoading}
               filterSettings={filterParams}
               hasDrug={hasDrug}
+              drugSettings={drugSettings}
+              selectedDrugs={selectedDrugs}
+              otherDrugs={otherDrugs}
             />
           </TabsContent>
 
@@ -745,7 +833,7 @@ function App() {
               onExportPdf={handleExportPdf}
               loading={exportLoading}
               recordingName={recordingName}
-              drugUsed={selectedDrugs.length > 0 ? selectedDrugs.join(',') : ''}
+              drugUsed={[...selectedDrugs, ...otherDrugs.map(d => d.name)].filter(Boolean).join(',')}
               perMinuteData={perMinuteData}
             />
           </TabsContent>
