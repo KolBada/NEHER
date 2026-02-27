@@ -138,13 +138,34 @@ function App() {
       });
       setMetrics(data);
       setIsValidated(true);
-      toast.success(`Validated — ${data.n_kept} beats kept, ${data.n_removed} filtered`);
+
+      // Also compute per-minute metrics
+      try {
+        const pmResp = await api.perMinuteMetrics({
+          beat_times_min: data.filtered_beat_times_min,
+          bf_filtered: data.filtered_bf_bpm,
+        });
+        setPerMinuteData(pmResp.data.rows);
+      } catch (e) { /* non-critical */ }
+
+      toast.success(`Validated \u2014 ${data.n_kept} beats kept, ${data.n_removed} filtered`);
     } catch (err) {
       toast.error('Validation failed: ' + (err.response?.data?.detail || err.message));
     } finally {
       setAnalysisLoading(false);
     }
   }, [beats]);
+
+  // Unvalidate - allow re-editing beats
+  const handleUnvalidate = useCallback(() => {
+    setIsValidated(false);
+    setMetrics(null);
+    setHrvResults(null);
+    setPerMinuteData(null);
+    setLightPulses(null);
+    setLightHrv(null);
+    setLightResponse(null);
+  }, []);
 
   // HRV
   const handleComputeHRV = useCallback(async (readoutMinute) => {
