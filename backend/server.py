@@ -355,51 +355,158 @@ async def export_csv(request: ExportRequest):
 @api_router.post("/export/xlsx")
 async def export_xlsx(request: ExportRequest):
     import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
     wb = openpyxl.Workbook()
+    
+    # Style definitions
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
+    data_fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    def style_header(ws, row=1):
+        for cell in ws[row]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = thin_border
+    
+    def auto_width(ws):
+        for column in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Summary sheet (first)
+    ws_summary = wb.active
+    ws_summary.title = "Summary"
+    ws_summary.append(["Electrophysiology Analysis Summary"])
+    ws_summary['A1'].font = Font(bold=True, size=14)
+    ws_summary.append([])
+    
+    if request.recording_name:
+        ws_summary.append(["Recording Name", request.recording_name])
+    if request.drug_used:
+        ws_summary.append(["Drug Used", request.drug_used])
+    ws_summary.append([])
+    
+    if request.summary:
+        ws_summary.append(["Metric", "Value"])
+        style_header(ws_summary, ws_summary.max_row)
+        for k, v in request.summary.items():
+            ws_summary.append([k, v if v is not None else "—"])
+    
+    if request.baseline:
+        ws_summary.append([])
+        ws_summary.append(["Baseline Metrics"])
+        ws_summary[f'A{ws_summary.max_row}'].font = Font(bold=True)
+        for k, v in request.baseline.items():
+            if v is not None:
+                ws_summary.append([k.replace('baseline_', '').replace('_', ' ').title(), 
+                                  f"{v:.3f}" if isinstance(v, float) else v])
+    
+    auto_width(ws_summary)
 
     # Per-beat sheet
     if request.per_beat_data:
-        ws = wb.active
-        ws.title = "Per-Beat Data"
-        keys = list(request.per_beat_data[0].keys())
-        ws.append(keys)
+        ws = wb.create_sheet("Per-Beat Data")
+        keys = ['time_min', 'bf_bpm', 'nn_ms', 'status']
+        headers = ['Time (min)', 'BF (bpm)', 'NN (ms)', 'Status']
+        ws.append(headers)
+        style_header(ws)
         for row in request.per_beat_data:
             ws.append([row.get(k) for k in keys])
+        auto_width(ws)
+
+    # Per-minute sheet
+    if request.per_minute_data:
+        ws_pm = wb.create_sheet("Per-Minute Data")
+        headers = ['Minute', 'Beats', 'Avg BF (bpm)', 'Avg NN (ms)', 'Avg NN₇₀ (ms)']
+        ws_pm.append(headers)
+        style_header(ws_pm)
+        for row in request.per_minute_data:
+            ws_pm.append([
+                row.get('label', ''),
+                row.get('n_beats', 0),
+                f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
+                f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—',
+                f"{row.get('avg_nn_70', 0):.1f}" if row.get('avg_nn_70') else '—',
+            ])
+        auto_width(ws_pm)
 
     # HRV windows
     if request.hrv_windows:
-        ws2 = wb.create_sheet("HRV Windows")
-        keys = list(request.hrv_windows[0].keys())
-        ws2.append(keys)
+        ws2 = wb.create_sheet("HRV Windows (3-min)")
+        headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'SDNN', 'pNN50 (%)', 'Mean BF', 'Beats']
+        ws2.append(headers)
+        style_header(ws2)
         for row in request.hrv_windows:
-            ws2.append([row.get(k) for k in keys])
+            ws2.append([
+                row.get('window', ''),
+                f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
+                f"{row.get('rmssd70', 0):.2f}" if row.get('rmssd70') else '—',
+                f"{row.get('sdnn', 0):.2f}" if row.get('sdnn') else '—',
+                f"{row.get('pnn50', 0):.1f}" if row.get('pnn50') else '—',
+                f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—',
+                row.get('n_beats', 0),
+            ])
+        auto_width(ws2)
 
-    # Light metrics
+    # Light HRV metrics
     if request.light_metrics:
-        ws3 = wb.create_sheet("Light Metrics")
+        ws3 = wb.create_sheet("Light HRV")
         valid = [m for m in request.light_metrics if m is not None]
         if valid:
-            keys = list(valid[0].keys())
-            ws3.append(keys)
-            for row in valid:
-                ws3.append([row.get(k) for k in keys])
+            headers = ['Pulse', 'RMSSD₇₀', 'ln(RMSSD₇₀)', 'SDNN', 'pNN50 (%)', 'Beats']
+            ws3.append(headers)
+            style_header(ws3)
+            for i, row in enumerate(valid):
+                ws3.append([
+                    i + 1,
+                    f"{row.get('rmssd70', 0):.2f}",
+                    f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
+                    f"{row.get('sdnn', 0):.2f}",
+                    f"{row.get('pnn50', 0):.1f}",
+                    row.get('n_beats', 0),
+                ])
+            auto_width(ws3)
 
     # Light response
     if request.light_response:
         ws4 = wb.create_sheet("Light Response")
         valid = [m for m in request.light_response if m is not None]
         if valid:
-            keys = list(valid[0].keys())
-            ws4.append(keys)
-            for row in valid:
-                ws4.append([row.get(k) for k in keys])
-
-    # Summary
-    if request.summary:
-        ws5 = wb.create_sheet("Summary")
-        ws5.append(["Metric", "Value"])
-        for k, v in request.summary.items():
-            ws5.append([k, v])
+            headers = ['Stim', 'Beats', 'BF', 'NN', 'NN₇₀', 'Peak BF', 'Peak %', 'Time to Peak (s)', 'Amplitude', 'Slope (norm)']
+            ws4.append(headers)
+            style_header(ws4)
+            for i, row in enumerate(valid):
+                ws4.append([
+                    i + 1,
+                    row.get('n_beats', 0),
+                    f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
+                    f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—',
+                    f"{row.get('nn_70', 0):.1f}" if row.get('nn_70') else '—',
+                    f"{row.get('peak_bf', 0):.1f}",
+                    f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—',
+                    f"{row.get('time_to_peak_sec', 0):.1f}",
+                    f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—',
+                    f"{row.get('norm_slope', 0):.4f}" if row.get('norm_slope') else '—',
+                ])
+            auto_width(ws4)
 
     buf = io.BytesIO()
     wb.save(buf)
