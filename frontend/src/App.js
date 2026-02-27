@@ -315,7 +315,7 @@ function App() {
 
     const summary = {};
     if (recordingName) summary['Recording Name'] = recordingName;
-    if (drugUsed) summary['Drug Used'] = drugUsed;
+    if (drugUsed && drugUsed !== 'none') summary['Drug Used'] = drugUsed;
     if (metrics) {
       summary['Total Beats'] = metrics.n_total;
       summary['Kept Beats'] = metrics.n_kept;
