@@ -516,16 +516,18 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         # Amplitude = peak - last beat before drop
         amplitude = float(peak_bf - pre_drop_bf)
 
-        # Slope calculation
-        t_sec = (bt_stim - bt_stim[0]) * 60.0
-        if len(t_sec) > 1:
-            coeffs = np.polyfit(t_sec, bf_stim, 1)
-            slope = float(coeffs[0])
+        # Slope calculation - in bpm/min, normalized by average BF of the stim
+        # Convert time to minutes for the slope
+        t_min = bt_stim - bt_stim[0]  # already in minutes
+        if len(t_min) > 1:
+            coeffs = np.polyfit(t_min, bf_stim, 1)
+            slope_bpm_per_min = float(coeffs[0])  # slope in bpm/min
         else:
-            slope = 0.0
+            slope_bpm_per_min = 0.0
 
         mean_bf_stim = float(np.mean(bf_stim))
-        norm_slope = float(slope / mean_bf_stim) if mean_bf_stim > 0 else None
+        # Normalized slope = (bpm/min) / avg_bf = dimensionless rate per min
+        norm_slope = float(slope_bpm_per_min / mean_bf_stim) if mean_bf_stim > 0 else None
         
         # Per-stim basic metrics
         n_beats = int(np.sum(p_mask))
