@@ -524,74 +524,171 @@ async def export_pdf(request: ExportRequest):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
+    from datetime import datetime
 
     buf = io.BytesIO()
     with PdfPages(buf) as pdf:
-        # Page 1: BF vs Time + Summary
-        fig, axes = plt.subplots(2, 1, figsize=(11, 8.5))
-        fig.suptitle('Electrophysiology Analysis Report', fontsize=14, fontweight='bold')
+        # Page 1: Title and Summary
+        fig1 = plt.figure(figsize=(11, 8.5))
+        fig1.patch.set_facecolor('white')
+        
+        # Title
+        title = request.recording_name or request.filename or 'Electrophysiology Analysis'
+        fig1.text(0.5, 0.92, title, ha='center', fontsize=18, fontweight='bold')
+        fig1.text(0.5, 0.88, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', 
+                  ha='center', fontsize=10, color='gray')
+        
+        if request.drug_used:
+            fig1.text(0.5, 0.84, f'Drug: {request.drug_used}', ha='center', fontsize=11, 
+                      style='italic', color='#6B46C1')
+        
+        # Summary table
+        if request.summary:
+            ax1 = fig1.add_axes([0.15, 0.35, 0.7, 0.4])
+            ax1.axis('off')
+            
+            table_data = [[k, str(v) if v is not None else '—'] for k, v in request.summary.items()]
+            table = ax1.table(
+                cellText=table_data,
+                colLabels=['Metric', 'Value'],
+                loc='center',
+                cellLoc='left',
+                colWidths=[0.5, 0.5]
+            )
+            table.auto_set_font_size(False)
+            table.set_fontsize(10)
+            table.scale(1.2, 1.8)
+            
+            # Style header
+            for (row, col), cell in table.get_celld().items():
+                if row == 0:
+                    cell.set_text_props(fontweight='bold', color='white')
+                    cell.set_facecolor('#1E3A5F')
+                else:
+                    cell.set_facecolor('#F8F9FA' if row % 2 == 0 else 'white')
+        
+        # Baseline section if available
+        if request.baseline:
+            ax_baseline = fig1.add_axes([0.15, 0.08, 0.7, 0.2])
+            ax_baseline.axis('off')
+            ax_baseline.text(0, 0.9, 'Baseline Metrics', fontsize=12, fontweight='bold')
+            
+            baseline_text = []
+            if request.baseline.get('baseline_bf'):
+                baseline_text.append(f"BF ({request.baseline.get('baseline_bf_range', '1-2 min')}): {request.baseline['baseline_bf']:.1f} bpm")
+            if request.baseline.get('baseline_ln_rmssd70'):
+                baseline_text.append(f"ln(RMSSD₇₀) ({request.baseline.get('baseline_hrv_range', '0-3 min')}): {request.baseline['baseline_ln_rmssd70']:.3f}")
+            if request.baseline.get('baseline_sdnn'):
+                baseline_text.append(f"SDNN: {request.baseline['baseline_sdnn']:.2f} ms")
+            
+            ax_baseline.text(0, 0.5, '\n'.join(baseline_text), fontsize=10, color='#374151')
+        
+        pdf.savefig(fig1)
+        plt.close(fig1)
 
+        # Page 2: BF and NN plots
         if request.per_beat_data:
+            fig2, axes = plt.subplots(2, 1, figsize=(11, 8.5))
+            fig2.suptitle('Beat Frequency and NN Intervals', fontsize=14, fontweight='bold')
+            
             times = [r.get('time_min', 0) for r in request.per_beat_data]
             bfs = [r.get('bf_bpm', 0) for r in request.per_beat_data]
             nns = [r.get('nn_ms', 0) for r in request.per_beat_data]
+            statuses = [r.get('status', 'kept') for r in request.per_beat_data]
+            
+            # Color by status
+            colors_bf = ['#22D3EE' if s == 'kept' else '#EF4444' for s in statuses]
+            colors_nn = ['#A3E635' if s == 'kept' else '#EF4444' for s in statuses]
 
-            axes[0].plot(times, bfs, 'b-', linewidth=0.5, alpha=0.8)
-            axes[0].set_xlabel('Time (min)')
-            axes[0].set_ylabel('Beat Frequency (bpm)')
-            axes[0].set_title('Beat Frequency vs Time')
+            axes[0].scatter(times, bfs, c=colors_bf, s=2, alpha=0.7)
+            axes[0].set_xlabel('Time (min)', fontsize=10)
+            axes[0].set_ylabel('Beat Frequency (bpm)', fontsize=10)
+            axes[0].set_title('Beat Frequency vs Time (cyan=kept, red=filtered)', fontsize=10)
             axes[0].grid(True, alpha=0.3)
+            axes[0].set_facecolor('#FAFAFA')
 
-            axes[1].plot(times, nns, 'r-', linewidth=0.5, alpha=0.8)
-            axes[1].set_xlabel('Time (min)')
-            axes[1].set_ylabel('NN Interval (ms)')
-            axes[1].set_title('NN Intervals vs Time')
+            axes[1].scatter(times, nns, c=colors_nn, s=2, alpha=0.7)
+            axes[1].set_xlabel('Time (min)', fontsize=10)
+            axes[1].set_ylabel('NN Interval (ms)', fontsize=10)
+            axes[1].set_title('NN Intervals vs Time (green=kept, red=filtered)', fontsize=10)
             axes[1].grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        pdf.savefig(fig)
-        plt.close(fig)
-
-        # Page 2: HRV evolution
-        if request.hrv_windows:
-            fig2, axes2 = plt.subplots(3, 1, figsize=(11, 8.5))
-            minutes = [w.get('minute', 0) for w in request.hrv_windows]
-            ln_rmssd = [w.get('ln_rmssd70') for w in request.hrv_windows]
-            sdnn = [w.get('sdnn', 0) for w in request.hrv_windows]
-            pnn50 = [w.get('pnn50', 0) for w in request.hrv_windows]
-
-            axes2[0].plot(minutes, ln_rmssd, 'g-o', markersize=2)
-            axes2[0].set_ylabel('ln(RMSSD70)')
-            axes2[0].set_title('HRV Evolution')
-            axes2[0].grid(True, alpha=0.3)
-
-            axes2[1].plot(minutes, sdnn, 'm-o', markersize=2)
-            axes2[1].set_ylabel('SDNN')
-            axes2[1].grid(True, alpha=0.3)
-
-            axes2[2].plot(minutes, pnn50, 'c-o', markersize=2)
-            axes2[2].set_xlabel('Window Start (min)')
-            axes2[2].set_ylabel('pNN50 (%)')
-            axes2[2].grid(True, alpha=0.3)
+            axes[1].set_facecolor('#FAFAFA')
 
             plt.tight_layout()
             pdf.savefig(fig2)
             plt.close(fig2)
 
-        # Page 3: Summary table
-        if request.summary:
-            fig3, ax3 = plt.subplots(figsize=(11, 8.5))
-            ax3.axis('off')
-            ax3.set_title('Summary Metrics', fontsize=14, fontweight='bold', pad=20)
+        # Page 3: HRV evolution
+        if request.hrv_windows:
+            fig3, axes3 = plt.subplots(3, 1, figsize=(11, 8.5))
+            fig3.suptitle('HRV Evolution (3-min Sliding Windows, Normalized to 70 bpm)', 
+                          fontsize=14, fontweight='bold')
+            
+            minutes = [w.get('minute', 0) for w in request.hrv_windows]
+            ln_rmssd = [w.get('ln_rmssd70') for w in request.hrv_windows]
+            sdnn = [w.get('sdnn', 0) for w in request.hrv_windows]
+            pnn50 = [w.get('pnn50', 0) for w in request.hrv_windows]
 
-            table_data = [[k, str(v)] for k, v in request.summary.items()]
-            table = ax3.table(cellText=table_data, colLabels=['Metric', 'Value'],
-                              loc='center', cellLoc='left')
-            table.auto_set_font_size(False)
-            table.set_fontsize(10)
-            table.scale(1, 1.5)
+            axes3[0].plot(minutes, ln_rmssd, 'o-', color='#22D3EE', markersize=4, linewidth=1.5)
+            axes3[0].set_ylabel('ln(RMSSD₇₀)', fontsize=10)
+            axes3[0].grid(True, alpha=0.3)
+            axes3[0].set_facecolor('#FAFAFA')
+
+            axes3[1].plot(minutes, sdnn, 'o-', color='#C084FC', markersize=4, linewidth=1.5)
+            axes3[1].set_ylabel('SDNN (ms)', fontsize=10)
+            axes3[1].grid(True, alpha=0.3)
+            axes3[1].set_facecolor('#FAFAFA')
+
+            axes3[2].plot(minutes, pnn50, 'o-', color='#FB923C', markersize=4, linewidth=1.5)
+            axes3[2].set_xlabel('Window Start (min)', fontsize=10)
+            axes3[2].set_ylabel('pNN50 (%)', fontsize=10)
+            axes3[2].grid(True, alpha=0.3)
+            axes3[2].set_facecolor('#FAFAFA')
+
+            plt.tight_layout()
             pdf.savefig(fig3)
             plt.close(fig3)
+
+        # Page 4: Light Response (if available)
+        if request.light_response:
+            valid = [m for m in request.light_response if m is not None]
+            if valid:
+                fig4, ax4 = plt.subplots(figsize=(11, 8.5))
+                fig4.suptitle('Light Stimulation Response', fontsize=14, fontweight='bold')
+                ax4.axis('off')
+                
+                headers = ['Stim', 'Beats', 'BF', 'Peak BF', 'Peak %', 'Time to Peak', 'Amplitude']
+                table_data = []
+                for i, row in enumerate(valid):
+                    table_data.append([
+                        str(i + 1),
+                        str(row.get('n_beats', 0)),
+                        f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
+                        f"{row.get('peak_bf', 0):.1f}",
+                        f"{row.get('peak_norm_pct', 0):.1f}%" if row.get('peak_norm_pct') else '—',
+                        f"{row.get('time_to_peak_sec', 0):.1f}s",
+                        f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—',
+                    ])
+                
+                table = ax4.table(
+                    cellText=table_data,
+                    colLabels=headers,
+                    loc='center',
+                    cellLoc='center'
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(10)
+                table.scale(1.2, 2.0)
+                
+                for (row, col), cell in table.get_celld().items():
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_facecolor('#B45309')
+                    else:
+                        cell.set_facecolor('#FEF3C7' if row % 2 == 0 else 'white')
+                
+                pdf.savefig(fig4)
+                plt.close(fig4)
 
     buf.seek(0)
     return StreamingResponse(
