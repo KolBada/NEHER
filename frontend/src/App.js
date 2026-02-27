@@ -4,11 +4,14 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 import FileUpload from '@/components/FileUpload';
 import TraceViewer from '@/components/TraceViewer';
@@ -60,11 +63,18 @@ function App() {
   const [files, setFiles] = useState([]);
   const [activeFileIdx, setActiveFileIdx] = useState(0);
 
+  // Recording metadata
+  const [recordingName, setRecordingName] = useState('');
+  const [drugUsed, setDrugUsed] = useState('');
+
   // Trace & detection
   const [traceData, setTraceData] = useState(null);
   const [beats, setBeats] = useState([]);
   const [detectionParams, setDetectionParams] = useState({
     threshold: null, minDistance: 0.3, prominence: null, invert: false
+  });
+  const [filterParams, setFilterParams] = useState({
+    lowerPct: 50, upperPct: 200
   });
   const [signalStats, setSignalStats] = useState(null);
 
@@ -77,6 +87,7 @@ function App() {
   const [perMinuteData, setPerMinuteData] = useState(null);
 
   // Light
+  const [lightEnabled, setLightEnabled] = useState(true);
   const [lightParams, setLightParams] = useState({
     startTime: 180, pulseDuration: 20, interval: 'decreasing', nPulses: 5,
     autoDetect: true, searchRange: 20,
@@ -104,6 +115,7 @@ function App() {
     setLightPulses(null);
     setLightHrv(null);
     setLightResponse(null);
+    setRecordingName(fileData.filename?.replace('.abf', '') || '');
   }, []);
 
   // Upload
@@ -171,6 +183,8 @@ function App() {
     try {
       const { data } = await api.computeMetrics({
         beat_times_sec: beats.map(b => b.timeSec),
+        filter_lower_pct: filterParams.lowerPct,
+        filter_upper_pct: filterParams.upperPct,
       });
       setMetrics(data);
       setIsValidated(true);
@@ -190,7 +204,7 @@ function App() {
     } finally {
       setAnalysisLoading(false);
     }
-  }, [beats]);
+  }, [beats, filterParams]);
 
   // Unvalidate - allow re-editing beats
   const handleUnvalidate = useCallback(() => {
@@ -204,7 +218,7 @@ function App() {
   }, []);
 
   // HRV
-  const handleComputeHRV = useCallback(async (readoutMinute) => {
+  const handleComputeHRV = useCallback(async (readoutMinute, baselineParams = {}) => {
     if (!metrics) return;
     setAnalysisLoading(true);
     try {
@@ -212,6 +226,10 @@ function App() {
         beat_times_min: metrics.filtered_beat_times_min,
         bf_filtered: metrics.filtered_bf_bpm,
         readout_minute: readoutMinute,
+        baseline_hrv_start: baselineParams.hrvStart ?? 0,
+        baseline_hrv_end: baselineParams.hrvEnd ?? 3,
+        baseline_bf_start: baselineParams.bfStart ?? 1,
+        baseline_bf_end: baselineParams.bfEnd ?? 2,
       });
       setHrvResults(data);
       toast.success(`HRV computed — ${data.windows.length} windows`);
@@ -296,10 +314,13 @@ function App() {
     })) : null;
 
     const summary = {};
+    if (recordingName) summary['Recording Name'] = recordingName;
+    if (drugUsed) summary['Drug Used'] = drugUsed;
     if (metrics) {
       summary['Total Beats'] = metrics.n_total;
       summary['Kept Beats'] = metrics.n_kept;
       summary['Removed Beats'] = metrics.n_removed;
+      summary['Filter Range'] = `${metrics.filter_settings?.lower_pct || 50}%-${metrics.filter_settings?.upper_pct || 200}%`;
     }
     if (hrvResults?.readout) {
       summary['ln(RMSSD70)'] = hrvResults.readout.ln_rmssd70;
@@ -307,47 +328,58 @@ function App() {
       summary['pNN50'] = hrvResults.readout.pnn50;
       summary['Mean BF'] = hrvResults.readout.mean_bf;
     }
+    if (hrvResults?.baseline) {
+      summary['Baseline BF'] = hrvResults.baseline.baseline_bf;
+      summary['Baseline ln(RMSSD70)'] = hrvResults.baseline.baseline_ln_rmssd70;
+    }
+    if (!lightEnabled) {
+      summary['Light Stimulation'] = 'Disabled';
+    }
 
     return {
       per_beat_data: perBeat,
       hrv_windows: hrvResults?.windows || null,
-      light_metrics: lightHrv?.per_pulse || null,
-      light_response: lightResponse?.per_stim || null,
+      light_metrics: lightEnabled ? (lightHrv?.per_pulse || null) : null,
+      light_response: lightEnabled ? (lightResponse?.per_stim || null) : null,
       summary: Object.keys(summary).length > 0 ? summary : null,
-      filename: activeFile?.filename?.replace('.abf', '') || 'analysis',
+      filename: recordingName || activeFile?.filename?.replace('.abf', '') || 'analysis',
+      recording_name: recordingName,
+      drug_used: drugUsed,
+      per_minute_data: perMinuteData,
+      baseline: hrvResults?.baseline,
     };
-  }, [metrics, hrvResults, lightHrv, lightResponse, activeFile]);
+  }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, drugUsed, lightEnabled, perMinuteData]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
     setExportLoading(true);
     try {
       const { data } = await api.exportCsv(buildExportData());
-      downloadBlob(data, `${activeFile?.filename?.replace('.abf', '') || 'export'}.csv`);
+      downloadBlob(data, `${recordingName || activeFile?.filename?.replace('.abf', '') || 'export'}.csv`);
       toast.success('CSV exported');
     } catch (err) { toast.error('CSV export failed'); }
     finally { setExportLoading(false); }
-  }, [buildExportData, activeFile]);
+  }, [buildExportData, activeFile, recordingName]);
 
   const handleExportXlsx = useCallback(async () => {
     setExportLoading(true);
     try {
       const { data } = await api.exportXlsx(buildExportData());
-      downloadBlob(data, `${activeFile?.filename?.replace('.abf', '') || 'export'}.xlsx`);
+      downloadBlob(data, `${recordingName || activeFile?.filename?.replace('.abf', '') || 'export'}.xlsx`);
       toast.success('XLSX exported');
     } catch (err) { toast.error('XLSX export failed'); }
     finally { setExportLoading(false); }
-  }, [buildExportData, activeFile]);
+  }, [buildExportData, activeFile, recordingName]);
 
   const handleExportPdf = useCallback(async () => {
     setExportLoading(true);
     try {
       const { data } = await api.exportPdf(buildExportData());
-      downloadBlob(data, `${activeFile?.filename?.replace('.abf', '') || 'export'}.pdf`);
+      downloadBlob(data, `${recordingName || activeFile?.filename?.replace('.abf', '') || 'export'}.pdf`);
       toast.success('PDF exported');
     } catch (err) { toast.error('PDF export failed'); }
     finally { setExportLoading(false); }
-  }, [buildExportData, activeFile]);
+  }, [buildExportData, activeFile, recordingName]);
 
   // Reset
   const handleReset = useCallback(() => {
@@ -363,6 +395,9 @@ function App() {
     setLightPulses(null);
     setLightHrv(null);
     setLightResponse(null);
+    setRecordingName('');
+    setDrugUsed('');
+    setLightEnabled(true);
   }, []);
 
   // --- RENDER ---
@@ -426,6 +461,48 @@ function App() {
         </div>
       </header>
 
+      {/* Recording Metadata Bar */}
+      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-2">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Save className="w-3 h-3 text-zinc-500" />
+            <Label className="text-[10px] text-zinc-500">Recording Name:</Label>
+            <Input
+              data-testid="recording-name-input"
+              value={recordingName}
+              onChange={(e) => setRecordingName(e.target.value)}
+              className="h-6 w-48 text-xs font-data bg-zinc-900 border-zinc-800 rounded-sm"
+              placeholder="Enter recording name..."
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Beaker className="w-3 h-3 text-zinc-500" />
+            <Label className="text-[10px] text-zinc-500">Drug Used:</Label>
+            <Select value={drugUsed} onValueChange={setDrugUsed}>
+              <SelectTrigger data-testid="drug-select" className="h-6 w-36 text-xs font-data bg-zinc-900 border-zinc-800 rounded-sm">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                <SelectItem value="isoproterenol">Isoproterenol</SelectItem>
+                <SelectItem value="carbachol">Carbachol</SelectItem>
+                <SelectItem value="propranolol">Propranolol</SelectItem>
+                <SelectItem value="atropine">Atropine</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {drugUsed === 'other' && (
+              <Input
+                value={drugUsed}
+                onChange={(e) => setDrugUsed(e.target.value)}
+                className="h-6 w-32 text-xs font-data bg-zinc-900 border-zinc-800 rounded-sm"
+                placeholder="Specify..."
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main content */}
       <main className="p-4 md:p-6">
         <Tabs defaultValue="trace" className="w-full">
@@ -455,6 +532,8 @@ function App() {
               <DetectionPanel
                 params={detectionParams}
                 onChange={setDetectionParams}
+                filterParams={filterParams}
+                onFilterChange={setFilterParams}
                 signalStats={signalStats}
                 onDetect={handleDetect}
                 onValidate={handleValidate}
@@ -488,6 +567,7 @@ function App() {
               perMinuteData={perMinuteData}
               onComputeHRV={handleComputeHRV}
               analysisLoading={analysisLoading}
+              filterSettings={filterParams}
             />
           </TabsContent>
 
@@ -503,6 +583,9 @@ function App() {
               onComputeLightHRV={handleLightHRV}
               onComputeLightResponse={handleLightResponse}
               loading={analysisLoading}
+              metrics={metrics}
+              lightEnabled={lightEnabled}
+              onLightEnabledChange={setLightEnabled}
             />
           </TabsContent>
 
@@ -511,12 +594,15 @@ function App() {
             <ExportPanel
               metrics={metrics}
               hrvResults={hrvResults}
-              lightHrv={lightHrv}
-              lightResponse={lightResponse}
+              lightHrv={lightEnabled ? lightHrv : null}
+              lightResponse={lightEnabled ? lightResponse : null}
               onExportCsv={handleExportCsv}
               onExportXlsx={handleExportXlsx}
               onExportPdf={handleExportPdf}
               loading={exportLoading}
+              recordingName={recordingName}
+              drugUsed={drugUsed}
+              perMinuteData={perMinuteData}
             />
           </TabsContent>
         </Tabs>
