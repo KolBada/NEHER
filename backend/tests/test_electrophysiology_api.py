@@ -15,12 +15,12 @@ class TestAPIRoot:
     """Test API root endpoint"""
     
     def test_api_root_returns_message(self):
-        """API /api/ returns NeuroVoltage API message"""
+        """API /api/ returns NeuCarS API message"""
         response = requests.get(f"{BASE_URL}/api/")
         assert response.status_code == 200
         data = response.json()
         assert "message" in data
-        assert data["message"] == "NeuroVoltage API"
+        assert data["message"] == "NeuCarS API"
 
 
 class TestComputeMetrics:
