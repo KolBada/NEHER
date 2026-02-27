@@ -95,8 +95,9 @@ async def upload_files(files: List[UploadFile] = File(...)):
     result_files = []
 
     for uploaded in files:
-        if not uploaded.filename.lower().endswith('.abf'):
-            raise HTTPException(400, f"Only .abf files supported, got: {uploaded.filename}")
+        fname = uploaded.filename or ''
+        if not fname.lower().endswith('.abf'):
+            raise HTTPException(400, f"Only .abf files are supported. Got: '{fname}'. Please rename your file with .abf extension if needed.")
 
         file_id = str(uuid.uuid4())
         content = await uploaded.read()
