@@ -15,33 +15,25 @@ export default function TraceViewer({
 
   const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
-    const beatSet = new Map();
-    if (beats) {
-      beats.forEach((b, idx) => {
-        beatSet.set(b.timeSec.toFixed(4), idx);
-      });
-    }
-
     const data = traceData.times.map((t, i) => ({
-      time: t,
+      time: t / 60.0, // Convert to minutes
       voltage: traceData.voltages[i],
       isBeat: false,
-      beatIdx: -1
     }));
 
     if (beats) {
-      beats.forEach((beat, bIdx) => {
+      beats.forEach((beat) => {
+        const beatMin = beat.timeSec / 60.0;
         let lo = 0, hi = data.length - 1;
         while (lo < hi) {
           const mid = (lo + hi) >> 1;
-          if (data[mid].time < beat.timeSec) lo = mid + 1;
+          if (data[mid].time < beatMin) lo = mid + 1;
           else hi = mid;
         }
-        if (lo > 0 && Math.abs(data[lo - 1].time - beat.timeSec) < Math.abs(data[lo].time - beat.timeSec)) {
+        if (lo > 0 && Math.abs(data[lo - 1].time - beatMin) < Math.abs(data[lo].time - beatMin)) {
           lo = lo - 1;
         }
         data[lo].isBeat = true;
-        data[lo].beatIdx = bIdx;
       });
     }
     return data;
@@ -52,22 +44,23 @@ export default function TraceViewer({
     if (!e || !e.activePayload || e.activePayload.length === 0) return;
 
     const point = e.activePayload[0].payload;
-    const time = point.time;
+    const timeMin = point.time;
+    const timeSec = timeMin * 60.0;
     const voltage = point.voltage;
 
     const timeRange = traceData
-      ? traceData.times[traceData.times.length - 1] - traceData.times[0]
+      ? (traceData.times[traceData.times.length - 1] - traceData.times[0]) / 60.0
       : 1;
     const tolerance = timeRange / 500;
 
     if (beats) {
-      const nearIdx = beats.findIndex(b => Math.abs(b.timeSec - time) < tolerance);
+      const nearIdx = beats.findIndex(b => Math.abs(b.timeSec / 60.0 - timeMin) < tolerance);
       if (nearIdx >= 0) {
         onRemoveBeat(nearIdx);
         return;
       }
     }
-    onAddBeat(time, voltage);
+    onAddBeat(timeSec, voltage);
   }, [editMode, isValidated, beats, traceData, onAddBeat, onRemoveBeat]);
 
   if (!traceData) return null;
@@ -85,6 +78,13 @@ export default function TraceViewer({
     }
     return null;
   };
+
+  // Convert light pulses to minutes for display
+  const pulsesMin = lightPulses ? lightPulses.map(p => ({
+    ...p,
+    start_min_disp: p.start_sec / 60.0,
+    end_min_disp: p.end_sec / 60.0,
+  })) : null;
 
   return (
     <div className="trace-container" data-testid="trace-viewer">
@@ -127,12 +127,14 @@ export default function TraceViewer({
             type="number"
             domain={['dataMin', 'dataMax']}
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-            tickFormatter={(v) => `${v.toFixed(1)}s`}
+            tickFormatter={(v) => `${Number(v).toFixed(1)}`}
+            label={{ value: 'Time (min)', fill: '#52525b', fontSize: 10, position: 'insideBottomRight', offset: -5 }}
           />
           <YAxis
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
             tickFormatter={(v) => v.toFixed(1)}
             width={50}
+            label={{ value: 'mV', angle: -90, fill: '#52525b', fontSize: 10, position: 'insideLeft' }}
           />
           <Tooltip
             contentStyle={{
@@ -143,14 +145,14 @@ export default function TraceViewer({
               fontSize: 10,
               color: '#fafafa'
             }}
-            labelFormatter={(v) => `${Number(v).toFixed(4)}s`}
+            labelFormatter={(v) => `${Number(v).toFixed(3)} min`}
             formatter={(v) => [Number(v).toFixed(3), 'mV']}
           />
-          {lightPulses && lightPulses.map((pulse, i) => (
+          {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
-              x1={pulse.start_sec}
-              x2={pulse.end_sec}
+              x1={pulse.start_min_disp}
+              x2={pulse.end_min_disp}
               fill="#facc15"
               fillOpacity={0.08}
               stroke="#facc15"
@@ -172,7 +174,7 @@ export default function TraceViewer({
             height={25}
             stroke="#3f3f46"
             fill="#0c0c0e"
-            tickFormatter={(v) => `${Number(v).toFixed(0)}s`}
+            tickFormatter={(v) => `${Number(v).toFixed(1)} min`}
           />
         </ComposedChart>
       </ResponsiveContainer>
