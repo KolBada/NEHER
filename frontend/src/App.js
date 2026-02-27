@@ -448,6 +448,7 @@ function App() {
             <AnalysisPanel
               metrics={metrics}
               hrvResults={hrvResults}
+              perMinuteData={perMinuteData}
               onComputeHRV={handleComputeHRV}
               analysisLoading={analysisLoading}
             />
