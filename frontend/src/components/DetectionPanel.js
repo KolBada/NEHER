@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw, Check } from 'lucide-react';
+import { Loader2, RefreshCw, Check, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -8,11 +8,11 @@ import { Separator } from '@/components/ui/separator';
 
 export default function DetectionPanel({
   params, onChange, signalStats,
-  onDetect, onValidate,
+  onDetect, onValidate, onUnvalidate,
   isValidated, detectLoading, beats
 }) {
   const stats = signalStats || { min: -10, max: 10, mean: 0, std: 1 };
-  const minDist = params.minDistance || 0.2;
+  const minDist = params.minDistance || 0.3;
   const threshold = params.threshold;
   const prominence = params.prominence;
 
@@ -119,39 +119,49 @@ export default function DetectionPanel({
 
         {/* Actions */}
         <div className="space-y-2">
-          <Button
-            data-testid="re-detect-btn"
-            variant="secondary"
-            className="w-full h-8 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
-            onClick={onDetect}
-            disabled={isValidated || detectLoading}
-          >
-            {detectLoading ? (
-              <Loader2 className="w-3 h-3 animate-spin mr-1" />
-            ) : (
-              <RefreshCw className="w-3 h-3 mr-1" />
-            )}
-            Re-detect ({beats ? beats.length : 0} beats)
-          </Button>
+          {!isValidated ? (
+            <>
+              <Button
+                data-testid="re-detect-btn"
+                variant="secondary"
+                className="w-full h-8 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                onClick={onDetect}
+                disabled={detectLoading}
+              >
+                {detectLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                ) : (
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                )}
+                Re-detect ({beats ? beats.length : 0} beats)
+              </Button>
 
-          <Button
-            data-testid="validate-btn"
-            className={`w-full h-8 text-xs rounded-sm font-medium ${
-              isValidated
-                ? 'bg-green-700 hover:bg-green-700 text-white cursor-default'
-                : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200'
-            }`}
-            onClick={onValidate}
-            disabled={isValidated || !beats || beats.length < 2}
-          >
-            {isValidated ? (
-              <span className="flex items-center gap-1">
-                <Check className="w-3 h-3" /> Validated
-              </span>
-            ) : (
-              'Validate Beats'
-            )}
-          </Button>
+              <Button
+                data-testid="validate-btn"
+                className="w-full h-8 text-xs rounded-sm font-medium bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+                onClick={onValidate}
+                disabled={!beats || beats.length < 2}
+              >
+                Validate Beats
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 p-2 bg-green-950/30 border border-green-800/50 rounded-sm">
+                <Check className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-green-400">Beats validated ({beats ? beats.length : 0})</span>
+              </div>
+              <Button
+                data-testid="unvalidate-btn"
+                variant="secondary"
+                className="w-full h-8 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300"
+                onClick={onUnvalidate}
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset Validation (Re-edit beats)
+              </Button>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
