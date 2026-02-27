@@ -28,7 +28,7 @@ function App() {
   const [traceData, setTraceData] = useState(null);
   const [beats, setBeats] = useState([]);
   const [detectionParams, setDetectionParams] = useState({
-    threshold: null, minDistance: 0.2, prominence: null, invert: false
+    threshold: null, minDistance: 0.3, prominence: null, invert: false
   });
   const [signalStats, setSignalStats] = useState(null);
 
