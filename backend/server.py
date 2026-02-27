@@ -102,7 +102,7 @@ class ExportRequest(BaseModel):
 # --- Endpoints ---
 @api_router.get("/")
 async def root():
-    return {"message": "NeuroVoltage API"}
+    return {"message": "NeuCarS API"}
 
 
 @api_router.post("/upload")
