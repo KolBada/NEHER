@@ -643,14 +643,15 @@ function App() {
                 const config = DRUG_CONFIG[drugKey];
                 const settings = drugSettings[drugKey] || {};
                 return (
-                  <div key={drugKey} className="flex items-center gap-3 p-2 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
+                  <div key={drugKey} className="flex items-center gap-3 p-2 bg-zinc-900/30 rounded-sm border border-zinc-800/50 relative z-10">
                     <span className="text-[10px] font-medium text-zinc-300 w-24">{config.name}</span>
                     <div className="flex items-center gap-1">
                       <Input
                         data-testid={`drug-${drugKey}-concentration`}
-                        value={settings.concentration || config.defaultConc}
+                        type="text"
+                        value={settings.concentration !== undefined ? settings.concentration : config.defaultConc}
                         onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
-                        className="h-5 w-12 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                       />
                       <span className="text-[9px] text-zinc-500">µM</span>
                     </div>
@@ -661,17 +662,19 @@ function App() {
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-start`}
                         type="number"
-                        value={settings.perfusionStart ?? 3}
+                        step="0.5"
+                        value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                       />
                       <span className="text-[9px] text-zinc-500">min, Time:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-time`}
                         type="number"
-                        value={settings.perfusionTime ?? 3}
+                        step="0.5"
+                        value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                       />
                       <span className="text-[9px] text-zinc-500">min</span>
                     </div>
