@@ -381,8 +381,11 @@ export default function AnalysisPanel({
             <Separator orientation="vertical" className="h-20 bg-zinc-800 hidden md:block" />
 
             {/* Optional readout controls - for drugs */}
-            <div className="space-y-2 p-3 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
-              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Drug Readout (optional)</p>
+            <div className="space-y-2 p-3 bg-purple-950/20 rounded-sm border border-purple-800/50">
+              <p className="text-[9px] text-purple-400 uppercase tracking-wider font-bold">Drug Readout</p>
+              <p className="text-[8px] text-zinc-500 mb-1">
+                Time = Base + Perf.Start + Perf.Time
+              </p>
               <div className="flex items-center gap-2">
                 <Checkbox 
                   id="enable-hrv-readout"
@@ -390,15 +393,20 @@ export default function AnalysisPanel({
                   onCheckedChange={setEnableHrvReadout}
                   className="h-3 w-3"
                 />
-                <Label htmlFor="enable-hrv-readout" className="text-[9px] text-zinc-500">HRV at min:</Label>
+                <Label htmlFor="enable-hrv-readout" className="text-[9px] text-zinc-500">HRV base min:</Label>
                 <Input
                   type="number"
                   value={hrvReadoutMinute}
                   onChange={(e) => setHrvReadoutMinute(e.target.value)}
                   disabled={!enableHrvReadout}
                   className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
-                  placeholder="e.g. 12"
+                  placeholder="12"
                 />
+                {enableHrvReadout && selectedDrugs?.length > 0 && hrvReadoutMinute && (
+                  <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
+                    → {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox 
@@ -407,15 +415,20 @@ export default function AnalysisPanel({
                   onCheckedChange={setEnableBfReadout}
                   className="h-3 w-3"
                 />
-                <Label htmlFor="enable-bf-readout" className="text-[9px] text-zinc-500">BF at min:</Label>
+                <Label htmlFor="enable-bf-readout" className="text-[9px] text-zinc-500">BF base min:</Label>
                 <Input
                   type="number"
                   value={bfReadoutMinute}
                   onChange={(e) => setBfReadoutMinute(e.target.value)}
                   disabled={!enableBfReadout}
                   className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
-                  placeholder="e.g. 14"
+                  placeholder="14"
                 />
+                {enableBfReadout && selectedDrugs?.length > 0 && bfReadoutMinute && (
+                  <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
+                    → {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
+                  </Badge>
+                )}
               </div>
             </div>
 
