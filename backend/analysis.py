@@ -1,5 +1,18 @@
 import numpy as np
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, butter, sosfiltfilt
+
+
+def bandpass_filter(signal, sr, lowcut=0.5, highcut=None, order=3):
+    """Bandpass filter to clean signal before beat detection."""
+    nyq = sr / 2.0
+    if highcut is None:
+        highcut = min(500.0, nyq * 0.9)
+    low = max(lowcut / nyq, 0.001)
+    high = min(highcut / nyq, 0.999)
+    if low >= high:
+        return signal
+    sos = butter(order, [low, high], btype='band', output='sos')
+    return sosfiltfilt(sos, signal)
 
 
 def decimate_trace(times, voltages, target_points=5000):
