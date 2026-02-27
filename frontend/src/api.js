@@ -29,6 +29,8 @@ const api = {
 
   exportPdf: (data) =>
     axios.post(`${API_URL}/export/pdf`, data, { responseType: 'blob' }),
+
+  perMinuteMetrics: (data) => axios.post(`${API_URL}/per-minute-metrics`, data),
 };
 
 export function downloadBlob(blob, filename) {
