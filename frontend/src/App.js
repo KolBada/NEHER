@@ -808,6 +808,7 @@ function App() {
               drugSettings={drugSettings}
               selectedDrugs={selectedDrugs}
               otherDrugs={otherDrugs}
+              DRUG_CONFIG={DRUG_CONFIG}
             />
           </TabsContent>
 
