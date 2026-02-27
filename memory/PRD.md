@@ -14,14 +14,14 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - **Database**: MongoDB (metadata only, files temporary)
 - **Export**: openpyxl (XLSX), matplotlib (PDF)
 
-## What's Been Implemented (Latest Update - Dec 2025)
+## What's Been Implemented (Dec 2025)
 
 ### Core Features
 - [x] ABF file upload with pyABF parsing (multi-sweep support)
 - [x] Min-max trace decimation for efficient display
 - [x] Auto beat detection using scipy.signal.find_peaks with bandpass filter
 - [x] Detection parameter controls (threshold, min distance, prominence, invert)
-- [x] Manual beat editing (click to add/remove with visual selection)
+- [x] **Manual beat editing - click to add beats, click markers to remove**
 - [x] Beat validation → NN intervals, beat frequency computation
 
 ### Backend Analysis (8-Step Scientific Workflow)
@@ -34,10 +34,19 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - [x] Baseline Metrics Computation
 - [x] Fixed array alignment issues (N beats vs N-1 intervals)
 
-### Artifact Filtering
-- [x] **Configurable artifact filter strictness** (default 50-200% of local median)
-- [x] UI sliders for lower/upper bounds
+### Detection Panel & Threshold
+- [x] **Threshold visible on trace as dashed amber line**
+- [x] **Direct threshold input field (editable)**
+- [x] **Prominent amber-highlighted threshold control section**
+- [x] Configurable artifact filter strictness (default 50-200% of local median)
 - [x] Preset buttons (Default 50-200%, Strict 70-150%, Loose 30-250%)
+
+### Trace Viewer
+- [x] **Trackpad/wheel zoom (Ctrl+Scroll to zoom)**
+- [x] **Zoom In/Out buttons**
+- [x] **Reset Zoom button**
+- [x] Beat markers with click-to-select for deletion
+- [x] Light pulse highlights with "Stim N" labels
 
 ### HRV Analysis
 - [x] Spontaneous HRV analysis (sliding 3-min windows)
@@ -45,57 +54,47 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - [x] 70 bpm normalization (857ms reference)
 - [x] Per-minute metrics table with clear 3-min window labeling
 - [x] **Configurable baseline metrics** (HRV 0-3min, BF 1-2min defaults)
-- [x] **Separate HRV and BF readout controls** with enable/disable checkboxes
-- [x] Baseline readout prominently displayed, drug readout smaller on right
-- [x] **Popover info tooltips** for SDNN, RMSSD, pNN50 explaining 3-min window
+- [x] **Baseline readout prominent, Drug readout same size when enabled**
+- [x] **Drug readout with purple color theme matching baseline prominence**
 
 ### Light Stimulation (Light Induced HRA)
 - [x] **Enable/disable toggle** for light stimulation analysis
-- [x] Light stimulation mode with configurable pulses (start, duration, intervals)
-- [x] Improved auto-detection algorithm (finds BF rise above baseline)
-- [x] **BPM vs time chart with min:sec X-axis formatting**
-- [x] **Light pulse highlights on main trace** with "Stim N" labels
-- [x] **Beat-by-beat pulse adjustment** (+1/-1 beat buttons)
-- [x] **±5s coarse adjustment** buttons
-- [x] **Cascade to future pulses** - moving one pulse shifts all following
-- [x] Per-stim metrics: Beats, BF, NN, NN₇₀, peak BF, amplitude, slope
+- [x] **BPM vs time chart with pulse regions highlighted**
+- [x] Light pulse highlights on main trace with "Stim N" labels
+- [x] Beat-by-beat pulse adjustment (+1/-1 beat buttons)
+- [x] ±5s coarse adjustment buttons
+- [x] Cascade to future pulses - moving one pulse shifts all following
 
-### Recording Metadata & Drug Configuration
-- [x] **Recording name input field**
-- [x] **Drug configuration with 5 predefined options + Other**
-- [x] **Editable drug concentrations in µM**
-- [x] **Multiple drug selection** with checkboxes
-- [x] **Independent perfusion settings per drug** (start and time)
-- [x] **Multiple "Other" drugs** can be added with custom names
+### Drug Configuration
+- [x] **Drug configuration inputs now editable** (concentration, perfusion start/time)
+- [x] 5 predefined drugs + "Other" option
+- [x] Multiple drug selection with checkboxes
+- [x] Independent perfusion settings per drug
 
-### UI/UX
-- [x] **App named NeuCarS**
-- [x] Interactive trace viewer with Recharts
-- [x] **Zoom via Brush with Reset Zoom button** (FIXED)
-- [x] Dark scientific UI theme (Manrope/Inter/JetBrains Mono fonts)
-- [x] Time axes in minutes throughout
-
-### Export
-- [x] **Improved XLSX export** with styled headers, multiple sheets
-- [x] **Improved PDF report** with title page, recording info, colored charts
-- [x] Recording name and drug info included in exports
+### Export (CELL Magazine Style)
+- [x] **PDF excludes filtered/artifact beats from trace charts**
+- [x] **Fixed Y-axis scales**: LN(RMSSD): 0-8, pNN50: 0-100, SDNN/RMSSD: 0-300
+- [x] **CELL magazine style formatting** - clean tables, proper headers
+- [x] **Excel export with styled sheets** - Summary, Filtered Beat Data, Per-Minute, HRV Analysis, Light Stim
+- [x] Title page with recording name, drug, timestamp
+- [x] Baseline metrics summary table
+- [x] Per-pulse light response table with statistics summary
 
 ## Prioritized Backlog
 
-### P0 (Completed)
+### P0 - Completed ✅
 All core workflow features implemented and tested.
 
-### P1 (Next - Export Enhancement)
-- [ ] Graphs in exports should not include filtered-out/artifact beats
-- [ ] Fixed Y-axis scales (LN(RMSSD): 0-8, pNN50: 0-100, SDNN/RMSSD: 0-300)
-- [ ] "CELL magazine style" export formatting
+### P1 - Completed ✅
+- Export enhancements with CELL magazine style
+- Fixed Y-axis scales in HRV charts
+- Drug readout UI consistency
 
-### P2 (Enhancement)
-- [ ] Drug workflow support with automated readout calculations
-- [ ] Cohort-normalized beat frequency
-- [ ] Drag-to-adjust light pulse boundaries
-- [ ] Session persistence (save/load analysis state)
+### P2 (Future)
+- [ ] Save/Load analysis state functionality
+- [ ] Cohort normalization
 - [ ] Batch processing mode
+- [ ] Drag-to-adjust light pulse boundaries
 
 ## API Endpoints
 - `POST /api/upload` - Upload ABF files
@@ -107,16 +106,19 @@ All core workflow features implemented and tested.
 - `POST /api/light-hrv` - Per-pulse HRV
 - `POST /api/light-response` - HRA metrics
 - `POST /api/export/csv` - CSV export
-- `POST /api/export/xlsx` - Styled XLSX export
-- `POST /api/export/pdf` - PDF report
+- `POST /api/export/xlsx` - CELL-style XLSX export
+- `POST /api/export/pdf` - CELL-style PDF report
 
 ## Key Files
-- `/app/backend/server.py` - FastAPI routes
+- `/app/backend/server.py` - FastAPI routes with CELL-style exports
 - `/app/backend/analysis.py` - Scientific computations (8-step workflow)
 - `/app/frontend/src/App.js` - Main React component with drug config
-- `/app/frontend/src/components/LightPanel.js` - Light Induced HRA
-- `/app/frontend/src/components/AnalysisPanel.js` - HRV with baseline
-- `/app/frontend/src/components/TraceViewer.js` - Trace with zoom fix
+- `/app/frontend/src/components/TraceViewer.js` - Trace with threshold, zoom, beat editing
+- `/app/frontend/src/components/DetectionPanel.js` - Prominent threshold control
+- `/app/frontend/src/components/AnalysisPanel.js` - HRV with baseline/drug readout
+- `/app/frontend/src/components/LightPanel.js` - Light Induced HRA with BPM trace
 
 ## Test Reports
-- `/app/test_reports/iteration_6.json` - Latest test results (100% pass rate)
+- `/app/test_reports/iteration_7.json` - Latest test results (100% pass rate)
+- `/app/backend/tests/test_electrophysiology_api.py` - Backend unit tests
+- `/app/backend/tests/test_iteration7_features.py` - Feature validation tests
