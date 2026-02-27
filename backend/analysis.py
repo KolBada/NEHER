@@ -544,7 +544,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'peak_bf': peak_bf,
             'peak_norm_pct': peak_norm,
             'time_to_peak_sec': time_to_peak_sec,
-            'slope': slope,
+            'slope': slope_bpm_per_min,
             'norm_slope': norm_slope,
             'amplitude': amplitude,
             'pre_drop_bf': pre_drop_bf,
