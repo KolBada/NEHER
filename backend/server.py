@@ -93,6 +93,10 @@ class ExportRequest(BaseModel):
     light_response: Optional[List[dict]] = None
     summary: Optional[dict] = None
     filename: str = "analysis"
+    recording_name: Optional[str] = None
+    drug_used: Optional[str] = None
+    per_minute_data: Optional[List[dict]] = None
+    baseline: Optional[dict] = None
 
 
 # --- Endpoints ---
