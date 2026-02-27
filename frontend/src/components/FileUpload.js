@@ -21,7 +21,12 @@ export default function FileUpload({ onUpload, loading }) {
     const files = Array.from(e.dataTransfer.files).filter(f =>
       f.name.toLowerCase().endsWith('.abf')
     );
-    if (files.length > 0) setSelectedFiles(prev => [...prev, ...files]);
+    if (files.length === 0 && e.dataTransfer.files.length > 0) {
+      // Show all dropped files even if extension doesn't match - user knows best
+      setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+    } else if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
+    }
   }, []);
 
   const handleFileSelect = useCallback((e) => {
