@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
@@ -30,12 +31,12 @@ const CHART_COLORS = {
   pnn50: '#fb923c',
 };
 
-function MetricCard({ label, value, unit, sublabel }) {
+function MetricCard({ label, value, unit, sublabel, highlight }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
-      <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500">{label}</p>
+    <div className={`border rounded-sm p-3 ${highlight ? 'bg-cyan-950/30 border-cyan-800' : 'bg-zinc-900/50 border-zinc-800'}`}>
+      <p className={`text-[9px] uppercase tracking-wider font-bold ${highlight ? 'text-cyan-400' : 'text-zinc-500'}`}>{label}</p>
       {sublabel && <p className="text-[8px] text-zinc-600">{sublabel}</p>}
-      <p className="text-lg font-data text-zinc-100 mt-1">
+      <p className={`text-lg font-data mt-1 ${highlight ? 'text-cyan-100' : 'text-zinc-100'}`}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
@@ -43,31 +44,29 @@ function MetricCard({ label, value, unit, sublabel }) {
   );
 }
 
-function BaselineCard({ label, value, unit, baselineValue, baselineLabel }) {
+function SmallMetricCard({ label, value, unit }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
-      <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500">{label}</p>
-      <p className="text-lg font-data text-zinc-100 mt-1">
+    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-sm p-2">
+      <p className="text-[8px] uppercase tracking-wider text-zinc-600">{label}</p>
+      <p className="text-sm font-data text-zinc-400">
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
+        {unit && <span className="text-[8px] text-zinc-600 ml-1">{unit}</span>}
       </p>
-      {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
-      {baselineValue !== null && baselineValue !== undefined && (
-        <div className="mt-2 pt-2 border-t border-zinc-800">
-          <p className="text-[8px] text-zinc-500 uppercase">Baseline {baselineLabel}</p>
-          <p className="text-xs font-data text-zinc-400">
-            {typeof baselineValue === 'number' ? baselineValue.toFixed(3) : baselineValue}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
 
 export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
-  onComputeHRV, analysisLoading, filterSettings
+  onComputeHRV, analysisLoading, filterSettings, hasDrug
 }) {
-  const [readoutMinute, setReadoutMinute] = useState('');
+  // Separate readout controls for HRV and BF
+  const [hrvReadoutMinute, setHrvReadoutMinute] = useState('');
+  const [bfReadoutMinute, setBfReadoutMinute] = useState('');
+  const [enableHrvReadout, setEnableHrvReadout] = useState(false);
+  const [enableBfReadout, setEnableBfReadout] = useState(false);
+  
+  // Baseline settings (default: RMSSD at 0min, BF at 1min)
   const [baselineHrvStart, setBaselineHrvStart] = useState(0);
   const [baselineHrvEnd, setBaselineHrvEnd] = useState(3);
   const [baselineBfStart, setBaselineBfStart] = useState(1);
@@ -118,13 +117,25 @@ export default function AnalysisPanel({
     }));
   }, [perMinuteData, hrvResults]);
 
+  // Get specific readouts
+  const hrvReadout = useMemo(() => {
+    if (!enableHrvReadout || !hrvReadoutMinute || !hrvResults?.windows) return null;
+    const minute = parseInt(hrvReadoutMinute);
+    return hrvResults.windows.find(w => w.minute === minute) || null;
+  }, [hrvResults, hrvReadoutMinute, enableHrvReadout]);
+
+  const bfReadout = useMemo(() => {
+    if (!enableBfReadout || !bfReadoutMinute || !perMinuteData) return null;
+    const minute = parseInt(bfReadoutMinute);
+    return perMinuteData.find(r => r.minute === minute) || null;
+  }, [perMinuteData, bfReadoutMinute, enableBfReadout]);
+
   if (!metrics) return (
     <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">
       Validate beats first to see analysis results
     </div>
   );
 
-  const readout = hrvResults?.readout;
   const baseline = hrvResults?.baseline;
   const filterInfo = metrics?.filter_settings || filterSettings;
 
@@ -211,7 +222,7 @@ export default function AnalysisPanel({
         </Card>
       </div>
 
-      {/* HRV Controls */}
+      {/* HRV Analysis with Readout Controls */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400">
@@ -219,112 +230,170 @@ export default function AnalysisPanel({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-3 mb-4">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Readout Minute</Label>
-              <Input
-                data-testid="readout-minute-input"
-                type="number"
-                value={readoutMinute}
-                onChange={(e) => setReadoutMinute(e.target.value)}
-                className="w-20 h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                placeholder="e.g. 5"
-              />
-            </div>
-            <Separator orientation="vertical" className="h-7 bg-zinc-800" />
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Baseline HRV (min)</Label>
-              <div className="flex items-center gap-1">
+          {/* Controls row */}
+          <div className="flex flex-wrap items-start gap-4 mb-4">
+            {/* Baseline settings */}
+            <div className="space-y-2 p-3 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Baseline Settings</p>
+              <div className="flex items-center gap-2">
+                <Label className="text-[9px] text-zinc-500 w-16">HRV (min)</Label>
                 <Input
                   type="number"
                   value={baselineHrvStart}
                   onChange={(e) => setBaselineHrvStart(parseFloat(e.target.value) || 0)}
-                  className="w-14 h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
                 />
-                <span className="text-zinc-500 text-xs">-</span>
+                <span className="text-zinc-600 text-[10px]">-</span>
                 <Input
                   type="number"
                   value={baselineHrvEnd}
                   onChange={(e) => setBaselineHrvEnd(parseFloat(e.target.value) || 3)}
-                  className="w-14 h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
                 />
               </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Baseline BF (min)</Label>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <Label className="text-[9px] text-zinc-500 w-16">BF (min)</Label>
                 <Input
                   type="number"
                   value={baselineBfStart}
                   onChange={(e) => setBaselineBfStart(parseFloat(e.target.value) || 1)}
-                  className="w-14 h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
                 />
-                <span className="text-zinc-500 text-xs">-</span>
+                <span className="text-zinc-600 text-[10px]">-</span>
                 <Input
                   type="number"
                   value={baselineBfEnd}
                   onChange={(e) => setBaselineBfEnd(parseFloat(e.target.value) || 2)}
-                  className="w-14 h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
                 />
               </div>
             </div>
+
+            <Separator orientation="vertical" className="h-20 bg-zinc-800 hidden md:block" />
+
+            {/* Optional readout controls - for drugs */}
+            <div className="space-y-2 p-3 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
+              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Drug Readout (optional)</p>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="enable-hrv-readout"
+                  checked={enableHrvReadout}
+                  onCheckedChange={setEnableHrvReadout}
+                  className="h-3 w-3"
+                />
+                <Label htmlFor="enable-hrv-readout" className="text-[9px] text-zinc-500">HRV at min:</Label>
+                <Input
+                  type="number"
+                  value={hrvReadoutMinute}
+                  onChange={(e) => setHrvReadoutMinute(e.target.value)}
+                  disabled={!enableHrvReadout}
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                  placeholder="e.g. 12"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="enable-bf-readout"
+                  checked={enableBfReadout}
+                  onCheckedChange={setEnableBfReadout}
+                  className="h-3 w-3"
+                />
+                <Label htmlFor="enable-bf-readout" className="text-[9px] text-zinc-500">BF at min:</Label>
+                <Input
+                  type="number"
+                  value={bfReadoutMinute}
+                  onChange={(e) => setBfReadoutMinute(e.target.value)}
+                  disabled={!enableBfReadout}
+                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                  placeholder="e.g. 14"
+                />
+              </div>
+            </div>
+
             <Button
               data-testid="compute-hrv-btn"
-              className="h-7 text-xs rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+              className="h-8 text-xs rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-200 self-end"
               onClick={() => onComputeHRV(
-                readoutMinute ? parseInt(readoutMinute) : null,
-                { hrvStart: baselineHrvStart, hrvEnd: baselineHrvEnd, bfStart: baselineBfStart, bfEnd: baselineBfEnd }
+                enableHrvReadout && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null,
+                { 
+                  hrvStart: baselineHrvStart, 
+                  hrvEnd: baselineHrvEnd, 
+                  bfStart: baselineBfStart, 
+                  bfEnd: baselineBfEnd 
+                }
               )}
               disabled={analysisLoading}
             >
-              {analysisLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Compute HRV'}
+              {analysisLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+              Compute HRV
             </Button>
           </div>
 
-          {/* Readout with Baseline */}
-          {readout && (
-            <div className="mb-4">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 mb-2">
-                Readout at minute {readout.minute}
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <BaselineCard 
-                  label="ln(RMSSD₇₀)" 
-                  value={readout.ln_rmssd70}
-                  baselineValue={baseline?.baseline_ln_rmssd70}
-                  baselineLabel={baseline?.baseline_hrv_range}
-                />
-                <BaselineCard 
-                  label="RMSSD₇₀" 
-                  value={readout.rmssd70} 
-                  unit="ms"
-                  baselineValue={baseline?.baseline_rmssd70}
-                  baselineLabel={baseline?.baseline_hrv_range}
-                />
-                <BaselineCard 
-                  label="SDNN" 
-                  value={readout.sdnn} 
-                  unit="ms"
-                  baselineValue={baseline?.baseline_sdnn}
-                  baselineLabel={baseline?.baseline_hrv_range}
-                />
-                <BaselineCard 
-                  label="pNN50" 
-                  value={readout.pnn50} 
-                  unit="%"
-                  baselineValue={baseline?.baseline_pnn50}
-                  baselineLabel={baseline?.baseline_hrv_range}
-                />
-                <BaselineCard 
-                  label="Mean BF" 
-                  value={readout.mean_bf} 
-                  unit="bpm"
-                  baselineValue={baseline?.baseline_bf}
-                  baselineLabel={baseline?.baseline_bf_range}
-                />
+          {/* Results display - Baseline prominent, drug readout on right */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
+            {/* Baseline - prominent */}
+            {baseline && (
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-500">
+                  Baseline Metrics
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <MetricCard 
+                    label="ln(RMSSD₇₀)" 
+                    sublabel={`${baselineHrvStart}-${baselineHrvEnd}min`}
+                    value={baseline.baseline_ln_rmssd70}
+                    highlight
+                  />
+                  <MetricCard 
+                    label="RMSSD₇₀" 
+                    sublabel={`${baselineHrvStart}-${baselineHrvEnd}min`}
+                    value={baseline.baseline_rmssd70} 
+                    unit="ms"
+                    highlight
+                  />
+                  <MetricCard 
+                    label="SDNN" 
+                    sublabel={`${baselineHrvStart}-${baselineHrvEnd}min`}
+                    value={baseline.baseline_sdnn} 
+                    unit="ms"
+                    highlight
+                  />
+                  <MetricCard 
+                    label="pNN50" 
+                    sublabel={`${baselineHrvStart}-${baselineHrvEnd}min`}
+                    value={baseline.baseline_pnn50} 
+                    unit="%"
+                    highlight
+                  />
+                  <MetricCard 
+                    label="Mean BF" 
+                    sublabel={`${baselineBfStart}-${baselineBfEnd}min`}
+                    value={baseline.baseline_bf} 
+                    unit="bpm"
+                    highlight
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Drug readout - smaller, right side */}
+            {(hrvReadout || bfReadout) && (
+              <div className="space-y-2 p-3 bg-zinc-900/20 rounded-sm border border-zinc-800/30 min-w-[200px]">
+                <p className="text-[9px] uppercase tracking-wider text-zinc-600">Drug Readout</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {hrvReadout && (
+                    <>
+                      <SmallMetricCard label={`ln(RMSSD₇₀) @${hrvReadoutMinute}min`} value={hrvReadout.ln_rmssd70} />
+                      <SmallMetricCard label={`SDNN @${hrvReadoutMinute}min`} value={hrvReadout.sdnn} unit="ms" />
+                    </>
+                  )}
+                  {bfReadout && (
+                    <SmallMetricCard label={`BF @${bfReadoutMinute}min`} value={bfReadout.avg_bf} unit="bpm" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* HRV Evolution Charts */}
           {hrvChartData.length > 0 && (
