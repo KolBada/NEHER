@@ -359,6 +359,7 @@ function App() {
     setIsValidated(false);
     setMetrics(null);
     setHrvResults(null);
+    setPerMinuteData(null);
     setLightPulses(null);
     setLightHrv(null);
     setLightResponse(null);
