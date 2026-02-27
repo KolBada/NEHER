@@ -104,7 +104,8 @@ export default function TraceViewer({
     if (brushData && brushData.startIndex !== undefined && brushData.endIndex !== undefined) {
       setBrushStartIdx(brushData.startIndex);
       setBrushEndIdx(brushData.endIndex);
-      setIsZoomed(brushData.startIndex !== 0 || brushData.endIndex !== chartData.length - 1);
+      // Determine if zoomed by checking if we're not at full range
+      setIsZoomed(true);
     }
   }, []);
 
