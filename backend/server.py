@@ -703,7 +703,7 @@ async def export_pdf(request: ExportRequest):
         pdf.savefig(fig1)
         plt.close(fig1)
 
-        # Page 2: BF and NN plots (ONLY KEPT BEATS - exclude filtered)
+        # Page 2: BF and NN plots (ONLY KEPT BEATS - exclude filtered) with Light Stim zones
         if request.per_beat_data:
             fig2, axes = plt.subplots(2, 1, figsize=(8.5, 11))
             fig2.suptitle('Beat Frequency and NN Intervals (Filtered Data Only)', fontsize=14, fontweight='bold', y=0.96)
@@ -725,6 +725,16 @@ async def export_pdf(request: ExportRequest):
                 axes[0].set_facecolor('#fafafa')
                 axes[0].spines['top'].set_visible(False)
                 axes[0].spines['right'].set_visible(False)
+                
+                # Add light stimulation zones to BF plot
+                if request.light_pulses:
+                    for i, pulse in enumerate(request.light_pulses):
+                        start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
+                        end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
+                        axes[0].axvspan(start_min, end_min, alpha=0.15, color='#f59e0b', label=f'Stim {i+1}' if i == 0 else None)
+                        axes[0].axvline(x=start_min, color='#f59e0b', linestyle='--', linewidth=0.8, alpha=0.6)
+                    if len(request.light_pulses) > 0:
+                        axes[0].legend(loc='upper right', fontsize=8)
 
                 # NN plot - clean CELL style
                 axes[1].plot(times, nns, 'o-', color='#22c55e', markersize=2, linewidth=0.8, alpha=0.8)
@@ -735,6 +745,14 @@ async def export_pdf(request: ExportRequest):
                 axes[1].set_facecolor('#fafafa')
                 axes[1].spines['top'].set_visible(False)
                 axes[1].spines['right'].set_visible(False)
+                
+                # Add light stimulation zones to NN plot
+                if request.light_pulses:
+                    for i, pulse in enumerate(request.light_pulses):
+                        start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
+                        end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
+                        axes[1].axvspan(start_min, end_min, alpha=0.15, color='#f59e0b')
+                        axes[1].axvline(x=start_min, color='#f59e0b', linestyle='--', linewidth=0.8, alpha=0.6)
 
             plt.tight_layout(rect=[0, 0.02, 1, 0.94])
             pdf.savefig(fig2)
