@@ -403,29 +403,228 @@ def compute_per_minute_table(beat_times_min_list, bf_filtered_list):
 
 
 def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_sec, search_range_sec=20):
-    """Auto-detect light stim start from BF increase."""
+    """
+    Auto-detect light stim start from BF pattern:
+    - Peak (almost instant or in a couple of seconds)
+    - Slowdown that is still above the baseline
+    - Drop to baseline or lower
+    """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
 
     approx_min = approx_start_sec / 60.0
     search_min = search_range_sec / 60.0
 
-    mask = (bt >= approx_min - search_min) & (bt <= approx_min + search_min)
+    # Get baseline from 1 minute before the search window
+    baseline_mask = (bt >= approx_min - search_min - 1.0) & (bt < approx_min - search_min)
+    if np.sum(baseline_mask) < 3:
+        baseline_mask = (bt >= approx_min - search_min * 2) & (bt < approx_min - search_min)
+    baseline_bf = float(np.median(bf[baseline_mask])) if np.sum(baseline_mask) > 0 else float(np.median(bf))
+
+    # Search window
+    mask = (bt >= approx_min - search_min) & (bt <= approx_min + search_min * 2)
     if np.sum(mask) < 5:
         return approx_start_sec
 
     bf_window = bf[mask]
     bt_window = bt[mask]
 
-    # Smooth BF and find largest positive jump
+    # Smooth BF 
     kernel = min(5, len(bf_window))
     if kernel < 2:
         return approx_start_sec
     bf_smooth = np.convolve(bf_window, np.ones(kernel) / kernel, mode='same')
-    bf_diff = np.diff(bf_smooth)
+    
+    # Find points significantly above baseline (potential peak response)
+    threshold = baseline_bf * 1.15  # 15% above baseline
+    above_baseline = bf_smooth > threshold
+    
+    if not np.any(above_baseline):
+        # Fallback: find largest positive jump
+        bf_diff = np.diff(bf_smooth)
+        if len(bf_diff) > 0:
+            onset_idx = int(np.argmax(bf_diff))
+            return float(bt_window[onset_idx] * 60.0)
+        return approx_start_sec
+    
+    # Find the first index where BF rises above threshold
+    first_above = np.argmax(above_baseline)
+    
+    # Look for the actual onset: where the rapid increase starts
+    # Go back from the first peak to find where it started rising
+    search_back = min(first_above, 10)
+    if search_back > 0:
+        segment = bf_smooth[first_above - search_back:first_above + 1]
+        segment_diff = np.diff(segment)
+        if len(segment_diff) > 0:
+            # Find where the rise began (first large positive diff)
+            rise_idx = np.argmax(segment_diff)
+            onset_idx = first_above - search_back + rise_idx
+            return float(bt_window[onset_idx] * 60.0)
+    
+    return float(bt_window[first_above] * 60.0)
 
-    if len(bf_diff) > 0:
-        onset_idx = int(np.argmax(bf_diff))
-        return float(bt_window[onset_idx] * 60.0)
 
-    return approx_start_sec
+def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
+    """
+    Compute light response metrics per stimulation pulse.
+    Amplitude is between the peak and the last beat before the drop (not baseline).
+    """
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    nn = 60000.0 / bf
+
+    first_start_min = pulses[0]['start_min']
+    baseline_mask = (bt >= first_start_min - 1.0) & (bt < first_start_min)
+    baseline_bf = float(np.mean(bf[baseline_mask])) if np.sum(baseline_mask) > 0 else None
+
+    per_stim = []
+    for pulse in pulses:
+        p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min'])
+        bf_stim = bf[p_mask]
+        bt_stim = bt[p_mask]
+        nn_stim = nn[p_mask]
+
+        if len(bf_stim) < 2:
+            per_stim.append(None)
+            continue
+
+        # Metrics using BPM
+        peak_bf = float(np.max(bf_stim))
+        peak_idx = int(np.argmax(bf_stim))
+        time_to_peak_sec = float((bt_stim[peak_idx] - pulse['start_min']) * 60.0)
+        
+        peak_norm = float(100.0 * peak_bf / baseline_bf) if baseline_bf and baseline_bf > 0 else None
+
+        # Find the "last beat before drop" - the beat just before returning to baseline
+        # Look for where BF drops significantly after the peak
+        post_peak_bf = bf_stim[peak_idx:]
+        if len(post_peak_bf) > 2:
+            # Find where BF starts dropping back toward baseline
+            drop_threshold = baseline_bf * 1.05 if baseline_bf else peak_bf * 0.7
+            below_threshold = post_peak_bf < drop_threshold
+            if np.any(below_threshold):
+                drop_idx = np.argmax(below_threshold)
+                # The "last beat before drop" is just before this
+                pre_drop_idx = peak_idx + max(0, drop_idx - 1)
+                pre_drop_bf = float(bf_stim[pre_drop_idx])
+            else:
+                pre_drop_bf = float(bf_stim[-1])
+        else:
+            pre_drop_bf = peak_bf
+            
+        # Amplitude = peak - last beat before drop
+        amplitude = float(peak_bf - pre_drop_bf)
+
+        # Slope calculation
+        t_sec = (bt_stim - bt_stim[0]) * 60.0
+        if len(t_sec) > 1:
+            coeffs = np.polyfit(t_sec, bf_stim, 1)
+            slope = float(coeffs[0])
+        else:
+            slope = 0.0
+
+        mean_bf_stim = float(np.mean(bf_stim))
+        norm_slope = float(slope / mean_bf_stim) if mean_bf_stim > 0 else None
+        
+        # Per-stim basic metrics
+        n_beats = int(np.sum(p_mask))
+        avg_nn = float(np.mean(nn_stim))
+        median_nn = float(np.median(nn_stim))
+        nn_70 = float(np.mean(nn_stim * (857.0 / median_nn))) if median_nn > 0 else avg_nn
+
+        per_stim.append({
+            'pulse_index': pulse['index'],
+            'n_beats': n_beats,
+            'avg_bf': mean_bf_stim,
+            'avg_nn': avg_nn,
+            'nn_70': nn_70,
+            'peak_bf': peak_bf,
+            'peak_norm_pct': peak_norm,
+            'time_to_peak_sec': time_to_peak_sec,
+            'slope': slope,
+            'norm_slope': norm_slope,
+            'amplitude': amplitude,
+            'pre_drop_bf': pre_drop_bf,
+        })
+
+    valid = [s for s in per_stim if s is not None]
+    if valid:
+        def safe_mean(key):
+            vals = [s[key] for s in valid if s.get(key) is not None]
+            return float(np.mean(vals)) if vals else None
+
+        mean_metrics = {
+            'n_beats': safe_mean('n_beats'),
+            'avg_bf': safe_mean('avg_bf'),
+            'avg_nn': safe_mean('avg_nn'),
+            'nn_70': safe_mean('nn_70'),
+            'peak_bf': safe_mean('peak_bf'),
+            'peak_norm_pct': safe_mean('peak_norm_pct'),
+            'time_to_peak_sec': safe_mean('time_to_peak_sec'),
+            'slope': safe_mean('slope'),
+            'norm_slope': safe_mean('norm_slope'),
+            'amplitude': safe_mean('amplitude'),
+        }
+    else:
+        mean_metrics = None
+
+    return per_stim, mean_metrics, baseline_bf
+
+
+def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_start=0, hrv_end=3, bf_start=1, bf_end=2):
+    """
+    Compute baseline readout metrics.
+    HRV: from hrv_start to hrv_end minutes (default 0-3 min)
+    BF: from bf_start to bf_end minutes (default 1-2 min)
+    """
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    nn = 60000.0 / bf
+    
+    result = {}
+    
+    # BF baseline (default 1-2 min)
+    bf_mask = (bt >= bf_start) & (bt < bf_end)
+    if np.sum(bf_mask) >= 2:
+        result['baseline_bf'] = float(np.mean(bf[bf_mask]))
+        result['baseline_bf_range'] = f"{bf_start}-{bf_end} min"
+    else:
+        result['baseline_bf'] = None
+        result['baseline_bf_range'] = None
+    
+    # HRV baseline (default 0-3 min) - needs normalized NN_70
+    hrv_mask = (bt >= hrv_start) & (bt < hrv_end)
+    if np.sum(hrv_mask) >= 6:
+        nn_hrv = nn[hrv_mask]
+        median_nn = np.median(nn_hrv)
+        if median_nn > 0:
+            nn_70 = nn_hrv * (857.0 / median_nn)
+            metrics = compute_hrv_for_nn_segment(nn_70)
+            if metrics:
+                rmssd, sdnn, pnn50 = metrics
+                result['baseline_rmssd70'] = float(rmssd)
+                result['baseline_ln_rmssd70'] = float(np.log(rmssd)) if rmssd > 0 else None
+                result['baseline_sdnn'] = float(sdnn)
+                result['baseline_pnn50'] = float(pnn50)
+                result['baseline_hrv_range'] = f"{hrv_start}-{hrv_end} min"
+            else:
+                result['baseline_rmssd70'] = None
+                result['baseline_ln_rmssd70'] = None
+                result['baseline_sdnn'] = None
+                result['baseline_pnn50'] = None
+                result['baseline_hrv_range'] = None
+        else:
+            result['baseline_rmssd70'] = None
+            result['baseline_ln_rmssd70'] = None
+            result['baseline_sdnn'] = None
+            result['baseline_pnn50'] = None
+            result['baseline_hrv_range'] = None
+    else:
+        result['baseline_rmssd70'] = None
+        result['baseline_ln_rmssd70'] = None
+        result['baseline_sdnn'] = None
+        result['baseline_pnn50'] = None
+        result['baseline_hrv_range'] = None
+    
+    return result
