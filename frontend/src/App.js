@@ -195,15 +195,22 @@ function App() {
         pulse_duration_sec: params.pulseDuration,
         interval_sec: params.interval,
         n_pulses: params.nPulses,
+        auto_detect: params.autoDetect || false,
+        beat_times_min: metrics?.filtered_beat_times_min || [],
+        bf_filtered: metrics?.filtered_bf_bpm || [],
+        search_range_sec: params.searchRange || 20,
       });
       setLightPulses(data.pulses);
-      toast.success(`${data.pulses.length} pulses detected`);
+      setLightHrv(null);
+      setLightResponse(null);
+      const startMin = (data.detected_start_sec / 60).toFixed(2);
+      toast.success(`${data.pulses.length} pulses detected (start: ${startMin} min)`);
     } catch (err) {
       toast.error('Pulse detection failed');
     } finally {
       setAnalysisLoading(false);
     }
-  }, []);
+  }, [metrics]);
 
   // Light HRV
   const handleLightHRV = useCallback(async () => {
