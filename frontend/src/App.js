@@ -647,6 +647,7 @@ function App() {
                     <span className="text-[10px] font-medium text-zinc-300 w-24">{config.name}</span>
                     <div className="flex items-center gap-1">
                       <Input
+                        data-testid={`drug-${drugKey}-concentration`}
                         value={settings.concentration || config.defaultConc}
                         onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
                         className="h-5 w-12 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
@@ -658,6 +659,7 @@ function App() {
                       <Clock className="w-3 h-3 text-zinc-600" />
                       <span className="text-[9px] text-zinc-500">Start:</span>
                       <Input
+                        data-testid={`drug-${drugKey}-perfusion-start`}
                         type="number"
                         value={settings.perfusionStart ?? 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
@@ -665,6 +667,7 @@ function App() {
                       />
                       <span className="text-[9px] text-zinc-500">min, Time:</span>
                       <Input
+                        data-testid={`drug-${drugKey}-perfusion-time`}
                         type="number"
                         value={settings.perfusionTime ?? 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
