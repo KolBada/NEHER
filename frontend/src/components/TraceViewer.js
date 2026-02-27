@@ -275,6 +275,9 @@ export default function TraceViewer({
             stroke="#3f3f46"
             fill="#0c0c0e"
             tickFormatter={(v) => `${Number(v).toFixed(1)} min`}
+            onChange={handleBrushChange}
+            startIndex={brushStartIdx !== null ? brushStartIdx : 0}
+            endIndex={brushEndIdx !== null ? brushEndIdx : (chartData.length - 1)}
           />
         </ComposedChart>
       </ResponsiveContainer>
