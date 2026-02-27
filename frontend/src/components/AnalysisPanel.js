@@ -547,48 +547,6 @@ export default function AnalysisPanel({
                 </div>
               </div>
             )}
-                        highlight
-                        highlightColor="purple"
-                      />
-                      <MetricCard 
-                        label="RMSSD₇₀" 
-                        sublabel={`@${hrvReadoutMinute}min`}
-                        value={hrvReadout.rmssd70} 
-                        unit="ms"
-                        highlight
-                        highlightColor="purple"
-                      />
-                      <MetricCard 
-                        label="SDNN" 
-                        sublabel={`@${hrvReadoutMinute}min`}
-                        value={hrvReadout.sdnn} 
-                        unit="ms"
-                        highlight
-                        highlightColor="purple"
-                      />
-                      <MetricCard 
-                        label="pNN50" 
-                        sublabel={`@${hrvReadoutMinute}min`}
-                        value={hrvReadout.pnn50} 
-                        unit="%"
-                        highlight
-                        highlightColor="purple"
-                      />
-                    </>
-                  )}
-                  {bfReadout && (
-                    <MetricCard 
-                      label="Mean BF" 
-                      sublabel={`@${bfReadoutMinute}min`}
-                      value={bfReadout.avg_bf} 
-                      unit="bpm"
-                      highlight
-                      highlightColor="purple"
-                    />
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* HRV Evolution Charts */}
