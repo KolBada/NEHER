@@ -1,0 +1,181 @@
+import { useMemo, useCallback, useState } from 'react';
+import {
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea
+} from 'recharts';
+import { MousePointerClick, ZoomIn } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+export default function TraceViewer({
+  traceData, beats, onAddBeat, onRemoveBeat,
+  lightPulses, isValidated
+}) {
+  const [editMode, setEditMode] = useState(false);
+
+  const chartData = useMemo(() => {
+    if (!traceData || !traceData.times) return [];
+    const beatSet = new Map();
+    if (beats) {
+      beats.forEach((b, idx) => {
+        beatSet.set(b.timeSec.toFixed(4), idx);
+      });
+    }
+
+    const data = traceData.times.map((t, i) => ({
+      time: t,
+      voltage: traceData.voltages[i],
+      isBeat: false,
+      beatIdx: -1
+    }));
+
+    if (beats) {
+      beats.forEach((beat, bIdx) => {
+        let lo = 0, hi = data.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (data[mid].time < beat.timeSec) lo = mid + 1;
+          else hi = mid;
+        }
+        if (lo > 0 && Math.abs(data[lo - 1].time - beat.timeSec) < Math.abs(data[lo].time - beat.timeSec)) {
+          lo = lo - 1;
+        }
+        data[lo].isBeat = true;
+        data[lo].beatIdx = bIdx;
+      });
+    }
+    return data;
+  }, [traceData, beats]);
+
+  const handleChartClick = useCallback((e) => {
+    if (!editMode || isValidated) return;
+    if (!e || !e.activePayload || e.activePayload.length === 0) return;
+
+    const point = e.activePayload[0].payload;
+    const time = point.time;
+    const voltage = point.voltage;
+
+    const timeRange = traceData
+      ? traceData.times[traceData.times.length - 1] - traceData.times[0]
+      : 1;
+    const tolerance = timeRange / 500;
+
+    if (beats) {
+      const nearIdx = beats.findIndex(b => Math.abs(b.timeSec - time) < tolerance);
+      if (nearIdx >= 0) {
+        onRemoveBeat(nearIdx);
+        return;
+      }
+    }
+    onAddBeat(time, voltage);
+  }, [editMode, isValidated, beats, traceData, onAddBeat, onRemoveBeat]);
+
+  if (!traceData) return null;
+
+  const CustomDot = (props) => {
+    const { cx, cy, payload } = props;
+    if (payload && payload.isBeat) {
+      return (
+        <circle
+          cx={cx} cy={cy} r={3}
+          fill="#a3e635" stroke="#a3e635" strokeWidth={1}
+          style={{ cursor: editMode ? 'pointer' : 'default' }}
+        />
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="trace-container" data-testid="trace-viewer">
+      <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900/50 border-b border-zinc-800">
+        <div className="flex items-center gap-2">
+          <Button
+            data-testid="edit-mode-btn"
+            variant={editMode ? 'default' : 'ghost'}
+            size="sm"
+            className={`h-7 text-xs rounded-sm ${
+              editMode
+                ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                : 'text-zinc-400 hover:text-zinc-100'
+            }`}
+            onClick={() => setEditMode(!editMode)}
+            disabled={isValidated}
+          >
+            <MousePointerClick className="w-3 h-3 mr-1" />
+            {editMode ? 'Click to Add/Remove' : 'Edit Beats'}
+          </Button>
+          <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
+            {beats ? beats.length : 0} beats
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1">
+          <ZoomIn className="w-3 h-3 text-zinc-500" />
+          <span className="text-[10px] text-zinc-500">Use brush below to zoom</span>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={420}>
+        <ComposedChart
+          data={chartData}
+          onClick={handleChartClick}
+          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+          <XAxis
+            dataKey="time"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
+            tickFormatter={(v) => `${v.toFixed(1)}s`}
+          />
+          <YAxis
+            tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
+            tickFormatter={(v) => v.toFixed(1)}
+            width={50}
+          />
+          <Tooltip
+            contentStyle={{
+              background: '#121212',
+              border: '1px solid #27272a',
+              borderRadius: 2,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 10,
+              color: '#fafafa'
+            }}
+            labelFormatter={(v) => `${Number(v).toFixed(4)}s`}
+            formatter={(v) => [Number(v).toFixed(3), 'mV']}
+          />
+          {lightPulses && lightPulses.map((pulse, i) => (
+            <ReferenceArea
+              key={`pulse-${i}`}
+              x1={pulse.start_sec}
+              x2={pulse.end_sec}
+              fill="#facc15"
+              fillOpacity={0.08}
+              stroke="#facc15"
+              strokeOpacity={0.3}
+              strokeDasharray="3 3"
+            />
+          ))}
+          <Line
+            type="monotone"
+            dataKey="voltage"
+            stroke="#22d3ee"
+            strokeWidth={1}
+            dot={<CustomDot />}
+            isAnimationActive={false}
+            activeDot={false}
+          />
+          <Brush
+            dataKey="time"
+            height={25}
+            stroke="#3f3f46"
+            fill="#0c0c0e"
+            tickFormatter={(v) => `${Number(v).toFixed(0)}s`}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
