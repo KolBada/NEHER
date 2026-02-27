@@ -1,9 +1,9 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush, ReferenceArea
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
 } from 'recharts';
-import { MousePointerClick, ZoomIn } from 'lucide-react';
+import { MousePointerClick, ZoomIn, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,17 +12,20 @@ export default function TraceViewer({
   lightPulses, isValidated
 }) {
   const [editMode, setEditMode] = useState(false);
+  const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
+  const chartRef = useRef(null);
 
   const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
     const data = traceData.times.map((t, i) => ({
-      time: t / 60.0, // Convert to minutes
+      time: t / 60.0,
       voltage: traceData.voltages[i],
       isBeat: false,
+      beatIdx: null,
     }));
 
     if (beats) {
-      beats.forEach((beat) => {
+      beats.forEach((beat, beatIdx) => {
         const beatMin = beat.timeSec / 60.0;
         let lo = 0, hi = data.length - 1;
         while (lo < hi) {
@@ -34,11 +37,13 @@ export default function TraceViewer({
           lo = lo - 1;
         }
         data[lo].isBeat = true;
+        data[lo].beatIdx = beatIdx;
       });
     }
     return data;
   }, [traceData, beats]);
 
+  // Handle click on chart area for adding beats
   const handleChartClick = useCallback((e) => {
     if (!editMode || isValidated) return;
     if (!e || !e.activePayload || e.activePayload.length === 0) return;
@@ -48,31 +53,61 @@ export default function TraceViewer({
     const timeSec = timeMin * 60.0;
     const voltage = point.voltage;
 
+    // Check if clicking near an existing beat
     const timeRange = traceData
       ? (traceData.times[traceData.times.length - 1] - traceData.times[0]) / 60.0
       : 1;
-    const tolerance = timeRange / 500;
+    const tolerance = timeRange / 300;
 
     if (beats) {
       const nearIdx = beats.findIndex(b => Math.abs(b.timeSec / 60.0 - timeMin) < tolerance);
       if (nearIdx >= 0) {
-        onRemoveBeat(nearIdx);
+        // Click on existing beat - select it for deletion
+        setSelectedBeatIdx(nearIdx);
         return;
       }
     }
+    // Add new beat at click position
     onAddBeat(timeSec, voltage);
-  }, [editMode, isValidated, beats, traceData, onAddBeat, onRemoveBeat]);
+  }, [editMode, isValidated, beats, traceData, onAddBeat]);
+
+  // Handle beat marker click for removal
+  const handleBeatClick = useCallback((beatIdx, e) => {
+    if (e) e.stopPropagation();
+    if (!editMode || isValidated) return;
+    
+    if (selectedBeatIdx === beatIdx) {
+      // Second click on same beat - remove it
+      onRemoveBeat(beatIdx);
+      setSelectedBeatIdx(null);
+    } else {
+      // First click - select it
+      setSelectedBeatIdx(beatIdx);
+    }
+  }, [editMode, isValidated, selectedBeatIdx, onRemoveBeat]);
+
+  // Confirm removal of selected beat
+  const handleRemoveSelected = useCallback(() => {
+    if (selectedBeatIdx !== null) {
+      onRemoveBeat(selectedBeatIdx);
+      setSelectedBeatIdx(null);
+    }
+  }, [selectedBeatIdx, onRemoveBeat]);
 
   if (!traceData) return null;
 
   const CustomDot = (props) => {
     const { cx, cy, payload } = props;
     if (payload && payload.isBeat) {
+      const isSelected = payload.beatIdx === selectedBeatIdx;
       return (
         <circle
-          cx={cx} cy={cy} r={3}
-          fill="#a3e635" stroke="#a3e635" strokeWidth={1}
+          cx={cx} cy={cy} r={isSelected ? 5 : 3}
+          fill={isSelected ? '#ef4444' : '#a3e635'}
+          stroke={isSelected ? '#fca5a5' : '#a3e635'}
+          strokeWidth={isSelected ? 2 : 1}
           style={{ cursor: editMode ? 'pointer' : 'default' }}
+          onClick={(e) => handleBeatClick(payload.beatIdx, e)}
         />
       );
     }
@@ -99,15 +134,35 @@ export default function TraceViewer({
                 ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                 : 'text-zinc-400 hover:text-zinc-100'
             }`}
-            onClick={() => setEditMode(!editMode)}
+            onClick={() => {
+              setEditMode(!editMode);
+              setSelectedBeatIdx(null);
+            }}
             disabled={isValidated}
           >
             <MousePointerClick className="w-3 h-3 mr-1" />
-            {editMode ? 'Click to Add/Remove' : 'Edit Beats'}
+            {editMode ? 'Editing Mode ON' : 'Edit Beats'}
           </Button>
+          {editMode && (
+            <span className="text-[10px] text-cyan-400">
+              Click on trace to add beat, click on beat marker to select & remove
+            </span>
+          )}
           <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
             {beats ? beats.length : 0} beats
           </Badge>
+          {selectedBeatIdx !== null && (
+            <Button
+              data-testid="remove-beat-btn"
+              variant="destructive"
+              size="sm"
+              className="h-6 text-[10px] rounded-sm gap-1"
+              onClick={handleRemoveSelected}
+            >
+              <Trash2 className="w-3 h-3" />
+              Remove Beat #{selectedBeatIdx + 1}
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <ZoomIn className="w-3 h-3 text-zinc-500" />
@@ -115,7 +170,7 @@ export default function TraceViewer({
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={420}>
+      <ResponsiveContainer width="100%" height={420} ref={chartRef}>
         <ComposedChart
           data={chartData}
           onClick={handleChartClick}
@@ -146,7 +201,7 @@ export default function TraceViewer({
               color: '#fafafa'
             }}
             labelFormatter={(v) => `${Number(v).toFixed(3)} min`}
-            formatter={(v) => [Number(v).toFixed(3), 'mV']}
+            formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
           {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
@@ -167,7 +222,7 @@ export default function TraceViewer({
             strokeWidth={1}
             dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={false}
+            activeDot={editMode ? { r: 5, fill: '#22d3ee', stroke: '#fff' } : false}
           />
           <Brush
             dataKey="time"
