@@ -486,18 +486,67 @@ export default function AnalysisPanel({
             )}
 
             {/* Drug readout - same size as baseline when enabled */}
-            {(hrvReadout || bfReadout) && (
+            {(hrvReadout?.data || bfReadout?.data) && (
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-purple-500">
-                  Drug Readout Metrics
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-purple-500">
+                    Drug Readout Metrics
+                  </p>
+                  {selectedDrugs?.length > 0 && (
+                    <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
+                      Base + Perf.Start + Perf.Time
+                    </Badge>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                  {hrvReadout && (
+                  {hrvReadout?.data && (
                     <>
                       <MetricCard 
                         label="ln(RMSSD₇₀)" 
-                        sublabel={`@${hrvReadoutMinute}min`}
-                        value={hrvReadout.ln_rmssd70}
+                        sublabel={`@${hrvReadout.actualMinute}min (${hrvReadout.requestedMinute}+${selectedDrugs?.length > 0 ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0}+${selectedDrugs?.length > 0 ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0})`}
+                        value={hrvReadout.data.ln_rmssd70}
+                        highlight
+                        highlightColor="purple"
+                      />
+                      <MetricCard 
+                        label="RMSSD₇₀" 
+                        sublabel={`@${hrvReadout.actualMinute}min`}
+                        value={hrvReadout.data.rmssd70} 
+                        unit="ms"
+                        highlight
+                        highlightColor="purple"
+                      />
+                      <MetricCard 
+                        label="SDNN" 
+                        sublabel={`@${hrvReadout.actualMinute}min`}
+                        value={hrvReadout.data.sdnn} 
+                        unit="ms"
+                        highlight
+                        highlightColor="purple"
+                      />
+                      <MetricCard 
+                        label="pNN50" 
+                        sublabel={`@${hrvReadout.actualMinute}min`}
+                        value={hrvReadout.data.pnn50} 
+                        unit="%"
+                        highlight
+                        highlightColor="purple"
+                      />
+                    </>
+                  )}
+                  {bfReadout?.data && (
+                    <MetricCard 
+                      label="Mean BF" 
+                      sublabel={`@${bfReadout.actualMinute}min`}
+                      value={bfReadout.data.avg_bf} 
+                      unit="bpm"
+                      highlight
+                      highlightColor="purple"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
                         highlight
                         highlightColor="purple"
                       />
