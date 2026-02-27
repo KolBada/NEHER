@@ -117,8 +117,8 @@ export default function TraceViewer({
   // Convert light pulses to minutes for display
   const pulsesMin = lightPulses ? lightPulses.map(p => ({
     ...p,
-    start_min_disp: p.start_sec / 60.0,
-    end_min_disp: p.end_sec / 60.0,
+    start_min_disp: p.start_min !== undefined ? p.start_min : (p.start_sec / 60.0),
+    end_min_disp: p.end_min !== undefined ? p.end_min : (p.end_sec / 60.0),
   })) : null;
 
   return (
