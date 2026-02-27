@@ -483,7 +483,7 @@ function App() {
                 <SelectValue placeholder="None" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 <SelectItem value="isoproterenol">Isoproterenol</SelectItem>
                 <SelectItem value="carbachol">Carbachol</SelectItem>
                 <SelectItem value="propranolol">Propranolol</SelectItem>
