@@ -305,6 +305,33 @@ class ElectroPhysiologyAPITester:
         
         return success
 
+    def test_per_minute_metrics(self, beat_times_min, bf_filtered):
+        """Test per-minute metrics computation"""
+        if not beat_times_min or not bf_filtered:
+            print("❌ Skipping Per-minute metrics - Missing beat data")
+            return False
+            
+        success, response = self.run_test(
+            "Per-minute Metrics",
+            "POST",
+            "/per-minute-metrics",
+            200,
+            data={
+                "beat_times_min": beat_times_min,
+                "bf_filtered": bf_filtered
+            }
+        )
+        
+        if success:
+            rows = response.get('rows', [])
+            print(f"   Per-minute rows: {len(rows)}")
+            if rows:
+                first_row = rows[0]
+                print(f"   First minute: {first_row.get('label')} - {first_row.get('n_beats')} beats")
+                print(f"   BF: {first_row.get('avg_bf')}, NN: {first_row.get('avg_nn')}, NN_70: {first_row.get('avg_nn_70')}")
+        
+        return success
+
     def test_export_csv(self):
         """Test CSV export"""
         sample_data = {
