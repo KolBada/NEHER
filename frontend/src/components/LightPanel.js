@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Zap, Loader2, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Zap, Loader2, Search, Move, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine
+} from 'recharts';
 
 function MetricCard({ label, value, unit }) {
   return (
@@ -32,7 +36,7 @@ export default function LightPanel({
   pulses, onDetectPulses,
   lightHrv, lightResponse,
   onComputeLightHRV, onComputeLightResponse,
-  loading
+  loading, metrics, lightEnabled, onLightEnabledChange
 }) {
   const [localParams, setLocalParams] = useState(lightParams || {
     startTime: 180,
@@ -42,6 +46,8 @@ export default function LightPanel({
     autoDetect: true,
     searchRange: 20,
   });
+  const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
+  const [adjustOffset, setAdjustOffset] = useState(0);
 
   const updateParam = (key, value) => {
     const updated = { ...localParams, [key]: value };
@@ -49,287 +55,492 @@ export default function LightPanel({
     if (onParamsChange) onParamsChange(updated);
   };
 
+  // BF chart data with pulse highlighting
+  const bfChartData = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.filtered_beat_times_min.map((t, i) => ({
+      time: t,
+      bf: metrics.filtered_bf_bpm[i],
+    }));
+  }, [metrics]);
+
+  // Handle pulse adjustment
+  const handleAdjustPulse = (direction) => {
+    if (selectedPulseIdx === null || !pulses) return;
+    const step = 5; // 5 seconds adjustment
+    const newOffset = adjustOffset + (direction * step);
+    setAdjustOffset(newOffset);
+    
+    // Update the selected pulse timing
+    const updatedPulses = pulses.map((p, i) => {
+      if (i === selectedPulseIdx) {
+        return {
+          ...p,
+          start_sec: p.start_sec + (direction * step),
+          end_sec: p.end_sec + (direction * step),
+          start_min: (p.start_sec + (direction * step)) / 60.0,
+          end_min: (p.end_sec + (direction * step)) / 60.0,
+        };
+      }
+      return p;
+    });
+    // This would need to be passed up to parent - for now we just show the UI
+  };
+
   // Compute average for light response
   const avgResponse = lightResponse?.mean_metrics;
 
+  // Check if light stim is enabled (default true)
+  const isLightEnabled = lightEnabled !== false;
+
   return (
     <div className="space-y-4" data-testid="light-panel">
-      {/* Configuration */}
+      {/* Enable/Disable Light Stim */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ fontFamily: 'Manrope' }}>
-            <Zap className="w-4 h-4 text-yellow-400" />
-            Light Stimulation Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Approx. Start (s)</Label>
-              <Input
-                data-testid="light-start-time"
-                type="number"
-                value={localParams.startTime}
-                onChange={(e) => updateParam('startTime', parseFloat(e.target.value) || 0)}
-                className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Pulse Duration (s)</Label>
-              <Select
-                value={String(localParams.pulseDuration)}
-                onValueChange={(v) => updateParam('pulseDuration', parseInt(v))}
-              >
-                <SelectTrigger data-testid="light-pulse-duration" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="20">20s</SelectItem>
-                  <SelectItem value="30">30s</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Intervals</Label>
-              <Select
-                value={localParams.interval}
-                onValueChange={(v) => updateParam('interval', v)}
-              >
-                <SelectTrigger data-testid="light-interval" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="decreasing">60s-30s-20s-10s</SelectItem>
-                  <SelectItem value="60">Uniform 60s</SelectItem>
-                  <SelectItem value="30">Uniform 30s</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Pulses</Label>
-              <Input
-                data-testid="light-n-pulses"
-                type="number"
-                value={localParams.nPulses}
-                onChange={(e) => updateParam('nPulses', parseInt(e.target.value) || 5)}
-                className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                min={1} max={20}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">Search Range (s)</Label>
-              <Input
-                data-testid="light-search-range"
-                type="number"
-                value={localParams.searchRange || 20}
-                onChange={(e) => updateParam('searchRange', parseFloat(e.target.value) || 20)}
-                className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mb-4">
+        <CardContent className="py-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Switch
-                data-testid="auto-detect-switch"
-                checked={localParams.autoDetect}
-                onCheckedChange={(v) => updateParam('autoDetect', v)}
-              />
-              <Label className="text-[10px] text-zinc-400">Auto-detect start from BF increase</Label>
+              <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
+              <span className="text-sm font-medium text-zinc-300">Light Stimulation Analysis</span>
             </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              data-testid="detect-pulses-btn"
-              className="h-7 text-xs rounded-sm bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
-              onClick={() => onDetectPulses(localParams)}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
-              Detect Pulses
-            </Button>
-            {pulses && (
-              <>
-                <Button
-                  data-testid="compute-light-hrv-btn"
-                  variant="secondary"
-                  className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
-                  onClick={onComputeLightHRV}
-                  disabled={loading}
-                >
-                  Compute Light HRV
-                </Button>
-                <Button
-                  data-testid="compute-light-response-btn"
-                  variant="secondary"
-                  className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
-                  onClick={onComputeLightResponse}
-                  disabled={loading}
-                >
-                  Compute Response Metrics
-                </Button>
-              </>
-            )}
+            <div className="flex items-center gap-2">
+              <Label className="text-[10px] text-zinc-500">
+                {isLightEnabled ? 'Enabled' : 'Disabled'}
+              </Label>
+              <Switch
+                data-testid="light-enabled-switch"
+                checked={isLightEnabled}
+                onCheckedChange={onLightEnabledChange}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Pulse list */}
-      {pulses && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-              Detected Pulses
-              <Badge variant="outline" className="font-data text-[10px] border-yellow-700 text-yellow-400">
-                {pulses.length} pulses
-              </Badge>
-              {pulses.length >= 2 && (
-                <span className="text-[10px] font-data text-zinc-500">
-                  Intervals: {pulses.slice(0, -1).map((p, i) => `${(pulses[i+1].start_sec - p.end_sec).toFixed(0)}s`).join(' \u2192 ')}
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-5 gap-2">
-              {pulses.map((p, i) => (
-                <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-2 text-center">
-                  <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
-                  <p className="text-[10px] font-data text-yellow-400">
-                    {(p.start_sec/60).toFixed(2)} - {(p.end_sec/60).toFixed(2)} min
-                  </p>
-                  <p className="text-[9px] font-data text-zinc-500">
-                    {p.start_sec.toFixed(0)}s - {p.end_sec.toFixed(0)}s
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Light Response Metrics - Per stim + Average */}
-      {lightResponse && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400">
-              Light Response Metrics
-              {lightResponse.baseline_bf && (
-                <span className="ml-2 text-[10px] font-data text-zinc-500">
-                  Baseline (1min pre-light): {lightResponse.baseline_bf.toFixed(1)} bpm
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="max-h-[300px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-zinc-800 hover:bg-transparent">
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak (s)</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF (bpm)</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak % (rel. baseline)</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Slope (norm.)</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude (bpm)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lightResponse.per_stim.map((s, i) => (
-                    <TableRow key={i} className="border-zinc-800/50 data-row">
-                      <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                        {s ? s.time_to_peak_sec.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                        {s ? s.peak_bf.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                        {s && s.peak_norm_pct != null ? s.peak_norm_pct.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                        {s && s.norm_slope != null ? s.norm_slope.toFixed(4) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                        {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {/* Average row */}
-                  {avgResponse && (
-                    <TableRow className="border-zinc-800 bg-zinc-900/30">
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1 font-bold">AVG</TableCell>
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                        {avgResponse.time_to_peak_sec != null ? avgResponse.time_to_peak_sec.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                        {avgResponse.peak_bf != null ? avgResponse.peak_bf.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                        {avgResponse.peak_norm_pct != null ? avgResponse.peak_norm_pct.toFixed(1) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                        {avgResponse.norm_slope != null ? avgResponse.norm_slope.toFixed(4) : '\u2014'}
-                      </TableCell>
-                      <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                        {avgResponse.amplitude != null ? avgResponse.amplitude.toFixed(1) : '\u2014'}
-                      </TableCell>
-                    </TableRow>
+      {!isLightEnabled ? (
+        <div className="flex items-center justify-center h-32 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-sm">
+          Light stimulation analysis is disabled. Enable it above to continue.
+        </div>
+      ) : (
+        <>
+          {/* BF Chart with Pulse Regions */}
+          {metrics && (
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+                  Beat Frequency - bpm vs min
+                  {pulses && (
+                    <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
+                      {pulses.length} pulses detected
+                    </Badge>
                   )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={bfChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                    <XAxis 
+                      dataKey="time" 
+                      tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                      tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+                      label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} 
+                    />
+                    <YAxis 
+                      tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
+                      width={45}
+                      label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} 
+                    />
+                    <Tooltip
+                      contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
+                      labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+                      formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
+                    />
+                    {/* Highlight pulse regions */}
+                    {pulses && pulses.map((pulse, i) => (
+                      <ReferenceArea
+                        key={`pulse-${i}`}
+                        x1={pulse.start_min}
+                        x2={pulse.end_min}
+                        fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
+                        fillOpacity={selectedPulseIdx === i ? 0.25 : 0.1}
+                        stroke="#facc15"
+                        strokeOpacity={0.5}
+                        onClick={() => setSelectedPulseIdx(i)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                    <Line 
+                      type="monotone" 
+                      dataKey="bf" 
+                      stroke="#22d3ee" 
+                      strokeWidth={1} 
+                      dot={false} 
+                      isAnimationActive={false} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                {selectedPulseIdx !== null && pulses && (
+                  <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm">
+                    <span className="text-[10px] text-zinc-400">
+                      Adjust Stim {selectedPulseIdx + 1} position:
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 w-6 p-0 border-zinc-700"
+                      onClick={() => handleAdjustPulse(-1)}
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                    </Button>
+                    <span className="text-[10px] font-data text-yellow-400">
+                      {pulses[selectedPulseIdx].start_sec.toFixed(0)}s - {pulses[selectedPulseIdx].end_sec.toFixed(0)}s
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 w-6 p-0 border-zinc-700"
+                      onClick={() => handleAdjustPulse(1)}
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] text-zinc-500"
+                      onClick={() => setSelectedPulseIdx(null)}
+                    >
+                      <X className="w-3 h-3 mr-1" /> Deselect
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Light HRV results */}
-      {lightHrv && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400">Light-Induced HRV (normalized to 70 bpm per pulse)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {lightHrv.final && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                <MetricCard label="ln(RMSSD70) light" value={lightHrv.final.ln_rmssd70} />
-                <MetricCard label="RMSSD70" value={lightHrv.final.rmssd70} unit="ms" />
-                <MetricCard label="SDNN" value={lightHrv.final.sdnn} unit="ms" />
-                <MetricCard label="pNN50" value={lightHrv.final.pnn50} unit="%" />
+          {/* Configuration */}
+          <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ fontFamily: 'Manrope' }}>
+                <Zap className="w-4 h-4 text-yellow-400" />
+                Light Stimulation Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-zinc-500">Approx. Start (s)</Label>
+                  <Input
+                    data-testid="light-start-time"
+                    type="number"
+                    value={localParams.startTime}
+                    onChange={(e) => updateParam('startTime', parseFloat(e.target.value) || 0)}
+                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-zinc-500">Pulse Duration (s)</Label>
+                  <Select
+                    value={String(localParams.pulseDuration)}
+                    onValueChange={(v) => updateParam('pulseDuration', parseInt(v))}
+                  >
+                    <SelectTrigger data-testid="light-pulse-duration" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20">20s</SelectItem>
+                      <SelectItem value="30">30s</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-zinc-500">Intervals</Label>
+                  <Select
+                    value={localParams.interval}
+                    onValueChange={(v) => updateParam('interval', v)}
+                  >
+                    <SelectTrigger data-testid="light-interval" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="decreasing">60s-30s-20s-10s</SelectItem>
+                      <SelectItem value="60">Uniform 60s</SelectItem>
+                      <SelectItem value="30">Uniform 30s</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-zinc-500">Pulses</Label>
+                  <Input
+                    data-testid="light-n-pulses"
+                    type="number"
+                    value={localParams.nPulses}
+                    onChange={(e) => updateParam('nPulses', parseInt(e.target.value) || 5)}
+                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    min={1} max={20}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-zinc-500">Search Range (s)</Label>
+                  <Input
+                    data-testid="light-search-range"
+                    type="number"
+                    value={localParams.searchRange || 20}
+                    onChange={(e) => updateParam('searchRange', parseFloat(e.target.value) || 20)}
+                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                  />
+                </div>
               </div>
-            )}
 
-            <Separator className="bg-zinc-800 my-3" />
-            <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Pulse HRV</p>
-            <ScrollArea className="h-[160px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-zinc-800 hover:bg-transparent">
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Pulse</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">RMSSD70</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">ln(RMSSD70)</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">SDNN</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">pNN50</TableHead>
-                    <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lightHrv.per_pulse.map((p, i) => (
-                    <TableRow key={i} className="border-zinc-800/50 data-row">
-                      <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.rmssd70.toFixed(2) : '\u2014'}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_rmssd70?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.sdnn.toFixed(2) : '\u2014'}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.pnn50.toFixed(1) : '\u2014'}</TableCell>
-                      <TableCell className="text-[10px] font-data text-zinc-400 py-1">{p ? p.n_beats : '\u2014'}</TableCell>
-                    </TableRow>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    data-testid="auto-detect-switch"
+                    checked={localParams.autoDetect}
+                    onCheckedChange={(v) => updateParam('autoDetect', v)}
+                  />
+                  <Label className="text-[10px] text-zinc-400">Auto-detect start from BF increase</Label>
+                </div>
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  data-testid="detect-pulses-btn"
+                  className="h-7 text-xs rounded-sm bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
+                  onClick={() => onDetectPulses(localParams)}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
+                  Detect Pulses
+                </Button>
+                {pulses && (
+                  <>
+                    <Button
+                      data-testid="compute-light-hrv-btn"
+                      variant="secondary"
+                      className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                      onClick={onComputeLightHRV}
+                      disabled={loading}
+                    >
+                      Compute Light HRV
+                    </Button>
+                    <Button
+                      data-testid="compute-light-response-btn"
+                      variant="secondary"
+                      className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                      onClick={onComputeLightResponse}
+                      disabled={loading}
+                    >
+                      Compute Response Metrics
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pulse list */}
+          {pulses && (
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+                  Detected Pulses
+                  <Badge variant="outline" className="font-data text-[10px] border-yellow-700 text-yellow-400">
+                    {pulses.length} pulses
+                  </Badge>
+                  {pulses.length >= 2 && (
+                    <span className="text-[10px] font-data text-zinc-500">
+                      Intervals: {pulses.slice(0, -1).map((p, i) => `${(pulses[i+1].start_sec - p.end_sec).toFixed(0)}s`).join(' \u2192 ')}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 gap-2">
+                  {pulses.map((p, i) => (
+                    <div 
+                      key={i} 
+                      className={`bg-zinc-900/50 border rounded-sm p-2 text-center cursor-pointer transition-colors ${
+                        selectedPulseIdx === i 
+                          ? 'border-yellow-500 bg-yellow-950/20' 
+                          : 'border-zinc-800 hover:border-zinc-700'
+                      }`}
+                      onClick={() => setSelectedPulseIdx(selectedPulseIdx === i ? null : i)}
+                    >
+                      <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
+                      <p className="text-[10px] font-data text-yellow-400">
+                        {(p.start_sec/60).toFixed(2)} - {(p.end_sec/60).toFixed(2)} min
+                      </p>
+                      <p className="text-[9px] font-data text-zinc-500">
+                        {p.start_sec.toFixed(0)}s - {p.end_sec.toFixed(0)}s
+                      </p>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Light Response Metrics - Per stim + Average */}
+          {lightResponse && (
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-zinc-400">
+                  Light Response Metrics (using BPM)
+                  {lightResponse.baseline_bf && (
+                    <span className="ml-2 text-[10px] font-data text-zinc-500">
+                      Baseline (1min pre-light): {lightResponse.baseline_bf.toFixed(1)} bpm
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[350px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-zinc-800 hover:bg-transparent">
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀ (ms)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak %</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Slope (norm.)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lightResponse.per_stim.map((s, i) => (
+                        <TableRow 
+                          key={i} 
+                          className={`border-zinc-800/50 data-row ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
+                          onClick={() => setSelectedPulseIdx(i)}
+                        >
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s ? s.n_beats : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s ? s.avg_bf?.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s ? s.avg_nn?.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s ? s.nn_70?.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-cyan-400 py-1">
+                            {s ? s.peak_bf.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s && s.peak_norm_pct != null ? s.peak_norm_pct.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s ? `${s.time_to_peak_sec.toFixed(1)}s` : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s && s.norm_slope != null ? s.norm_slope.toFixed(4) : '\u2014'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Average row */}
+                      {avgResponse && (
+                        <TableRow className="border-zinc-800 bg-zinc-900/30">
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1 font-bold">AVG</TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.n_beats != null ? avgResponse.n_beats.toFixed(0) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.avg_bf != null ? avgResponse.avg_bf.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.avg_nn != null ? avgResponse.avg_nn.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.nn_70 != null ? avgResponse.nn_70.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.peak_bf != null ? avgResponse.peak_bf.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.peak_norm_pct != null ? avgResponse.peak_norm_pct.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.time_to_peak_sec != null ? `${avgResponse.time_to_peak_sec.toFixed(1)}s` : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.amplitude != null ? avgResponse.amplitude.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                            {avgResponse.norm_slope != null ? avgResponse.norm_slope.toFixed(4) : '\u2014'}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Light HRV results (using NN_70) */}
+          {lightHrv && (
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-zinc-400">
+                  Light-Induced HRV (using NN₇₀, normalized to 70 bpm per pulse)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lightHrv.final && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                    <MetricCard label="ln(RMSSD₇₀) light" value={lightHrv.final.ln_rmssd70} />
+                    <MetricCard label="RMSSD₇₀" value={lightHrv.final.rmssd70} unit="ms" />
+                    <MetricCard label="SDNN" value={lightHrv.final.sdnn} unit="ms" />
+                    <MetricCard label="pNN50" value={lightHrv.final.pnn50} unit="%" />
+                  </div>
+                )}
+
+                <Separator className="bg-zinc-800 my-3" />
+                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Pulse HRV (using NN₇₀)</p>
+                <ScrollArea className="h-[160px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-zinc-800 hover:bg-transparent">
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Pulse</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">RMSSD₇₀</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">ln(RMSSD₇₀)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">SDNN</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">pNN50</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lightHrv.per_pulse.map((p, i) => (
+                        <TableRow 
+                          key={i} 
+                          className={`border-zinc-800/50 data-row ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
+                        >
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.rmssd70.toFixed(2) : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_rmssd70?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.sdnn.toFixed(2) : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.pnn50.toFixed(1) : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{p ? p.n_beats : '\u2014'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
