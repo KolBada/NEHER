@@ -3,7 +3,7 @@ import { Upload, FileAudio, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-export default function FileUpload({ onUpload, loading }) {
+export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
