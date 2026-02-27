@@ -158,9 +158,17 @@ def normalize_nn_70_windowing(beat_times_min, nn_values, bin_size_sec=30):
       - Compute median NN of that bin
       - Scale NN relative to 857ms (70 bpm reference)
     Returns: nn_70 normalized values
+    
+    Note: beat_times_min should have N values and nn_values should have N-1 values.
+    We use beat_times_min[:-1] to align with NN intervals.
     """
-    bt = np.array(beat_times_min, dtype=np.float64)
     nn = np.array(nn_values, dtype=np.float64)
+    
+    # Use beat_times_min[:-1] to align with NN intervals (N-1 values)
+    if len(beat_times_min) > len(nn):
+        bt = np.array(beat_times_min[:len(nn)], dtype=np.float64)
+    else:
+        bt = np.array(beat_times_min, dtype=np.float64)
     
     # Time in seconds for binning
     bt_sec = bt * 60.0
@@ -171,10 +179,15 @@ def normalize_nn_70_windowing(beat_times_min, nn_values, bin_size_sec=30):
     
     nn_70 = np.full_like(nn, np.nan)
     
-    unique_bins = np.unique(bin_indices[~np.isnan(nn)])
+    # Get unique bins where we have valid NN values
+    valid_nn_mask = ~np.isnan(nn)
+    if not np.any(valid_nn_mask):
+        return nn_70.tolist()
+    
+    unique_bins = np.unique(bin_indices[valid_nn_mask])
     
     for bin_idx in unique_bins:
-        bin_mask = (bin_indices == bin_idx) & (~np.isnan(nn))
+        bin_mask = (bin_indices == bin_idx) & valid_nn_mask
         if np.sum(bin_mask) < 2:
             continue
         
