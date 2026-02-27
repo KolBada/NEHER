@@ -28,12 +28,26 @@ const CHART_COLORS = {
   pnn50: '#fb923c',
 };
 
-function MetricCard({ label, value, unit, sublabel, highlight }) {
+function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 'cyan' }) {
+  const colorClasses = {
+    cyan: {
+      bg: 'bg-cyan-950/30 border-cyan-800',
+      label: 'text-cyan-400',
+      value: 'text-cyan-100'
+    },
+    purple: {
+      bg: 'bg-purple-950/30 border-purple-800',
+      label: 'text-purple-400',
+      value: 'text-purple-100'
+    }
+  };
+  const colors = highlight ? colorClasses[highlightColor] : { bg: 'bg-zinc-900/50 border-zinc-800', label: 'text-zinc-500', value: 'text-zinc-100' };
+  
   return (
-    <div className={`border rounded-sm p-3 ${highlight ? 'bg-cyan-950/30 border-cyan-800' : 'bg-zinc-900/50 border-zinc-800'}`}>
-      <p className={`text-[9px] uppercase tracking-wider font-bold ${highlight ? 'text-cyan-400' : 'text-zinc-500'}`}>{label}</p>
+    <div className={`border rounded-sm p-3 ${colors.bg}`}>
+      <p className={`text-[9px] uppercase tracking-wider font-bold ${colors.label}`}>{label}</p>
       {sublabel && <p className="text-[8px] text-zinc-600">{sublabel}</p>}
-      <p className={`text-lg font-data mt-1 ${highlight ? 'text-cyan-100' : 'text-zinc-100'}`}>
+      <p className={`text-lg font-data mt-1 ${colors.value}`}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
