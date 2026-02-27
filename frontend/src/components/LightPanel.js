@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Zap, Loader2, Search, Move, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,17 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine
+  Tooltip, ResponsiveContainer, ReferenceArea
 } from 'recharts';
+
+// Format time as "Xmin Ys" or "X.Xmin"
+function formatTimeMinSec(minutes) {
+  const totalSec = minutes * 60;
+  const min = Math.floor(totalSec / 60);
+  const sec = Math.round(totalSec % 60);
+  if (sec === 0) return `${min}min`;
+  return `${min}min${sec}s`;
+}
 
 function MetricCard({ label, value, unit }) {
   return (
@@ -33,7 +42,7 @@ function MetricCard({ label, value, unit }) {
 
 export default function LightPanel({
   lightParams, onParamsChange,
-  pulses, onDetectPulses,
+  pulses, onDetectPulses, onPulsesUpdate,
   lightHrv, lightResponse,
   onComputeLightHRV, onComputeLightResponse,
   loading, metrics, lightEnabled, onLightEnabledChange
@@ -47,7 +56,16 @@ export default function LightPanel({
     searchRange: 20,
   });
   const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
-  const [adjustOffset, setAdjustOffset] = useState(0);
+  const [localPulses, setLocalPulses] = useState(null);
+
+  // Sync local pulses with prop
+  useMemo(() => {
+    if (pulses && !localPulses) {
+      setLocalPulses(pulses);
+    }
+  }, [pulses, localPulses]);
+
+  const displayPulses = localPulses || pulses;
 
   const updateParam = (key, value) => {
     const updated = { ...localParams, [key]: value };
@@ -55,7 +73,7 @@ export default function LightPanel({
     if (onParamsChange) onParamsChange(updated);
   };
 
-  // BF chart data with pulse highlighting
+  // BF chart data
   const bfChartData = useMemo(() => {
     if (!metrics) return [];
     return metrics.filtered_beat_times_min.map((t, i) => ({
@@ -64,34 +82,58 @@ export default function LightPanel({
     }));
   }, [metrics]);
 
-  // Handle pulse adjustment
-  const handleAdjustPulse = (direction) => {
-    if (selectedPulseIdx === null || !pulses) return;
+  // Handle pulse adjustment - actually update the pulse
+  const handleAdjustPulse = useCallback((direction) => {
+    if (selectedPulseIdx === null || !displayPulses) return;
     const step = 5; // 5 seconds adjustment
-    const newOffset = adjustOffset + (direction * step);
-    setAdjustOffset(newOffset);
     
-    // Update the selected pulse timing
-    const updatedPulses = pulses.map((p, i) => {
+    const updatedPulses = displayPulses.map((p, i) => {
       if (i === selectedPulseIdx) {
+        const newStartSec = p.start_sec + (direction * step);
+        const newEndSec = p.end_sec + (direction * step);
         return {
           ...p,
-          start_sec: p.start_sec + (direction * step),
-          end_sec: p.end_sec + (direction * step),
-          start_min: (p.start_sec + (direction * step)) / 60.0,
-          end_min: (p.end_sec + (direction * step)) / 60.0,
+          start_sec: newStartSec,
+          end_sec: newEndSec,
+          start_min: newStartSec / 60.0,
+          end_min: newEndSec / 60.0,
         };
       }
       return p;
     });
-    // This would need to be passed up to parent - for now we just show the UI
-  };
+    
+    setLocalPulses(updatedPulses);
+    if (onPulsesUpdate) {
+      onPulsesUpdate(updatedPulses);
+    }
+  }, [selectedPulseIdx, displayPulses, onPulsesUpdate]);
 
-  // Compute average for light response
-  const avgResponse = lightResponse?.mean_metrics;
+  // Reset pulses to original detection
+  const handleResetPulses = useCallback(() => {
+    setLocalPulses(null);
+    setSelectedPulseIdx(null);
+  }, []);
 
-  // Check if light stim is enabled (default true)
+  // Apply local pulses changes
+  const handleApplyPulseChanges = useCallback(() => {
+    if (localPulses && onPulsesUpdate) {
+      onPulsesUpdate(localPulses);
+    }
+    setSelectedPulseIdx(null);
+  }, [localPulses, onPulsesUpdate]);
+
+  // Median light-induced HRV
+  const medianHrv = lightHrv?.final;
+
+  // Average HRA (was light response)
+  const avgHra = lightResponse?.mean_metrics;
+
   const isLightEnabled = lightEnabled !== false;
+
+  // X-axis tick formatter for min:sec
+  const xAxisTickFormatter = (value) => {
+    return formatTimeMinSec(value);
+  };
 
   return (
     <div className="space-y-4" data-testid="light-panel">
@@ -128,10 +170,15 @@ export default function LightPanel({
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Beat Frequency - bpm vs min
-                  {pulses && (
+                  Beat Frequency - bpm vs time
+                  {displayPulses && (
                     <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
-                      {pulses.length} pulses detected
+                      {displayPulses.length} pulses detected
+                    </Badge>
+                  )}
+                  {localPulses && localPulses !== pulses && (
+                    <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
+                      Modified
                     </Badge>
                   )}
                 </CardTitle>
@@ -143,8 +190,8 @@ export default function LightPanel({
                     <XAxis 
                       dataKey="time" 
                       tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
-                      tickFormatter={(v) => `${Number(v).toFixed(0)}`}
-                      label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} 
+                      tickFormatter={xAxisTickFormatter}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
                       tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
@@ -153,19 +200,20 @@ export default function LightPanel({
                     />
                     <Tooltip
                       contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                      labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+                      labelFormatter={(v) => formatTimeMinSec(v)}
                       formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                     />
                     {/* Highlight pulse regions */}
-                    {pulses && pulses.map((pulse, i) => (
+                    {displayPulses && displayPulses.map((pulse, i) => (
                       <ReferenceArea
                         key={`pulse-${i}`}
                         x1={pulse.start_min}
                         x2={pulse.end_min}
                         fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
-                        fillOpacity={selectedPulseIdx === i ? 0.25 : 0.1}
+                        fillOpacity={selectedPulseIdx === i ? 0.3 : 0.12}
                         stroke="#facc15"
-                        strokeOpacity={0.5}
+                        strokeOpacity={selectedPulseIdx === i ? 0.8 : 0.4}
+                        strokeWidth={selectedPulseIdx === i ? 2 : 1}
                         onClick={() => setSelectedPulseIdx(i)}
                         style={{ cursor: 'pointer' }}
                       />
@@ -180,37 +228,61 @@ export default function LightPanel({
                     />
                   </LineChart>
                 </ResponsiveContainer>
-                {selectedPulseIdx !== null && pulses && (
-                  <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm">
+                
+                {/* Pulse adjustment controls */}
+                {selectedPulseIdx !== null && displayPulses && (
+                  <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm border border-zinc-800">
                     <span className="text-[10px] text-zinc-400">
-                      Adjust Stim {selectedPulseIdx + 1} position:
+                      Adjust Stim {selectedPulseIdx + 1}:
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0 border-zinc-700"
+                      className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
                       onClick={() => handleAdjustPulse(-1)}
                     >
                       <ChevronLeft className="w-3 h-3" />
                     </Button>
-                    <span className="text-[10px] font-data text-yellow-400">
-                      {pulses[selectedPulseIdx].start_sec.toFixed(0)}s - {pulses[selectedPulseIdx].end_sec.toFixed(0)}s
+                    <span className="text-[10px] font-data text-yellow-400 min-w-[100px] text-center">
+                      {formatTimeMinSec(displayPulses[selectedPulseIdx].start_min)} - {formatTimeMinSec(displayPulses[selectedPulseIdx].end_min)}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0 border-zinc-700"
+                      className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
                       onClick={() => handleAdjustPulse(1)}
                     >
                       <ChevronRight className="w-3 h-3" />
                     </Button>
+                    <Separator orientation="vertical" className="h-4 bg-zinc-700" />
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 text-[10px] text-zinc-500"
+                      className="h-6 text-[10px] text-zinc-500 hover:text-zinc-300"
                       onClick={() => setSelectedPulseIdx(null)}
                     >
                       <X className="w-3 h-3 mr-1" /> Deselect
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Apply/Reset buttons when modified */}
+                {localPulses && localPulses !== pulses && (
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                      onClick={handleResetPulses}
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" /> Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-black"
+                      onClick={handleApplyPulseChanges}
+                    >
+                      Apply Changes & Recompute
                     </Button>
                   </div>
                 )}
@@ -307,13 +379,16 @@ export default function LightPanel({
                 <Button
                   data-testid="detect-pulses-btn"
                   className="h-7 text-xs rounded-sm bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
-                  onClick={() => onDetectPulses(localParams)}
+                  onClick={() => {
+                    setLocalPulses(null);
+                    onDetectPulses(localParams);
+                  }}
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
                   Detect Pulses
                 </Button>
-                {pulses && (
+                {displayPulses && (
                   <>
                     <Button
                       data-testid="compute-light-hrv-btn"
@@ -331,7 +406,7 @@ export default function LightPanel({
                       onClick={onComputeLightResponse}
                       disabled={loading}
                     >
-                      Compute Response Metrics
+                      Compute HRA Metrics
                     </Button>
                   </>
                 )}
@@ -340,24 +415,24 @@ export default function LightPanel({
           </Card>
 
           {/* Pulse list */}
-          {pulses && (
+          {displayPulses && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
                   Detected Pulses
                   <Badge variant="outline" className="font-data text-[10px] border-yellow-700 text-yellow-400">
-                    {pulses.length} pulses
+                    {displayPulses.length} pulses
                   </Badge>
-                  {pulses.length >= 2 && (
+                  {displayPulses.length >= 2 && (
                     <span className="text-[10px] font-data text-zinc-500">
-                      Intervals: {pulses.slice(0, -1).map((p, i) => `${(pulses[i+1].start_sec - p.end_sec).toFixed(0)}s`).join(' \u2192 ')}
+                      Intervals: {displayPulses.slice(0, -1).map((p, i) => `${(displayPulses[i+1].start_sec - p.end_sec).toFixed(0)}s`).join(' \u2192 ')}
                     </span>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-5 gap-2">
-                  {pulses.map((p, i) => (
+                  {displayPulses.map((p, i) => (
                     <div 
                       key={i} 
                       className={`bg-zinc-900/50 border rounded-sm p-2 text-center cursor-pointer transition-colors ${
@@ -369,10 +444,7 @@ export default function LightPanel({
                     >
                       <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
                       <p className="text-[10px] font-data text-yellow-400">
-                        {(p.start_sec/60).toFixed(2)} - {(p.end_sec/60).toFixed(2)} min
-                      </p>
-                      <p className="text-[9px] font-data text-zinc-500">
-                        {p.start_sec.toFixed(0)}s - {p.end_sec.toFixed(0)}s
+                        {formatTimeMinSec(p.start_min)} - {formatTimeMinSec(p.end_min)}
                       </p>
                     </div>
                   ))}
@@ -381,12 +453,12 @@ export default function LightPanel({
             </Card>
           )}
 
-          {/* Light Response Metrics - Per stim + Average */}
+          {/* Light Induced HRA (Heart Rate Adaptation) - was Light Response Metrics */}
           {lightResponse && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400">
-                  Light Response Metrics (using BPM)
+                  Light Induced HRA (Heart Rate Adaptation) - using BPM
                   {lightResponse.baseline_bf && (
                     <span className="ml-2 text-[10px] font-data text-zinc-500">
                       Baseline (1min pre-light): {lightResponse.baseline_bf.toFixed(1)} bpm
@@ -395,20 +467,34 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="max-h-[350px]">
+                {/* Median/Average HRA metrics - styled like HRV */}
+                {avgHra && (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                    <MetricCard label="Avg. Beats" value={avgHra.n_beats} />
+                    <MetricCard label="Avg. BF" value={avgHra.avg_bf} unit="bpm" />
+                    <MetricCard label="Avg. Peak BF" value={avgHra.peak_bf} unit="bpm" />
+                    <MetricCard label="Avg. Amplitude" value={avgHra.amplitude} unit="bpm" />
+                    <MetricCard label="Avg. Slope (norm)" value={avgHra.norm_slope} unit="bpm/min/BF" />
+                  </div>
+                )}
+
+                <Separator className="bg-zinc-800 my-3" />
+                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation HRA</p>
+                
+                <ScrollArea className="max-h-[250px]">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀ (ms)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Slope (norm.)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Slope (norm)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -448,39 +534,6 @@ export default function LightPanel({
                           </TableCell>
                         </TableRow>
                       ))}
-                      {/* Average row */}
-                      {avgResponse && (
-                        <TableRow className="border-zinc-800 bg-zinc-900/30">
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1 font-bold">AVG</TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.n_beats != null ? avgResponse.n_beats.toFixed(0) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.avg_bf != null ? avgResponse.avg_bf.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.avg_nn != null ? avgResponse.avg_nn.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.nn_70 != null ? avgResponse.nn_70.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.peak_bf != null ? avgResponse.peak_bf.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.peak_norm_pct != null ? avgResponse.peak_norm_pct.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.time_to_peak_sec != null ? `${avgResponse.time_to_peak_sec.toFixed(1)}s` : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.amplitude != null ? avgResponse.amplitude.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
-                            {avgResponse.norm_slope != null ? avgResponse.norm_slope.toFixed(4) : '\u2014'}
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </TableBody>
                   </Table>
                 </ScrollArea>
@@ -488,21 +541,21 @@ export default function LightPanel({
             </Card>
           )}
 
-          {/* Light HRV results (using NN_70) */}
+          {/* Light HRV results (using NN_70) - Median style */}
           {lightHrv && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400">
-                  Light-Induced HRV (using NN₇₀, normalized to 70 bpm per pulse)
+                  Light-Induced HRV (using NN₇₀, median across pulses)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {lightHrv.final && (
+                {medianHrv && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                    <MetricCard label="ln(RMSSD₇₀) light" value={lightHrv.final.ln_rmssd70} />
-                    <MetricCard label="RMSSD₇₀" value={lightHrv.final.rmssd70} unit="ms" />
-                    <MetricCard label="SDNN" value={lightHrv.final.sdnn} unit="ms" />
-                    <MetricCard label="pNN50" value={lightHrv.final.pnn50} unit="%" />
+                    <MetricCard label="Median ln(RMSSD₇₀)" value={medianHrv.ln_rmssd70} />
+                    <MetricCard label="Median RMSSD₇₀" value={medianHrv.rmssd70} unit="ms" />
+                    <MetricCard label="Median SDNN" value={medianHrv.sdnn} unit="ms" />
+                    <MetricCard label="Median pNN50" value={medianHrv.pnn50} unit="%" />
                   </div>
                 )}
 
