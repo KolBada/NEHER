@@ -214,10 +214,21 @@ def spontaneous_hrv_analysis(beat_times_min_list, bf_filtered_list, readout_minu
     return results, readout
 
 
-def compute_light_pulses(start_time_sec, pulse_duration_sec, interval_sec, n_pulses=5):
-    """Calculate pulse start/end times."""
+def compute_light_pulses(start_time_sec, pulse_duration_sec, interval_sec=None, n_pulses=5):
+    """Calculate pulse start/end times with decreasing intervals by default."""
+    # Default: decreasing intervals as per protocol
+    if interval_sec is None or interval_sec == 'decreasing':
+        intervals = [60, 30, 20, 10]
+    elif isinstance(interval_sec, (list, tuple)):
+        intervals = list(interval_sec)
+    else:
+        intervals = [float(interval_sec)] * (n_pulses - 1)
+
+    while len(intervals) < n_pulses - 1:
+        intervals.append(intervals[-1] if intervals else 60)
+
     pulses = []
-    current = start_time_sec
+    current = float(start_time_sec)
     for i in range(n_pulses):
         pulses.append({
             'index': i,
@@ -226,7 +237,10 @@ def compute_light_pulses(start_time_sec, pulse_duration_sec, interval_sec, n_pul
             'start_min': float(current / 60.0),
             'end_min': float((current + pulse_duration_sec) / 60.0)
         })
-        current += pulse_duration_sec + interval_sec
+        if i < len(intervals):
+            current += pulse_duration_sec + intervals[i]
+        else:
+            current += pulse_duration_sec + 60
     return pulses
 
 
