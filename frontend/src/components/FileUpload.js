@@ -79,7 +79,6 @@ export default function FileUpload({ onUpload, loading }) {
               data-testid="file-input"
               type="file"
               multiple
-              accept=".abf"
               className="hidden"
               onChange={handleFileSelect}
             />
