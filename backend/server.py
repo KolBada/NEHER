@@ -385,7 +385,7 @@ async def export_xlsx(request: ExportRequest):
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
+                except TypeError:
                     pass
             adjusted_width = min(max_length + 2, 30)
             ws.column_dimensions[column_letter].width = adjusted_width
