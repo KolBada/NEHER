@@ -226,7 +226,8 @@ async def compute_metrics_endpoint(request: ComputeMetricsRequest):
 
     beat_times_sec = sorted(request.beat_times_sec)
     beat_times_min, nn_ms, bf_bpm = analysis.compute_beat_metrics(beat_times_sec)
-    filter_mask = analysis.artifact_filter(
+    # artifact_filter returns (mask, filtered_bf)
+    filter_mask, _ = analysis.artifact_filter(
         bf_bpm, 
         lower_pct=request.filter_lower_pct, 
         upper_pct=request.filter_upper_pct
@@ -301,19 +302,20 @@ async def light_detect_endpoint(request: LightDetectRequest):
         except (ValueError, TypeError):
             interval_arg = None
 
-    pulses = analysis.compute_light_pulses(
+    pulses = analysis.generate_pulses(
         start_sec, request.pulse_duration_sec,
-        interval_sec=interval_arg, n_pulses=request.n_pulses
+        interval_pattern=interval_arg if interval_arg else 'decreasing', 
+        n_pulses=request.n_pulses
     )
     return {'pulses': pulses, 'detected_start_sec': start_sec}
 
 
 @api_router.post("/light-hrv")
 async def light_hrv_endpoint(request: LightHRVRequest):
-    per_pulse, final = analysis.compute_light_hrv(
+    hrv_result = analysis.compute_light_hrv(
         request.beat_times_min, request.bf_filtered, request.pulses
     )
-    return {'per_pulse': per_pulse, 'final': final}
+    return {'per_pulse': hrv_result['per_pulse'], 'final': hrv_result['final']}
 
 
 @api_router.post("/light-response")
@@ -332,7 +334,10 @@ async def light_response_endpoint(request: LightResponseRequest):
 async def per_minute_metrics_endpoint(request: PerMinuteRequest):
     if len(request.beat_times_min) < 2:
         raise HTTPException(400, "Need at least 2 beats")
-    rows = analysis.compute_per_minute_table(request.beat_times_min, request.bf_filtered)
+    # per_minute_aggregation requires nn_70, compute it from bf_filtered
+    nn_values = analysis.bf_to_nn(request.bf_filtered)
+    nn_70 = analysis.normalize_nn_70_windowing(request.beat_times_min, nn_values)
+    rows = analysis.per_minute_aggregation(request.beat_times_min, request.bf_filtered, nn_70)
     return {'rows': rows}
 
 
