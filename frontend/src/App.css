@@ -1,34 +1,56 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Trace viewer container */
+.trace-container {
+    background: #000;
+    border: 1px solid #27272a;
+    border-radius: 2px;
+    position: relative;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Chart tooltip */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+    background: #121212 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 2px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Brush styling */
+.recharts-brush .recharts-brush-slide {
+    fill: rgba(34, 211, 238, 0.05);
+    stroke: #22d3ee;
 }
 
-.App-link {
-    color: #61dafb;
+.recharts-brush-traveller rect {
+    fill: #3f3f46;
+    stroke: #52525b;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Loading pulse */
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+.loading-pulse {
+    animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* Staggered entrance */
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+    animation: slide-up 0.3s ease-out forwards;
+}
+
+/* Data table row hover */
+.data-row:hover {
+    background: rgba(34, 211, 238, 0.03);
+}
+
+/* Override recharts cursor */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: #18181b !important;
 }
