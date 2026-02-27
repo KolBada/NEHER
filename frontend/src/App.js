@@ -344,7 +344,7 @@ function App() {
       summary: Object.keys(summary).length > 0 ? summary : null,
       filename: recordingName || activeFile?.filename?.replace('.abf', '') || 'analysis',
       recording_name: recordingName,
-      drug_used: drugUsed,
+      drug_used: drugUsed !== 'none' ? drugUsed : null,
       per_minute_data: perMinuteData,
       baseline: hrvResults?.baseline,
     };
