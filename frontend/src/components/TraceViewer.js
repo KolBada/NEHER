@@ -99,6 +99,27 @@ export default function TraceViewer({
     }
   }, [selectedBeatIdx, onRemoveBeat]);
 
+  // Handle brush change for zoom
+  const handleBrushChange = useCallback((brushData) => {
+    if (brushData && brushData.startIndex !== undefined && brushData.endIndex !== undefined) {
+      setBrushStartIdx(brushData.startIndex);
+      setBrushEndIdx(brushData.endIndex);
+      setIsZoomed(brushData.startIndex !== 0 || brushData.endIndex !== chartData.length - 1);
+    }
+  }, []);
+
+  // Reset zoom
+  const handleResetZoom = useCallback(() => {
+    setBrushStartIdx(null);
+    setBrushEndIdx(null);
+    setIsZoomed(false);
+  }, []);
+
+  // Reset zoom when trace data changes
+  useEffect(() => {
+    handleResetZoom();
+  }, [traceData, handleResetZoom]);
+
   if (!traceData) return null;
 
   const CustomDot = (props) => {
