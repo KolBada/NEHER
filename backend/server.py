@@ -75,6 +75,11 @@ class LightResponseRequest(BaseModel):
     pulses: List[dict]
 
 
+class PerMinuteRequest(BaseModel):
+    beat_times_min: List[float]
+    bf_filtered: List[float]
+
+
 class ExportRequest(BaseModel):
     per_beat_data: Optional[List[dict]] = None
     hrv_windows: Optional[List[dict]] = None
