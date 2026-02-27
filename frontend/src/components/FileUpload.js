@@ -30,9 +30,7 @@ export default function FileUpload({ onUpload, loading }) {
   }, []);
 
   const handleFileSelect = useCallback((e) => {
-    const files = Array.from(e.target.files).filter(f =>
-      f.name.toLowerCase().endsWith('.abf')
-    );
+    const files = Array.from(e.target.files);
     if (files.length > 0) setSelectedFiles(prev => [...prev, ...files]);
   }, []);
 
