@@ -300,6 +300,14 @@ async def light_response_endpoint(request: LightResponseRequest):
     }
 
 
+@api_router.post("/per-minute-metrics")
+async def per_minute_metrics_endpoint(request: PerMinuteRequest):
+    if len(request.beat_times_min) < 2:
+        raise HTTPException(400, "Need at least 2 beats")
+    rows = analysis.compute_per_minute_table(request.beat_times_min, request.bf_filtered)
+    return {'rows': rows}
+
+
 @api_router.post("/export/csv")
 async def export_csv(request: ExportRequest):
     output = io.StringIO()
