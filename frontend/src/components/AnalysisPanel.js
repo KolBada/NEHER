@@ -93,7 +93,7 @@ function HrvInfoPopover({ metric }) {
 export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
-  drugSettings, selectedDrugs, otherDrugs
+  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG
 }) {
   // Separate readout controls for HRV and BF
   const [hrvReadoutMinute, setHrvReadoutMinute] = useState('');
@@ -101,11 +101,36 @@ export default function AnalysisPanel({
   const [enableHrvReadout, setEnableHrvReadout] = useState(false);
   const [enableBfReadout, setEnableBfReadout] = useState(false);
   
-  // Baseline settings (default: RMSSD at 0min, BF at 1min)
+  // Baseline settings - HRV at minute 0 (0-3 window), BF at minute 1
   const [baselineHrvStart, setBaselineHrvStart] = useState(0);
   const [baselineHrvEnd, setBaselineHrvEnd] = useState(3);
   const [baselineBfStart, setBaselineBfStart] = useState(1);
   const [baselineBfEnd, setBaselineBfEnd] = useState(2);
+
+  // Zoom state for charts
+  const [zoomDomain, setZoomDomain] = useState(null);
+
+  // Calculate drug readout time: base + perfusion start + perfusion time
+  const drugReadoutTime = useMemo(() => {
+    if (!selectedDrugs || selectedDrugs.length === 0) return null;
+    // Use the first selected drug's settings
+    const firstDrugKey = selectedDrugs[0];
+    const settings = drugSettings?.[firstDrugKey] || {};
+    const config = DRUG_CONFIG?.[firstDrugKey] || {};
+    
+    const perfusionStart = settings.perfusionStart ?? 3;
+    const perfusionTime = settings.perfusionTime ?? 3;
+    
+    return {
+      hrvBase: parseFloat(hrvReadoutMinute) || 12,
+      bfBase: parseFloat(bfReadoutMinute) || 14,
+      perfusionStart,
+      perfusionTime,
+      // Total readout = base + perfusion start + perfusion time
+      hrvTotal: (parseFloat(hrvReadoutMinute) || 12) + perfusionStart + perfusionTime,
+      bfTotal: (parseFloat(bfReadoutMinute) || 14) + perfusionStart + perfusionTime,
+    };
+  }, [selectedDrugs, drugSettings, hrvReadoutMinute, bfReadoutMinute, DRUG_CONFIG]);
 
   const filteredBfData = useMemo(() => {
     if (!metrics) return [];
