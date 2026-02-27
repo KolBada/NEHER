@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
@@ -20,7 +21,6 @@ const CHART_COLORS = {
   lnRmssd: '#22d3ee',
   sdnn: '#c084fc',
   pnn50: '#fb923c',
-  meanBf: '#facc15',
 };
 
 function MetricCard({ label, value, unit }) {
@@ -28,7 +28,7 @@ function MetricCard({ label, value, unit }) {
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
       <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500">{label}</p>
       <p className="text-lg font-data text-zinc-100 mt-1">
-        {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '—'}
+        {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
     </div>
@@ -36,27 +36,10 @@ function MetricCard({ label, value, unit }) {
 }
 
 export default function AnalysisPanel({
-  metrics, hrvResults, onComputeHRV, analysisLoading
+  metrics, hrvResults, perMinuteData,
+  onComputeHRV, analysisLoading
 }) {
   const [readoutMinute, setReadoutMinute] = useState('');
-
-  const bfChartData = useMemo(() => {
-    if (!metrics) return [];
-    return metrics.beat_times_min.slice(0, -1).map((t, i) => ({
-      time: t,
-      bf: metrics.beat_freq_bpm[i],
-      filtered: metrics.artifact_mask[i],
-    }));
-  }, [metrics]);
-
-  const nnChartData = useMemo(() => {
-    if (!metrics) return [];
-    return metrics.beat_times_min.slice(0, -1).map((t, i) => ({
-      time: t,
-      nn: metrics.nn_intervals_ms[i],
-      filtered: metrics.artifact_mask[i],
-    }));
-  }, [metrics]);
 
   const filteredBfData = useMemo(() => {
     if (!metrics) return [];
@@ -90,6 +73,19 @@ export default function AnalysisPanel({
     }));
   }, [metrics]);
 
+  // Merge per-minute data with HRV window data
+  const perMinuteTable = useMemo(() => {
+    if (!perMinuteData) return [];
+    const hrvMap = {};
+    if (hrvResults?.windows) {
+      hrvResults.windows.forEach(w => { hrvMap[w.minute] = w; });
+    }
+    return perMinuteData.map(row => ({
+      ...row,
+      hrv: hrvMap[row.minute] || null,
+    }));
+  }, [perMinuteData, hrvResults]);
+
   if (!metrics) return (
     <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">
       Validate beats first to see analysis results
@@ -117,15 +113,17 @@ export default function AnalysisPanel({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400">Beat Frequency (filtered)</CardTitle>
+            <CardTitle className="text-xs text-zinc-400">Beat Frequency (filtered) - bpm vs min</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={filteredBfData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
-                  tickFormatter={(v) => `${Number(v).toFixed(0)}`} />
-                <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45} />
+                  tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
+                  label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
                   labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
@@ -140,15 +138,17 @@ export default function AnalysisPanel({
 
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400">NN Intervals (filtered)</CardTitle>
+            <CardTitle className="text-xs text-zinc-400">NN Intervals (filtered) - ms vs min</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={filteredNnData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
-                  tickFormatter={(v) => `${Number(v).toFixed(0)}`} />
-                <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45} />
+                  tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
+                  label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
                   labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
@@ -166,7 +166,7 @@ export default function AnalysisPanel({
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400">
-            HRV Analysis (Sliding 3-min Windows)
+            HRV Analysis (Sliding 3-min Windows, Normalized to 70 bpm)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -207,16 +207,17 @@ export default function AnalysisPanel({
           {hrvChartData.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
               {[
-                { key: 'ln_rmssd70', label: 'ln(RMSSD70)', color: CHART_COLORS.lnRmssd },
-                { key: 'sdnn', label: 'SDNN', color: CHART_COLORS.sdnn },
-                { key: 'pnn50', label: 'pNN50 (%)', color: CHART_COLORS.pnn50 },
+                { key: 'ln_rmssd70', label: 'ln(RMSSD70) - normalized, windowed', color: CHART_COLORS.lnRmssd },
+                { key: 'sdnn', label: 'SDNN - normalized, windowed', color: CHART_COLORS.sdnn },
+                { key: 'pnn50', label: 'pNN50 (%) - normalized, windowed', color: CHART_COLORS.pnn50 },
               ].map(({ key, label, color }) => (
                 <div key={key} className="bg-black border border-zinc-800 rounded-sm p-2">
                   <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">{label}</p>
                   <ResponsiveContainer width="100%" height={140}>
                     <LineChart data={hrvChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                      <XAxis dataKey="minute" tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} />
+                      <XAxis dataKey="minute" tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
+                        label={{ value: 'min', fill: '#52525b', fontSize: 8, position: 'insideBottomRight', offset: -5 }} />
                       <YAxis tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} width={40} />
                       <Tooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
@@ -231,45 +232,103 @@ export default function AnalysisPanel({
         </CardContent>
       </Card>
 
-      {/* Per-beat table */}
+      {/* Per-minute metrics table */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xs text-zinc-400">Per-Beat Data</CardTitle>
+          <CardTitle className="text-xs text-zinc-400">Per-Minute Metrics</CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[300px]">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-[10px] font-data text-zinc-500 h-7">#</TableHead>
-                  <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time (min)</TableHead>
-                  <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
-                  <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
-                  <TableHead className="text-[10px] font-data text-zinc-500 h-7">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {perBeatTable.map((row) => (
-                  <TableRow key={row.index} className="border-zinc-800/50 data-row">
-                    <TableCell className="text-[10px] font-data text-zinc-400 py-1">{row.index}</TableCell>
-                    <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.time_min.toFixed(4)}</TableCell>
-                    <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.bf_bpm.toFixed(1)}</TableCell>
-                    <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.nn_ms.toFixed(1)}</TableCell>
-                    <TableCell className="py-1">
-                      <Badge
-                        variant="outline"
-                        className={`text-[8px] font-data px-1.5 py-0 ${
-                          row.kept ? 'border-green-800 text-green-400' : 'border-red-800 text-red-400'
-                        }`}
-                      >
-                        {row.kept ? 'kept' : 'filtered'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+          <Tabs defaultValue="per-minute">
+            <TabsList className="bg-zinc-900/50 border border-zinc-800 h-7 mb-3">
+              <TabsTrigger value="per-minute" className="text-[10px] rounded-sm h-5 data-[state=active]:bg-zinc-700">
+                Per Minute
+              </TabsTrigger>
+              <TabsTrigger value="per-beat" className="text-[10px] rounded-sm h-5 data-[state=active]:bg-zinc-700">
+                Per Beat
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="per-minute">
+              <ScrollArea className="h-[350px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN_70 (ms)</TableHead>
+                      <TableHead className="text-[10px] font-data text-cyan-600 h-7">SDNN_70</TableHead>
+                      <TableHead className="text-[10px] font-data text-purple-400 h-7">RMSSD_70</TableHead>
+                      <TableHead className="text-[10px] font-data text-orange-400 h-7">pNN50_70</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {perMinuteTable.map((row) => (
+                      <TableRow key={row.minute} className="border-zinc-800/50 data-row">
+                        <TableCell className="text-[10px] font-data text-zinc-400 py-1">{row.label} min</TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-500 py-1">{row.n_beats}</TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                          {row.avg_bf != null ? row.avg_bf.toFixed(1) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                          {row.avg_nn != null ? row.avg_nn.toFixed(1) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                          {row.avg_nn_70 != null ? row.avg_nn_70.toFixed(1) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-data text-cyan-400 py-1">
+                          {row.hrv ? row.hrv.sdnn.toFixed(2) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-data text-purple-300 py-1">
+                          {row.hrv ? row.hrv.rmssd70.toFixed(2) : '\u2014'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-data text-orange-300 py-1">
+                          {row.hrv ? row.hrv.pnn50.toFixed(1) : '\u2014'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="per-beat">
+              <ScrollArea className="h-[350px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">#</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time (min)</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
+                      <TableHead className="text-[10px] font-data text-zinc-500 h-7">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {perBeatTable.map((row) => (
+                      <TableRow key={row.index} className="border-zinc-800/50 data-row">
+                        <TableCell className="text-[10px] font-data text-zinc-400 py-1">{row.index}</TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.time_min.toFixed(4)}</TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.bf_bpm.toFixed(1)}</TableCell>
+                        <TableCell className="text-[10px] font-data text-zinc-300 py-1">{row.nn_ms.toFixed(1)}</TableCell>
+                        <TableCell className="py-1">
+                          <Badge
+                            variant="outline"
+                            className={`text-[8px] font-data px-1.5 py-0 ${
+                              row.kept ? 'border-green-800 text-green-400' : 'border-red-800 text-red-400'
+                            }`}
+                          >
+                            {row.kept ? 'kept' : 'filtered'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
