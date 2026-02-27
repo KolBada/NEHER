@@ -63,13 +63,27 @@ export default function DetectionPanel({
           />
         </div>
 
-        {/* Threshold */}
-        <div className="space-y-2">
+        {/* Threshold - More prominent with direct input */}
+        <div className="space-y-2 p-2 bg-amber-950/20 border border-amber-900/50 rounded-sm">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-zinc-400">Threshold (mV)</Label>
-            <span className="text-[10px] font-data text-zinc-300">
-              {threshold !== null ? threshold.toFixed(2) : 'auto'}
-            </span>
+            <Label className="text-xs text-amber-400 font-semibold">Threshold (mV)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                data-testid="threshold-input"
+                type="number"
+                step="0.01"
+                value={threshold !== null ? threshold.toFixed(2) : ''}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (!isNaN(val)) {
+                    onChange({ ...params, threshold: val });
+                  }
+                }}
+                placeholder="auto"
+                className="h-6 w-20 text-[10px] font-data bg-zinc-900 border-zinc-700 text-zinc-200"
+                disabled={isValidated}
+              />
+            </div>
           </div>
           <Slider
             data-testid="threshold-slider"
@@ -79,7 +93,11 @@ export default function DetectionPanel({
             max={stats.max}
             step={0.01}
             disabled={isValidated}
+            className="accent-amber-500"
           />
+          <p className="text-[9px] text-amber-600 italic">
+            Shown as dashed amber line on trace
+          </p>
         </div>
 
         {/* Prominence */}
