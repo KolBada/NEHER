@@ -3,22 +3,33 @@ import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
 } from 'recharts';
-import { MousePointerClick, ZoomIn, ZoomOut, Trash2, Plus, RotateCcw } from 'lucide-react';
+import { MousePointerClick, ZoomIn, Trash2, Plus, RotateCcw, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function TraceViewer({
   traceData, beats, onAddBeat, onRemoveBeat,
-  lightPulses, isValidated
+  lightPulses, isValidated,
+  threshold, onThresholdChange, signalStats
 }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
-  const chartRef = useRef(null);
+  const containerRef = useRef(null);
   
-  // Zoom state - indices into chartData array
-  const [brushStartIdx, setBrushStartIdx] = useState(null);
-  const [brushEndIdx, setBrushEndIdx] = useState(null);
-  const [isZoomed, setIsZoomed] = useState(false);
+  // Zoom state - time domain
+  const [zoomDomain, setZoomDomain] = useState(null);
+  const [isDraggingThreshold, setIsDraggingThreshold] = useState(false);
+
+  // Get min/max time from data
+  const timeBounds = useMemo(() => {
+    if (!traceData || !traceData.times || traceData.times.length === 0) {
+      return { min: 0, max: 1 };
+    }
+    return {
+      min: traceData.times[0] / 60.0,
+      max: traceData.times[traceData.times.length - 1] / 60.0
+    };
+  }, [traceData]);
 
   const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
@@ -41,12 +52,20 @@ export default function TraceViewer({
         if (lo > 0 && Math.abs(data[lo - 1].time - beatMin) < Math.abs(data[lo].time - beatMin)) {
           lo = lo - 1;
         }
-        data[lo].isBeat = true;
-        data[lo].beatIdx = beatIdx;
+        if (lo < data.length) {
+          data[lo].isBeat = true;
+          data[lo].beatIdx = beatIdx;
+        }
       });
     }
     return data;
   }, [traceData, beats]);
+
+  // Filtered chart data based on zoom
+  const visibleData = useMemo(() => {
+    if (!zoomDomain) return chartData;
+    return chartData.filter(d => d.time >= zoomDomain[0] && d.time <= zoomDomain[1]);
+  }, [chartData, zoomDomain]);
 
   // Handle click on chart area for adding beats
   const handleChartClick = useCallback((e) => {
@@ -59,12 +78,12 @@ export default function TraceViewer({
     const voltage = point.voltage;
 
     // Check if clicking near an existing beat
-    const timeRange = traceData
-      ? (traceData.times[traceData.times.length - 1] - traceData.times[0]) / 60.0
-      : 1;
-    const tolerance = timeRange / 300;
+    const visibleRange = zoomDomain 
+      ? (zoomDomain[1] - zoomDomain[0])
+      : (timeBounds.max - timeBounds.min);
+    const tolerance = visibleRange / 200; // More precise tolerance based on visible range
 
-    if (beats) {
+    if (beats && beats.length > 0) {
       const nearIdx = beats.findIndex(b => Math.abs(b.timeSec / 60.0 - timeMin) < tolerance);
       if (nearIdx >= 0) {
         // Click on existing beat - select it for deletion
@@ -72,18 +91,26 @@ export default function TraceViewer({
         return;
       }
     }
+    
     // Add new beat at click position
-    onAddBeat(timeSec, voltage);
-  }, [editMode, isValidated, beats, traceData, onAddBeat]);
+    if (onAddBeat) {
+      onAddBeat(timeSec, voltage);
+    }
+  }, [editMode, isValidated, beats, timeBounds, zoomDomain, onAddBeat]);
 
   // Handle beat marker click for removal
   const handleBeatClick = useCallback((beatIdx, e) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!editMode || isValidated) return;
     
     if (selectedBeatIdx === beatIdx) {
       // Second click on same beat - remove it
-      onRemoveBeat(beatIdx);
+      if (onRemoveBeat) {
+        onRemoveBeat(beatIdx);
+      }
       setSelectedBeatIdx(null);
     } else {
       // First click - select it
@@ -93,48 +120,130 @@ export default function TraceViewer({
 
   // Confirm removal of selected beat
   const handleRemoveSelected = useCallback(() => {
-    if (selectedBeatIdx !== null) {
+    if (selectedBeatIdx !== null && onRemoveBeat) {
       onRemoveBeat(selectedBeatIdx);
       setSelectedBeatIdx(null);
     }
   }, [selectedBeatIdx, onRemoveBeat]);
 
-  // Handle brush change for zoom
-  const handleBrushChange = useCallback((brushData) => {
-    if (brushData && brushData.startIndex !== undefined && brushData.endIndex !== undefined) {
-      setBrushStartIdx(brushData.startIndex);
-      setBrushEndIdx(brushData.endIndex);
-      // Determine if zoomed by checking if we're not at full range
-      setIsZoomed(true);
+  // Handle wheel zoom (trackpad)
+  const handleWheel = useCallback((e) => {
+    if (!containerRef.current || !chartData.length) return;
+    
+    // Only zoom with ctrl/cmd key or pinch gesture
+    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+    
+    e.preventDefault();
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const chartWidth = rect.width - 60; // Account for margins
+    const mouseRatio = Math.max(0, Math.min(1, (mouseX - 10) / chartWidth));
+    
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const currentRange = currentMax - currentMin;
+    
+    // Zoom in/out
+    const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+    const newRange = Math.max(0.1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
+    
+    // Center zoom on mouse position
+    const mouseTime = currentMin + mouseRatio * currentRange;
+    let newMin = mouseTime - mouseRatio * newRange;
+    let newMax = mouseTime + (1 - mouseRatio) * newRange;
+    
+    // Clamp to bounds
+    if (newMin < timeBounds.min) {
+      newMin = timeBounds.min;
+      newMax = Math.min(timeBounds.max, newMin + newRange);
     }
-  }, []);
+    if (newMax > timeBounds.max) {
+      newMax = timeBounds.max;
+      newMin = Math.max(timeBounds.min, newMax - newRange);
+    }
+    
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+      setZoomDomain(null);
+    } else {
+      setZoomDomain([newMin, newMax]);
+    }
+  }, [chartData, zoomDomain, timeBounds]);
 
   // Reset zoom
   const handleResetZoom = useCallback(() => {
-    setBrushStartIdx(null);
-    setBrushEndIdx(null);
-    setIsZoomed(false);
+    setZoomDomain(null);
   }, []);
+
+  // Zoom in/out buttons
+  const handleZoomIn = useCallback(() => {
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const currentRange = currentMax - currentMin;
+    const newRange = currentRange * 0.7;
+    const center = (currentMin + currentMax) / 2;
+    const newMin = Math.max(timeBounds.min, center - newRange / 2);
+    const newMax = Math.min(timeBounds.max, center + newRange / 2);
+    setZoomDomain([newMin, newMax]);
+  }, [zoomDomain, timeBounds]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!zoomDomain) return;
+    const currentRange = zoomDomain[1] - zoomDomain[0];
+    const newRange = Math.min(timeBounds.max - timeBounds.min, currentRange * 1.5);
+    const center = (zoomDomain[0] + zoomDomain[1]) / 2;
+    let newMin = center - newRange / 2;
+    let newMax = center + newRange / 2;
+    if (newMin < timeBounds.min) {
+      newMin = timeBounds.min;
+      newMax = newMin + newRange;
+    }
+    if (newMax > timeBounds.max) {
+      newMax = timeBounds.max;
+      newMin = newMax - newRange;
+    }
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+      setZoomDomain(null);
+    } else {
+      setZoomDomain([newMin, newMax]);
+    }
+  }, [zoomDomain, timeBounds]);
 
   // Reset zoom when trace data changes
   useEffect(() => {
     handleResetZoom();
+    setSelectedBeatIdx(null);
   }, [traceData, handleResetZoom]);
+
+  // Add wheel listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   if (!traceData) return null;
 
+  const isZoomed = zoomDomain !== null;
+  const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
+
   const CustomDot = (props) => {
     const { cx, cy, payload } = props;
-    if (payload && payload.isBeat) {
+    if (payload && payload.isBeat && cx !== undefined && cy !== undefined) {
       const isSelected = payload.beatIdx === selectedBeatIdx;
       return (
         <circle
-          cx={cx} cy={cy} r={isSelected ? 5 : 3}
+          cx={cx} cy={cy} r={isSelected ? 6 : 4}
           fill={isSelected ? '#ef4444' : '#a3e635'}
-          stroke={isSelected ? '#fca5a5' : '#a3e635'}
+          stroke={isSelected ? '#fca5a5' : '#65a30d'}
           strokeWidth={isSelected ? 2 : 1}
           style={{ cursor: editMode ? 'pointer' : 'default' }}
           onClick={(e) => handleBeatClick(payload.beatIdx, e)}
+          onMouseDown={(e) => e.stopPropagation()}
         />
       );
     }
@@ -148,8 +257,11 @@ export default function TraceViewer({
     end_min_disp: p.end_min !== undefined ? p.end_min : (p.end_sec / 60.0),
   })) : null;
 
+  // Determine X-axis domain
+  const xDomain = zoomDomain || [timeBounds.min, timeBounds.max];
+
   return (
-    <div className="trace-container" data-testid="trace-viewer">
+    <div className="trace-container" data-testid="trace-viewer" ref={containerRef}>
       <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900/50 border-b border-zinc-800">
         <div className="flex items-center gap-2">
           <Button
@@ -168,12 +280,31 @@ export default function TraceViewer({
             disabled={isValidated}
           >
             <MousePointerClick className="w-3 h-3 mr-1" />
-            {editMode ? 'Editing Mode ON' : 'Edit Beats'}
+            {editMode ? 'Editing ON' : 'Edit Beats'}
           </Button>
-          {editMode && (
-            <span className="text-[10px] text-cyan-400">
-              Click on trace to add beat, click on beat marker to select & remove
-            </span>
+          {editMode && !isValidated && (
+            <>
+              <Button
+                data-testid="add-beat-hint"
+                variant="outline"
+                size="sm"
+                className="h-6 text-[10px] rounded-sm border-green-700 text-green-400 hover:bg-green-950"
+                disabled
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Click to add
+              </Button>
+              <Button
+                data-testid="remove-beat-hint"
+                variant="outline"
+                size="sm"
+                className="h-6 text-[10px] rounded-sm border-red-700 text-red-400 hover:bg-red-950"
+                disabled
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Click marker to remove
+              </Button>
+            </>
           )}
           <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
             {beats ? beats.length : 0} beats
@@ -187,13 +318,31 @@ export default function TraceViewer({
               onClick={handleRemoveSelected}
             >
               <Trash2 className="w-3 h-3" />
-              Remove Beat #{selectedBeatIdx + 1}
+              Remove #{selectedBeatIdx + 1}
             </Button>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <ZoomIn className="w-3 h-3 text-zinc-500" />
-          <span className="text-[10px] text-zinc-500">Use brush below to zoom</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+            onClick={handleZoomIn}
+            title="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+            onClick={handleZoomOut}
+            disabled={!isZoomed}
+            title="Zoom Out"
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <span className="text-[10px] text-zinc-500">Ctrl+Scroll to zoom</span>
           {isZoomed && (
             <Button
               data-testid="reset-zoom-btn"
@@ -203,15 +352,15 @@ export default function TraceViewer({
               onClick={handleResetZoom}
             >
               <RotateCcw className="w-3 h-3" />
-              Reset Zoom
+              Reset
             </Button>
           )}
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={420} ref={chartRef}>
+      <ResponsiveContainer width="100%" height={420}>
         <ComposedChart
-          data={chartData}
+          data={visibleData}
           onClick={handleChartClick}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
@@ -219,10 +368,11 @@ export default function TraceViewer({
           <XAxis
             dataKey="time"
             type="number"
-            domain={['dataMin', 'dataMax']}
+            domain={xDomain}
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-            tickFormatter={(v) => `${Number(v).toFixed(1)}`}
+            tickFormatter={(v) => `${Number(v).toFixed(2)}`}
             label={{ value: 'Time (min)', fill: '#52525b', fontSize: 10, position: 'insideBottomRight', offset: -5 }}
+            allowDataOverflow
           />
           <YAxis
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
@@ -242,6 +392,22 @@ export default function TraceViewer({
             labelFormatter={(v) => `${Number(v).toFixed(3)} min`}
             formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
+          {/* Threshold line */}
+          {threshold !== null && (
+            <ReferenceLine
+              y={threshold}
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              label={{
+                value: `Threshold: ${threshold.toFixed(2)} mV`,
+                position: 'right',
+                fill: '#f59e0b',
+                fontSize: 9,
+                fontFamily: 'JetBrains Mono',
+              }}
+            />
+          )}
           {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
@@ -268,17 +434,7 @@ export default function TraceViewer({
             strokeWidth={1}
             dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={editMode ? { r: 5, fill: '#22d3ee', stroke: '#fff' } : false}
-          />
-          <Brush
-            dataKey="time"
-            height={25}
-            stroke="#3f3f46"
-            fill="#0c0c0e"
-            tickFormatter={(v) => `${Number(v).toFixed(1)} min`}
-            onChange={handleBrushChange}
-            startIndex={brushStartIdx !== null ? brushStartIdx : 0}
-            endIndex={brushEndIdx !== null ? brushEndIdx : (chartData.length - 1)}
+            activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : false}
           />
         </ComposedChart>
       </ResponsiveContainer>
