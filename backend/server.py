@@ -91,6 +91,7 @@ class ExportRequest(BaseModel):
     hrv_windows: Optional[List[dict]] = None
     light_metrics: Optional[List[dict]] = None
     light_response: Optional[List[dict]] = None
+    light_pulses: Optional[List[dict]] = None  # For showing light stim zones on charts
     summary: Optional[dict] = None
     filename: str = "analysis"
     recording_name: Optional[str] = None
