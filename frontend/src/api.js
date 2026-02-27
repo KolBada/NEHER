@@ -6,7 +6,7 @@ const api = {
   upload: (formData) =>
     axios.post(`${API_URL}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
+      timeout: 300000,
     }),
 
   detectBeats: (data) => axios.post(`${API_URL}/detect-beats`, data),
