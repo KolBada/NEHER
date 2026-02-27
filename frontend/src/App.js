@@ -421,18 +421,25 @@ function App() {
                 signalStats={signalStats}
                 onDetect={handleDetect}
                 onValidate={handleValidate}
+                onUnvalidate={handleUnvalidate}
                 isValidated={isValidated}
                 detectLoading={detectLoading}
                 beats={beats}
               />
-              <TraceViewer
-                traceData={traceData}
-                beats={beats}
-                onAddBeat={handleAddBeat}
-                onRemoveBeat={handleRemoveBeat}
-                lightPulses={lightPulses}
-                isValidated={isValidated}
-              />
+              <div className="space-y-4">
+                <TraceViewer
+                  traceData={traceData}
+                  beats={beats}
+                  onAddBeat={handleAddBeat}
+                  onRemoveBeat={handleRemoveBeat}
+                  lightPulses={lightPulses}
+                  isValidated={isValidated}
+                />
+                {/* BF chart shown after validation */}
+                {isValidated && metrics && (
+                  <BFChart metrics={metrics} />
+                )}
+              </div>
             </div>
           </TabsContent>
 
