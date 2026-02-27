@@ -314,7 +314,7 @@ async def light_hrv_endpoint(request: LightHRVRequest):
 
 @api_router.post("/light-response")
 async def light_response_endpoint(request: LightResponseRequest):
-    per_stim, mean_metrics, baseline_bf = analysis.compute_light_response(
+    per_stim, mean_metrics, baseline_bf = analysis.compute_light_response_v2(
         request.beat_times_min, request.bf_filtered, request.pulses
     )
     return {
