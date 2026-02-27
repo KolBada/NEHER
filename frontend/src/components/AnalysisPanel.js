@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Brush
 } from 'recharts';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
-  Tooltip as TooltipUI,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover, PopoverContent, PopoverTrigger
+} from '@/components/ui/popover';
 
 const CHART_COLORS = {
   bf: '#22d3ee',
@@ -56,9 +53,33 @@ function SmallMetricCard({ label, value, unit }) {
   );
 }
 
+// Info popover for HRV metrics explanation
+function HrvInfoPopover({ metric }) {
+  const info = {
+    'SDNN': 'Standard deviation of NN intervals. Computed over a 3-minute sliding window, normalized to 70 bpm.',
+    'RMSSD': 'Root mean square of successive NN differences. Computed over a 3-minute sliding window, normalized to 70 bpm.',
+    'pNN50': 'Percentage of successive NN intervals differing by >50ms. Computed over a 3-minute sliding window, normalized to 70 bpm.',
+  };
+  
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
+          <HelpCircle className="w-3 h-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
+        <p className="font-medium mb-1">{metric}</p>
+        <p className="text-zinc-400">{info[metric] || 'HRV metric computed over 3-minute window, normalized to 70 bpm.'}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
-  onComputeHRV, analysisLoading, filterSettings, hasDrug
+  onComputeHRV, analysisLoading, filterSettings, hasDrug,
+  drugSettings, selectedDrugs, otherDrugs
 }) {
   // Separate readout controls for HRV and BF
   const [hrvReadoutMinute, setHrvReadoutMinute] = useState('');
@@ -225,8 +246,27 @@ export default function AnalysisPanel({
       {/* HRV Analysis with Readout Controls */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xs text-zinc-400">
+          <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             HRV Analysis (Sliding 3-min Windows, Normalized to 70 bpm)
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
+                  <HelpCircle className="w-3 h-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
+                <p className="font-medium mb-2">Why baseline differs from per-minute values?</p>
+                <p className="text-zinc-400 mb-2">
+                  <strong>Baseline:</strong> Computed directly over the specified time range (e.g., 0-3 min) using all beats in that range.
+                </p>
+                <p className="text-zinc-400 mb-2">
+                  <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
+                </p>
+                <p className="text-zinc-400">
+                  The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
+                </p>
+              </PopoverContent>
+            </Popover>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -428,7 +468,21 @@ export default function AnalysisPanel({
       {/* Per-minute metrics table */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xs text-zinc-400">Per-Minute Metrics</CardTitle>
+          <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+            Per-Minute Metrics
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
+                  <HelpCircle className="w-3 h-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
+                <p className="font-medium mb-2">Table Columns Explained</p>
+                <p className="text-zinc-400 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
+                <p className="text-zinc-400"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
+              </PopoverContent>
+            </Popover>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="per-minute">
@@ -452,40 +506,19 @@ export default function AnalysisPanel({
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀ (ms)</TableHead>
                       <TableHead className="text-[10px] font-data text-cyan-600 h-7">
-                        <TooltipProvider>
-                          <TooltipUI>
-                            <TooltipTrigger className="flex items-center gap-1">
-                              SDNN₇₀ <Info className="w-2.5 h-2.5" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-zinc-900 border-zinc-700 text-[10px]">
-                              <p>3-min sliding window, normalized to 70 bpm</p>
-                            </TooltipContent>
-                          </TooltipUI>
-                        </TooltipProvider>
+                        <span className="flex items-center gap-1">
+                          SDNN₇₀ <HrvInfoPopover metric="SDNN" />
+                        </span>
                       </TableHead>
                       <TableHead className="text-[10px] font-data text-purple-400 h-7">
-                        <TooltipProvider>
-                          <TooltipUI>
-                            <TooltipTrigger className="flex items-center gap-1">
-                              RMSSD₇₀ <Info className="w-2.5 h-2.5" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-zinc-900 border-zinc-700 text-[10px]">
-                              <p>3-min sliding window, normalized to 70 bpm</p>
-                            </TooltipContent>
-                          </TooltipUI>
-                        </TooltipProvider>
+                        <span className="flex items-center gap-1">
+                          RMSSD₇₀ <HrvInfoPopover metric="RMSSD" />
+                        </span>
                       </TableHead>
                       <TableHead className="text-[10px] font-data text-orange-400 h-7">
-                        <TooltipProvider>
-                          <TooltipUI>
-                            <TooltipTrigger className="flex items-center gap-1">
-                              pNN50₇₀ <Info className="w-2.5 h-2.5" />
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-zinc-900 border-zinc-700 text-[10px]">
-                              <p>3-min sliding window, normalized to 70 bpm</p>
-                            </TooltipContent>
-                          </TooltipUI>
-                        </TooltipProvider>
+                        <span className="flex items-center gap-1">
+                          pNN50₇₀ <HrvInfoPopover metric="pNN50" />
+                        </span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
