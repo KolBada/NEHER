@@ -41,7 +41,8 @@ function App() {
 
   // Light
   const [lightParams, setLightParams] = useState({
-    startTime: 180, pulseDuration: 20, interval: 60, nPulses: 5
+    startTime: 180, pulseDuration: 20, interval: 'decreasing', nPulses: 5,
+    autoDetect: true, searchRange: 20,
   });
   const [lightPulses, setLightPulses] = useState(null);
   const [lightHrv, setLightHrv] = useState(null);
