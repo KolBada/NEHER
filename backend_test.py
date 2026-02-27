@@ -426,16 +426,25 @@ def main():
         success, beat_times_min, bf_filtered = tester.test_compute_metrics()
         
         if success:
+            # Test per-minute metrics
+            tester.test_per_minute_metrics(beat_times_min, bf_filtered)
+            
             # Test HRV analysis
             tester.test_hrv_analysis(beat_times_min, bf_filtered)
             
-            # Test light detection and get pulses
-            light_success, pulses = tester.test_light_detect()
+            # Test light detection with decreasing intervals
+            light_success, pulses = tester.test_light_detect_decreasing()
             
-            if light_success:
+            # Test light auto-detect
+            auto_success, auto_pulses = tester.test_light_auto_detect(beat_times_min, bf_filtered)
+            
+            # Use auto-detected pulses if available, otherwise use manual
+            final_pulses = auto_pulses if auto_success else pulses
+            
+            if final_pulses:
                 # Test light HRV and response
-                tester.test_light_hrv(beat_times_min, bf_filtered, pulses)
-                tester.test_light_response(beat_times_min, bf_filtered, pulses)
+                tester.test_light_hrv(beat_times_min, bf_filtered, final_pulses)
+                tester.test_light_response(beat_times_min, bf_filtered, final_pulses)
         
         # Test export endpoints
         tester.test_export_csv()
