@@ -17,6 +17,42 @@ import AnalysisPanel from '@/components/AnalysisPanel';
 import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import api, { downloadBlob } from '@/api';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Brush
+} from 'recharts';
+
+// Inline BF chart component for the Trace tab
+function BFChart({ metrics }) {
+  const data = metrics.filtered_beat_times_min.map((t, i) => ({
+    time: t,
+    bf: metrics.filtered_bf_bpm[i],
+  }));
+  return (
+    <div className="trace-container" data-testid="bf-chart">
+      <div className="p-2 bg-zinc-900/50 border-b border-zinc-800">
+        <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs min</span>
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+          <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']}
+            tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
+            tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+            label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
+          <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
+            label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
+          <Tooltip
+            contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
+            labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+            formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
+          <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
+          <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 function App() {
   // Session
