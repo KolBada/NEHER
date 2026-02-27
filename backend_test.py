@@ -200,22 +200,61 @@ class ElectroPhysiologyAPITester:
         
         return success
 
-    def test_light_detect(self):
-        """Test light pulse detection"""
+    def test_light_detect_decreasing(self):
+        """Test light pulse detection with decreasing intervals"""
         success, response = self.run_test(
-            "Light Pulse Detection",
+            "Light Pulse Detection (Decreasing Intervals 60→30→20→10)",
             "POST",
             "/light-detect",
             200,
             data={
                 "start_time_sec": 180.0,
                 "pulse_duration_sec": 20.0,
-                "interval_sec": 60.0,
-                "n_pulses": 5
+                "interval_sec": "decreasing",
+                "n_pulses": 5,
+                "auto_detect": False
             }
         )
         
         if success:
+            pulses = response.get('pulses', [])
+            print(f"   Pulses detected: {len(pulses)}")
+            # Verify decreasing intervals
+            if len(pulses) >= 2:
+                intervals = []
+                for i in range(len(pulses) - 1):
+                    interval = pulses[i+1]['start_sec'] - pulses[i]['end_sec']
+                    intervals.append(interval)
+                print(f"   Intervals: {intervals}")
+        
+        return success, response.get('pulses', [])
+    
+    def test_light_auto_detect(self, beat_times_min, bf_filtered):
+        """Test light auto-detect from BF increase"""
+        if not beat_times_min or not bf_filtered:
+            print("❌ Skipping Light Auto-detect - Missing beat data")
+            return False
+            
+        success, response = self.run_test(
+            "Light Auto-detect from BF increase",
+            "POST",
+            "/light-detect",
+            200,
+            data={
+                "start_time_sec": 180.0,
+                "pulse_duration_sec": 20.0,
+                "interval_sec": "decreasing",
+                "n_pulses": 5,
+                "auto_detect": True,
+                "beat_times_min": beat_times_min,
+                "bf_filtered": bf_filtered,
+                "search_range_sec": 20.0
+            }
+        )
+        
+        if success:
+            detected_start = response.get('detected_start_sec')
+            print(f"   Auto-detected start: {detected_start}s")
             print(f"   Pulses detected: {len(response.get('pulses', []))}")
         
         return success, response.get('pulses', [])
