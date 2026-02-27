@@ -282,10 +282,21 @@ def rolling_3min_hrv(beat_times_min, nn_70, bf_filtered):
     Compute rolling 3-minute HRV with overlapping windows (advance by 1 min).
     Uses 30-second sub-windows within each 3-min window.
     Aggregates sub-window metrics using median for stability.
+    
+    Note: beat_times_min has N values, nn_70 and bf_filtered have N-1 values.
     """
-    bt = np.array(beat_times_min, dtype=np.float64)
+    # Align arrays - intervals are N-1
     nn70 = np.array(nn_70, dtype=np.float64)
     bf = np.array(bf_filtered, dtype=np.float64)
+    
+    # Use beat_times_min[:-1] to align
+    if len(beat_times_min) > len(nn70):
+        bt = np.array(beat_times_min[:len(nn70)], dtype=np.float64)
+    else:
+        bt = np.array(beat_times_min, dtype=np.float64)
+    
+    if len(bt) < 6:
+        return []
     
     t_start = int(np.floor(bt[0]))
     t_end_possible = int(np.floor(bt[-1])) - 2
