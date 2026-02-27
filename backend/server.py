@@ -107,7 +107,10 @@ async def upload_files(files: List[UploadFile] = File(...)):
             tmp_path = tmp.name
 
         try:
-            abf = pyabf.ABF(tmp_path)
+            try:
+                abf = pyabf.ABF(tmp_path)
+            except Exception as parse_err:
+                raise HTTPException(400, f"Failed to parse ABF file '{fname}': {str(parse_err)}")
             abf.setSweep(0, channel=0)
             trace = abf.sweepY.copy().astype(np.float64)
             times = abf.sweepX.copy().astype(np.float64)
