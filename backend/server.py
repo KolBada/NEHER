@@ -55,8 +55,12 @@ class HRVAnalysisRequest(BaseModel):
 class LightDetectRequest(BaseModel):
     start_time_sec: float = 180.0
     pulse_duration_sec: float = 20.0
-    interval_sec: float = 60.0
+    interval_sec: Optional[str] = 'decreasing'
     n_pulses: int = 5
+    auto_detect: bool = False
+    beat_times_min: Optional[List[float]] = None
+    bf_filtered: Optional[List[float]] = None
+    search_range_sec: float = 20.0
 
 
 class LightHRVRequest(BaseModel):
