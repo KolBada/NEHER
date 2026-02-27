@@ -209,10 +209,17 @@ export default function TraceViewer({
               x1={pulse.start_min_disp}
               x2={pulse.end_min_disp}
               fill="#facc15"
-              fillOpacity={0.08}
+              fillOpacity={0.15}
               stroke="#facc15"
-              strokeOpacity={0.3}
-              strokeDasharray="3 3"
+              strokeOpacity={0.6}
+              strokeWidth={1}
+              label={{
+                value: `Stim ${i + 1}`,
+                position: 'insideTop',
+                fill: '#facc15',
+                fontSize: 8,
+                fontFamily: 'JetBrains Mono',
+              }}
             />
           ))}
           <Line
