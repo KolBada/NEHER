@@ -38,6 +38,7 @@ function App() {
 
   // HRV
   const [hrvResults, setHrvResults] = useState(null);
+  const [perMinuteData, setPerMinuteData] = useState(null);
 
   // Light
   const [lightParams, setLightParams] = useState({
