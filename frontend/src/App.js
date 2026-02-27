@@ -780,6 +780,9 @@ function App() {
                   onRemoveBeat={handleRemoveBeat}
                   lightPulses={lightPulses}
                   isValidated={isValidated}
+                  threshold={detectionParams.threshold}
+                  onThresholdChange={(v) => setDetectionParams(p => ({ ...p, threshold: v }))}
+                  signalStats={signalStats}
                 />
                 {/* BF chart shown after validation */}
                 {isValidated && metrics && (
