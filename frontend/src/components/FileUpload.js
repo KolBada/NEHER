@@ -49,10 +49,10 @@ export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-100 mb-2"
                 style={{ fontFamily: 'Manrope, sans-serif' }}>
-              NeuroVoltage
+              {appName}
             </h1>
             <p className="text-sm text-zinc-500">
-              Electrophysiology Analysis Platform
+              Cardiac Electrophysiology Analysis Platform
             </p>
           </div>
 
