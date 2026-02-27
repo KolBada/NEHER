@@ -82,7 +82,7 @@ export default function LightPanel({
     }));
   }, [metrics]);
 
-  // Handle pulse adjustment - actually update the pulse
+  // Handle pulse adjustment - update local state only (don't push to parent until "Apply Changes")
   const handleAdjustPulse = useCallback((direction) => {
     if (selectedPulseIdx === null || !displayPulses) return;
     const step = 5; // 5 seconds adjustment
@@ -103,10 +103,8 @@ export default function LightPanel({
     });
     
     setLocalPulses(updatedPulses);
-    if (onPulsesUpdate) {
-      onPulsesUpdate(updatedPulses);
-    }
-  }, [selectedPulseIdx, displayPulses, onPulsesUpdate]);
+    // Don't call onPulsesUpdate here - wait for "Apply Changes" button
+  }, [selectedPulseIdx, displayPulses]);
 
   // Reset pulses to original detection
   const handleResetPulses = useCallback(() => {
