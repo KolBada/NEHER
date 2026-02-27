@@ -44,6 +44,8 @@ class DetectBeatsRequest(BaseModel):
 
 class ComputeMetricsRequest(BaseModel):
     beat_times_sec: List[float]
+    filter_lower_pct: float = 50.0
+    filter_upper_pct: float = 200.0
 
 
 class HRVAnalysisRequest(BaseModel):
