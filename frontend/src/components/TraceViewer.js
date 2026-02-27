@@ -1,9 +1,9 @@
-import { useMemo, useCallback, useState, useRef } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
 } from 'recharts';
-import { MousePointerClick, ZoomIn, Trash2, Plus } from 'lucide-react';
+import { MousePointerClick, ZoomIn, ZoomOut, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -14,6 +14,11 @@ export default function TraceViewer({
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
   const chartRef = useRef(null);
+  
+  // Zoom state - indices into chartData array
+  const [brushStartIdx, setBrushStartIdx] = useState(null);
+  const [brushEndIdx, setBrushEndIdx] = useState(null);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
