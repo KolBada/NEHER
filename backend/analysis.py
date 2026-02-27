@@ -48,14 +48,25 @@ def decimate_trace(times, voltages, target_points=5000):
     return dec_times, dec_voltages
 
 
-def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False):
-    """Detect beats using scipy peak detection."""
+def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False, use_filter=True):
+    """Detect beats using scipy peak detection with optional bandpass filtering."""
     signal = np.array(trace, dtype=np.float64)
+
+    # Apply bandpass filter for cleaner detection
+    if use_filter and sample_rate > 200:
+        try:
+            signal_filt = bandpass_filter(signal, sample_rate, lowcut=0.5,
+                                         highcut=min(500.0, sample_rate * 0.45))
+        except Exception:
+            signal_filt = signal.copy()
+    else:
+        signal_filt = signal.copy()
+
     if invert:
-        signal = -signal
+        signal_filt = -signal_filt
 
     if min_distance is None:
-        min_distance = int(0.15 * sample_rate)
+        min_distance = int(0.3 * sample_rate)  # 300ms min (cardiac ~200-1000ms intervals)
 
     kwargs = {'distance': max(1, int(min_distance))}
 
@@ -65,9 +76,13 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
     if prominence is not None:
         kwargs['prominence'] = prominence
     else:
-        kwargs['prominence'] = 0.3 * np.std(signal)
+        # Robust prominence from filtered signal percentiles
+        q975 = np.percentile(signal_filt, 97.5)
+        q025 = np.percentile(signal_filt, 2.5)
+        sig_range = q975 - q025
+        kwargs['prominence'] = sig_range * 0.3
 
-    peaks, _ = find_peaks(signal, **kwargs)
+    peaks, _ = find_peaks(signal_filt, **kwargs)
     return peaks.tolist()
 
 
