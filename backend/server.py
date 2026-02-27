@@ -222,7 +222,11 @@ async def compute_metrics_endpoint(request: ComputeMetricsRequest):
 
     beat_times_sec = sorted(request.beat_times_sec)
     beat_times_min, nn_ms, bf_bpm = analysis.compute_beat_metrics(beat_times_sec)
-    filter_mask = analysis.artifact_filter(bf_bpm)
+    filter_mask = analysis.artifact_filter(
+        bf_bpm, 
+        lower_pct=request.filter_lower_pct, 
+        upper_pct=request.filter_upper_pct
+    )
 
     bt_arr = np.array(beat_times_min)
     nn_arr = np.array(nn_ms)
@@ -244,7 +248,11 @@ async def compute_metrics_endpoint(request: ComputeMetricsRequest):
         'filtered_bf_bpm': [float(x) for x in filtered_bf],
         'n_total': len(beat_times_sec),
         'n_kept': int(np.sum(mask_arr)),
-        'n_removed': int(np.sum(~mask_arr))
+        'n_removed': int(np.sum(~mask_arr)),
+        'filter_settings': {
+            'lower_pct': request.filter_lower_pct,
+            'upper_pct': request.filter_upper_pct
+        }
     }
 
 
