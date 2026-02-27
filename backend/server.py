@@ -254,11 +254,30 @@ async def hrv_analysis_endpoint(request: HRVAnalysisRequest):
 
 @api_router.post("/light-detect")
 async def light_detect_endpoint(request: LightDetectRequest):
+    start_sec = request.start_time_sec
+
+    # Auto-detect light start from BF increase
+    if request.auto_detect and request.beat_times_min and request.bf_filtered:
+        start_sec = analysis.auto_detect_light_start(
+            request.beat_times_min, request.bf_filtered,
+            request.start_time_sec, request.search_range_sec
+        )
+
+    # Parse interval
+    interval_arg = request.interval_sec
+    if interval_arg == 'decreasing' or interval_arg is None:
+        interval_arg = None  # Will use default decreasing
+    else:
+        try:
+            interval_arg = float(interval_arg)
+        except (ValueError, TypeError):
+            interval_arg = None
+
     pulses = analysis.compute_light_pulses(
-        request.start_time_sec, request.pulse_duration_sec,
-        request.interval_sec, request.n_pulses
+        start_sec, request.pulse_duration_sec,
+        interval_sec=interval_arg, n_pulses=request.n_pulses
     )
-    return {'pulses': pulses}
+    return {'pulses': pulses, 'detected_start_sec': start_sec}
 
 
 @api_router.post("/light-hrv")
