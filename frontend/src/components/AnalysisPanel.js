@@ -382,16 +382,6 @@ export default function AnalysisPanel({
           </CardContent>
         </Card>
       </div>
-                  labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
-                  formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
-                />
-                <Line type="monotone" dataKey="nn" stroke={CHART_COLORS.nn} strokeWidth={1} dot={false} isAnimationActive={false} />
-                <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* HRV Analysis with Readout Controls */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
