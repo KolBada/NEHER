@@ -621,8 +621,8 @@ export default function AnalysisPanel({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
               {[
                 { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.lnRmssd },
-                { key: 'sdnn', label: 'SDNN', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.sdnn },
-                { key: 'pnn50', label: 'pNN50 (%)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.pnn50 },
+                { key: 'ln_sdnn', label: 'ln(SDNN₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.sdnn },
+                { key: 'pnn50', label: 'pNN50₇₀ (%)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.pnn50 },
               ].map(({ key, label, sublabel, color }) => (
                 <div key={key} className="bg-black border border-zinc-800 rounded-sm p-2">
                   <p className="text-[10px] text-zinc-400 font-medium mb-0.5">{label}</p>
