@@ -214,6 +214,27 @@ export default function LightPanel({
     setSelectedPulseIdx(null);
   }, [localPulses, onPulsesUpdate]);
 
+  // Handle manual edit of pulse start/end times
+  const handleManualPulseEdit = useCallback((pulseIdx, field, value) => {
+    if (!displayPulses || isNaN(value)) return;
+    
+    const updatedPulses = displayPulses.map((p, i) => {
+      if (i !== pulseIdx) return p;
+      
+      const newPulse = { ...p };
+      if (field === 'start_min') {
+        newPulse.start_min = value;
+        newPulse.start_sec = value * 60;
+      } else if (field === 'end_min') {
+        newPulse.end_min = value;
+        newPulse.end_sec = value * 60;
+      }
+      return newPulse;
+    });
+    
+    setLocalPulses(updatedPulses);
+  }, [displayPulses]);
+
   // Check if pulses have been modified
   const pulsesModified = useMemo(() => {
     if (!localPulses || !originalPulses) return false;
