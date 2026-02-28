@@ -311,7 +311,7 @@ export default function LightPanel({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
-              <span className="text-sm font-medium text-zinc-300">Light Stimulation Analysis</span>
+              <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-[10px] text-zinc-500">
@@ -793,7 +793,7 @@ export default function LightPanel({
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                         <p className="font-semibold mb-1">HRA Calculation:</p>
-                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-300">
+                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
                           <li><strong>Baseline BF:</strong> Mean BF from -2 to -1 min before first stim (shared for all stims)</li>
                           <li><strong>Peak%:</strong> 100 × Peak BF / Baseline BF</li>
                           <li><strong>Amplitude:</strong> Peak BF - Last BF in stim window</li>
@@ -925,7 +925,7 @@ export default function LightPanel({
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                         <p className="font-semibold mb-1">Light HRV Formula:</p>
-                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-300">
+                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
                           <li><strong>NN₇₀ = NN × (857 / median(NN))</strong> for each stim</li>
                           <li>Each stim uses its OWN median NN as reference</li>
                           <li>SDNN, RMSSD, pNN50 computed from normalized NN₇₀</li>
