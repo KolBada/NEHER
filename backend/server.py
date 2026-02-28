@@ -97,6 +97,7 @@ class ExportRequest(BaseModel):
     per_minute_data: Optional[List[dict]] = None
     baseline: Optional[dict] = None
     drug_readout: Optional[dict] = None  # Drug readout timing info for highlighting
+    perfusion_params: Optional[dict] = None  # Perfusion parameters for export
     # Full recording beat-by-beat data
     full_recording_data: Optional[List[dict]] = None
     # Light stim isolated beat-by-beat data
