@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw, Minus, Plus } from 'lucide-react';
+import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw, Minus, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
