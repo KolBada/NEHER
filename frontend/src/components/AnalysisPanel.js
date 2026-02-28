@@ -19,6 +19,12 @@ import { Separator } from '@/components/ui/separator';
 import {
   Popover, PopoverContent, PopoverTrigger
 } from '@/components/ui/popover';
+import {
+  Tooltip as ShadcnTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const CHART_COLORS = {
   bf: '#22d3ee',
