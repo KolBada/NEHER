@@ -1107,39 +1107,64 @@ async def export_pdf(request: ExportRequest):
             pdf.savefig(fig3)
             plt.close(fig3)
 
-        # Page 4: Light Response (CELL magazine style table)
+        # Page 4: Light HRA (Heart Rate Acceleration) Analysis
         if request.light_response:
             valid = [m for m in request.light_response if m is not None]
             if valid:
                 fig4 = plt.figure(figsize=(8.5, 11))
-                fig4.suptitle('Light Stimulation Response Analysis', fontsize=14, fontweight='bold', y=0.96)
+                fig4.suptitle('Light-Induced HRA Analysis', fontsize=14, fontweight='bold', y=0.96)
                 
-                ax4 = fig4.add_axes([0.08, 0.4, 0.84, 0.45])
+                ax4 = fig4.add_axes([0.05, 0.4, 0.9, 0.45])
                 ax4.axis('off')
                 
-                headers = ['Stim #', 'Beats', 'Avg BF\n(bpm)', 'Peak BF\n(bpm)', 'Peak\n(%)', 'Time to\nPeak (s)', 'Amplitude\n(bpm)']
+                # Per-stim columns as specified
+                headers = ['Stim #', 'Beats', 'Baseline\nBF', 'Avg BF\n(bpm)', 'Peak BF\n(bpm)', 'Peak\n(%)', 'Time to\nPeak (s)', 'Beat End\n(bpm)', 'Amplitude\n(bpm)', 'Rate of\nChange']
                 table_data = []
                 for i, row in enumerate(valid):
                     table_data.append([
                         str(i + 1),
                         str(row.get('n_beats', 0)),
+                        f"{row.get('baseline_bf', 0):.1f}" if row.get('baseline_bf') else '—',
                         f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
-                        f"{row.get('peak_bf', 0):.1f}",
+                        f"{row.get('peak_bf', 0):.1f}" if row.get('peak_bf') else '—',
                         f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—',
-                        f"{row.get('time_to_peak_sec', 0):.1f}",
+                        f"{row.get('time_to_peak_sec', 0):.1f}" if row.get('time_to_peak_sec') else '—',
+                        f"{row.get('bf_end', 0):.1f}" if row.get('bf_end') else '—',
                         f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—',
+                        f"{row.get('rate_of_change', 0):.3f}" if row.get('rate_of_change') else '—',
                     ])
+                
+                # Add average row (Readout) - only specified metrics
+                avg_bf = np.mean([r['avg_bf'] for r in valid if r.get('avg_bf')])
+                avg_peak = np.mean([r['peak_bf'] for r in valid if r.get('peak_bf')])
+                avg_peak_pct = np.mean([r['peak_norm_pct'] for r in valid if r.get('peak_norm_pct')])
+                avg_ttp = np.mean([r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')])
+                avg_amp = np.mean([r['amplitude'] for r in valid if r.get('amplitude')])
+                avg_roc = np.mean([r['rate_of_change'] for r in valid if r.get('rate_of_change')])
+                
+                table_data.append([
+                    'Avg',
+                    '—',  # No Beats in readout
+                    '—',  # No Baseline in readout
+                    f"{avg_bf:.1f}",
+                    f"{avg_peak:.1f}",
+                    f"{avg_peak_pct:.1f}",
+                    f"{avg_ttp:.1f}",
+                    '—',  # No Beat End in readout
+                    f"{avg_amp:.1f}",
+                    f"{avg_roc:.3f}",
+                ])
                 
                 table = ax4.table(
                     cellText=table_data,
                     colLabels=headers,
                     loc='center',
                     cellLoc='center',
-                    colWidths=[0.1, 0.1, 0.14, 0.14, 0.12, 0.14, 0.14]
+                    colWidths=[0.08, 0.08, 0.10, 0.10, 0.10, 0.10, 0.11, 0.10, 0.11, 0.11]
                 )
                 table.auto_set_font_size(False)
-                table.set_fontsize(9)
-                table.scale(1.0, 2.5)
+                table.set_fontsize(8)
+                table.scale(1.0, 2.2)
                 
                 # CELL style formatting
                 for (row, col), cell in table.get_celld().items():
@@ -1147,27 +1172,14 @@ async def export_pdf(request: ExportRequest):
                     if row == 0:
                         cell.set_text_props(fontweight='bold', color='white')
                         cell.set_facecolor('#d97706')
-                        cell.set_height(0.1)
+                        cell.set_height(0.09)
+                    elif row == len(table_data):  # Average row
+                        cell.set_text_props(fontweight='bold')
+                        cell.set_facecolor('#fef3c7')
+                        cell.set_height(0.07)
                     else:
                         cell.set_facecolor('#fffbeb' if row % 2 == 0 else '#ffffff')
-                        cell.set_height(0.07)
-                
-                # Add summary stats below table
-                ax_stats = fig4.add_axes([0.1, 0.15, 0.8, 0.15])
-                ax_stats.axis('off')
-                
-                # Calculate averages
-                avg_peak = np.mean([r['peak_bf'] for r in valid if r.get('peak_bf')])
-                avg_ttp = np.mean([r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')])
-                avg_amp = np.mean([r['amplitude'] for r in valid if r.get('amplitude')])
-                
-                stats_text = "Summary Statistics:\n"
-                stats_text += f"Average Peak BF: {avg_peak:.1f} bpm  |  "
-                stats_text += f"Average Time to Peak: {avg_ttp:.1f} s  |  "
-                stats_text += f"Average Amplitude: {avg_amp:.1f} bpm"
-                ax_stats.text(0.5, 0.5, stats_text, ha='center', va='center', fontsize=10, 
-                             fontweight='bold', color='#374151',
-                             bbox=dict(boxstyle='round,pad=0.5', facecolor='#f3f4f6', edgecolor='#d1d5db'))
+                        cell.set_height(0.06)
                 
                 pdf.savefig(fig4)
                 plt.close(fig4)
