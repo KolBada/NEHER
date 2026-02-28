@@ -79,11 +79,25 @@ Aggregate:
 - [x] Zoom In/Out/Reset buttons on charts
 - [x] Threshold visible as dashed amber line
 
-### Export (CELL Magazine Style)
-- [x] PDF excludes filtered/artifact beats from charts
-- [x] Light stim zones highlighted on PDF charts
-- [x] Fixed Y-axis scales: LN(RMSSD): 0-8, pNN50: 0-100, SDNN/RMSSD: 0-300
-- [x] One Excel file per recording (not combined)
+### Export Features (Updated Feb 28, 2026)
+
+#### Summary Sheet
+Only displays:
+- Mean BF
+- ln(RMSSD₇₀)
+- ln(SDNN₇₀)
+- pNN50₇₀
+
+No raw RMSSD/SDNN, no duplicates.
+
+#### Sheet Names
+- "Per-Minute Analysis" → **Renamed to "BF Analysis"**
+- "HRV Analysis" - unchanged
+
+#### Row Highlighting
+- Baseline readout row: Yellow highlight (FEF3C7)
+- Drug readout row: Purple highlight (EDE9FE)
+- Applied to both BF Analysis and HRV Analysis sheets
 
 ## Backend API
 
