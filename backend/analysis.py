@@ -649,63 +649,89 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
 # ==============================================================================
 # Baseline Metrics Computation
 # ==============================================================================
-def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_minute=0, bf_minute=1):
+def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_windows=None, hrv_minute=0, bf_minute=1):
     """
     Compute baseline readout metrics at specific minutes.
     
-    HRV: Readout at hrv_minute (default 0) - uses 3-min window starting at that minute
-    BF: Readout at bf_minute (default 1) - uses that minute's mean BF
+    Per specification:
+    - HRV baseline: Use the value from the sliding HRV table where WindowStart = hrv_minute
+      (NO recomputation - directly reference the pre-computed sliding window value)
+    - BF baseline: mean(BF_k,filt) between bf_minute and bf_minute+1 (e.g., 1.0-2.0 min)
     
-    Uses proper NN_70 normalization.
+    Args:
+        beat_times_min_list: Beat times in minutes
+        bf_filtered_list: Filtered BF values
+        hrv_windows: Pre-computed rolling 3-min HRV windows (from rolling_3min_hrv)
+        hrv_minute: Window start minute for HRV baseline (default 0)
+        bf_minute: Minute for BF baseline (default 1, uses 1.0-2.0 min)
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
-    nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
-    nn_70 = np.array(normalize_nn_70_windowing(beat_times_min_list, nn.tolist()), dtype=np.float64)
     
     result = {}
     
-    # BF baseline at specific minute (e.g., minute 1 = beats from 1.0 to 2.0)
-    bf_mask = (bt >= bf_minute) & (bt < bf_minute + 1) & (~np.isnan(bf))
+    # BF baseline: mean BF between bf_minute and bf_minute+1 (e.g., 1.0 <= t < 2.0)
+    bf_mask = (bt >= float(bf_minute)) & (bt < float(bf_minute + 1)) & (~np.isnan(bf))
     if np.sum(bf_mask) >= 2:
         result['baseline_bf'] = float(np.mean(bf[bf_mask]))
         result['baseline_bf_minute'] = bf_minute
+        result['baseline_bf_range'] = f'{bf_minute}-{bf_minute+1} min'
     else:
         result['baseline_bf'] = None
         result['baseline_bf_minute'] = bf_minute
+        result['baseline_bf_range'] = f'{bf_minute}-{bf_minute+1} min'
     
-    # HRV baseline using 3-min window starting at hrv_minute (e.g., minute 0 = 0-3min window)
-    hrv_start = hrv_minute
-    hrv_end = hrv_minute + 3
-    hrv_mask = (bt >= hrv_start) & (bt < hrv_end) & (~np.isnan(nn_70))
-    if np.sum(hrv_mask) >= 6:
-        nn70_hrv = nn_70[hrv_mask]
-        valid_nn70 = nn70_hrv[~np.isnan(nn70_hrv)]
+    # HRV baseline: Use pre-computed sliding window value directly (MANDATORY - no recomputation)
+    # This ensures numerical equality between baseline display and table value
+    hrv_found = False
+    if hrv_windows:
+        for w in hrv_windows:
+            if w.get('minute') == hrv_minute:
+                result['baseline_rmssd70'] = w.get('rmssd70')
+                result['baseline_ln_rmssd70'] = w.get('ln_rmssd70')
+                result['baseline_sdnn'] = w.get('sdnn')
+                result['baseline_pnn50'] = w.get('pnn50')
+                result['baseline_hrv_minute'] = hrv_minute
+                result['baseline_hrv_window'] = f"{hrv_minute}-{hrv_minute+3}min"
+                result['baseline_hrv_range'] = f'{hrv_minute}-{hrv_minute+3} min'
+                hrv_found = True
+                break
+    
+    if not hrv_found:
+        # Fallback: compute if hrv_windows not provided (backward compatibility)
+        # But this should not happen in normal operation
+        nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
+        nn_70 = np.array(normalize_nn_70_windowing(beat_times_min_list, nn.tolist()), dtype=np.float64)
         
-        if len(valid_nn70) >= 3:
-            metrics = compute_hrv_for_nn_segment(valid_nn70)
-            if metrics:
-                rmssd, sdnn, pnn50 = metrics
-                result['baseline_rmssd70'] = float(rmssd)
-                result['baseline_ln_rmssd70'] = float(np.log(rmssd)) if rmssd > 0 else None
-                result['baseline_sdnn'] = float(sdnn)
-                result['baseline_pnn50'] = float(pnn50)
-                result['baseline_hrv_minute'] = hrv_minute
-                result['baseline_hrv_window'] = f"{hrv_start}-{hrv_end}min"
-            else:
-                result['baseline_rmssd70'] = None
-                result['baseline_ln_rmssd70'] = None
-                result['baseline_sdnn'] = None
-                result['baseline_pnn50'] = None
-                result['baseline_hrv_minute'] = hrv_minute
-                result['baseline_hrv_window'] = None
-    else:
-        result['baseline_rmssd70'] = None
-        result['baseline_ln_rmssd70'] = None
-        result['baseline_sdnn'] = None
-        result['baseline_pnn50'] = None
-        result['baseline_hrv_minute'] = hrv_minute
-        result['baseline_hrv_window'] = None
+        hrv_start = hrv_minute
+        hrv_end = hrv_minute + 3
+        hrv_mask = (bt >= hrv_start) & (bt < hrv_end) & (~np.isnan(nn_70))
+        
+        if np.sum(hrv_mask) >= 6:
+            nn70_hrv = nn_70[hrv_mask]
+            valid_nn70 = nn70_hrv[~np.isnan(nn70_hrv)]
+            
+            if len(valid_nn70) >= 3:
+                metrics = compute_hrv_for_nn_segment(valid_nn70)
+                if metrics:
+                    rmssd, sdnn, pnn50 = metrics
+                    result['baseline_rmssd70'] = float(rmssd)
+                    result['baseline_ln_rmssd70'] = float(np.log(rmssd)) if rmssd > 0 else None
+                    result['baseline_sdnn'] = float(sdnn)
+                    result['baseline_pnn50'] = float(pnn50)
+                    result['baseline_hrv_minute'] = hrv_minute
+                    result['baseline_hrv_window'] = f"{hrv_start}-{hrv_end}min"
+                    result['baseline_hrv_range'] = f'{hrv_minute}-{hrv_minute+3} min'
+                    hrv_found = True
+        
+        if not hrv_found:
+            result['baseline_rmssd70'] = None
+            result['baseline_ln_rmssd70'] = None
+            result['baseline_sdnn'] = None
+            result['baseline_pnn50'] = None
+            result['baseline_hrv_minute'] = hrv_minute
+            result['baseline_hrv_window'] = None
+            result['baseline_hrv_range'] = f'{hrv_minute}-{hrv_minute+3} min'
     
     return result
 
