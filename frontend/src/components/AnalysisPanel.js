@@ -507,10 +507,8 @@ export default function AnalysisPanel({
               onClick={() => onComputeHRV(
                 enableHrvReadout && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null,
                 { 
-                  hrvStart: baselineHrvStart, 
-                  hrvEnd: baselineHrvEnd, 
-                  bfStart: baselineBfStart, 
-                  bfEnd: baselineBfEnd 
+                  hrvMinute: baselineHrvMinute, 
+                  bfMinute: baselineBfMinute 
                 }
               )}
               disabled={analysisLoading}
