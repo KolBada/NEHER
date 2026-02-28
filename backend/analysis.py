@@ -628,39 +628,61 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
     """
     Compute HRV metrics for each light stimulation pulse.
-    Uses NN_70 normalization within each pulse.
-    Returns per-pulse HRV and median across pulses.
+    
+    IMPORTANT: For each stimulus, we:
+    1. Isolate the NN intervals within that stimulus
+    2. Compute NN_70 normalization ONLY from that isolated stimulus data
+    3. Calculate RMSSD, SDNN, pNN50 from this isolated NN_70
+    4. Return per-pulse metrics and median across pulses
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    # Convert BF to NN intervals
     nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
-    nn_70 = np.array(normalize_nn_70_windowing(beat_times_min_list, nn.tolist()), dtype=np.float64)
 
     per_pulse = []
     for pulse in pulses:
+        # Step 1: Isolate beats within this stimulus
         p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min'])
-        nn70_pulse = nn_70[p_mask]
-        valid_nn70 = nn70_pulse[~np.isnan(nn70_pulse)]
-
-        if len(valid_nn70) < 3:
+        
+        bt_isolated = bt[p_mask]
+        nn_isolated = nn[p_mask]
+        
+        # Filter out NaN values
+        valid_mask = ~np.isnan(nn_isolated)
+        bt_valid = bt_isolated[valid_mask]
+        nn_valid = nn_isolated[valid_mask]
+        
+        if len(nn_valid) < 3:
             per_pulse.append(None)
             continue
-
-        hrv = compute_hrv_for_nn_segment(valid_nn70)
+        
+        # Step 2: Compute NN_70 normalization from ISOLATED stimulus data only
+        # Use median of the isolated NN values as reference, scale to 857ms (70 bpm)
+        median_nn_isolated = np.median(nn_valid)
+        if median_nn_isolated > 0:
+            nn_70_isolated = nn_valid * (857.0 / median_nn_isolated)
+        else:
+            nn_70_isolated = nn_valid
+        
+        # Step 3: Calculate HRV metrics from isolated NN_70
+        hrv = compute_hrv_for_nn_segment(nn_70_isolated)
         if hrv:
             rmssd, sdnn, pnn50 = hrv
             ln_rmssd = float(np.log(rmssd)) if rmssd > 0 else None
             per_pulse.append({
-                'rmssd70': rmssd,
+                'rmssd70': float(rmssd),
                 'ln_rmssd70': ln_rmssd,
-                'sdnn': sdnn,
-                'pnn50': pnn50,
-                'n_beats': len(valid_nn70),
+                'sdnn': float(sdnn),
+                'pnn50': float(pnn50),
+                'n_beats': int(len(nn_70_isolated)),
+                'median_nn_isolated': float(median_nn_isolated),
             })
         else:
             per_pulse.append(None)
 
-    # Median across pulses for HRV metrics
+    # Step 4: Median across pulses for HRV metrics
     valid = [p for p in per_pulse if p is not None]
     if valid:
         final = {
@@ -668,6 +690,7 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
             'ln_rmssd70': float(np.median([p['ln_rmssd70'] for p in valid if p['ln_rmssd70'] is not None])) if any(p['ln_rmssd70'] is not None for p in valid) else None,
             'sdnn': float(np.median([p['sdnn'] for p in valid])),
             'pnn50': float(np.median([p['pnn50'] for p in valid])),
+            'n_pulses_valid': len(valid),
         }
     else:
         final = None
