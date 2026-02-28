@@ -221,8 +221,8 @@ class TestLightHRVAlgorithm:
         if per_pulse and per_pulse[0] is not None:
             pulse0 = per_pulse[0]
             # Median NN in minute 2-3 should be around 600ms (from 100bpm)
-            median_nn = pulse0.get("median_nn_isolated")
-            assert median_nn is not None, "median_nn_isolated should be present"
+            median_nn = pulse0.get("median_nn_ref")  # Renamed from median_nn_isolated
+            assert median_nn is not None, "median_nn_ref should be present"
             # ~600ms expected
             assert 500 < median_nn < 700, f"Expected median_nn ~600ms, got {median_nn}"
 
