@@ -67,6 +67,22 @@ Display ONLY:
 
 Do NOT display: Beats, Beat End
 
+#### Light-Induced HRV Formula (Rebuilt Feb 28, 2026)
+For each stim j:
+1. NN_k,filt = 60000 / BF_k,filt
+2. **NN_k,70 = NN_k,filt × (857 / median(NN_k,filt within THIS stim))**
+   - Each stim uses its OWN median NN as reference
+3. Compute RMSSD_70, SDNN_70, pNN50_70 from normalized NN_70
+4. Compute ln(RMSSD_70) and ln(SDNN_70)
+
+#### HRV Light Stim - Per-Stim Table
+Display: ln(RMSSD₇₀), RMSSD₇₀, ln(SDNN₇₀), SDNN₇₀, pNN50₇₀
+
+#### HRV Light Stim - Readout (Median of 5 Stims)
+Display ONLY: ln(RMSSD₇₀), ln(SDNN₇₀)
+
+Do NOT display: Raw RMSSD or SDNN in the readout
+
 #### Per-Stim Metrics (HRA - Heart Rate Acceleration)
 For each stim j with window [S_j, E_j]:
 - **Shared Baseline BF**: mean(BF_k,filt) from -2 to -1 min before FIRST stim
