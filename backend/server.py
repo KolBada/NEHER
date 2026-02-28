@@ -52,10 +52,8 @@ class HRVAnalysisRequest(BaseModel):
     beat_times_min: List[float]
     bf_filtered: List[float]
     readout_minute: Optional[int] = None
-    baseline_hrv_start: float = 0.0
-    baseline_hrv_end: float = 3.0
-    baseline_bf_start: float = 1.0
-    baseline_bf_end: float = 2.0
+    baseline_hrv_minute: int = 0  # HRV readout at this minute (uses 3-min window)
+    baseline_bf_minute: int = 1   # BF readout at this minute
 
 
 class LightDetectRequest(BaseModel):
