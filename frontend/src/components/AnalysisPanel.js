@@ -718,7 +718,7 @@ export default function AnalysisPanel({
                           {row.avg_nn_70 != null ? row.avg_nn_70.toFixed(1) : '\u2014'}
                         </TableCell>
                         <TableCell className="text-[10px] font-data text-cyan-400 py-1">
-                          {row.hrv ? row.hrv.sdnn.toFixed(2) : '\u2014'}
+                          {row.hrv && row.hrv.sdnn > 0 ? Math.log(row.hrv.sdnn).toFixed(3) : '\u2014'}
                         </TableCell>
                         <TableCell className="text-[10px] font-data text-purple-300 py-1">
                           {row.hrv ? row.hrv.rmssd70.toFixed(2) : '\u2014'}
