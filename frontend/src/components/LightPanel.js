@@ -827,12 +827,14 @@ export default function LightPanel({
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
                   Light-Induced HRV (NN₇₀, median across pulses)
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                        <button type="button" className="inline-flex">
+                          <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700">
+                      <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50">
                         <p className="font-semibold mb-1">Light HRV Formula:</p>
                         <ul className="list-disc pl-3 space-y-0.5 text-zinc-300">
                           <li><strong>NN₇₀ = NN × (857 / median(NN))</strong> for each stim</li>
