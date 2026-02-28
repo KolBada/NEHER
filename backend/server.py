@@ -644,7 +644,9 @@ async def export_xlsx(request: ExportRequest):
             ws2.cell(row=row_idx, column=3, value=f"{row.get('rmssd70', 0):.2f}" if row.get('rmssd70') else '—')
             ws2.cell(row=row_idx, column=4, value=f"{ln_sdnn:.3f}" if ln_sdnn else '—')
             ws2.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.2f}" if row.get('sdnn') else '—')
-            ws2.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.1f}" if row.get('pnn50') else '—')
+            # Always show pNN50 value even if 0
+            pnn50_val = row.get('pnn50')
+            ws2.cell(row=row_idx, column=6, value=f"{pnn50_val:.1f}" if pnn50_val is not None else '0.0')
             ws2.cell(row=row_idx, column=7, value=f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—')
             ws2.cell(row=row_idx, column=8, value=row.get('n_beats', 0))
             
