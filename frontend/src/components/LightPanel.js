@@ -464,6 +464,27 @@ export default function LightPanel({
                       </Button>
                     </div>
                     
+                    {/* Click-to-edit on chart */}
+                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
+                      <span className="text-[9px] text-zinc-500">Click:</span>
+                      <Button
+                        variant={editMode === 'start' ? 'default' : 'outline'}
+                        size="sm"
+                        className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                        onClick={() => toggleEditMode('start')}
+                      >
+                        Start
+                      </Button>
+                      <Button
+                        variant={editMode === 'end' ? 'default' : 'outline'}
+                        size="sm"
+                        className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                        onClick={() => toggleEditMode('end')}
+                      >
+                        End
+                      </Button>
+                    </div>
+                    
                     <span className="text-[10px] font-data text-yellow-400 min-w-[100px] text-center">
                       {formatTimeMinSec(displayPulses[selectedPulseIdx].start_min)} - {formatTimeMinSec(displayPulses[selectedPulseIdx].end_min)}
                     </span>
