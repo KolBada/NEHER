@@ -497,6 +497,7 @@ function App() {
       per_minute_data: perMinuteData,
       baseline: hrvResults?.baseline,
       drug_readout: drugReadout,
+      perfusion_params: perfusionParams,
     };
   }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses]);
 
