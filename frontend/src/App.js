@@ -688,7 +688,7 @@ function App() {
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
                         className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                       />
-                      <span className="text-[9px] text-zinc-500">min, Time:</span>
+                      <span className="text-[9px] text-zinc-500">min, Delay:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-time`}
                         type="number"
@@ -700,7 +700,7 @@ function App() {
                       <span className="text-[9px] text-zinc-500">min</span>
                     </div>
                     <Badge variant="outline" className="text-[8px] border-zinc-700 text-zinc-500">
-                      BF@{config.bfReadout ?? 'peak'}min HRV@{config.hrvReadout ?? 'peak'}min
+                      Perf.Time: BF@{config.bfReadout ?? 'peak'}min HRV@{config.hrvReadout ?? 'peak'}min
                     </Badge>
                   </div>
                 );
