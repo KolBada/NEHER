@@ -526,39 +526,31 @@ export default function AnalysisPanel({
                 <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-500">
                   Baseline Metrics
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <MetricCard 
+                    label="Mean BF" 
+                    sublabel={`@${baselineBfMinute}-${baselineBfMinute+1}min`}
+                    value={baseline.baseline_bf} 
+                    unit="bpm"
+                    highlight
+                  />
                   <MetricCard 
                     label="ln(RMSSD₇₀)" 
-                    sublabel={`@${baselineHrvMinute}min (${baselineHrvMinute}-${baselineHrvMinute+3}min)`}
+                    sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
                     value={baseline.baseline_ln_rmssd70}
                     highlight
                   />
                   <MetricCard 
-                    label="RMSSD₇₀" 
-                    sublabel={`@${baselineHrvMinute}min`}
-                    value={baseline.baseline_rmssd70} 
-                    unit="ms"
+                    label="ln(SDNN₇₀)" 
+                    sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
+                    value={baseline.baseline_sdnn ? Math.log(baseline.baseline_sdnn) : null}
                     highlight
                   />
                   <MetricCard 
-                    label="SDNN" 
-                    sublabel={`@${baselineHrvMinute}min`}
-                    value={baseline.baseline_sdnn} 
-                    unit="ms"
-                    highlight
-                  />
-                  <MetricCard 
-                    label="pNN50" 
-                    sublabel={`@${baselineHrvMinute}min`}
+                    label="pNN50₇₀" 
+                    sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
                     value={baseline.baseline_pnn50} 
                     unit="%"
-                    highlight
-                  />
-                  <MetricCard 
-                    label="Mean BF" 
-                    sublabel={`@${baselineBfMinute}min`}
-                    value={baseline.baseline_bf} 
-                    unit="bpm"
                     highlight
                   />
                 </div>
