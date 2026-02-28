@@ -714,18 +714,51 @@ async def export_xlsx(request: ExportRequest):
         ws3 = wb.create_sheet("Light Stim HRV")
         valid = [m for m in request.light_metrics if m is not None]
         if valid:
-            headers = ['Pulse #', 'RMSSD₇₀ (ms)', 'ln(RMSSD₇₀)', 'SDNN (ms)', 'pNN50 (%)', 'Beat Count']
+            # Per-stim HRV columns: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
+            headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀ (ms)', 'ln(SDNN₇₀)', 'SDNN₇₀ (ms)', 'pNN50₇₀ (%)']
             for col, h in enumerate(headers, 1):
                 ws3.cell(row=1, column=col, value=h)
             style_header(ws3, 1, fill=header_fill_cyan)
             
             for row_idx, row in enumerate(valid, 2):
                 ws3.cell(row=row_idx, column=1, value=row_idx - 1)
-                ws3.cell(row=row_idx, column=2, value=f"{row.get('rmssd70', 0):.2f}")
-                ws3.cell(row=row_idx, column=3, value=f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—')
-                ws3.cell(row=row_idx, column=4, value=f"{row.get('sdnn', 0):.2f}")
-                ws3.cell(row=row_idx, column=5, value=f"{row.get('pnn50', 0):.1f}")
-                ws3.cell(row=row_idx, column=6, value=row.get('n_beats', 0))
+                ws3.cell(row=row_idx, column=2, value=f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—')
+                ws3.cell(row=row_idx, column=3, value=f"{row.get('rmssd70', 0):.3f}")
+                ws3.cell(row=row_idx, column=4, value=f"{row.get('ln_sdnn70', 0):.3f}" if row.get('ln_sdnn70') else '—')
+                ws3.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.3f}")
+                ws3.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.3f}")
+            
+            # Median row (Readout) - only ln(RMSSD_70) and ln(SDNN_70)
+            median_row = len(valid) + 2
+            ws3.cell(row=median_row, column=1, value="Median")
+            ws3.cell(row=median_row, column=1).font = Font(bold=True)
+            
+            rmssd_vals = [r['rmssd70'] for r in valid if r.get('rmssd70')]
+            sdnn_vals = [r['sdnn'] for r in valid if r.get('sdnn')]
+            
+            if rmssd_vals:
+                median_rmssd = float(np.median(rmssd_vals))
+                ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
+                ws3.cell(row=median_row, column=2, value=f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—')
+            else:
+                ws3.cell(row=median_row, column=2, value='—')
+            
+            ws3.cell(row=median_row, column=3, value='—')  # No raw RMSSD in readout
+            
+            if sdnn_vals:
+                median_sdnn = float(np.median(sdnn_vals))
+                ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
+                ws3.cell(row=median_row, column=4, value=f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—')
+            else:
+                ws3.cell(row=median_row, column=4, value='—')
+            
+            ws3.cell(row=median_row, column=5, value='—')  # No raw SDNN in readout
+            ws3.cell(row=median_row, column=6, value='—')  # No pNN50 in readout
+            
+            # Style median row
+            for col in range(1, 7):
+                cell = ws3.cell(row=median_row, column=col)
+                cell.fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
             
             style_data_rows(ws3, 2)
             auto_width(ws3)
