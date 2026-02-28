@@ -352,50 +352,68 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2">
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={bfChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                    <XAxis 
-                      dataKey="time" 
-                      tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
-                      tickFormatter={xAxisTickFormatter}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis 
-                      tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
-                      width={45}
-                      label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} 
-                    />
-                    <RechartsTooltip
-                      contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                      labelFormatter={(v) => formatTimeMinSec(v)}
-                      formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
-                    />
-                    {/* Highlight pulse regions */}
-                    {displayPulses && displayPulses.map((pulse, i) => (
-                      <ReferenceArea
-                        key={`pulse-${i}`}
-                        x1={pulse.start_min}
-                        x2={pulse.end_min}
-                        fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
-                        fillOpacity={selectedPulseIdx === i ? 0.35 : 0.18}
-                        stroke="#facc15"
-                        strokeOpacity={selectedPulseIdx === i ? 0.9 : 0.5}
-                        strokeWidth={selectedPulseIdx === i ? 2 : 1}
-                        onClick={() => setSelectedPulseIdx(i)}
-                        style={{ cursor: 'pointer' }}
+                {/* Edit mode indicator */}
+                {editMode && selectedPulseIdx !== null && (
+                  <div className="mb-2 p-2 bg-yellow-950/30 border border-yellow-700/50 rounded-sm">
+                    <p className="text-[10px] text-yellow-400 text-center">
+                      Click on the chart to set the <strong>{editMode === 'start' ? 'START' : 'END'}</strong> of Stim {selectedPulseIdx + 1}
+                    </p>
+                  </div>
+                )}
+                
+                <div ref={chartContainerRef}>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart 
+                      data={bfChartData}
+                      onClick={editMode ? handleChartClick : undefined}
+                      style={{ cursor: editMode ? 'crosshair' : 'default' }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                      <XAxis 
+                        dataKey="time" 
+                        tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                        tickFormatter={xAxisTickFormatter}
+                        interval="preserveStartEnd"
                       />
-                    ))}
-                    <Line 
-                      type="monotone" 
-                      dataKey="bf" 
-                      stroke="#22d3ee" 
-                      strokeWidth={1} 
-                      dot={false} 
-                      isAnimationActive={false} 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                      <YAxis 
+                        tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
+                        width={45}
+                        label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} 
+                      />
+                      <RechartsTooltip
+                        contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
+                        labelFormatter={(v) => formatTimeMinSec(v)}
+                        formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
+                      />
+                      {/* Highlight pulse regions */}
+                      {displayPulses && displayPulses.map((pulse, i) => (
+                        <ReferenceArea
+                          key={`pulse-${i}`}
+                          x1={pulse.start_min}
+                          x2={pulse.end_min}
+                          fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
+                          fillOpacity={selectedPulseIdx === i ? 0.35 : 0.18}
+                          stroke="#facc15"
+                          strokeOpacity={selectedPulseIdx === i ? 0.9 : 0.5}
+                          strokeWidth={selectedPulseIdx === i ? 2 : 1}
+                          onClick={() => {
+                            setSelectedPulseIdx(i);
+                            setEditMode(null);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      ))}
+                      <Line 
+                        type="monotone" 
+                        dataKey="bf" 
+                        stroke="#22d3ee" 
+                        strokeWidth={1} 
+                        dot={false} 
+                        isAnimationActive={false} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
                 
                 {/* Pulse adjustment controls */}
                 {selectedPulseIdx !== null && displayPulses && (
