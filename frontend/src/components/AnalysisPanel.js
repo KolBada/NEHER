@@ -457,7 +457,7 @@ export default function AnalysisPanel({
             <div className="space-y-2 p-3 bg-purple-950/20 rounded-sm border border-purple-800/50">
               <p className="text-[9px] text-purple-400 uppercase tracking-wider font-bold">Drug Readout</p>
               <p className="text-[8px] text-zinc-500 mb-1">
-                Time = Base + Perf.Start + Perf.Time
+                Time = Perf.Time + Perf.Start + Perf.Delay
               </p>
               <div className="flex items-center gap-2">
                 <Checkbox 
