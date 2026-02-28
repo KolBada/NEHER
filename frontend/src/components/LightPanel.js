@@ -565,28 +565,23 @@ export default function LightPanel({
             </Card>
           )}
 
-          {/* Light Induced HRA (Heart Rate Adaptation) - was Light Response Metrics */}
+          {/* Light Induced HRA (Heart Rate Adaptation) - using BPM */}
           {lightResponse && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400">
-                  Light Induced HRA (Heart Rate Adaptation) - using BPM
-                  {lightResponse.baseline_bf && (
-                    <span className="ml-2 text-[10px] font-data text-zinc-500">
-                      Baseline (1min pre-light): {lightResponse.baseline_bf.toFixed(1)} bpm
-                    </span>
-                  )}
+                  Light Induced HRA (Heart Rate Adaptation)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Median/Average HRA metrics - styled like HRV */}
+                {/* Mean HRA metrics */}
                 {avgHra && (
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                    <MetricCard label="Avg. Beats" value={avgHra.n_beats} />
-                    <MetricCard label="Avg. BF" value={avgHra.avg_bf} unit="bpm" />
-                    <MetricCard label="Avg. Peak BF" value={avgHra.peak_bf} unit="bpm" />
-                    <MetricCard label="Avg. Amplitude" value={avgHra.amplitude} unit="bpm" />
-                    <MetricCard label="Avg. Slope (norm)" value={avgHra.norm_slope} unit="bpm/min/BF" />
+                    <MetricCard label="Mean Beats" value={avgHra.n_beats} />
+                    <MetricCard label="Mean BF" value={avgHra.avg_bf} unit="bpm" />
+                    <MetricCard label="Mean Peak BF" value={avgHra.peak_bf} unit="bpm" />
+                    <MetricCard label="Mean Amplitude" value={avgHra.amplitude} unit="bpm" />
+                    <MetricCard label="Mean Rate of Change" value={avgHra.rate_of_change} unit="1/min" />
                   </div>
                 )}
 
@@ -599,14 +594,14 @@ export default function LightPanel({
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Baseline BF</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Avg BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF End</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Slope (norm)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Rate of Change</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -620,29 +615,29 @@ export default function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.n_beats : '\u2014'}
                           </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">
+                            {s ? s.baseline_bf?.toFixed(1) : '\u2014'}
+                          </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.avg_bf?.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                            {s ? s.avg_nn?.toFixed(1) : '\u2014'}
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                            {s ? s.nn_70?.toFixed(1) : '\u2014'}
-                          </TableCell>
                           <TableCell className="text-[10px] font-data text-cyan-400 py-1">
-                            {s ? s.peak_bf.toFixed(1) : '\u2014'}
+                            {s ? s.peak_bf?.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.peak_norm_pct != null ? s.peak_norm_pct.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                            {s ? `${s.time_to_peak_sec.toFixed(1)}s` : '\u2014'}
+                            {s ? `${s.time_to_peak_sec?.toFixed(1)}s` : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-500 py-1">
+                            {s ? s.bf_end?.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-yellow-400 py-1">
                             {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                            {s && s.norm_slope != null ? s.norm_slope.toFixed(4) : '\u2014'}
+                            {s && s.rate_of_change != null ? s.rate_of_change.toFixed(4) : '\u2014'}
                           </TableCell>
                         </TableRow>
                       ))}
