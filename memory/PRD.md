@@ -42,12 +42,30 @@ Baseline and Drug readouts now display in this exact order:
 - [x] HRV metrics: ln(RMSSD₇₀), RMSSD₇₀, SDNN, pNN50 (normalized to 70 bpm)
 - [x] Drug readout: Base + PerfusionStart + PerfusionTime calculation
 
-### Light Stimulation Module (Updated Feb 28, 2026)
+### Light Stimulation Module (Rebuilt Feb 28, 2026)
 
 #### Configuration
 - User provides: Approx first stim start (~3 min default), pulse duration (20s or 30s), intervals (60, 30, 20, 10s)
 - Detects 5 stimulation epochs
 - Manual boundary adjustment supported
+
+#### HRA (Heart Rate Acceleration) - Per Stim Table
+For each stim j, compute and display:
+- Beats (number of beats during stim)
+- **Baseline BF**: mean BF from -2 to -1 min before FIRST stim (shared for all 5 stims)
+- Avg BF under light
+- Peak BF (bpm) under light
+- Normalized Peak BF: 100 × Peak BF / Baseline BF
+- Time to Peak (seconds)
+- Beat End: Last beat inside stim window
+- Amplitude: Peak BF − Beat End
+- Rate of Change: Linear slope (per minute) normalized by mean BF
+
+#### HRA Readout (Average of 5 Stims)
+Display ONLY:
+- Avg BF, Peak BF, Normalized Peak BF, Time to Peak, Amplitude, Rate of Change
+
+Do NOT display: Beats, Beat End
 
 #### Per-Stim Metrics (HRA - Heart Rate Acceleration)
 For each stim j with window [S_j, E_j]:
