@@ -683,8 +683,12 @@ async def export_xlsx(request: ExportRequest):
             ws2.cell(row=row_idx, column=6, value=f"{pnn50_val:.1f}" if pnn50_val is not None else '0.0')
             ws2.cell(row=row_idx, column=7, value=f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—')
             ws2.cell(row=row_idx, column=8, value=row.get('n_beats', 0))
-            
-            # Highlight baseline and drug readout rows with different colors
+        
+        style_data_rows(ws2, 2)
+        auto_width(ws2)
+        
+        # Apply highlighting AFTER style_data_rows (so it doesn't get overwritten)
+        for row_idx, row in enumerate(request.hrv_windows, 2):
             row_minute = row.get('minute', -1)
             is_baseline = row_minute == baseline_hrv_minute
             is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
@@ -703,9 +707,6 @@ async def export_xlsx(request: ExportRequest):
                     cell = ws2.cell(row=row_idx, column=col)
                     cell.fill = highlight_fill
                     cell.font = Font(bold=True, size=10, name='Arial')
-        
-        style_data_rows(ws2, 2)
-        auto_width(ws2)
 
     # Light HRV metrics
     if request.light_metrics:
