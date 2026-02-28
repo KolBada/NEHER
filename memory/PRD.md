@@ -149,11 +149,13 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 
 ### P0 - Completed ✅
 - All core workflow features implemented
-- Light stim HRV algorithm verified against Excel
+- Light stim HRV algorithm rebuilt with formula: `NN_70 = NN × (857 / median(NN within stim))`
+- HRA shared baseline implemented: mean BF from -2 to -1 min before first stim
+- Info tooltips added to Light Panel for HRA and HRV sections
 
 ### P1 - In Progress
-- [ ] Match Excel export format exactly to Results.xlsx template
 - [ ] Light stim highlights on LightPanel trace (code present, needs verification)
+- [ ] Verify Excel export highlighting fix
 
 ### P2 (Future)
 - [ ] Synchronized zoom across all charts
