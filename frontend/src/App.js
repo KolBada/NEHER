@@ -794,7 +794,7 @@ function App() {
             </div>
           </TabsContent>
 
-          {/* Analysis Tab */}
+          {/* Spontaneous Activity Tab */}
           <TabsContent value="analysis">
             <AnalysisPanel
               metrics={metrics}
