@@ -701,11 +701,13 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
 # ==============================================================================
 # Baseline Metrics Computation
 # ==============================================================================
-def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_start=0, hrv_end=3, bf_start=1, bf_end=2):
+def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_minute=0, bf_minute=1):
     """
-    Compute baseline readout metrics.
-    HRV: from hrv_start to hrv_end minutes (default 0-3 min)
-    BF: from bf_start to bf_end minutes (default 1-2 min)
+    Compute baseline readout metrics at specific minutes.
+    
+    HRV: Readout at hrv_minute (default 0) - uses 3-min window starting at that minute
+    BF: Readout at bf_minute (default 1) - uses that minute's mean BF
+    
     Uses proper NN_70 normalization.
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
@@ -715,16 +717,18 @@ def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_start=0,
     
     result = {}
     
-    # BF baseline (default 1-2 min)
-    bf_mask = (bt >= bf_start) & (bt < bf_end) & (~np.isnan(bf))
+    # BF baseline at specific minute (e.g., minute 1 = beats from 1.0 to 2.0)
+    bf_mask = (bt >= bf_minute) & (bt < bf_minute + 1) & (~np.isnan(bf))
     if np.sum(bf_mask) >= 2:
         result['baseline_bf'] = float(np.mean(bf[bf_mask]))
-        result['baseline_bf_range'] = f"{bf_start}-{bf_end} min"
+        result['baseline_bf_minute'] = bf_minute
     else:
         result['baseline_bf'] = None
-        result['baseline_bf_range'] = None
+        result['baseline_bf_minute'] = bf_minute
     
-    # HRV baseline (default 0-3 min) using NN_70
+    # HRV baseline using 3-min window starting at hrv_minute (e.g., minute 0 = 0-3min window)
+    hrv_start = hrv_minute
+    hrv_end = hrv_minute + 3
     hrv_mask = (bt >= hrv_start) & (bt < hrv_end) & (~np.isnan(nn_70))
     if np.sum(hrv_mask) >= 6:
         nn70_hrv = nn_70[hrv_mask]
@@ -738,9 +742,24 @@ def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_start=0,
                 result['baseline_ln_rmssd70'] = float(np.log(rmssd)) if rmssd > 0 else None
                 result['baseline_sdnn'] = float(sdnn)
                 result['baseline_pnn50'] = float(pnn50)
-                result['baseline_hrv_range'] = f"{hrv_start}-{hrv_end} min"
+                result['baseline_hrv_minute'] = hrv_minute
+                result['baseline_hrv_window'] = f"{hrv_start}-{hrv_end}min"
             else:
                 result['baseline_rmssd70'] = None
+                result['baseline_ln_rmssd70'] = None
+                result['baseline_sdnn'] = None
+                result['baseline_pnn50'] = None
+                result['baseline_hrv_minute'] = hrv_minute
+                result['baseline_hrv_window'] = None
+    else:
+        result['baseline_rmssd70'] = None
+        result['baseline_ln_rmssd70'] = None
+        result['baseline_sdnn'] = None
+        result['baseline_pnn50'] = None
+        result['baseline_hrv_minute'] = hrv_minute
+        result['baseline_hrv_window'] = None
+    
+    return result
                 result['baseline_ln_rmssd70'] = None
                 result['baseline_sdnn'] = None
                 result['baseline_pnn50'] = None
