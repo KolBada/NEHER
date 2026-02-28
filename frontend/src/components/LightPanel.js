@@ -240,6 +240,50 @@ export default function LightPanel({
     setLocalPulses(updatedPulses);
   }, [displayPulses]);
 
+  // Handle chart click to set stim boundary
+  const handleChartClick = useCallback((e) => {
+    if (selectedPulseIdx === null || !displayPulses || !editMode) return;
+    if (!e || !e.activeLabel) return;
+    
+    const clickedTime = e.activeLabel; // Time in minutes from chart
+    
+    const updatedPulses = displayPulses.map((p, i) => {
+      if (i !== selectedPulseIdx) return p;
+      
+      const newPulse = { ...p };
+      if (editMode === 'start') {
+        // Set start, ensure it's before end
+        const newStart = Math.min(clickedTime, p.end_min - 0.01);
+        newPulse.start_min = newStart;
+        newPulse.start_sec = newStart * 60;
+      } else if (editMode === 'end') {
+        // Set end, ensure it's after start
+        const newEnd = Math.max(clickedTime, p.start_min + 0.01);
+        newPulse.end_min = newEnd;
+        newPulse.end_sec = newEnd * 60;
+      }
+      return newPulse;
+    });
+    
+    setLocalPulses(updatedPulses);
+    
+    // After setting start, switch to end mode; after end, exit edit mode
+    if (editMode === 'start') {
+      setEditMode('end');
+    } else {
+      setEditMode(null);
+    }
+  }, [selectedPulseIdx, displayPulses, editMode]);
+
+  // Toggle edit mode for a specific boundary
+  const toggleEditMode = useCallback((mode) => {
+    if (editMode === mode) {
+      setEditMode(null);
+    } else {
+      setEditMode(mode);
+    }
+  }, [editMode]);
+
   // Check if pulses have been modified
   const pulsesModified = useMemo(() => {
     if (!localPulses || !originalPulses) return false;
