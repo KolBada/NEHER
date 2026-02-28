@@ -763,12 +763,14 @@ async def export_xlsx(request: ExportRequest):
             style_data_rows(ws3, 2)
             auto_width(ws3)
 
-    # Light response
+    # Light response - HRA (Heart Rate Acceleration)
     if request.light_response:
-        ws4 = wb.create_sheet("Light Stim Response")
+        ws4 = wb.create_sheet("Light Stim HRA")
         valid = [m for m in request.light_response if m is not None]
         if valid:
-            headers = ['Stim #', 'Beats', 'Mean BF (bpm)', 'Mean NN (ms)', 'NN₇₀ (ms)', 'Peak BF (bpm)', 'Peak (%)', 'Time to Peak (s)', 'Amplitude (bpm)', 'Norm. Slope']
+            # Per-stim HRA columns as specified
+            headers = ['Stim #', 'Beats', 'Baseline BF (bpm)', 'Avg BF (bpm)', 'Peak BF (bpm)', 
+                       'Normalized Peak (%)', 'Time to Peak (s)', 'Beat End (bpm)', 'Amplitude (bpm)', 'Rate of Change (1/min)']
             for col, h in enumerate(headers, 1):
                 ws4.cell(row=1, column=col, value=h)
             style_header(ws4, 1, fill=header_fill_amber)
@@ -776,14 +778,42 @@ async def export_xlsx(request: ExportRequest):
             for row_idx, row in enumerate(valid, 2):
                 ws4.cell(row=row_idx, column=1, value=row_idx - 1)
                 ws4.cell(row=row_idx, column=2, value=row.get('n_beats', 0))
-                ws4.cell(row=row_idx, column=3, value=f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—')
-                ws4.cell(row=row_idx, column=4, value=f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—')
-                ws4.cell(row=row_idx, column=5, value=f"{row.get('nn_70', 0):.1f}" if row.get('nn_70') else '—')
-                ws4.cell(row=row_idx, column=6, value=f"{row.get('peak_bf', 0):.1f}")
-                ws4.cell(row=row_idx, column=7, value=f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—')
-                ws4.cell(row=row_idx, column=8, value=f"{row.get('time_to_peak_sec', 0):.1f}")
+                ws4.cell(row=row_idx, column=3, value=f"{row.get('baseline_bf', 0):.1f}" if row.get('baseline_bf') else '—')
+                ws4.cell(row=row_idx, column=4, value=f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—')
+                ws4.cell(row=row_idx, column=5, value=f"{row.get('peak_bf', 0):.1f}" if row.get('peak_bf') else '—')
+                ws4.cell(row=row_idx, column=6, value=f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—')
+                ws4.cell(row=row_idx, column=7, value=f"{row.get('time_to_peak_sec', 0):.1f}" if row.get('time_to_peak_sec') else '—')
+                ws4.cell(row=row_idx, column=8, value=f"{row.get('bf_end', 0):.1f}" if row.get('bf_end') else '—')
                 ws4.cell(row=row_idx, column=9, value=f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—')
-                ws4.cell(row=row_idx, column=10, value=f"{row.get('norm_slope', 0):.4f}" if row.get('norm_slope') else '—')
+                ws4.cell(row=row_idx, column=10, value=f"{row.get('rate_of_change', 0):.4f}" if row.get('rate_of_change') else '—')
+            
+            # Average row (Readout) - only specified metrics
+            avg_row = len(valid) + 2
+            ws4.cell(row=avg_row, column=1, value="Average")
+            ws4.cell(row=avg_row, column=1).font = Font(bold=True)
+            
+            # Calculate averages for readout metrics
+            avg_bf_vals = [r['avg_bf'] for r in valid if r.get('avg_bf')]
+            peak_bf_vals = [r['peak_bf'] for r in valid if r.get('peak_bf')]
+            peak_norm_vals = [r['peak_norm_pct'] for r in valid if r.get('peak_norm_pct')]
+            ttp_vals = [r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')]
+            amp_vals = [r['amplitude'] for r in valid if r.get('amplitude')]
+            roc_vals = [r['rate_of_change'] for r in valid if r.get('rate_of_change')]
+            
+            ws4.cell(row=avg_row, column=2, value='—')  # No Beats in readout
+            ws4.cell(row=avg_row, column=3, value='—')  # Baseline same for all, skip
+            ws4.cell(row=avg_row, column=4, value=f"{np.mean(avg_bf_vals):.1f}" if avg_bf_vals else '—')
+            ws4.cell(row=avg_row, column=5, value=f"{np.mean(peak_bf_vals):.1f}" if peak_bf_vals else '—')
+            ws4.cell(row=avg_row, column=6, value=f"{np.mean(peak_norm_vals):.1f}" if peak_norm_vals else '—')
+            ws4.cell(row=avg_row, column=7, value=f"{np.mean(ttp_vals):.1f}" if ttp_vals else '—')
+            ws4.cell(row=avg_row, column=8, value='—')  # No Beat End in readout
+            ws4.cell(row=avg_row, column=9, value=f"{np.mean(amp_vals):.1f}" if amp_vals else '—')
+            ws4.cell(row=avg_row, column=10, value=f"{np.mean(roc_vals):.4f}" if roc_vals else '—')
+            
+            # Style average row
+            for col in range(1, 11):
+                cell = ws4.cell(row=avg_row, column=col)
+                cell.fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
             
             style_data_rows(ws4, 2)
             auto_width(ws4)
