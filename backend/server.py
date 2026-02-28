@@ -728,32 +728,36 @@ async def export_xlsx(request: ExportRequest):
                 ws3.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.3f}")
                 ws3.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.3f}")
             
-            # Median row (Readout) - only ln(RMSSD_70) and ln(SDNN_70)
+            # Median row (Readout) - ALL metrics
             median_row = len(valid) + 2
             ws3.cell(row=median_row, column=1, value="Median")
             ws3.cell(row=median_row, column=1).font = Font(bold=True)
             
             rmssd_vals = [r['rmssd70'] for r in valid if r.get('rmssd70')]
             sdnn_vals = [r['sdnn'] for r in valid if r.get('sdnn')]
+            pnn50_vals = [r['pnn50'] for r in valid if r.get('pnn50') is not None]
             
             if rmssd_vals:
                 median_rmssd = float(np.median(rmssd_vals))
                 ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
                 ws3.cell(row=median_row, column=2, value=f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—')
+                ws3.cell(row=median_row, column=3, value=f"{median_rmssd:.3f}")
             else:
                 ws3.cell(row=median_row, column=2, value='—')
-            
-            ws3.cell(row=median_row, column=3, value='—')  # No raw RMSSD in readout
+                ws3.cell(row=median_row, column=3, value='—')
             
             if sdnn_vals:
                 median_sdnn = float(np.median(sdnn_vals))
                 ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
                 ws3.cell(row=median_row, column=4, value=f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—')
+                ws3.cell(row=median_row, column=5, value=f"{median_sdnn:.3f}")
             else:
                 ws3.cell(row=median_row, column=4, value='—')
+                ws3.cell(row=median_row, column=5, value='—')
             
-            ws3.cell(row=median_row, column=5, value='—')  # No raw SDNN in readout
-            ws3.cell(row=median_row, column=6, value='—')  # No pNN50 in readout
+            # pNN50 median (even if 0)
+            median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0.0
+            ws3.cell(row=median_row, column=6, value=f"{median_pnn50:.3f}")
             
             # Style median row
             for col in range(1, 7):
