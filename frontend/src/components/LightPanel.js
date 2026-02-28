@@ -704,7 +704,7 @@ export default function LightPanel({
                           <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50">
+                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                         Edit the start and end times directly. Changes apply after clicking "Apply Changes".
                       </TooltipContent>
                     </ShadcnTooltip>
