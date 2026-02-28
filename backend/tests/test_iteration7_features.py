@@ -185,11 +185,12 @@ class TestHRVBaseline:
         
         baseline = data.get("baseline", {})
         
-        # All expected baseline fields
+        # All expected baseline fields (updated for new minute-based params)
         expected_fields = [
             "baseline_bf",
-            "baseline_bf_range",
-            "baseline_hrv_range"
+            "baseline_bf_minute",  # Changed from baseline_bf_range
+            "baseline_hrv_minute", # Changed from baseline_hrv_range
+            "baseline_hrv_window"  # Window label like "0-3min"
         ]
         
         for field in expected_fields:
