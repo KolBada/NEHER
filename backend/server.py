@@ -1074,7 +1074,7 @@ async def export_pdf(request: ExportRequest):
             axes3[0].fill_between(minutes, ln_rmssd, alpha=0.2, color='#0ea5e9')
             axes3[0].set_ylabel('ln(RMSSD₇₀)', fontsize=11, fontweight='bold')
             axes3[0].set_ylim(0, 8)  # FIXED Y-AXIS
-            axes3[0].set_title('Parasympathetic Activity Index', fontsize=11, pad=10)
+            axes3[0].set_title('ln(RMSSD20872080)', fontsize=10, pad=8)
             axes3[0].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
             axes3[0].set_facecolor('#fafafa')
             axes3[0].spines['top'].set_visible(False)
