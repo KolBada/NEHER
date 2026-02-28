@@ -34,16 +34,31 @@ function formatTimeMinSec(minutes) {
   return `${min}min${sec}s`;
 }
 
-function MetricCard({ label, value, unit }) {
-  return (
+function MetricCard({ label, value, unit, tooltip }) {
+  const content = (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
-      <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500">{label}</p>
+      <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500 flex items-center gap-1">
+        {label}
+        {tooltip && (
+          <TooltipProvider>
+            <ShadcnTooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700">
+                {tooltip}
+              </TooltipContent>
+            </ShadcnTooltip>
+          </TooltipProvider>
+        )}
+      </p>
       <p className="text-base font-data text-zinc-100 mt-1">
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
     </div>
   );
+  return content;
 }
 
 export default function LightPanel({
