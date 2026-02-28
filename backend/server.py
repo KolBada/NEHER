@@ -1191,41 +1191,64 @@ async def export_pdf(request: ExportRequest):
                 fig5 = plt.figure(figsize=(8.5, 11))
                 fig5.suptitle('Light-Induced HRV Analysis', fontsize=14, fontweight='bold', y=0.96)
                 
-                ax5 = fig5.add_axes([0.1, 0.5, 0.8, 0.35])
+                ax5 = fig5.add_axes([0.08, 0.45, 0.84, 0.40])
                 ax5.axis('off')
                 
-                headers = ['Pulse #', 'RMSSD₇₀\n(ms)', 'ln(RMSSD₇₀)', 'SDNN\n(ms)', 'pNN50\n(%)', 'Beats']
+                # Per-stim columns as specified: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
+                headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀\n(ms)', 'ln(SDNN₇₀)', 'SDNN₇₀\n(ms)', 'pNN50₇₀\n(%)']
                 table_data = []
                 for i, row in enumerate(valid_hrv):
                     table_data.append([
                         str(i + 1),
-                        f"{row.get('rmssd70', 0):.2f}",
                         f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
-                        f"{row.get('sdnn', 0):.2f}",
-                        f"{row.get('pnn50', 0):.1f}",
-                        str(row.get('n_beats', 0)),
+                        f"{row.get('rmssd70', 0):.3f}",
+                        f"{row.get('ln_sdnn70', 0):.3f}" if row.get('ln_sdnn70') else '—',
+                        f"{row.get('sdnn', 0):.3f}",
+                        f"{row.get('pnn50', 0):.3f}",
                     ])
+                
+                # Add median row (Readout) - only ln(RMSSD_70) and ln(SDNN_70)
+                rmssd_vals = [r['rmssd70'] for r in valid_hrv if r.get('rmssd70')]
+                sdnn_vals = [r['sdnn'] for r in valid_hrv if r.get('sdnn')]
+                
+                median_rmssd = float(np.median(rmssd_vals)) if rmssd_vals else 0
+                median_sdnn = float(np.median(sdnn_vals)) if sdnn_vals else 0
+                ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
+                ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
+                
+                table_data.append([
+                    'Median',
+                    f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—',
+                    '—',  # No raw RMSSD in readout
+                    f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—',
+                    '—',  # No raw SDNN in readout
+                    '—',  # No pNN50 in readout
+                ])
                 
                 table = ax5.table(
                     cellText=table_data,
                     colLabels=headers,
                     loc='center',
                     cellLoc='center',
-                    colWidths=[0.12, 0.18, 0.18, 0.16, 0.16, 0.12]
+                    colWidths=[0.12, 0.17, 0.17, 0.17, 0.17, 0.14]
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(9)
-                table.scale(1.0, 2.5)
+                table.scale(1.0, 2.2)
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#d1d5db')
                     if row == 0:
                         cell.set_text_props(fontweight='bold', color='white')
                         cell.set_facecolor('#0891b2')
-                        cell.set_height(0.1)
+                        cell.set_height(0.09)
+                    elif row == len(table_data):  # Median row
+                        cell.set_text_props(fontweight='bold')
+                        cell.set_facecolor('#e0f2fe')
+                        cell.set_height(0.07)
                     else:
                         cell.set_facecolor('#ecfeff' if row % 2 == 0 else '#ffffff')
-                        cell.set_height(0.07)
+                        cell.set_height(0.06)
                 
                 pdf.savefig(fig5)
                 plt.close(fig5)
