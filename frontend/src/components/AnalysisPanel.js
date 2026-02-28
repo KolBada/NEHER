@@ -422,25 +422,27 @@ export default function AnalysisPanel({
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             HRV Analysis (Sliding 3-min Windows, Normalized to 70 bpm)
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
-                  <HelpCircle className="w-3 h-3" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
-                <p className="font-medium mb-2">Why baseline differs from per-minute values?</p>
-                <p className="text-zinc-400 mb-2">
-                  <strong>Baseline:</strong> Computed directly over the specified time range (e.g., 0-3 min) using all beats in that range.
-                </p>
-                <p className="text-zinc-400 mb-2">
-                  <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
-                </p>
-                <p className="text-zinc-400">
-                  The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
-                </p>
-              </PopoverContent>
-            </Popover>
+            <TooltipProvider delayDuration={100}>
+              <ShadcnTooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="inline-flex">
+                    <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
+                  <p className="font-medium mb-2 text-zinc-100">Why baseline differs from per-minute values?</p>
+                  <p className="text-zinc-200 mb-2">
+                    <strong>Baseline:</strong> Computed directly over the specified time range (e.g., 0-3 min) using all beats in that range.
+                  </p>
+                  <p className="text-zinc-200 mb-2">
+                    <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
+                  </p>
+                  <p className="text-zinc-200">
+                    The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
+                  </p>
+                </TooltipContent>
+              </ShadcnTooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
