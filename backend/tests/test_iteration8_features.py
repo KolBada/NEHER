@@ -24,23 +24,22 @@ class TestBaselineMetrics:
         response = requests.post(f"{BASE_URL}/api/hrv-analysis", json={
             "beat_times_min": beat_times_min,
             "bf_filtered": bf_filtered,
-            "baseline_hrv_start": 0.0,
-            "baseline_hrv_end": 3.0,
-            "baseline_bf_start": 1.0,
-            "baseline_bf_end": 2.0
+            "baseline_hrv_minute": 0,  # New param
+            "baseline_bf_minute": 1    # New param
         })
         assert response.status_code == 200
         data = response.json()
         
         baseline = data.get("baseline", {})
-        # Verify baseline HRV range contains 0-3 min (format may vary: "0-3 min" or "0.0-3.0 min")
-        hrv_range = baseline.get("baseline_hrv_range", "")
-        assert "0" in hrv_range and "3" in hrv_range and "min" in hrv_range, \
-            f"Expected HRV range 0-3 min, got '{hrv_range}'"
-        # Verify baseline BF range contains 1-2 min
-        bf_range = baseline.get("baseline_bf_range", "")
-        assert "1" in bf_range and "2" in bf_range and "min" in bf_range, \
-            f"Expected BF range 1-2 min, got '{bf_range}'"
+        # Verify baseline_hrv_minute is 0 (new field name)
+        assert baseline.get("baseline_hrv_minute") == 0, \
+            f"Expected baseline_hrv_minute=0, got {baseline.get('baseline_hrv_minute')}"
+        # Verify baseline_hrv_window shows "0-3min" (new field)
+        hrv_window = baseline.get("baseline_hrv_window", "")
+        assert "0-3" in hrv_window, f"Expected HRV window 0-3min, got '{hrv_window}'"
+        # Verify baseline_bf_minute is 1
+        assert baseline.get("baseline_bf_minute") == 1, \
+            f"Expected baseline_bf_minute=1, got {baseline.get('baseline_bf_minute')}"
     
     def test_baseline_bf_uses_1_2_min_window(self):
         """Baseline BF is computed over 1-2 minute window (default)"""
