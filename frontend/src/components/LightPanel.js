@@ -880,12 +880,14 @@ export default function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">
                           <span className="flex items-center gap-1">
                             ln(RMSSD₇₀)
-                            <TooltipProvider>
+                            <TooltipProvider delayDuration={100}>
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
-                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  <button type="button" className="inline-flex">
+                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
                                   Log-transformed RMSSD₇₀
                                 </TooltipContent>
                               </ShadcnTooltip>
@@ -896,12 +898,14 @@ export default function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">
                           <span className="flex items-center gap-1">
                             ln(SDNN₇₀)
-                            <TooltipProvider>
+                            <TooltipProvider delayDuration={100}>
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
-                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  <button type="button" className="inline-flex">
+                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
                                   Log-transformed SDNN₇₀
                                 </TooltipContent>
                               </ShadcnTooltip>
@@ -912,12 +916,14 @@ export default function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">
                           <span className="flex items-center gap-1">
                             pNN50₇₀
-                            <TooltipProvider>
+                            <TooltipProvider delayDuration={100}>
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
-                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  <button type="button" className="inline-flex">
+                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                  </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
                                   Percentage of successive intervals differing &gt;50 ms (after 70 bpm normalization)
                                 </TooltipContent>
                               </ShadcnTooltip>
