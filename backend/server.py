@@ -271,10 +271,8 @@ async def hrv_analysis_endpoint(request: HRVAnalysisRequest):
     # Compute baseline metrics
     baseline = analysis.compute_baseline_metrics(
         request.beat_times_min, request.bf_filtered,
-        hrv_start=request.baseline_hrv_start,
-        hrv_end=request.baseline_hrv_end,
-        bf_start=request.baseline_bf_start,
-        bf_end=request.baseline_bf_end
+        hrv_minute=request.baseline_hrv_minute,
+        bf_minute=request.baseline_bf_minute
     )
     
     return {'windows': results, 'readout': readout, 'baseline': baseline}
