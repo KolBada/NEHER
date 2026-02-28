@@ -741,12 +741,19 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Readout (median of 5 stims) - ONLY ln values */}
                 {medianHrv && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                    <MetricCard label="Median ln(RMSSD₇₀)" value={medianHrv.ln_rmssd70} />
-                    <MetricCard label="Median RMSSD₇₀" value={medianHrv.rmssd70} unit="ms" />
-                    <MetricCard label="Median SDNN" value={medianHrv.sdnn} unit="ms" />
-                    <MetricCard label="Median pNN50" value={medianHrv.pnn50} unit="%" />
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <MetricCard 
+                      label="ln(RMSSD₇₀)" 
+                      value={medianHrv.ln_rmssd70}
+                      tooltip="Log-transformed short-term beat-to-beat variability normalized to 70 bpm"
+                    />
+                    <MetricCard 
+                      label="ln(SDNN₇₀)" 
+                      value={medianHrv.ln_sdnn70}
+                      tooltip="Log-transformed overall variability normalized to 70 bpm"
+                    />
                   </div>
                 )}
 
@@ -757,11 +764,53 @@ export default function LightPanel({
                     <TableHeader>
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Pulse</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">
+                          <span className="flex items-center gap-1">
+                            ln(RMSSD₇₀)
+                            <TooltipProvider>
+                              <ShadcnTooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                  Log-transformed RMSSD₇₀
+                                </TooltipContent>
+                              </ShadcnTooltip>
+                            </TooltipProvider>
+                          </span>
+                        </TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">RMSSD₇₀</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">ln(RMSSD₇₀)</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">SDNN</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">pNN50</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">
+                          <span className="flex items-center gap-1">
+                            ln(SDNN₇₀)
+                            <TooltipProvider>
+                              <ShadcnTooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                  Log-transformed SDNN₇₀
+                                </TooltipContent>
+                              </ShadcnTooltip>
+                            </TooltipProvider>
+                          </span>
+                        </TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">SDNN₇₀</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">
+                          <span className="flex items-center gap-1">
+                            pNN50₇₀
+                            <TooltipProvider>
+                              <ShadcnTooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700">
+                                  Percentage of successive intervals differing &gt;50 ms (after 70 bpm normalization)
+                                </TooltipContent>
+                              </ShadcnTooltip>
+                            </TooltipProvider>
+                          </span>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -771,11 +820,11 @@ export default function LightPanel({
                           className={`border-zinc-800/50 data-row ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
                         >
                           <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.rmssd70.toFixed(2) : '\u2014'}</TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_rmssd70?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.sdnn.toFixed(2) : '\u2014'}</TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.pnn50.toFixed(1) : '\u2014'}</TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{p ? p.n_beats : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.rmssd70.toFixed(3) : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_sdnn70?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.sdnn.toFixed(3) : '\u2014'}</TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.pnn50.toFixed(3) : '\u2014'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
