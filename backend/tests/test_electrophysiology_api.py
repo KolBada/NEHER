@@ -183,9 +183,9 @@ class TestLightResponse:
                 assert "n_beats" in stim
                 assert "avg_bf" in stim
                 assert "avg_nn" in stim
-                assert "nn_70" in stim
                 assert "peak_bf" in stim
                 assert "amplitude" in stim
+                assert "rate_of_change" in stim  # Updated HRA metrics
         
         # Verify mean_metrics contains new fields
         if data["mean_metrics"] is not None:
@@ -193,7 +193,7 @@ class TestLightResponse:
             assert "n_beats" in mean
             assert "avg_bf" in mean
             assert "avg_nn" in mean
-            assert "nn_70" in mean
+            assert "amplitude" in mean
 
 
 class TestLightDetect:
