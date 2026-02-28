@@ -451,7 +451,6 @@ async def export_xlsx(request: ExportRequest):
         
         ws_summary[f'A{current_row}'] = 'Metric'
         ws_summary[f'B{current_row}'] = 'Value'
-        ws_summary[f'C{current_row}'] = 'Time Window'
         style_header(ws_summary, current_row)
         current_row += 1
         
@@ -466,13 +465,13 @@ async def export_xlsx(request: ExportRequest):
         baseline_hrv_range = request.baseline.get('baseline_hrv_range', '0-3 min')
         
         baseline_data = [
-            (f'Mean BF ({baseline_bf_range})', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', baseline_bf_range),
-            (f'ln(RMSSD₇₀) ({baseline_hrv_range})', f"{baseline_ln_rmssd:.3f}" if baseline_ln_rmssd else '—', baseline_hrv_range),
-            (f'ln(SDNN₇₀) ({baseline_hrv_range})', f"{baseline_ln_sdnn:.3f}" if baseline_ln_sdnn else '—', baseline_hrv_range),
-            (f'pNN50₇₀ ({baseline_hrv_range})', f"{baseline_pnn50:.1f}%" if baseline_pnn50 is not None else '—', baseline_hrv_range),
+            (f'Mean BF ({baseline_bf_range})', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'),
+            (f'ln(RMSSD₇₀) ({baseline_hrv_range})', f"{baseline_ln_rmssd:.3f}" if baseline_ln_rmssd else '—'),
+            (f'ln(SDNN₇₀) ({baseline_hrv_range})', f"{baseline_ln_sdnn:.3f}" if baseline_ln_sdnn else '—'),
+            (f'pNN50₇₀ ({baseline_hrv_range})', f"{baseline_pnn50:.1f}%" if baseline_pnn50 is not None else '—'),
         ]
         
-        for label, value, window in baseline_data:
+        for label, value in baseline_data:
             ws_summary[f'A{current_row}'] = label
             ws_summary[f'B{current_row}'] = value
             for col in ['A', 'B']:
@@ -490,7 +489,6 @@ async def export_xlsx(request: ExportRequest):
         
         ws_summary[f'A{current_row}'] = 'Metric'
         ws_summary[f'B{current_row}'] = 'Value'
-        ws_summary[f'C{current_row}'] = 'Time Window'
         style_header(ws_summary, current_row)
         current_row += 1
         
@@ -523,13 +521,13 @@ async def export_xlsx(request: ExportRequest):
         drug_hrv_range = f"{drug_hrv_minute}-{drug_hrv_minute+3} min" if drug_hrv_minute is not None else '—'
         
         drug_data = [
-            (f'Mean BF ({drug_bf_range})', f"{drug_bf:.1f} bpm" if drug_bf else '—', drug_bf_range),
-            (f'ln(RMSSD₇₀) ({drug_hrv_range})', f"{drug_ln_rmssd:.3f}" if drug_ln_rmssd else '—', drug_hrv_range),
-            (f'ln(SDNN₇₀) ({drug_hrv_range})', f"{drug_ln_sdnn:.3f}" if drug_ln_sdnn else '—', drug_hrv_range),
-            (f'pNN50₇₀ ({drug_hrv_range})', f"{drug_pnn50:.1f}%" if drug_pnn50 is not None else '—', drug_hrv_range),
+            (f'Mean BF ({drug_bf_range})', f"{drug_bf:.1f} bpm" if drug_bf else '—'),
+            (f'ln(RMSSD₇₀) ({drug_hrv_range})', f"{drug_ln_rmssd:.3f}" if drug_ln_rmssd else '—'),
+            (f'ln(SDNN₇₀) ({drug_hrv_range})', f"{drug_ln_sdnn:.3f}" if drug_ln_sdnn else '—'),
+            (f'pNN50₇₀ ({drug_hrv_range})', f"{drug_pnn50:.1f}%" if drug_pnn50 is not None else '—'),
         ]
         
-        for label, value, window in drug_data:
+        for label, value in drug_data:
             ws_summary[f'A{current_row}'] = label
             ws_summary[f'B{current_row}'] = value
             for col in ['A', 'B']:
