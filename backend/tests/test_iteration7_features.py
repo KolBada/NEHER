@@ -222,10 +222,10 @@ class TestLightResponseMetrics:
                 assert "n_beats" in stim
                 assert "avg_bf" in stim
                 assert "avg_nn" in stim
-                assert "nn_70" in stim
                 assert "peak_bf" in stim
                 assert "amplitude" in stim
                 assert "time_to_peak_sec" in stim
+                assert "rate_of_change" in stim  # Updated HRA metrics
 
 
 class TestLightDetectPulseGeneration:
