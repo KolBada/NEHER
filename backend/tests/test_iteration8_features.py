@@ -69,29 +69,28 @@ class TestBaselineMetrics:
         assert baseline_bf < 120, f"Expected BF ~100 from 1-2min window, got {baseline_bf}"
     
     def test_custom_baseline_windows_accepted(self):
-        """API accepts custom baseline HRV and BF windows"""
+        """API accepts custom baseline_hrv_minute and baseline_bf_minute"""
         beat_times_min = [i * 0.1 for i in range(100)]
         bf_filtered = [120.0] * 100
         
         response = requests.post(f"{BASE_URL}/api/hrv-analysis", json={
             "beat_times_min": beat_times_min,
             "bf_filtered": bf_filtered,
-            "baseline_hrv_start": 2.0,
-            "baseline_hrv_end": 5.0,
-            "baseline_bf_start": 3.0,
-            "baseline_bf_end": 4.0
+            "baseline_hrv_minute": 2,  # Custom HRV minute
+            "baseline_bf_minute": 3    # Custom BF minute
         })
         assert response.status_code == 200
         data = response.json()
         
         baseline = data.get("baseline", {})
-        # Check custom ranges are reflected (format may vary)
-        hrv_range = baseline.get("baseline_hrv_range", "")
-        bf_range = baseline.get("baseline_bf_range", "")
-        assert "2" in hrv_range and "5" in hrv_range and "min" in hrv_range, \
-            f"Expected custom HRV range 2-5 min, got '{hrv_range}'"
-        assert "3" in bf_range and "4" in bf_range and "min" in bf_range, \
-            f"Expected custom BF range 3-4 min, got '{bf_range}'"
+        # Check custom minutes are used
+        assert baseline.get("baseline_hrv_minute") == 2, \
+            f"Expected baseline_hrv_minute=2, got {baseline.get('baseline_hrv_minute')}"
+        assert baseline.get("baseline_bf_minute") == 3, \
+            f"Expected baseline_bf_minute=3, got {baseline.get('baseline_bf_minute')}"
+        # Verify window label for HRV (2-5min)
+        hrv_window = baseline.get("baseline_hrv_window", "")
+        assert "2-5" in hrv_window, f"Expected HRV window 2-5min, got '{hrv_window}'"
 
 
 class TestPDFExportWithLightPulses:
