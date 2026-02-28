@@ -187,7 +187,11 @@ export default function AnalysisPanel({
 
   const hrvChartData = useMemo(() => {
     if (!hrvResults || !hrvResults.windows) return [];
-    return hrvResults.windows;
+    // Add ln_sdnn for the chart
+    return hrvResults.windows.map(w => ({
+      ...w,
+      ln_sdnn: w.sdnn && w.sdnn > 0 ? Math.log(w.sdnn) : null,
+    }));
   }, [hrvResults]);
 
   const perBeatTable = useMemo(() => {
