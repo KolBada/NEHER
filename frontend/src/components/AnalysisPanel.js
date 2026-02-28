@@ -93,7 +93,7 @@ function HrvInfoPopover({ metric }) {
 export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
-  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG
+  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses
 }) {
   // Separate readout controls for HRV and BF
   const [hrvReadoutMinute, setHrvReadoutMinute] = useState('');
@@ -101,36 +101,73 @@ export default function AnalysisPanel({
   const [enableHrvReadout, setEnableHrvReadout] = useState(false);
   const [enableBfReadout, setEnableBfReadout] = useState(false);
   
-  // Baseline settings - HRV at minute 0 (0-3 window), BF at minute 1
-  const [baselineHrvStart, setBaselineHrvStart] = useState(0);
-  const [baselineHrvEnd, setBaselineHrvEnd] = useState(3);
-  const [baselineBfStart, setBaselineBfStart] = useState(1);
-  const [baselineBfEnd, setBaselineBfEnd] = useState(2);
+  // Baseline settings - HRV readout at minute 0, BF readout at minute 1
+  const [baselineHrvMinute, setBaselineHrvMinute] = useState(0);
+  const [baselineBfMinute, setBaselineBfMinute] = useState(1);
 
-  // Zoom state for charts
+  // Zoom state for charts (shared across all charts)
   const [zoomDomain, setZoomDomain] = useState(null);
+  const chartContainerRef = useRef(null);
+  
+  // Time bounds for charts
+  const timeBounds = useMemo(() => {
+    if (!hrvResults?.windows || hrvResults.windows.length === 0) return { min: 0, max: 10 };
+    const mins = hrvResults.windows.map(w => w.minute);
+    return { min: Math.min(...mins), max: Math.max(...mins) + 3 };
+  }, [hrvResults]);
 
-  // Calculate drug readout time: base + perfusion start + perfusion time
-  const drugReadoutTime = useMemo(() => {
-    if (!selectedDrugs || selectedDrugs.length === 0) return null;
-    // Use the first selected drug's settings
-    const firstDrugKey = selectedDrugs[0];
-    const settings = drugSettings?.[firstDrugKey] || {};
-    const config = DRUG_CONFIG?.[firstDrugKey] || {};
+  // Handle wheel zoom (trackpad)
+  const handleWheel = useCallback((e) => {
+    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+    e.preventDefault();
     
-    const perfusionStart = settings.perfusionStart ?? 3;
-    const perfusionTime = settings.perfusionTime ?? 3;
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const currentRange = currentMax - currentMin;
     
-    return {
-      hrvBase: parseFloat(hrvReadoutMinute) || 12,
-      bfBase: parseFloat(bfReadoutMinute) || 14,
-      perfusionStart,
-      perfusionTime,
-      // Total readout = base + perfusion start + perfusion time
-      hrvTotal: (parseFloat(hrvReadoutMinute) || 12) + perfusionStart + perfusionTime,
-      bfTotal: (parseFloat(bfReadoutMinute) || 14) + perfusionStart + perfusionTime,
-    };
-  }, [selectedDrugs, drugSettings, hrvReadoutMinute, bfReadoutMinute, DRUG_CONFIG]);
+    const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+    const newRange = Math.max(1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
+    
+    const center = (currentMin + currentMax) / 2;
+    let newMin = center - newRange / 2;
+    let newMax = center + newRange / 2;
+    
+    if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = newMin + newRange; }
+    if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = newMax - newRange; }
+    
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+      setZoomDomain(null);
+    } else {
+      setZoomDomain([newMin, newMax]);
+    }
+  }, [zoomDomain, timeBounds]);
+
+  const handleResetZoom = useCallback(() => setZoomDomain(null), []);
+  const handleZoomIn = useCallback(() => {
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const newRange = (currentMax - currentMin) * 0.7;
+    const center = (currentMin + currentMax) / 2;
+    setZoomDomain([Math.max(timeBounds.min, center - newRange/2), Math.min(timeBounds.max, center + newRange/2)]);
+  }, [zoomDomain, timeBounds]);
+  const handleZoomOut = useCallback(() => {
+    if (!zoomDomain) return;
+    const newRange = Math.min(timeBounds.max - timeBounds.min, (zoomDomain[1] - zoomDomain[0]) * 1.5);
+    const center = (zoomDomain[0] + zoomDomain[1]) / 2;
+    let newMin = center - newRange / 2;
+    let newMax = center + newRange / 2;
+    if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = newMin + newRange; }
+    if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = newMax - newRange; }
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) setZoomDomain(null);
+    else setZoomDomain([newMin, newMax]);
+  }, [zoomDomain, timeBounds]);
+
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   const filteredBfData = useMemo(() => {
     if (!metrics) return [];
