@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea
 } from 'recharts';
-import { Loader2, HelpCircle } from 'lucide-react';
+import { Loader2, HelpCircle, RotateCcw, ZoomIn, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
