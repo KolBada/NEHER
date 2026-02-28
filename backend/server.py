@@ -1123,33 +1123,36 @@ async def export_pdf(request: ExportRequest):
                     table_data.append([
                         str(i + 1),
                         str(row.get('n_beats', 0)),
-                        f"{row.get('baseline_bf', 0):.1f}" if row.get('baseline_bf') else '—',
-                        f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
-                        f"{row.get('peak_bf', 0):.1f}" if row.get('peak_bf') else '—',
-                        f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—',
-                        f"{row.get('time_to_peak_sec', 0):.1f}" if row.get('time_to_peak_sec') else '—',
-                        f"{row.get('bf_end', 0):.1f}" if row.get('bf_end') else '—',
-                        f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—',
-                        f"{row.get('rate_of_change', 0):.3f}" if row.get('rate_of_change') else '—',
+                        f"{row.get('baseline_bf', 0):.1f}",
+                        f"{row.get('avg_bf', 0):.1f}",
+                        f"{row.get('peak_bf', 0):.1f}",
+                        f"{row.get('peak_norm_pct', 0):.1f}",
+                        f"{row.get('time_to_peak_sec', 0):.1f}",
+                        f"{row.get('bf_end', 0):.1f}",
+                        f"{row.get('amplitude', 0):.1f}",
+                        f"{row.get('rate_of_change', 0):.3f}",
                     ])
                 
-                # Add average row (Readout) - only specified metrics
-                avg_bf = np.mean([r['avg_bf'] for r in valid if r.get('avg_bf')])
-                avg_peak = np.mean([r['peak_bf'] for r in valid if r.get('peak_bf')])
-                avg_peak_pct = np.mean([r['peak_norm_pct'] for r in valid if r.get('peak_norm_pct')])
-                avg_ttp = np.mean([r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')])
-                avg_amp = np.mean([r['amplitude'] for r in valid if r.get('amplitude')])
-                avg_roc = np.mean([r['rate_of_change'] for r in valid if r.get('rate_of_change')])
+                # Add average row - ALL metrics with values (even if 0)
+                avg_beats = np.mean([r.get('n_beats', 0) for r in valid])
+                avg_baseline = np.mean([r.get('baseline_bf', 0) for r in valid])
+                avg_bf = np.mean([r.get('avg_bf', 0) for r in valid])
+                avg_peak = np.mean([r.get('peak_bf', 0) for r in valid])
+                avg_peak_pct = np.mean([r.get('peak_norm_pct', 0) for r in valid])
+                avg_ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid])
+                avg_bf_end = np.mean([r.get('bf_end', 0) for r in valid])
+                avg_amp = np.mean([r.get('amplitude', 0) for r in valid])
+                avg_roc = np.mean([r.get('rate_of_change', 0) for r in valid])
                 
                 table_data.append([
                     'Avg',
-                    '—',  # No Beats in readout
-                    '—',  # No Baseline in readout
+                    f"{avg_beats:.1f}",
+                    f"{avg_baseline:.1f}",
                     f"{avg_bf:.1f}",
                     f"{avg_peak:.1f}",
                     f"{avg_peak_pct:.1f}",
                     f"{avg_ttp:.1f}",
-                    '—',  # No Beat End in readout
+                    f"{avg_bf_end:.1f}",
                     f"{avg_amp:.1f}",
                     f"{avg_roc:.3f}",
                 ])
