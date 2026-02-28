@@ -1211,22 +1211,24 @@ async def export_pdf(request: ExportRequest):
                         f"{row.get('pnn50', 0):.3f}",
                     ])
                 
-                # Add median row (Readout) - only ln(RMSSD_70) and ln(SDNN_70)
+                # Add median row (Readout) - ALL metrics
                 rmssd_vals = [r['rmssd70'] for r in valid_hrv if r.get('rmssd70')]
                 sdnn_vals = [r['sdnn'] for r in valid_hrv if r.get('sdnn')]
+                pnn50_vals = [r['pnn50'] for r in valid_hrv if r.get('pnn50') is not None]
                 
                 median_rmssd = float(np.median(rmssd_vals)) if rmssd_vals else 0
                 median_sdnn = float(np.median(sdnn_vals)) if sdnn_vals else 0
+                median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0.0
                 ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
                 ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
                 
                 table_data.append([
                     'Median',
                     f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—',
-                    '—',  # No raw RMSSD in readout
+                    f"{median_rmssd:.3f}",
                     f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—',
-                    '—',  # No raw SDNN in readout
-                    '—',  # No pNN50 in readout
+                    f"{median_sdnn:.3f}",
+                    f"{median_pnn50:.3f}",
                 ])
                 
                 table = ax5.table(
