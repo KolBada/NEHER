@@ -650,8 +650,6 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
     
     light_mask = (bt >= first_pulse_start) & (bt <= last_pulse_end)
     bf_light = bf[light_mask]
-    nn_light = nn[light_mask]
-    bt_light = bt[light_mask]
     
     # Remove NaN values for calculating reference
     valid_bf = bf_light[~np.isnan(bf_light)]
