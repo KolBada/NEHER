@@ -1095,6 +1095,141 @@ async def export_pdf(request: ExportRequest):
                 pdf.savefig(fig5)
                 plt.close(fig5)
 
+        # Page 6: BF Analysis Table (per-minute data)
+        if request.per_minute_data:
+            fig6 = plt.figure(figsize=(8.5, 11))
+            fig6.suptitle('BF Analysis\n(Per-Minute Beat Frequency Data)', fontsize=14, fontweight='bold', y=0.97)
+            
+            ax6 = fig6.add_axes([0.08, 0.15, 0.84, 0.75])
+            ax6.axis('off')
+            
+            # Get baseline and drug readout minutes for highlighting
+            baseline_bf_minute = request.baseline.get('baseline_bf_minute', 1) if request.baseline else 1
+            drug_readout_minute = None
+            if request.drug_readout:
+                drug_readout_minute = request.drug_readout.get('bf_minute')
+            
+            headers = ['Time Window', 'Beat Count', 'Mean BF (bpm)', 'Mean NN (ms)', 'Mean NN₇₀ (ms)']
+            table_data = []
+            row_colors = []
+            
+            for row in request.per_minute_data:
+                row_minute = row.get('minute', -1)
+                is_baseline = row_minute == baseline_bf_minute
+                is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
+                
+                table_data.append([
+                    row.get('label', ''),
+                    str(row.get('n_beats', 0)),
+                    f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—',
+                    f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—',
+                    f"{row.get('avg_nn_70', 0):.1f}" if row.get('avg_nn_70') else '—',
+                ])
+                
+                if is_baseline or is_drug:
+                    row_colors.append('#ede9fe')  # Purple for both baseline and drug
+                else:
+                    row_colors.append('#ffffff' if len(row_colors) % 2 == 0 else '#f8fafc')
+            
+            if table_data:
+                table = ax6.table(
+                    cellText=table_data,
+                    colLabels=headers,
+                    loc='upper center',
+                    cellLoc='center',
+                    colWidths=[0.22, 0.18, 0.20, 0.20, 0.20]
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(8)
+                table.scale(1.0, 1.8)
+                
+                for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor('#d1d5db')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_facecolor('#2563eb')
+                        cell.set_height(0.04)
+                    else:
+                        cell.set_facecolor(row_colors[row - 1])
+                        # Bold for highlighted rows
+                        if row_colors[row - 1] == '#ede9fe':
+                            cell.set_text_props(fontweight='bold')
+                        cell.set_height(0.03)
+                
+                pdf.savefig(fig6)
+                plt.close(fig6)
+
+        # Page 7: HRV Analysis Table
+        if request.hrv_windows:
+            fig7 = plt.figure(figsize=(8.5, 11))
+            fig7.suptitle('HRV Analysis\n(3-min Sliding Windows, Normalized to 70 bpm)', fontsize=14, fontweight='bold', y=0.97)
+            
+            ax7 = fig7.add_axes([0.05, 0.15, 0.90, 0.75])
+            ax7.axis('off')
+            
+            # Get baseline and drug readout minutes for highlighting
+            baseline_hrv_minute = request.baseline.get('baseline_hrv_minute', 0) if request.baseline else 0
+            drug_readout_minute = None
+            if request.drug_readout:
+                drug_readout_minute = request.drug_readout.get('hrv_minute')
+            
+            headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF', 'Beats']
+            table_data = []
+            row_colors = []
+            
+            for row in request.hrv_windows:
+                row_minute = row.get('minute', -1)
+                is_baseline = row_minute == baseline_hrv_minute
+                is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
+                
+                sdnn_val = row.get('sdnn')
+                ln_sdnn = np.log(sdnn_val) if sdnn_val and sdnn_val > 0 else None
+                pnn50_val = row.get('pnn50')
+                
+                table_data.append([
+                    row.get('window', ''),
+                    f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
+                    f"{row.get('rmssd70', 0):.1f}" if row.get('rmssd70') else '—',
+                    f"{ln_sdnn:.3f}" if ln_sdnn else '—',
+                    f"{sdnn_val:.1f}" if sdnn_val else '—',
+                    f"{pnn50_val:.1f}" if pnn50_val is not None else '0.0',
+                    f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—',
+                    str(row.get('n_beats', 0)),
+                ])
+                
+                if is_baseline or is_drug:
+                    row_colors.append('#ede9fe')  # Purple for both baseline and drug
+                else:
+                    row_colors.append('#ffffff' if len(row_colors) % 2 == 0 else '#f8fafc')
+            
+            if table_data:
+                table = ax7.table(
+                    cellText=table_data,
+                    colLabels=headers,
+                    loc='upper center',
+                    cellLoc='center',
+                    colWidths=[0.14, 0.13, 0.11, 0.13, 0.10, 0.11, 0.10, 0.10]
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(7)
+                table.scale(1.0, 1.6)
+                
+                for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor('#d1d5db')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_facecolor('#7c3aed')  # Purple header
+                        cell.set_height(0.035)
+                    else:
+                        cell.set_facecolor(row_colors[row - 1])
+                        # Bold for highlighted rows
+                        if row_colors[row - 1] == '#ede9fe':
+                            cell.set_text_props(fontweight='bold')
+                        cell.set_height(0.025)
+                
+                pdf.savefig(fig7)
+                plt.close(fig7)
+
     buf.seek(0)
     return StreamingResponse(
         buf,
