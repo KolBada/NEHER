@@ -586,8 +586,15 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
     - SDNN_light = median(SDNN_j)
     - pNN50_light = median(pNN50_j)
     """
-    bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    # Align beat times with BF/NN intervals (N-1 values)
+    # BF/NN intervals are computed from consecutive beat times, so we use bt[:-1] to align
+    bt_full = np.array(beat_times_min_list, dtype=np.float64)
+    if len(bt_full) > len(bf):
+        bt = bt_full[:len(bf)]  # Use first N-1 beat times to align with intervals
+    else:
+        bt = bt_full
     
     # Convert BF to NN intervals
     nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
