@@ -1096,7 +1096,7 @@ async def export_pdf(request: ExportRequest):
             axes3[2].set_xlabel('Window Start (min)', fontsize=11)
             axes3[2].set_ylabel('pNN50₇₀ (%)', fontsize=11, fontweight='bold')
             axes3[2].set_ylim(0, 100)  # FIXED Y-AXIS
-            axes3[2].set_title('pNN50$_{70}$ (%)', fontsize=10, pad=8)
+            # No title for chart 2
             axes3[2].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
             axes3[2].set_facecolor('#fafafa')
             axes3[2].spines['top'].set_visible(False)
