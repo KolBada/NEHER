@@ -791,7 +791,7 @@ export default function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.avg_bf?.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-cyan-400 py-1">
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.peak_bf?.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
@@ -803,7 +803,7 @@ export default function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-500 py-1">
                             {s ? s.bf_end?.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-yellow-400 py-1">
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
