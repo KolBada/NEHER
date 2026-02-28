@@ -760,24 +760,6 @@ def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_minute=0
         result['baseline_hrv_window'] = None
     
     return result
-                result['baseline_ln_rmssd70'] = None
-                result['baseline_sdnn'] = None
-                result['baseline_pnn50'] = None
-                result['baseline_hrv_range'] = None
-        else:
-            result['baseline_rmssd70'] = None
-            result['baseline_ln_rmssd70'] = None
-            result['baseline_sdnn'] = None
-            result['baseline_pnn50'] = None
-            result['baseline_hrv_range'] = None
-    else:
-        result['baseline_rmssd70'] = None
-        result['baseline_ln_rmssd70'] = None
-        result['baseline_sdnn'] = None
-        result['baseline_pnn50'] = None
-        result['baseline_hrv_range'] = None
-    
-    return result
 
 
 # ==============================================================================
