@@ -859,12 +859,28 @@ async def export_pdf(request: ExportRequest):
                     summary_rows.append([f'Drug pNN50₇₀ ({drug_hrv_range})', f"{drug_pnn50:.1f}%"])
             
             # Analysis Summary - only essential info
-            if request.summary:
+            if request.summary or request.perfusion_params:
                 summary_rows.append(['', ''])  # Separator
-                allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range', 'Light Stimulation']
-                for k, v in request.summary.items():
-                    if v is not None and k in allowed_keys:
-                        summary_rows.append([k, str(v)])
+                
+                if request.summary:
+                    allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range']
+                    for k, v in request.summary.items():
+                        if v is not None and k in allowed_keys:
+                            summary_rows.append([k, str(v)])
+                
+                # Add perfusion parameters
+                if request.perfusion_params:
+                    pp = request.perfusion_params
+                    summary_rows.append(['Perfusion Start', f"{pp.get('perfusion_start', 0)} min"])
+                    summary_rows.append(['Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"])
+                    if pp.get('perfusion_time_bf') is not None:
+                        summary_rows.append(['Perfusion Time (BF)', f"{pp.get('perfusion_time_bf')} min"])
+                    if pp.get('perfusion_time_hrv') is not None:
+                        summary_rows.append(['Perfusion Time (HRV)', f"{pp.get('perfusion_time_hrv')} min"])
+                
+                # Light Stimulation status
+                if request.summary and 'Light Stimulation' in request.summary:
+                    summary_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
             
             if summary_rows:
                 table = ax_summary.table(
