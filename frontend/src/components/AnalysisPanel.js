@@ -570,7 +570,7 @@ export default function AnalysisPanel({
                   </p>
                   {selectedDrugs?.length > 0 && (
                     <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
-                      Base + Perf.Start + Perf.Time
+                      Perf.Time + Perf.Start + Perf.Delay
                     </Badge>
                   )}
                 </div>
