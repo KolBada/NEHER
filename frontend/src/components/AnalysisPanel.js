@@ -683,18 +683,20 @@ export default function AnalysisPanel({
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             Per-Minute Metrics
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
-                  <HelpCircle className="w-3 h-3" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
-                <p className="font-medium mb-2">Table Columns Explained</p>
-                <p className="text-zinc-400 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
-                <p className="text-zinc-400"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
-              </PopoverContent>
-            </Popover>
+            <TooltipProvider delayDuration={100}>
+              <ShadcnTooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="inline-flex">
+                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="w-72 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
+                  <p className="font-medium mb-2 text-zinc-100">Table Columns Explained</p>
+                  <p className="text-zinc-200 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
+                  <p className="text-zinc-200"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
+                </TooltipContent>
+              </ShadcnTooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent>
