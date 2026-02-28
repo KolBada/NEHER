@@ -387,7 +387,7 @@ def spontaneous_hrv_analysis(beat_times_min_list, bf_filtered_list, readout_minu
 
 
 # ==============================================================================
-# STEP 6 & 7: Light Stimulation Analysis
+# STEP 6 & 7: Light Stimulation Analysis (Per User Specification)
 # ==============================================================================
 def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_sec, search_range_sec=20):
     """
@@ -455,82 +455,37 @@ def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_
     return float(bt_window[first_above] * 60.0)
 
 
-def compute_light_stim_metrics(beat_times_min, bf_filtered, nn_70, pulse):
-    """
-    Compute metrics for a single light stimulation epoch.
-    Uses the full workflow: filtered BF, NN, NN_70, HRV.
-    """
-    bt = np.array(beat_times_min, dtype=np.float64)
-    bf = np.array(bf_filtered, dtype=np.float64)
-    nn70 = np.array(nn_70, dtype=np.float64)
-    nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
-    
-    # Mask for this pulse
-    p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min'])
-    
-    bf_stim = bf[p_mask]
-    nn_stim = nn[p_mask]
-    nn70_stim = nn70[p_mask]
-    
-    # Valid counts (non-NaN)
-    valid_bf = bf_stim[~np.isnan(bf_stim)]
-    valid_nn = nn_stim[~np.isnan(nn_stim)]
-    valid_nn70 = nn70_stim[~np.isnan(nn70_stim)]
-    
-    if len(valid_bf) < 2:
-        return None
-    
-    n_beats = len(valid_bf)
-    avg_bf = float(np.mean(valid_bf))
-    avg_nn = float(np.mean(valid_nn)) if len(valid_nn) > 0 else None
-    avg_nn_70 = float(np.mean(valid_nn70)) if len(valid_nn70) > 0 else None
-    
-    # HRV metrics from NN_70
-    hrv = compute_hrv_for_nn_segment(valid_nn70)
-    rmssd = hrv[0] if hrv else None
-    sdnn = hrv[1] if hrv else None
-    pnn50 = hrv[2] if hrv else None
-    ln_rmssd = float(np.log(rmssd)) if rmssd and rmssd > 0 else None
-    
-    return {
-        'n_beats': n_beats,
-        'avg_bf': avg_bf,
-        'avg_nn': avg_nn,
-        'avg_nn_70': avg_nn_70,
-        'rmssd70': rmssd,
-        'ln_rmssd70': ln_rmssd,
-        'sdnn': sdnn,
-        'pnn50': pnn50,
-    }
-
-
 def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
     """
     Compute light response metrics per stimulation pulse.
-    Includes: Peak HR, Time to Peak, Rate of Change (normalized slope), Amplitude.
+    
+    Per the specification:
+    - Baseline: mean(BF_k,filt) in [S_j - 1 min, S_j) for each stim
+    - PeakBF_j: max(BF_k,filt) within [S_j, E_j]
+    - TimeToPeak_j: (t_peak_j - S_j) * 60 seconds
+    - PeakBF_norm_j: 100 * PeakBF_j / BF_base_j
+    - Amplitude_j: PeakBF_j - BF_end_j (last beat inside stim, NOT baseline)
+    - RateOfChange_j: slope / BF_mean_j (1/min, normalized)
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
     
     # Remove NaN for calculations
     valid_mask = ~np.isnan(bf)
-    
-    nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
-    nn_70 = normalize_nn_70_windowing(beat_times_min_list, nn.tolist())
-    nn_70 = np.array(nn_70, dtype=np.float64)
-
-    # Baseline from 2-1 minutes before first stimulation
-    first_start_min = pulses[0]['start_min']
-    baseline_mask = (bt >= first_start_min - 2.0) & (bt < first_start_min - 1.0) & valid_mask
-    baseline_bf = float(np.mean(bf[baseline_mask])) if np.sum(baseline_mask) > 0 else None
 
     per_stim = []
     for pulse in pulses:
-        p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min']) & valid_mask
+        S_j = pulse['start_min']
+        E_j = pulse['end_min']
+        
+        # Baseline for this stim: [S_j - 1 min, S_j)
+        baseline_mask = (bt >= S_j - 1.0) & (bt < S_j) & valid_mask
+        BF_base_j = float(np.mean(bf[baseline_mask])) if np.sum(baseline_mask) > 0 else None
+        
+        # Stim window data
+        p_mask = (bt >= S_j) & (bt < E_j) & valid_mask
         bf_stim = bf[p_mask]
         bt_stim = bt[p_mask]
-        nn_stim = nn[p_mask]
-        nn70_stim = nn_70[p_mask]
 
         if len(bf_stim) < 2:
             per_stim.append(None)
@@ -538,59 +493,48 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 
         # Basic metrics
         n_beats = int(np.sum(p_mask))
-        mean_bf_stim = float(np.mean(bf_stim))
-        avg_nn = float(np.nanmean(nn_stim))
-        avg_nn_70 = float(np.nanmean(nn70_stim)) if np.sum(~np.isnan(nn70_stim)) > 0 else avg_nn
+        BF_mean_j = float(np.mean(bf_stim))
+        
+        # NN for this stim
+        nn_stim = 60000.0 / bf_stim
 
-        # Peak HR
-        peak_bf = float(np.max(bf_stim))
+        # Peak metrics
+        PeakBF_j = float(np.max(bf_stim))
         peak_idx = int(np.argmax(bf_stim))
-        time_to_peak_sec = float((bt_stim[peak_idx] - pulse['start_min']) * 60.0)
+        t_peak_j = float(bt_stim[peak_idx])
+        TimeToPeak_j = float((t_peak_j - S_j) * 60.0)  # seconds
         
-        # Peak relative to baseline
-        peak_norm = float(100.0 * peak_bf / baseline_bf) if baseline_bf and baseline_bf > 0 else None
-        peak_diff = float(peak_bf - baseline_bf) if baseline_bf else None
-
-        # Amplitude: peak - last beat before drop (return to near baseline)
-        post_peak_bf = bf_stim[peak_idx:]
-        if len(post_peak_bf) > 2 and baseline_bf:
-            drop_threshold = baseline_bf * 1.05
-            below_threshold = post_peak_bf < drop_threshold
-            if np.any(below_threshold):
-                drop_idx = np.argmax(below_threshold)
-                pre_drop_idx = peak_idx + max(0, drop_idx - 1)
-                pre_drop_bf = float(bf_stim[pre_drop_idx])
-            else:
-                pre_drop_bf = float(bf_stim[-1])
-        else:
-            pre_drop_bf = peak_bf
-            
-        amplitude = float(peak_bf - pre_drop_bf)
-
-        # Slope (rate of change): bpm/min, normalized by mean BF
-        t_min = bt_stim - bt_stim[0]  # time in minutes from stim start
-        if len(t_min) > 1:
-            coeffs = np.polyfit(t_min, bf_stim, 1)
-            slope_bpm_per_min = float(coeffs[0])
-        else:
-            slope_bpm_per_min = 0.0
+        # Normalized peak (%)
+        PeakBF_norm_j = float(100.0 * PeakBF_j / BF_base_j) if BF_base_j and BF_base_j > 0 else None
         
-        norm_slope = float(slope_bpm_per_min / mean_bf_stim) if mean_bf_stim > 0 else None
+        # Amplitude: PeakBF - last BF inside stim window (NOT baseline)
+        BF_end_j = float(bf_stim[-1])  # Last beat inside stim
+        Amplitude_j = float(PeakBF_j - BF_end_j)
+
+        # Rate of Change: normalized slope (1/min)
+        # Linear regression: BF = a + b * t_rel where t_rel = t - S_j
+        t_rel = bt_stim - S_j  # time in minutes from stim start
+        if len(t_rel) > 1:
+            coeffs = np.polyfit(t_rel, bf_stim, 1)
+            slope_b = float(coeffs[0])  # bpm per minute
+        else:
+            slope_b = 0.0
+        
+        # Normalized: RateOfChange = slope / BF_mean (1/min)
+        RateOfChange_j = float(slope_b / BF_mean_j) if BF_mean_j > 0 else None
 
         per_stim.append({
             'pulse_index': pulse['index'],
             'n_beats': n_beats,
-            'avg_bf': mean_bf_stim,
-            'avg_nn': avg_nn,
-            'nn_70': avg_nn_70,
-            'peak_bf': peak_bf,
-            'peak_norm_pct': peak_norm,
-            'peak_diff': peak_diff,
-            'time_to_peak_sec': time_to_peak_sec,
-            'slope': slope_bpm_per_min,
-            'norm_slope': norm_slope,
-            'amplitude': amplitude,
-            'pre_drop_bf': pre_drop_bf,
+            'avg_bf': BF_mean_j,
+            'avg_nn': float(np.mean(nn_stim)),
+            'baseline_bf': BF_base_j,
+            'peak_bf': PeakBF_j,
+            'peak_norm_pct': PeakBF_norm_j,
+            'time_to_peak_sec': TimeToPeak_j,
+            'amplitude': Amplitude_j,
+            'bf_end': BF_end_j,
+            'rate_of_change': RateOfChange_j,
         })
 
     # Aggregate across stimulations
@@ -599,41 +543,44 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         def safe_mean(key):
             vals = [s[key] for s in valid if s.get(key) is not None]
             return float(np.mean(vals)) if vals else None
-        
-        def safe_median(key):
-            vals = [s[key] for s in valid if s.get(key) is not None]
-            return float(np.median(vals)) if vals else None
 
-        # Average for BF-based metrics
         mean_metrics = {
             'n_beats': safe_mean('n_beats'),
             'avg_bf': safe_mean('avg_bf'),
             'avg_nn': safe_mean('avg_nn'),
-            'nn_70': safe_mean('nn_70'),
+            'baseline_bf': safe_mean('baseline_bf'),
             'peak_bf': safe_mean('peak_bf'),
             'peak_norm_pct': safe_mean('peak_norm_pct'),
-            'peak_diff': safe_mean('peak_diff'),
             'time_to_peak_sec': safe_mean('time_to_peak_sec'),
-            'slope': safe_mean('slope'),
-            'norm_slope': safe_mean('norm_slope'),
             'amplitude': safe_mean('amplitude'),
+            'rate_of_change': safe_mean('rate_of_change'),
         }
     else:
         mean_metrics = None
 
-    return per_stim, mean_metrics, baseline_bf
+    # Global baseline (for backward compatibility) - from 1 min before first stim
+    first_start_min = pulses[0]['start_min'] if pulses else 0
+    global_baseline_mask = (bt >= first_start_min - 1.0) & (bt < first_start_min) & valid_mask
+    global_baseline_bf = float(np.mean(bf[global_baseline_mask])) if np.sum(global_baseline_mask) > 0 else None
+
+    return per_stim, mean_metrics, global_baseline_bf
 
 
 def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
     """
-    Compute HRV metrics for each light stimulation pulse.
+    Compute Light-Induced HRV metrics per the specification:
     
-    Algorithm:
-    1. Calculate median BF from the first 30-second bin of all light stim data
-    2. Use this as the reference: AVG_NN_ref = 60000 / median_BF
-    3. For ALL light stim data: NN_70 = NN * (857 / AVG_NN_ref)
-    4. For each stimulus, calculate HRV metrics from the normalized NN_70
-    5. Return per-pulse metrics and median across pulses
+    For each stim j:
+    1. NN_k,filt = 60000 / BF_k,filt
+    2. NN_k,70 = NN_k,filt * (857 / median(NN_k,filt within stim))
+       Note: Each stim uses its OWN median NN as reference
+    3. Compute RMSSD_j, SDNN_j, pNN50_j from normalized NN_70
+    
+    Aggregate across 5 stims:
+    - RMSSD70,win_light = median(RMSSD_j)
+    - HRV_light = ln(RMSSD70,win_light)
+    - SDNN_light = median(SDNN_j)
+    - pNN50_light = median(pNN50_j)
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
@@ -643,52 +590,30 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
 
     if len(pulses) == 0:
         return {'per_pulse': [], 'final': None}
-    
-    # Step 1: Get all data within the light stim period (from first to last pulse)
-    first_pulse_start = pulses[0]['start_min']
-    last_pulse_end = pulses[-1]['end_min']
-    
-    light_mask = (bt >= first_pulse_start) & (bt <= last_pulse_end)
-    bf_light = bf[light_mask]
-    
-    # Remove NaN values for calculating reference
-    valid_bf = bf_light[~np.isnan(bf_light)]
-    
-    if len(valid_bf) < 3:
-        return {'per_pulse': [None] * len(pulses), 'final': None}
-    
-    # Step 2: Calculate reference from MEDIAN BF of first 30-second bin
-    # First bin = first 30 seconds of light stim data
-    first_bin_end = first_pulse_start + 0.5  # 30 seconds = 0.5 min
-    first_bin_mask = (bt >= first_pulse_start) & (bt < first_bin_end) & (~np.isnan(bf))
-    bf_first_bin = bf[first_bin_mask]
-    
-    if len(bf_first_bin) > 0:
-        median_bf_ref = float(np.median(bf_first_bin))
-    else:
-        median_bf_ref = float(np.median(valid_bf))
-    
-    avg_nn_ref = 60000.0 / median_bf_ref
-    norm_factor = 857.0 / avg_nn_ref
-    
-    # Step 3: Normalize ALL light stim NN values using this single reference
-    nn_70_all = nn * norm_factor  # Apply to all data
-    
+
     per_pulse = []
     for pulse in pulses:
-        # Step 4: Extract data for this pulse
-        p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min'])
-        nn_70_pulse = nn_70_all[p_mask]
+        S_j = pulse['start_min']
+        E_j = pulse['end_min']
         
-        # Filter out NaN values
-        valid_nn70 = nn_70_pulse[~np.isnan(nn_70_pulse)]
+        # Extract data for this stim
+        p_mask = (bt >= S_j) & (bt < E_j) & (~np.isnan(nn))
+        nn_stim = nn[p_mask]
         
-        if len(valid_nn70) < 3:
+        if len(nn_stim) < 3:
             per_pulse.append(None)
             continue
         
-        # Step 5: Calculate HRV metrics from normalized NN_70
-        hrv = compute_hrv_for_nn_segment(valid_nn70)
+        # Step 1: Calculate median NN for THIS stim as reference
+        median_nn_stim = float(np.median(nn_stim))
+        
+        # Step 2: Normalize NN to 70 bpm using this stim's median
+        # NN_70 = NN * (857 / median_NN_of_this_stim)
+        norm_factor = 857.0 / median_nn_stim
+        nn_70_stim = nn_stim * norm_factor
+        
+        # Step 3: Calculate HRV metrics from normalized NN_70
+        hrv = compute_hrv_for_nn_segment(nn_70_stim)
         if hrv:
             rmssd, sdnn, pnn50 = hrv
             ln_rmssd = float(np.log(rmssd)) if rmssd > 0 else None
@@ -697,23 +622,23 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
                 'ln_rmssd70': ln_rmssd,
                 'sdnn': float(sdnn),
                 'pnn50': float(pnn50),
-                'n_beats': int(len(valid_nn70)),
-                'median_bf_ref': median_bf_ref,
+                'n_beats': int(len(nn_stim)),
+                'median_nn_ref': median_nn_stim,
                 'norm_factor': float(norm_factor),
             })
         else:
             per_pulse.append(None)
 
-    # Step 6: Median across pulses for final HRV metrics
+    # Step 4: Median across pulses for final HRV metrics
     valid = [p for p in per_pulse if p is not None]
     if valid:
+        rmssd_median = float(np.median([p['rmssd70'] for p in valid]))
         final = {
-            'rmssd70': float(np.median([p['rmssd70'] for p in valid])),
-            'ln_rmssd70': float(np.median([p['ln_rmssd70'] for p in valid if p['ln_rmssd70'] is not None])) if any(p['ln_rmssd70'] is not None for p in valid) else None,
+            'rmssd70': rmssd_median,
+            'ln_rmssd70': float(np.log(rmssd_median)) if rmssd_median > 0 else None,
             'sdnn': float(np.median([p['sdnn'] for p in valid])),
             'pnn50': float(np.median([p['pnn50'] for p in valid])),
             'n_pulses_valid': len(valid),
-            'median_bf_ref': median_bf_ref,
         }
     else:
         final = None
