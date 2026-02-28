@@ -48,44 +48,118 @@ function formatTimeMinSec(minutes) {
 
 // Inline BF chart component for the Trace tab
 function BFChart({ metrics, lightPulses }) {
+  const [zoomDomain, setZoomDomain] = useState(null);
+  const containerRef = useRef(null);
+  
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
     time: t,
     bf: metrics.filtered_bf_bpm[i],
   }));
+  
+  const timeBounds = useMemo(() => {
+    if (!data.length) return { min: 0, max: 1 };
+    return {
+      min: Math.min(...data.map(d => d.time)),
+      max: Math.max(...data.map(d => d.time))
+    };
+  }, [data]);
+  
+  // Filtered data based on zoom
+  const filteredData = useMemo(() => {
+    if (!zoomDomain) return data;
+    return data.filter(d => d.time >= zoomDomain[0] && d.time <= zoomDomain[1]);
+  }, [data, zoomDomain]);
+  
+  // Handle wheel zoom (trackpad)
+  const handleWheel = useCallback((e) => {
+    if (!containerRef.current || !data.length) return;
+    
+    // Only zoom with ctrl/cmd key or pinch gesture
+    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+    
+    e.preventDefault();
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const chartWidth = rect.width - 60;
+    const mouseRatio = Math.max(0, Math.min(1, (mouseX - 10) / chartWidth));
+    
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const currentRange = currentMax - currentMin;
+    
+    const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+    const newRange = Math.max(0.1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
+    
+    const mouseTime = currentMin + mouseRatio * currentRange;
+    let newMin = mouseTime - mouseRatio * newRange;
+    let newMax = mouseTime + (1 - mouseRatio) * newRange;
+    
+    if (newMin < timeBounds.min) {
+      newMin = timeBounds.min;
+      newMax = Math.min(timeBounds.max, newMin + newRange);
+    }
+    if (newMax > timeBounds.max) {
+      newMax = timeBounds.max;
+      newMin = Math.max(timeBounds.min, newMax - newRange);
+    }
+    
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+      setZoomDomain(null);
+    } else {
+      setZoomDomain([newMin, newMax]);
+    }
+  }, [data, zoomDomain, timeBounds]);
+
+  const handleResetZoom = useCallback(() => {
+    setZoomDomain(null);
+  }, []);
+
   return (
     <div className="trace-container" data-testid="bf-chart">
-      <div className="p-2 bg-zinc-900/50 border-b border-zinc-800">
+      <div className="p-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between">
         <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
+        <div className="flex items-center gap-2">
+          {zoomDomain && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-zinc-400" onClick={handleResetZoom}>
+              <RotateCcw className="w-3 h-3 mr-1" /> Reset Zoom
+            </Button>
+          )}
+          <span className="text-[9px] text-zinc-600">Ctrl+Scroll to zoom</span>
+        </div>
       </div>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-          <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']}
-            tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-            tickFormatter={(v) => formatTimeMinSec(v)} />
-          <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
-            label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
-          <Tooltip
-            contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-            labelFormatter={(v) => formatTimeMinSec(v)}
-            formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
-          {/* Highlight light pulses */}
-          {lightPulses && lightPulses.map((pulse, i) => (
-            <ReferenceArea
-              key={`pulse-${i}`}
-              x1={pulse.start_min}
-              x2={pulse.end_min}
-              fill="#facc15"
-              fillOpacity={0.2}
-              stroke="#facc15"
-              strokeOpacity={0.5}
-              strokeWidth={1}
-            />
-          ))}
-          <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
-          <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
-        </LineChart>
-      </ResponsiveContainer>
+      <div ref={containerRef} onWheel={handleWheel} style={{ touchAction: 'pan-y' }}>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={filteredData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <XAxis dataKey="time" type="number" 
+              domain={zoomDomain || ['dataMin', 'dataMax']}
+              tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
+              tickFormatter={(v) => formatTimeMinSec(v)} />
+            <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
+              label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
+            <Tooltip
+              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
+              labelFormatter={(v) => formatTimeMinSec(v)}
+              formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
+            {/* Highlight light pulses */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea
+                key={`pulse-${i}`}
+                x1={pulse.start_min}
+                x2={pulse.end_min}
+                fill="#facc15"
+                fillOpacity={0.2}
+                stroke="#facc15"
+                strokeOpacity={0.5}
+                strokeWidth={1}
+              />
+            ))}
+            <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
+            <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
