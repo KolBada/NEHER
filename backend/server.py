@@ -272,9 +272,10 @@ async def hrv_analysis_endpoint(request: HRVAnalysisRequest):
         request.beat_times_min, request.bf_filtered, request.readout_minute
     )
     
-    # Compute baseline metrics
+    # Compute baseline metrics - pass hrv_windows to ensure numerical consistency
     baseline = analysis.compute_baseline_metrics(
         request.beat_times_min, request.bf_filtered,
+        hrv_windows=results,  # Pass pre-computed windows for HRV baseline lookup
         hrv_minute=request.baseline_hrv_minute,
         bf_minute=request.baseline_bf_minute
     )
