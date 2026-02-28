@@ -733,7 +733,7 @@ function App() {
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
                       className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
                     />
-                    <span className="text-[9px] text-zinc-500">min, Time:</span>
+                    <span className="text-[9px] text-zinc-500">min, Delay:</span>
                     <Input
                       type="number"
                       value={drug.perfusionTime}
