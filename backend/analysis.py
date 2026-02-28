@@ -468,8 +468,15 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
     - Amplitude_j: PeakBF_j - BF_end_j (last beat inside stim, NOT baseline)
     - RateOfChange_j: slope / BF_mean_j (1/min, normalized)
     """
-    bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    # Align beat times with BF intervals (N-1 values)
+    # BF intervals are computed from consecutive beat times, so we use bt[:-1] to align
+    bt_full = np.array(beat_times_min_list, dtype=np.float64)
+    if len(bt_full) > len(bf):
+        bt = bt_full[:len(bf)]  # Use first N-1 beat times to align with intervals
+    else:
+        bt = bt_full
     
     # Remove NaN for calculations
     valid_mask = ~np.isnan(bf)
