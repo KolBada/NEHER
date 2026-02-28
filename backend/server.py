@@ -1093,7 +1093,7 @@ async def export_pdf(request: ExportRequest):
             # pNN50₇₀ - FIXED Y-AXIS 0-100
             axes3[2].plot(minutes, pnn50, 'o-', color='#f97316', markersize=4, linewidth=1.5)
             axes3[2].fill_between(minutes, pnn50, alpha=0.2, color='#f97316')
-            axes3[2].set_xlabel('Window Start (min)', fontsize=11)
+            axes3[2].set_xlabel('Time (min)', fontsize=11)
             axes3[2].set_ylabel('pNN50₇₀ (%)', fontsize=11, fontweight='bold')
             axes3[2].set_ylim(0, 100)  # FIXED Y-AXIS
             # No title for chart 2
