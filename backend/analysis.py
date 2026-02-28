@@ -457,13 +457,14 @@ def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_
 
 def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
     """
-    Compute light response metrics per stimulation pulse.
+    Compute HRA (Heart Rate Acceleration) metrics per stimulation pulse.
     
     Per the specification:
-    - Baseline: mean(BF_k,filt) in [S_j - 1 min, S_j) for each stim
+    - Shared Baseline: mean(BF_k,filt) in [-2 min, -1 min) before FIRST stim
+      This same baseline is used for ALL 5 stims
     - PeakBF_j: max(BF_k,filt) within [S_j, E_j]
     - TimeToPeak_j: (t_peak_j - S_j) * 60 seconds
-    - PeakBF_norm_j: 100 * PeakBF_j / BF_base_j
+    - PeakBF_norm_j: 100 * PeakBF_j / BF_base (%)
     - Amplitude_j: PeakBF_j - BF_end_j (last beat inside stim, NOT baseline)
     - RateOfChange_j: slope / BF_mean_j (1/min, normalized)
     """
@@ -472,15 +473,22 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
     
     # Remove NaN for calculations
     valid_mask = ~np.isnan(bf)
+    
+    # SHARED BASELINE: mean BF from -2 to -1 min before FIRST stimulation
+    # This is used for all 5 stims
+    first_start_min = pulses[0]['start_min'] if pulses else 0
+    shared_baseline_start = first_start_min - 2.0  # 2 min before first stim
+    shared_baseline_end = first_start_min - 1.0    # 1 min before first stim
+    shared_baseline_mask = (bt >= shared_baseline_start) & (bt < shared_baseline_end) & valid_mask
+    BF_base_shared = float(np.mean(bf[shared_baseline_mask])) if np.sum(shared_baseline_mask) > 0 else None
 
     per_stim = []
     for pulse in pulses:
         S_j = pulse['start_min']
         E_j = pulse['end_min']
         
-        # Baseline for this stim: [S_j - 1 min, S_j)
-        baseline_mask = (bt >= S_j - 1.0) & (bt < S_j) & valid_mask
-        BF_base_j = float(np.mean(bf[baseline_mask])) if np.sum(baseline_mask) > 0 else None
+        # Use the SHARED baseline for all stims
+        BF_base_j = BF_base_shared
         
         # Stim window data
         p_mask = (bt >= S_j) & (bt < E_j) & valid_mask
