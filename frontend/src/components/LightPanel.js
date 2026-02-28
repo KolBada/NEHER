@@ -677,7 +677,7 @@ export default function LightPanel({
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
                   Light-Induced HRV (NN₇₀, median across pulses)
                   <TooltipProvider>
-                    <Tooltip>
+                    <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
                       </TooltipTrigger>
@@ -690,7 +690,7 @@ export default function LightPanel({
                           <li>Final values = <strong>median</strong> across all stims</li>
                         </ul>
                       </TooltipContent>
-                    </Tooltip>
+                    </ShadcnTooltip>
                   </TooltipProvider>
                 </CardTitle>
               </CardHeader>
