@@ -453,12 +453,18 @@ async def export_xlsx(request: ExportRequest):
         style_header(ws_summary, current_row)
         current_row += 1
         
+        # Only display: Mean BF, ln(RMSSD_70), ln(SDNN_70), pNN50_70
+        baseline_bf = request.baseline.get('baseline_bf')
+        baseline_ln_rmssd = request.baseline.get('baseline_ln_rmssd70')
+        baseline_sdnn = request.baseline.get('baseline_sdnn')
+        baseline_ln_sdnn = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
+        baseline_pnn50 = request.baseline.get('baseline_pnn50')
+        
         baseline_data = [
-            ('Beat Frequency', f"{request.baseline.get('baseline_bf', 0):.1f} bpm", request.baseline.get('baseline_bf_range', '1-2 min')),
-            ('ln(RMSSD₇₀)', f"{request.baseline.get('baseline_ln_rmssd70', 0):.3f}", request.baseline.get('baseline_hrv_range', '0-3 min')),
-            ('RMSSD₇₀', f"{request.baseline.get('baseline_rmssd70', 0):.2f} ms", ''),
-            ('SDNN', f"{request.baseline.get('baseline_sdnn', 0):.2f} ms", ''),
-            ('pNN50', f"{request.baseline.get('baseline_pnn50', 0):.1f}%", ''),
+            ('Mean BF', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', request.baseline.get('baseline_bf_range', '1-2 min')),
+            ('ln(RMSSD₇₀)', f"{baseline_ln_rmssd:.3f}" if baseline_ln_rmssd else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
+            ('ln(SDNN₇₀)', f"{baseline_ln_sdnn:.3f}" if baseline_ln_sdnn else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
+            ('pNN50₇₀', f"{baseline_pnn50:.1f}%" if baseline_pnn50 is not None else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
         ]
         
         for label, value, window in baseline_data:
