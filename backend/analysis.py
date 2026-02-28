@@ -650,7 +650,6 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
         
         # Filter out NaN values
         valid_mask = ~np.isnan(nn_isolated)
-        bt_valid = bt_isolated[valid_mask]
         nn_valid = nn_isolated[valid_mask]
         
         if len(nn_valid) < 3:
