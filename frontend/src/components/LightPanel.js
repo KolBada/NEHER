@@ -843,9 +843,9 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Readout (median of 5 stims) - ONLY ln values */}
+                {/* Readout (median of 5 stims) */}
                 {medianHrv && (
-                  <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="grid grid-cols-3 gap-2 mb-4">
                     <MetricCard 
                       label="ln(RMSSD₇₀)" 
                       value={medianHrv.ln_rmssd70}
@@ -855,6 +855,12 @@ export default function LightPanel({
                       label="ln(SDNN₇₀)" 
                       value={medianHrv.ln_sdnn70}
                       tooltip="Log-transformed overall variability normalized to 70 bpm"
+                    />
+                    <MetricCard 
+                      label="pNN50₇₀" 
+                      value={medianHrv.pnn50}
+                      unit="%"
+                      tooltip="Percentage of successive intervals differing >50 ms (after 70 bpm normalization)"
                     />
                   </div>
                 )}
