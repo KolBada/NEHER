@@ -115,14 +115,15 @@ class TestHRVAnalysis:
         assert "readout" in data
         assert "baseline" in data
         
-        # Verify baseline contains expected fields
+        # Verify baseline contains expected fields (updated for new minute-based params)
         baseline = data["baseline"]
         assert "baseline_bf" in baseline
-        assert "baseline_bf_range" in baseline
+        assert "baseline_bf_minute" in baseline  # Changed from baseline_bf_range
         assert "baseline_ln_rmssd70" in baseline or baseline.get("baseline_ln_rmssd70") is None
         assert "baseline_sdnn" in baseline or baseline.get("baseline_sdnn") is None
         assert "baseline_pnn50" in baseline or baseline.get("baseline_pnn50") is None
-        assert "baseline_hrv_range" in baseline
+        assert "baseline_hrv_minute" in baseline  # Changed from baseline_hrv_range
+        assert "baseline_hrv_window" in baseline  # Window label like "0-3min"
     
     def test_hrv_analysis_default_baseline(self):
         """HRV analysis uses default baseline (HRV: 0-3min, BF: 1-2min)"""
