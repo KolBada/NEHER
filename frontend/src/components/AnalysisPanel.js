@@ -688,7 +688,7 @@ export default function AnalysisPanel({
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀ (ms)</TableHead>
                       <TableHead className="text-[10px] font-data text-cyan-600 h-7">
                         <span className="flex items-center gap-1">
-                          ln(SDNN₇₀) <HrvInfoPopover metric="SDNN" />
+                          SDNN₇₀ <HrvInfoPopover metric="SDNN" />
                         </span>
                       </TableHead>
                       <TableHead className="text-[10px] font-data text-purple-400 h-7">
