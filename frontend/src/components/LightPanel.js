@@ -67,7 +67,16 @@ export default function LightPanel({
     }
   }, [pulses, localPulses]);
 
-  const displayPulses = localPulses || pulses;
+  // Transform pulses to ensure they have start_min and end_min
+  const displayPulses = useMemo(() => {
+    const sourcePulses = localPulses || pulses;
+    if (!sourcePulses) return null;
+    return sourcePulses.map(p => ({
+      ...p,
+      start_min: p.start_min !== undefined ? p.start_min : (p.start_sec / 60),
+      end_min: p.end_min !== undefined ? p.end_min : (p.end_sec / 60),
+    }));
+  }, [localPulses, pulses]);
 
   const updateParam = (key, value) => {
     const updated = { ...localParams, [key]: value };
