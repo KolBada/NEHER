@@ -378,40 +378,38 @@ export default function AnalysisPanel({
         <CardContent>
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
-            {/* Baseline settings */}
-            <div className="space-y-2 p-3 bg-zinc-900/30 rounded-sm border border-zinc-800/50">
-              <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Baseline Settings</p>
-              <div className="flex items-center gap-2">
-                <Label className="text-[9px] text-zinc-500 w-16">HRV (min)</Label>
-                <Input
-                  type="number"
-                  value={baselineHrvStart}
-                  onChange={(e) => setBaselineHrvStart(parseFloat(e.target.value) || 0)}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                />
-                <span className="text-zinc-600 text-[10px]">-</span>
-                <Input
-                  type="number"
-                  value={baselineHrvEnd}
-                  onChange={(e) => setBaselineHrvEnd(parseFloat(e.target.value) || 3)}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                />
+            {/* Baseline settings - single minute readouts */}
+            <div className="space-y-2 p-3 bg-cyan-950/20 rounded-sm border border-cyan-800/50">
+              <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-bold">Baseline Readout</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-[9px] text-zinc-400">HRV:</Label>
+                  <Input
+                    type="number"
+                    value={baselineHrvMinute}
+                    onChange={(e) => setBaselineHrvMinute(parseInt(e.target.value) || 0)}
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                  />
+                  <span className="text-[9px] text-zinc-500">min</span>
+                  <Badge variant="outline" className="text-[8px] border-cyan-700 text-cyan-400">
+                    uses {baselineHrvMinute}-{baselineHrvMinute + 3}min window
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-[9px] text-zinc-500 w-16">BF (min)</Label>
-                <Input
-                  type="number"
-                  value={baselineBfStart}
-                  onChange={(e) => setBaselineBfStart(parseFloat(e.target.value) || 1)}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                />
-                <span className="text-zinc-600 text-[10px]">-</span>
-                <Input
-                  type="number"
-                  value={baselineBfEnd}
-                  onChange={(e) => setBaselineBfEnd(parseFloat(e.target.value) || 2)}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-[9px] text-zinc-400">BF:</Label>
+                  <Input
+                    type="number"
+                    value={baselineBfMinute}
+                    onChange={(e) => setBaselineBfMinute(parseInt(e.target.value) || 1)}
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                  />
+                  <span className="text-[9px] text-zinc-500">min</span>
+                  <Badge variant="outline" className="text-[8px] border-cyan-700 text-cyan-400">
+                    uses {baselineBfMinute}-{baselineBfMinute + 1}min
+                  </Badge>
+                </div>
               </div>
             </div>
 
