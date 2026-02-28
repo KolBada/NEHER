@@ -286,15 +286,30 @@ export default function AnalysisPanel({
         )}
       </div>
 
-      {/* BF + NN charts (filtered) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* BF + NN charts (filtered) with light stim highlights and zoom */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" ref={chartContainerRef}>
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-              Beat Frequency (Filtered) - bpm vs min
-              <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
-                {metrics.n_kept} beats
-              </Badge>
+            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                Beat Frequency (Filtered) - bpm vs min
+                <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
+                  {metrics.n_kept} beats
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
+                  <ZoomIn className="w-3 h-3 text-zinc-500" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!zoomDomain} title="Zoom Out">
+                  <Minus className="w-3 h-3 text-zinc-500" />
+                </Button>
+                {zoomDomain && (
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                    <RotateCcw className="w-3 h-3 mr-1" />Reset
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
@@ -302,8 +317,10 @@ export default function AnalysisPanel({
               <LineChart data={filteredBfData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                  domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => `${Number(v).toFixed(0)}`}
-                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
+                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
+                  type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
@@ -311,8 +328,14 @@ export default function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                 />
+                {lightPulses && lightPulses.map((pulse, i) => (
+                  <ReferenceArea key={`bf-pulse-${i}`}
+                    x1={pulse.start_min ?? (pulse.start_sec / 60)}
+                    x2={pulse.end_min ?? (pulse.end_sec / 60)}
+                    fill="#facc15" fillOpacity={0.15} stroke="#facc15" strokeOpacity={0.5}
+                  />
+                ))}
                 <Line type="monotone" dataKey="bf" stroke={CHART_COLORS.bf} strokeWidth={1} dot={false} isAnimationActive={false} />
-                <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -320,11 +343,14 @@ export default function AnalysisPanel({
 
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-              NN Intervals (Filtered) - ms vs min
-              <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
-                {metrics.n_kept} intervals
-              </Badge>
+            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                NN Intervals (Filtered) - ms vs min
+                <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
+                  {metrics.n_kept} intervals
+                </Badge>
+              </div>
+              <span className="text-[9px] text-zinc-600">Ctrl+Scroll to zoom</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
@@ -332,12 +358,30 @@ export default function AnalysisPanel({
               <LineChart data={filteredNnData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                  domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => `${Number(v).toFixed(0)}`}
-                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
+                  label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
+                  type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
+                  labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+                  formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
+                />
+                {lightPulses && lightPulses.map((pulse, i) => (
+                  <ReferenceArea key={`nn-pulse-${i}`}
+                    x1={pulse.start_min ?? (pulse.start_sec / 60)}
+                    x2={pulse.end_min ?? (pulse.end_sec / 60)}
+                    fill="#facc15" fillOpacity={0.15} stroke="#facc15" strokeOpacity={0.5}
+                  />
+                ))}
+                <Line type="monotone" dataKey="nn" stroke={CHART_COLORS.nn} strokeWidth={1} dot={false} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
                   labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
                 />
