@@ -47,7 +47,7 @@ function MetricCard({ label, value, unit, tooltip }) {
                   <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50">
+              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                 <p>{tooltip}</p>
               </TooltipContent>
             </ShadcnTooltip>
