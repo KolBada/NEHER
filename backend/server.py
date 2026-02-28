@@ -1200,31 +1200,33 @@ async def export_pdf(request: ExportRequest):
                 headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀\n(ms)', 'ln(SDNN₇₀)', 'SDNN₇₀\n(ms)', 'pNN50₇₀\n(%)']
                 table_data = []
                 for i, row in enumerate(valid_hrv):
+                    ln_rmssd = row.get('ln_rmssd70')
+                    ln_sdnn = row.get('ln_sdnn70')
                     table_data.append([
                         str(i + 1),
-                        f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—',
+                        f"{ln_rmssd:.3f}" if ln_rmssd is not None else "0.000",
                         f"{row.get('rmssd70', 0):.3f}",
-                        f"{row.get('ln_sdnn70', 0):.3f}" if row.get('ln_sdnn70') else '—',
+                        f"{ln_sdnn:.3f}" if ln_sdnn is not None else "0.000",
                         f"{row.get('sdnn', 0):.3f}",
                         f"{row.get('pnn50', 0):.3f}",
                     ])
                 
-                # Add median row (Readout) - ALL metrics
-                rmssd_vals = [r['rmssd70'] for r in valid_hrv if r.get('rmssd70')]
-                sdnn_vals = [r['sdnn'] for r in valid_hrv if r.get('sdnn')]
-                pnn50_vals = [r['pnn50'] for r in valid_hrv if r.get('pnn50') is not None]
+                # Add median row (Readout) - ALL metrics with values (even if 0)
+                rmssd_vals = [r.get('rmssd70', 0) for r in valid_hrv]
+                sdnn_vals = [r.get('sdnn', 0) for r in valid_hrv]
+                pnn50_vals = [r.get('pnn50', 0) for r in valid_hrv]
                 
                 median_rmssd = float(np.median(rmssd_vals)) if rmssd_vals else 0
                 median_sdnn = float(np.median(sdnn_vals)) if sdnn_vals else 0
-                median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0.0
-                ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
-                ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
+                median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0
+                ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else 0
+                ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else 0
                 
                 table_data.append([
                     'Median',
-                    f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—',
+                    f"{ln_median_rmssd:.3f}",
                     f"{median_rmssd:.3f}",
-                    f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—',
+                    f"{ln_median_sdnn:.3f}",
                     f"{median_sdnn:.3f}",
                     f"{median_pnn50:.3f}",
                 ])
