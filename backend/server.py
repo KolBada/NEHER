@@ -1052,6 +1052,74 @@ async def export_pdf(request: ExportRequest):
             pdf.savefig(fig2)
             plt.close(fig2)
 
+        # Page 2b: Normalized BF and NN (baseline = AVG between 1-2 min)
+        if request.per_beat_data:
+            kept_data = [r for r in request.per_beat_data if r.get('status') == 'kept']
+            
+            if kept_data:
+                times = [r.get('time_min', 0) for r in kept_data]
+                bfs = [r.get('bf_bpm', 0) for r in kept_data]
+                nns = [r.get('nn_ms', 0) for r in kept_data]
+                
+                # Calculate baseline (AVG between 1-2 min)
+                baseline_bf_vals = [bf for t, bf in zip(times, bfs) if 1.0 <= t < 2.0]
+                baseline_nn_vals = [nn for t, nn in zip(times, nns) if 1.0 <= t < 2.0]
+                
+                baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else np.mean(bfs)
+                baseline_nn = np.mean(baseline_nn_vals) if baseline_nn_vals else np.mean(nns)
+                
+                # Normalize: value / baseline * 100 (as percentage)
+                bfs_norm = [(bf / baseline_bf * 100) if baseline_bf > 0 else 100 for bf in bfs]
+                nns_norm = [(nn / baseline_nn * 100) if baseline_nn > 0 else 100 for nn in nns]
+                
+                fig2b, axes2b = plt.subplots(2, 1, figsize=(8.5, 11))
+                fig2b.suptitle('Normalized Beat Frequency and NN Intervals\n(Baseline: AVG between 1-2 min)', 
+                              fontsize=14, fontweight='bold', y=0.96)
+                
+                # Normalized BF plot
+                axes2b[0].plot(times, bfs_norm, 'o-', color='#0ea5e9', markersize=2, linewidth=0.8, alpha=0.8)
+                axes2b[0].axhline(y=100, color='#64748b', linestyle='--', linewidth=1, alpha=0.7, label='Baseline (100%)')
+                axes2b[0].set_xlabel('Time (min)', fontsize=11)
+                axes2b[0].set_ylabel('Normalized BF (%)', fontsize=11)
+                axes2b[0].set_title(f'Normalized Beat Frequency (Baseline: {baseline_bf:.1f} bpm)', fontsize=12, fontweight='bold', pad=10)
+                axes2b[0].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+                axes2b[0].set_facecolor('#fafafa')
+                axes2b[0].spines['top'].set_visible(False)
+                axes2b[0].spines['right'].set_visible(False)
+                axes2b[0].legend(loc='upper right', fontsize=8)
+                
+                # Add light stimulation zones to normalized BF plot
+                if request.light_pulses:
+                    for i, pulse in enumerate(request.light_pulses):
+                        start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
+                        end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
+                        axes2b[0].axvspan(start_min, end_min, alpha=0.15, color='#f59e0b')
+                        axes2b[0].axvline(x=start_min, color='#f59e0b', linestyle='--', linewidth=0.8, alpha=0.6)
+                
+                # Normalized NN plot
+                axes2b[1].plot(times, nns_norm, 'o-', color='#22c55e', markersize=2, linewidth=0.8, alpha=0.8)
+                axes2b[1].axhline(y=100, color='#64748b', linestyle='--', linewidth=1, alpha=0.7, label='Baseline (100%)')
+                axes2b[1].set_xlabel('Time (min)', fontsize=11)
+                axes2b[1].set_ylabel('Normalized NN (%)', fontsize=11)
+                axes2b[1].set_title(f'Normalized NN Interval (Baseline: {baseline_nn:.1f} ms)', fontsize=12, fontweight='bold', pad=10)
+                axes2b[1].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+                axes2b[1].set_facecolor('#fafafa')
+                axes2b[1].spines['top'].set_visible(False)
+                axes2b[1].spines['right'].set_visible(False)
+                axes2b[1].legend(loc='upper right', fontsize=8)
+                
+                # Add light stimulation zones to normalized NN plot
+                if request.light_pulses:
+                    for i, pulse in enumerate(request.light_pulses):
+                        start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
+                        end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
+                        axes2b[1].axvspan(start_min, end_min, alpha=0.15, color='#f59e0b')
+                        axes2b[1].axvline(x=start_min, color='#f59e0b', linestyle='--', linewidth=0.8, alpha=0.6)
+                
+                plt.tight_layout(rect=[0, 0.02, 1, 0.94])
+                pdf.savefig(fig2b)
+                plt.close(fig2b)
+
         # Page 3: HRV evolution with FIXED Y-AXIS SCALES
         if request.hrv_windows:
             fig3, axes3 = plt.subplots(3, 1, figsize=(8.5, 11))
