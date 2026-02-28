@@ -810,6 +810,7 @@ function App() {
               selectedDrugs={selectedDrugs}
               otherDrugs={otherDrugs}
               DRUG_CONFIG={DRUG_CONFIG}
+              lightPulses={lightPulses}
             />
           </TabsContent>
 
