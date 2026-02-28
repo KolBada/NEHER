@@ -456,20 +456,29 @@ function App() {
 
     // Calculate drug readout timing for export highlighting
     let drugReadout = null;
+    let perfusionParams = null;
     if (selectedDrugs.length > 0) {
       const primaryDrug = selectedDrugs[0];
       const config = DRUG_CONFIG[primaryDrug];
       const settings = drugSettings[primaryDrug] || {};
       if (config) {
         const perfStart = settings.perfusionStart ?? config.defaultPerfStart ?? 3;
-        const perfTime = settings.perfusionTime ?? config.defaultPerfTime ?? 3;
-        const baseBfReadout = config.bfReadout;
-        const baseHrvReadout = config.hrvReadout;
+        const perfDelay = settings.perfusionTime ?? config.defaultPerfTime ?? 3;  // Now called Perfusion Delay
+        const baseBfReadout = config.bfReadout;  // This is Perfusion Time for BF
+        const baseHrvReadout = config.hrvReadout;  // This is Perfusion Time for HRV
+        
+        // Store perfusion parameters for export
+        perfusionParams = {
+          perfusion_start: perfStart,
+          perfusion_delay: perfDelay,
+          perfusion_time_bf: baseBfReadout,
+          perfusion_time_hrv: baseHrvReadout,
+        };
         
         if (baseBfReadout !== null) {
           drugReadout = {
-            bf_minute: Math.floor(baseBfReadout + perfStart + perfTime),
-            hrv_minute: baseHrvReadout !== null ? Math.floor(baseHrvReadout + perfStart + perfTime) : null,
+            bf_minute: Math.floor(baseBfReadout + perfStart + perfDelay),
+            hrv_minute: baseHrvReadout !== null ? Math.floor(baseHrvReadout + perfStart + perfDelay) : null,
           };
         }
       }
