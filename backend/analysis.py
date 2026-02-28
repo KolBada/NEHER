@@ -566,12 +566,8 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
     else:
         mean_metrics = None
 
-    # Global baseline (for backward compatibility) - from 1 min before first stim
-    first_start_min = pulses[0]['start_min'] if pulses else 0
-    global_baseline_mask = (bt >= first_start_min - 1.0) & (bt < first_start_min) & valid_mask
-    global_baseline_bf = float(np.mean(bf[global_baseline_mask])) if np.sum(global_baseline_mask) > 0 else None
-
-    return per_stim, mean_metrics, global_baseline_bf
+    # Return the shared baseline BF (from -2 to -1 min before first stim)
+    return per_stim, mean_metrics, BF_base_shared
 
 
 def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
