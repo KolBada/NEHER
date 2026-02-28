@@ -454,6 +454,27 @@ function App() {
       summary['Light Stimulation'] = 'Disabled';
     }
 
+    // Calculate drug readout timing for export highlighting
+    let drugReadout = null;
+    if (selectedDrugs.length > 0) {
+      const primaryDrug = selectedDrugs[0];
+      const config = DRUG_CONFIG[primaryDrug];
+      const settings = drugSettings[primaryDrug] || {};
+      if (config) {
+        const perfStart = settings.perfusionStart ?? config.defaultPerfStart ?? 3;
+        const perfTime = settings.perfusionTime ?? config.defaultPerfTime ?? 3;
+        const baseBfReadout = config.bfReadout;
+        const baseHrvReadout = config.hrvReadout;
+        
+        if (baseBfReadout !== null) {
+          drugReadout = {
+            bf_minute: Math.floor(baseBfReadout + perfStart + perfTime),
+            hrv_minute: baseHrvReadout !== null ? Math.floor(baseHrvReadout + perfStart + perfTime) : null,
+          };
+        }
+      }
+    }
+
     return {
       per_beat_data: perBeat,
       hrv_windows: hrvResults?.windows || null,
@@ -466,6 +487,7 @@ function App() {
       drug_used: allDrugs.length > 0 ? allDrugs.join(',') : null,
       per_minute_data: perMinuteData,
       baseline: hrvResults?.baseline,
+      drug_readout: drugReadout,
     };
   }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses]);
 
