@@ -15,14 +15,14 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Tooltip,
+  Tooltip as ShadcnTooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceArea
+  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea
 } from 'recharts';
 
 // Format time as "Xmin Ys" or "X.Xmin"
