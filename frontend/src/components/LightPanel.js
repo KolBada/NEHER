@@ -674,8 +674,24 @@ export default function LightPanel({
           {lightHrv && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400">
-                  Light-Induced HRV (using NN₇₀, median across pulses)
+                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+                  Light-Induced HRV (NN₇₀, median across pulses)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700">
+                        <p className="font-semibold mb-1">Light HRV Formula:</p>
+                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-300">
+                          <li><strong>NN₇₀ = NN × (857 / median(NN))</strong> for each stim</li>
+                          <li>Each stim uses its OWN median NN as reference</li>
+                          <li>SDNN, RMSSD, pNN50 computed from normalized NN₇₀</li>
+                          <li>Final values = <strong>median</strong> across all stims</li>
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardTitle>
               </CardHeader>
               <CardContent>
