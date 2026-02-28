@@ -1081,6 +1081,7 @@ async def export_pdf(request: ExportRequest):
                 axes2b[0].axhline(y=100, color='#64748b', linestyle='--', linewidth=1, alpha=0.7, label='Baseline (100%)')
                 axes2b[0].set_xlabel('Time (min)', fontsize=11)
                 axes2b[0].set_ylabel('Normalized BF (%)', fontsize=11)
+                axes2b[0].set_ylim(0, 200)  # Fixed Y-axis 0-200%
                 axes2b[0].set_title(f'Normalized Beat Frequency (Baseline: {baseline_bf:.1f} bpm)', fontsize=12, fontweight='bold', pad=10)
                 axes2b[0].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
                 axes2b[0].set_facecolor('#fafafa')
