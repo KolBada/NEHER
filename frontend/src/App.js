@@ -76,9 +76,10 @@ function BFChart({ metrics, lightPulses }) {
               x1={pulse.start_min}
               x2={pulse.end_min}
               fill="#facc15"
-              fillOpacity={0.1}
+              fillOpacity={0.2}
               stroke="#facc15"
-              strokeOpacity={0.3}
+              strokeOpacity={0.5}
+              strokeWidth={1}
             />
           ))}
           <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
