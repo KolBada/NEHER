@@ -49,16 +49,17 @@ Baseline and Drug readouts now display in this exact order:
 - Detects 5 stimulation epochs
 - Manual boundary adjustment supported
 
-#### Per-Stim Metrics (HRA - Heart Rate Adaptation)
+#### Per-Stim Metrics (HRA - Heart Rate Acceleration)
 For each stim j with window [S_j, E_j]:
-- **Baseline BF**: mean(BF_k,filt) in [S_j - 1 min, S_j)
+- **Shared Baseline BF**: mean(BF_k,filt) from -2 to -1 min before FIRST stim
+  - This same baseline is used for ALL 5 stims (not per-stim baseline)
 - **PeakBF_j**: max(BF_k,filt) within stim
 - **TimeToPeak_j**: (t_peak_j - S_j) × 60 seconds
-- **PeakBF_norm_j**: 100 × PeakBF_j / BF_base_j (%)
+- **PeakBF_norm_j**: 100 × PeakBF_j / BF_base (%)
 - **Amplitude_j**: PeakBF_j - BF_end_j (where BF_end_j = last beat INSIDE stim, NOT baseline)
 - **RateOfChange_j**: (slope b) / BF_mean_j (1/min, normalized)
 
-#### Light-Induced HRV (Updated Algorithm - VERIFIED)
+#### Light-Induced HRV (Updated Algorithm - Dec 2025)
 For each stim j:
 1. NN_k,filt = 60000 / BF_k,filt
 2. **NN_k,70 = NN_k,filt × (857 / median(NN_k,filt within THIS stim))**
@@ -71,7 +72,7 @@ Aggregate:
 - SDNN_light = median(SDNN_j)
 - pNN50_light = median(pNN50_j)
 
-**Algorithm Verified**: Tested against F18 Excel data - all 5 stims match expected values exactly when using same input data.
+**Validation Status**: Algorithm validated against 4D030006.abf - Stims 2, 3, 5 match expected values within 0.1 ms. Stims 1, 4 show differences due to beat detection variations.
 
 ### Charts & Visualization
 - [x] Light pulse highlights on ALL traces
