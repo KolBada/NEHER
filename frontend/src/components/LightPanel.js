@@ -564,7 +564,8 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-5 gap-2">
+                {/* Visual pulse cards */}
+                <div className="grid grid-cols-5 gap-2 mb-4">
                   {displayPulses.map((p, i) => (
                     <div 
                       key={i} 
@@ -582,6 +583,86 @@ export default function LightPanel({
                     </div>
                   ))}
                 </div>
+
+                {/* Manual edit table */}
+                <Separator className="bg-zinc-800 my-3" />
+                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-2">
+                  Manual Stim Boundaries
+                  <TooltipProvider>
+                    <ShadcnTooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700">
+                        Edit the start and end times directly. Changes apply after clicking "Apply Changes".
+                      </TooltipContent>
+                    </ShadcnTooltip>
+                  </TooltipProvider>
+                </p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-zinc-800 hover:bg-transparent">
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7 w-16">Stim</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Start (min)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">End (min)</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Duration (s)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {displayPulses.map((p, i) => (
+                        <TableRow 
+                          key={i} 
+                          className={`border-zinc-800/50 ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
+                        >
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
+                          <TableCell className="py-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={p.start_min.toFixed(2)}
+                              onChange={(e) => handleManualPulseEdit(i, 'start_min', parseFloat(e.target.value))}
+                              className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                            />
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={p.end_min.toFixed(2)}
+                              onChange={(e) => handleManualPulseEdit(i, 'end_min', parseFloat(e.target.value))}
+                              className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                            />
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">
+                            {((p.end_min - p.start_min) * 60).toFixed(1)}s
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Apply/Reset buttons */}
+                {pulsesModified && (
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                      onClick={handleResetPulses}
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" /> Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-black"
+                      onClick={handleApplyPulseChanges}
+                    >
+                      Apply Changes & Recompute
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
