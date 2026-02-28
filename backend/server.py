@@ -1089,7 +1089,7 @@ async def export_pdf(request: ExportRequest):
                 axes3[1].fill_between(valid_minutes, valid_ln_sdnn, alpha=0.2, color='#a855f7')
             axes3[1].set_ylabel('ln(SDNN₇₀)', fontsize=11, fontweight='bold')
             axes3[1].set_ylim(0, 8)  # FIXED Y-AXIS 0-8
-            axes3[1].set_title('ln(SDNN20872080)', fontsize=10, pad=8)
+            axes3[1].set_title('ln(SDNN$_{70}$)', fontsize=10, pad=8)
             axes3[1].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
             axes3[1].set_facecolor('#fafafa')
             axes3[1].spines['top'].set_visible(False)
