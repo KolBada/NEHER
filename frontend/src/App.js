@@ -746,7 +746,7 @@ function App() {
             </TabsTrigger>
             <TabsTrigger value="analysis" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
                          disabled={!isValidated} data-testid="tab-analysis">
-              <BarChart3 className="w-3 h-3" /> Analysis
+              <BarChart3 className="w-3 h-3" /> Spontaneous Activity
             </TabsTrigger>
             <TabsTrigger value="light" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
                          disabled={!isValidated} data-testid="tab-light">
