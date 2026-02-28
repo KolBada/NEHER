@@ -81,22 +81,34 @@ Aggregate:
 
 ### Export Features (Updated Feb 28, 2026)
 
-#### Summary Sheet
-Only displays:
-- Mean BF
-- ln(RMSSD₇₀)
-- ln(SDNN₇₀)
-- pNN50₇₀
+#### Summary Sheet Structure
+1. **Baseline Metrics** section:
+   - Mean BF (1-2 min)
+   - ln(RMSSD₇₀) (0-3 min)
+   - ln(SDNN₇₀) (0-3 min)
+   - pNN50₇₀ (0-3 min)
+   - Time window shown in parentheses next to each metric
+
+2. **Drug Metrics** section (when drug selected):
+   - Same 4 metrics as Baseline
+   - Drug-specific time windows displayed
+   - Purple highlight for visual distinction
+
+3. **Analysis Summary** section:
+   - Recording Name, Drug(s) Used
+   - Total/Kept/Removed Beats, Filter Range
+   - Light Stimulation status
+   - **Removed:** intermediate calculations between Filter Range and Light Stimulation
 
 No raw RMSSD/SDNN, no duplicates.
 
 #### Sheet Names
-- "Per-Minute Analysis" → **Renamed to "BF Analysis"**
+- "BF Analysis" (renamed from Per-Minute Analysis)
 - "HRV Analysis" - unchanged
 
 #### Row Highlighting
-- Baseline readout row: Yellow highlight (FEF3C7)
-- Drug readout row: Purple highlight (EDE9FE)
+- Baseline row: Yellow highlight (FEF3C7) + Bold
+- Drug readout row: Purple highlight (EDE9FE) + Bold
 - Applied to both BF Analysis and HRV Analysis sheets
 
 ## Backend API
