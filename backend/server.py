@@ -556,19 +556,41 @@ async def export_xlsx(request: ExportRequest):
     # HRV windows
     if request.hrv_windows:
         ws2 = wb.create_sheet("HRV Analysis")
-        headers = ['Time Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀ (ms)', 'SDNN (ms)', 'pNN50 (%)', 'Mean BF (bpm)', 'Beat Count']
+        headers = ['Time Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀ (ms)', 'ln(SDNN₇₀)', 'SDNN (ms)', 'pNN50₇₀ (%)', 'Mean BF (bpm)', 'Beat Count']
         for col, h in enumerate(headers, 1):
             ws2.cell(row=1, column=col, value=h)
         style_header(ws2, 1, fill=header_fill_purple)
         
+        # Get baseline and drug readout minutes for highlighting
+        baseline_hrv_minute = request.baseline.get('baseline_hrv_minute', 0) if request.baseline else 0
+        drug_readout_minute = None
+        if request.drug_readout:
+            drug_readout_minute = request.drug_readout.get('hrv_minute')
+        
         for row_idx, row in enumerate(request.hrv_windows, 2):
+            sdnn_val = row.get('sdnn')
+            ln_sdnn = np.log(sdnn_val) if sdnn_val and sdnn_val > 0 else None
+            
             ws2.cell(row=row_idx, column=1, value=row.get('window', ''))
             ws2.cell(row=row_idx, column=2, value=f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—')
             ws2.cell(row=row_idx, column=3, value=f"{row.get('rmssd70', 0):.2f}" if row.get('rmssd70') else '—')
-            ws2.cell(row=row_idx, column=4, value=f"{row.get('sdnn', 0):.2f}" if row.get('sdnn') else '—')
-            ws2.cell(row=row_idx, column=5, value=f"{row.get('pnn50', 0):.1f}" if row.get('pnn50') else '—')
-            ws2.cell(row=row_idx, column=6, value=f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—')
-            ws2.cell(row=row_idx, column=7, value=row.get('n_beats', 0))
+            ws2.cell(row=row_idx, column=4, value=f"{ln_sdnn:.3f}" if ln_sdnn else '—')
+            ws2.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.2f}" if row.get('sdnn') else '—')
+            ws2.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.1f}" if row.get('pnn50') else '—')
+            ws2.cell(row=row_idx, column=7, value=f"{row.get('mean_bf', 0):.1f}" if row.get('mean_bf') else '—')
+            ws2.cell(row=row_idx, column=8, value=row.get('n_beats', 0))
+            
+            # Highlight baseline and drug readout rows
+            row_minute = row.get('minute', -1)
+            is_baseline = row_minute == baseline_hrv_minute
+            is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
+            
+            if is_baseline or is_drug:
+                highlight_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid") if is_baseline else PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+                for col in range(1, 9):
+                    cell = ws2.cell(row=row_idx, column=col)
+                    cell.fill = highlight_fill
+                    cell.font = Font(bold=True, size=10, name='Arial')
         
         style_data_rows(ws2, 2)
         auto_width(ws2)
