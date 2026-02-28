@@ -765,42 +765,90 @@ async def export_pdf(request: ExportRequest):
                       fontweight='bold', color='#7c3aed')
 
         # Summary metrics in a clean table format
-        if request.baseline or request.summary:
-            ax_summary = fig1.add_axes([0.1, 0.45, 0.8, 0.35])
+        if request.baseline or request.summary or request.drug_readout:
+            ax_summary = fig1.add_axes([0.1, 0.40, 0.8, 0.40])
             ax_summary.axis('off')
             
-            # Build summary data
+            # Build summary data - same structure as Excel Summary sheet
             summary_rows = []
             
+            # Baseline Metrics section
             if request.baseline:
                 b = request.baseline
+                baseline_bf_range = b.get('baseline_bf_range', '1-2 min')
+                baseline_hrv_range = b.get('baseline_hrv_range', '0-3 min')
+                
                 if b.get('baseline_bf'):
-                    summary_rows.append(['Baseline BF', f"{b['baseline_bf']:.1f} bpm", b.get('baseline_bf_range', '1-2 min')])
+                    summary_rows.append([f'Baseline Mean BF ({baseline_bf_range})', f"{b['baseline_bf']:.1f} bpm"])
                 if b.get('baseline_ln_rmssd70'):
-                    summary_rows.append(['Baseline ln(RMSSD₇₀)', f"{b['baseline_ln_rmssd70']:.3f}", b.get('baseline_hrv_range', '0-3 min')])
-                if b.get('baseline_rmssd70'):
-                    summary_rows.append(['Baseline RMSSD₇₀', f"{b['baseline_rmssd70']:.2f} ms", ''])
-                if b.get('baseline_sdnn'):
-                    summary_rows.append(['Baseline SDNN', f"{b['baseline_sdnn']:.2f} ms", ''])
-                if b.get('baseline_pnn50') is not None:
-                    summary_rows.append(['Baseline pNN50', f"{b['baseline_pnn50']:.1f}%", ''])
+                    summary_rows.append([f'Baseline ln(RMSSD₇₀) ({baseline_hrv_range})', f"{b['baseline_ln_rmssd70']:.3f}"])
+                baseline_sdnn = b.get('baseline_sdnn')
+                if baseline_sdnn and baseline_sdnn > 0:
+                    ln_sdnn = np.log(baseline_sdnn)
+                    summary_rows.append([f'Baseline ln(SDNN₇₀) ({baseline_hrv_range})', f"{ln_sdnn:.3f}"])
+                baseline_pnn50 = b.get('baseline_pnn50')
+                if baseline_pnn50 is not None:
+                    summary_rows.append([f'Baseline pNN50₇₀ ({baseline_hrv_range})', f"{baseline_pnn50:.1f}%"])
             
+            # Drug Metrics section (if available)
+            if request.drug_readout and request.hrv_windows:
+                drug_bf_minute = request.drug_readout.get('bf_minute')
+                drug_hrv_minute = request.drug_readout.get('hrv_minute')
+                
+                # Find drug BF from per_minute_data
+                drug_bf = None
+                if drug_bf_minute is not None and request.per_minute_data:
+                    for pm in request.per_minute_data:
+                        if pm.get('minute') == drug_bf_minute:
+                            drug_bf = pm.get('avg_bf')
+                            break
+                
+                # Find drug HRV from hrv_windows
+                drug_ln_rmssd = None
+                drug_sdnn = None
+                drug_pnn50 = None
+                if drug_hrv_minute is not None:
+                    for hw in request.hrv_windows:
+                        if hw.get('minute') == drug_hrv_minute:
+                            drug_ln_rmssd = hw.get('ln_rmssd70')
+                            drug_sdnn = hw.get('sdnn')
+                            drug_pnn50 = hw.get('pnn50')
+                            break
+                
+                drug_bf_range = f"{drug_bf_minute}-{drug_bf_minute+1} min" if drug_bf_minute is not None else '—'
+                drug_hrv_range = f"{drug_hrv_minute}-{drug_hrv_minute+3} min" if drug_hrv_minute is not None else '—'
+                
+                # Add separator
+                summary_rows.append(['', ''])
+                
+                if drug_bf:
+                    summary_rows.append([f'Drug Mean BF ({drug_bf_range})', f"{drug_bf:.1f} bpm"])
+                if drug_ln_rmssd:
+                    summary_rows.append([f'Drug ln(RMSSD₇₀) ({drug_hrv_range})', f"{drug_ln_rmssd:.3f}"])
+                if drug_sdnn and drug_sdnn > 0:
+                    summary_rows.append([f'Drug ln(SDNN₇₀) ({drug_hrv_range})', f"{np.log(drug_sdnn):.3f}"])
+                if drug_pnn50 is not None:
+                    summary_rows.append([f'Drug pNN50₇₀ ({drug_hrv_range})', f"{drug_pnn50:.1f}%"])
+            
+            # Analysis Summary - only essential info
             if request.summary:
+                summary_rows.append(['', ''])  # Separator
+                allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range', 'Light Stimulation']
                 for k, v in request.summary.items():
-                    if v is not None and k not in ['Recording Name', 'Drug(s) Used']:
-                        summary_rows.append([k, str(v), ''])
+                    if v is not None and k in allowed_keys:
+                        summary_rows.append([k, str(v)])
             
             if summary_rows:
                 table = ax_summary.table(
                     cellText=summary_rows,
-                    colLabels=['Metric', 'Value', 'Time Window'],
+                    colLabels=['Metric', 'Value'],
                     loc='center',
                     cellLoc='left',
-                    colWidths=[0.4, 0.3, 0.3]
+                    colWidths=[0.55, 0.35]
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(10)
-                table.scale(1.0, 2.0)
+                table.scale(1.0, 1.8)
                 
                 # CELL style table formatting
                 for (row, col), cell in table.get_celld().items():
@@ -808,10 +856,17 @@ async def export_pdf(request: ExportRequest):
                     if row == 0:
                         cell.set_text_props(fontweight='bold', color='white')
                         cell.set_facecolor('#2563eb')
-                        cell.set_height(0.08)
-                    else:
-                        cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f8fafc')
                         cell.set_height(0.06)
+                    else:
+                        # Highlight baseline rows (cyan) and drug rows (purple)
+                        text = cell.get_text().get_text()
+                        if 'Baseline' in text:
+                            cell.set_facecolor('#e0f2fe')  # Light blue for baseline
+                        elif 'Drug' in text:
+                            cell.set_facecolor('#ede9fe')  # Light purple for drug
+                        else:
+                            cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f8fafc')
+                        cell.set_height(0.05)
 
         # Footer
         fig1.text(0.5, 0.02, 'NeuCarS - Cardiac Electrophysiology Analysis Platform', 
