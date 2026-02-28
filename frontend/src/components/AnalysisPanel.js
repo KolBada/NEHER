@@ -660,7 +660,7 @@ export default function AnalysisPanel({
               <PopoverContent className="w-72 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
                 <p className="font-medium mb-2">Table Columns Explained</p>
                 <p className="text-zinc-400 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
-                <p className="text-zinc-400"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
+                <p className="text-zinc-400"><strong>ln(SDNN₇₀), RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
               </PopoverContent>
             </Popover>
           </CardTitle>
