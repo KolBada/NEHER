@@ -611,14 +611,45 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Mean HRA metrics */}
+                {/* Mean HRA metrics - readout (average of 5 stims) */}
                 {avgHra && (
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                    <MetricCard label="Mean Beats" value={avgHra.n_beats} />
-                    <MetricCard label="Mean BF" value={avgHra.avg_bf} unit="bpm" />
-                    <MetricCard label="Mean Peak BF" value={avgHra.peak_bf} unit="bpm" />
-                    <MetricCard label="Mean Amplitude" value={avgHra.amplitude} unit="bpm" />
-                    <MetricCard label="Mean Rate of Change" value={avgHra.rate_of_change} unit="1/min" />
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4">
+                    <MetricCard 
+                      label="Avg BF" 
+                      value={avgHra.avg_bf} 
+                      unit="bpm"
+                      tooltip="Average beat frequency during light stimulation"
+                    />
+                    <MetricCard 
+                      label="Peak BF" 
+                      value={avgHra.peak_bf} 
+                      unit="bpm"
+                      tooltip="Maximum beat frequency reached during light stimulation"
+                    />
+                    <MetricCard 
+                      label="Peak %" 
+                      value={avgHra.peak_norm_pct} 
+                      unit="%"
+                      tooltip="Peak BF normalized to baseline: 100 × Peak BF / Baseline BF"
+                    />
+                    <MetricCard 
+                      label="Time to Peak" 
+                      value={avgHra.time_to_peak_sec} 
+                      unit="s"
+                      tooltip="Time from stimulation start to peak beat frequency"
+                    />
+                    <MetricCard 
+                      label="Amplitude" 
+                      value={avgHra.amplitude} 
+                      unit="bpm"
+                      tooltip="Peak BF − BF at end of stimulation window"
+                    />
+                    <MetricCard 
+                      label="Rate of Change" 
+                      value={avgHra.rate_of_change} 
+                      unit="1/min"
+                      tooltip="Linear slope (per minute) normalized by mean BF during stimulation"
+                    />
                   </div>
                 )}
 
