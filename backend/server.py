@@ -541,7 +541,7 @@ async def export_xlsx(request: ExportRequest):
         current_row += 1
     
     # Analysis Summary - only include essential info (no intermediate calculations)
-    if request.summary:
+    if request.summary or request.perfusion_params:
         ws_summary[f'A{current_row}'] = 'Analysis Summary'
         ws_summary[f'A{current_row}'].font = subtitle_font
         current_row += 1
@@ -551,17 +551,44 @@ async def export_xlsx(request: ExportRequest):
         style_header(ws_summary, current_row)
         current_row += 1
         
-        # Only include: Recording Name, Drug(s) Used, Total/Kept/Removed Beats, Filter Range, Light Stimulation
-        allowed_keys = ['Recording Name', 'Drug(s) Used', 'Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range', 'Light Stimulation']
+        # Only include: Recording Name, Drug(s) Used, Total/Kept/Removed Beats, Filter Range
+        if request.summary:
+            allowed_keys = ['Recording Name', 'Drug(s) Used', 'Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range']
+            
+            for k, v in request.summary.items():
+                if k in allowed_keys:
+                    ws_summary[f'A{current_row}'] = k
+                    ws_summary[f'B{current_row}'] = str(v) if v is not None else '—'
+                    for col in ['A', 'B']:
+                        ws_summary[f'{col}{current_row}'].font = data_font
+                        ws_summary[f'{col}{current_row}'].border = thin_border
+                    current_row += 1
         
-        for k, v in request.summary.items():
-            if k in allowed_keys:
-                ws_summary[f'A{current_row}'] = k
-                ws_summary[f'B{current_row}'] = str(v) if v is not None else '—'
+        # Add perfusion parameters
+        if request.perfusion_params:
+            pp = request.perfusion_params
+            perf_data = [
+                ('Perfusion Start', f"{pp.get('perfusion_start', 0)} min"),
+                ('Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"),
+                ('Perfusion Time (BF)', f"{pp.get('perfusion_time_bf', '—')} min" if pp.get('perfusion_time_bf') is not None else '—'),
+                ('Perfusion Time (HRV)', f"{pp.get('perfusion_time_hrv', '—')} min" if pp.get('perfusion_time_hrv') is not None else '—'),
+            ]
+            for label, value in perf_data:
+                ws_summary[f'A{current_row}'] = label
+                ws_summary[f'B{current_row}'] = value
                 for col in ['A', 'B']:
                     ws_summary[f'{col}{current_row}'].font = data_font
                     ws_summary[f'{col}{current_row}'].border = thin_border
                 current_row += 1
+        
+        # Light Stimulation status
+        if request.summary and 'Light Stimulation' in request.summary:
+            ws_summary[f'A{current_row}'] = 'Light Stimulation'
+            ws_summary[f'B{current_row}'] = str(request.summary['Light Stimulation'])
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            current_row += 1
     
     auto_width(ws_summary)
 
