@@ -368,6 +368,18 @@ export default function AnalysisPanel({
             <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 NN Intervals (Filtered) - ms vs min
+                <TooltipProvider delayDuration={100}>
+                  <ShadcnTooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex">
+                        <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                      <p>NN intervals = time between successive beats in milliseconds. Used for HRV calculations.</p>
+                    </TooltipContent>
+                  </ShadcnTooltip>
+                </TooltipProvider>
                 <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
                   {metrics.n_kept} intervals
                 </Badge>
