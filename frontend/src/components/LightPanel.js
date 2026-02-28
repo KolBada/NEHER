@@ -35,18 +35,20 @@ function formatTimeMinSec(minutes) {
 }
 
 function MetricCard({ label, value, unit, tooltip }) {
-  const content = (
+  return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
       <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500 flex items-center gap-1">
         {label}
         {tooltip && (
-          <TooltipProvider>
+          <TooltipProvider delayDuration={100}>
             <ShadcnTooltip>
               <TooltipTrigger asChild>
-                <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                <button type="button" className="inline-flex">
+                  <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700">
-                {tooltip}
+              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50">
+                <p>{tooltip}</p>
               </TooltipContent>
             </ShadcnTooltip>
           </TooltipProvider>
@@ -58,7 +60,6 @@ function MetricCard({ label, value, unit, tooltip }) {
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
     </div>
   );
-  return content;
 }
 
 export default function LightPanel({
