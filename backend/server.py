@@ -709,115 +709,110 @@ async def export_xlsx(request: ExportRequest):
                     cell.fill = highlight_fill
                     cell.font = Font(bold=True, size=10, name='Arial')
 
-    # Light HRV metrics
-    if request.light_metrics:
-        ws3 = wb.create_sheet("Light Stim HRV")
-        valid = [m for m in request.light_metrics if m is not None]
-        if valid:
-            # Per-stim HRV columns: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
-            headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀ (ms)', 'ln(SDNN₇₀)', 'SDNN₇₀ (ms)', 'pNN50₇₀ (%)']
-            for col, h in enumerate(headers, 1):
-                ws3.cell(row=1, column=col, value=h)
-            style_header(ws3, 1, fill=header_fill_cyan)
-            
-            for row_idx, row in enumerate(valid, 2):
-                ws3.cell(row=row_idx, column=1, value=row_idx - 1)
-                ws3.cell(row=row_idx, column=2, value=f"{row.get('ln_rmssd70', 0):.3f}" if row.get('ln_rmssd70') else '—')
-                ws3.cell(row=row_idx, column=3, value=f"{row.get('rmssd70', 0):.3f}")
-                ws3.cell(row=row_idx, column=4, value=f"{row.get('ln_sdnn70', 0):.3f}" if row.get('ln_sdnn70') else '—')
-                ws3.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.3f}")
-                ws3.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.3f}")
-            
-            # Median row (Readout) - ALL metrics
-            median_row = len(valid) + 2
-            ws3.cell(row=median_row, column=1, value="Median")
-            ws3.cell(row=median_row, column=1).font = Font(bold=True)
-            
-            rmssd_vals = [r['rmssd70'] for r in valid if r.get('rmssd70')]
-            sdnn_vals = [r['sdnn'] for r in valid if r.get('sdnn')]
-            pnn50_vals = [r['pnn50'] for r in valid if r.get('pnn50') is not None]
-            
-            if rmssd_vals:
-                median_rmssd = float(np.median(rmssd_vals))
-                ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else None
-                ws3.cell(row=median_row, column=2, value=f"{ln_median_rmssd:.3f}" if ln_median_rmssd else '—')
-                ws3.cell(row=median_row, column=3, value=f"{median_rmssd:.3f}")
-            else:
-                ws3.cell(row=median_row, column=2, value='—')
-                ws3.cell(row=median_row, column=3, value='—')
-            
-            if sdnn_vals:
-                median_sdnn = float(np.median(sdnn_vals))
-                ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else None
-                ws3.cell(row=median_row, column=4, value=f"{ln_median_sdnn:.3f}" if ln_median_sdnn else '—')
-                ws3.cell(row=median_row, column=5, value=f"{median_sdnn:.3f}")
-            else:
-                ws3.cell(row=median_row, column=4, value='—')
-                ws3.cell(row=median_row, column=5, value='—')
-            
-            # pNN50 median (even if 0)
-            median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0.0
-            ws3.cell(row=median_row, column=6, value=f"{median_pnn50:.3f}")
-            
-            # Style median row
-            for col in range(1, 7):
-                cell = ws3.cell(row=median_row, column=col)
-                cell.fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
-            
-            style_data_rows(ws3, 2)
-            auto_width(ws3)
-
-    # Light response - HRA (Heart Rate Acceleration)
+    # Light response - HRA (Heart Rate Acceleration) - BEFORE HRV sheet
     if request.light_response:
-        ws4 = wb.create_sheet("Light Stim HRA")
+        ws3 = wb.create_sheet("Light Stim HRA")
         valid = [m for m in request.light_response if m is not None]
         if valid:
             # Per-stim HRA columns as specified
             headers = ['Stim #', 'Beats', 'Baseline BF (bpm)', 'Avg BF (bpm)', 'Peak BF (bpm)', 
                        'Normalized Peak (%)', 'Time to Peak (s)', 'Beat End (bpm)', 'Amplitude (bpm)', 'Rate of Change (1/min)']
             for col, h in enumerate(headers, 1):
-                ws4.cell(row=1, column=col, value=h)
-            style_header(ws4, 1, fill=header_fill_amber)
+                ws3.cell(row=1, column=col, value=h)
+            style_header(ws3, 1, fill=header_fill_amber)
             
             for row_idx, row in enumerate(valid, 2):
-                ws4.cell(row=row_idx, column=1, value=row_idx - 1)
-                ws4.cell(row=row_idx, column=2, value=row.get('n_beats', 0))
-                ws4.cell(row=row_idx, column=3, value=f"{row.get('baseline_bf', 0):.1f}" if row.get('baseline_bf') else '—')
-                ws4.cell(row=row_idx, column=4, value=f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—')
-                ws4.cell(row=row_idx, column=5, value=f"{row.get('peak_bf', 0):.1f}" if row.get('peak_bf') else '—')
-                ws4.cell(row=row_idx, column=6, value=f"{row.get('peak_norm_pct', 0):.1f}" if row.get('peak_norm_pct') else '—')
-                ws4.cell(row=row_idx, column=7, value=f"{row.get('time_to_peak_sec', 0):.1f}" if row.get('time_to_peak_sec') else '—')
-                ws4.cell(row=row_idx, column=8, value=f"{row.get('bf_end', 0):.1f}" if row.get('bf_end') else '—')
-                ws4.cell(row=row_idx, column=9, value=f"{row.get('amplitude', 0):.1f}" if row.get('amplitude') else '—')
-                ws4.cell(row=row_idx, column=10, value=f"{row.get('rate_of_change', 0):.4f}" if row.get('rate_of_change') else '—')
+                ws3.cell(row=row_idx, column=1, value=row_idx - 1)
+                ws3.cell(row=row_idx, column=2, value=row.get('n_beats', 0))
+                ws3.cell(row=row_idx, column=3, value=f"{row.get('baseline_bf', 0):.1f}")
+                ws3.cell(row=row_idx, column=4, value=f"{row.get('avg_bf', 0):.1f}")
+                ws3.cell(row=row_idx, column=5, value=f"{row.get('peak_bf', 0):.1f}")
+                ws3.cell(row=row_idx, column=6, value=f"{row.get('peak_norm_pct', 0):.1f}")
+                ws3.cell(row=row_idx, column=7, value=f"{row.get('time_to_peak_sec', 0):.1f}")
+                ws3.cell(row=row_idx, column=8, value=f"{row.get('bf_end', 0):.1f}")
+                ws3.cell(row=row_idx, column=9, value=f"{row.get('amplitude', 0):.1f}")
+                ws3.cell(row=row_idx, column=10, value=f"{row.get('rate_of_change', 0):.4f}")
             
-            # Average row (Readout) - only specified metrics
+            # Average row - ALL metrics with values (even if 0)
             avg_row = len(valid) + 2
-            ws4.cell(row=avg_row, column=1, value="Average")
-            ws4.cell(row=avg_row, column=1).font = Font(bold=True)
+            ws3.cell(row=avg_row, column=1, value="Average")
+            ws3.cell(row=avg_row, column=1).font = Font(bold=True)
             
-            # Calculate averages for readout metrics
-            avg_bf_vals = [r['avg_bf'] for r in valid if r.get('avg_bf')]
-            peak_bf_vals = [r['peak_bf'] for r in valid if r.get('peak_bf')]
-            peak_norm_vals = [r['peak_norm_pct'] for r in valid if r.get('peak_norm_pct')]
-            ttp_vals = [r['time_to_peak_sec'] for r in valid if r.get('time_to_peak_sec')]
-            amp_vals = [r['amplitude'] for r in valid if r.get('amplitude')]
-            roc_vals = [r['rate_of_change'] for r in valid if r.get('rate_of_change')]
+            # Calculate averages for ALL metrics
+            beats_vals = [r.get('n_beats', 0) for r in valid]
+            baseline_vals = [r.get('baseline_bf', 0) for r in valid]
+            avg_bf_vals = [r.get('avg_bf', 0) for r in valid]
+            peak_bf_vals = [r.get('peak_bf', 0) for r in valid]
+            peak_norm_vals = [r.get('peak_norm_pct', 0) for r in valid]
+            ttp_vals = [r.get('time_to_peak_sec', 0) for r in valid]
+            bf_end_vals = [r.get('bf_end', 0) for r in valid]
+            amp_vals = [r.get('amplitude', 0) for r in valid]
+            roc_vals = [r.get('rate_of_change', 0) for r in valid]
             
-            ws4.cell(row=avg_row, column=2, value='—')  # No Beats in readout
-            ws4.cell(row=avg_row, column=3, value='—')  # Baseline same for all, skip
-            ws4.cell(row=avg_row, column=4, value=f"{np.mean(avg_bf_vals):.1f}" if avg_bf_vals else '—')
-            ws4.cell(row=avg_row, column=5, value=f"{np.mean(peak_bf_vals):.1f}" if peak_bf_vals else '—')
-            ws4.cell(row=avg_row, column=6, value=f"{np.mean(peak_norm_vals):.1f}" if peak_norm_vals else '—')
-            ws4.cell(row=avg_row, column=7, value=f"{np.mean(ttp_vals):.1f}" if ttp_vals else '—')
-            ws4.cell(row=avg_row, column=8, value='—')  # No Beat End in readout
-            ws4.cell(row=avg_row, column=9, value=f"{np.mean(amp_vals):.1f}" if amp_vals else '—')
-            ws4.cell(row=avg_row, column=10, value=f"{np.mean(roc_vals):.4f}" if roc_vals else '—')
+            ws3.cell(row=avg_row, column=2, value=f"{np.mean(beats_vals):.1f}")
+            ws3.cell(row=avg_row, column=3, value=f"{np.mean(baseline_vals):.1f}")
+            ws3.cell(row=avg_row, column=4, value=f"{np.mean(avg_bf_vals):.1f}")
+            ws3.cell(row=avg_row, column=5, value=f"{np.mean(peak_bf_vals):.1f}")
+            ws3.cell(row=avg_row, column=6, value=f"{np.mean(peak_norm_vals):.1f}")
+            ws3.cell(row=avg_row, column=7, value=f"{np.mean(ttp_vals):.1f}")
+            ws3.cell(row=avg_row, column=8, value=f"{np.mean(bf_end_vals):.1f}")
+            ws3.cell(row=avg_row, column=9, value=f"{np.mean(amp_vals):.1f}")
+            ws3.cell(row=avg_row, column=10, value=f"{np.mean(roc_vals):.4f}")
             
             # Style average row
             for col in range(1, 11):
-                cell = ws4.cell(row=avg_row, column=col)
+                cell = ws3.cell(row=avg_row, column=col)
                 cell.fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            
+            style_data_rows(ws3, 2)
+            auto_width(ws3)
+
+    # Light HRV metrics - AFTER HRA sheet
+    if request.light_metrics:
+        ws4 = wb.create_sheet("Light Stim HRV")
+        valid = [m for m in request.light_metrics if m is not None]
+        if valid:
+            # Per-stim HRV columns: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
+            headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀ (ms)', 'ln(SDNN₇₀)', 'SDNN₇₀ (ms)', 'pNN50₇₀ (%)']
+            for col, h in enumerate(headers, 1):
+                ws4.cell(row=1, column=col, value=h)
+            style_header(ws4, 1, fill=header_fill_cyan)
+            
+            for row_idx, row in enumerate(valid, 2):
+                ws4.cell(row=row_idx, column=1, value=row_idx - 1)
+                ln_rmssd = row.get('ln_rmssd70')
+                ws4.cell(row=row_idx, column=2, value=f"{ln_rmssd:.3f}" if ln_rmssd is not None else "0.000")
+                ws4.cell(row=row_idx, column=3, value=f"{row.get('rmssd70', 0):.3f}")
+                ln_sdnn = row.get('ln_sdnn70')
+                ws4.cell(row=row_idx, column=4, value=f"{ln_sdnn:.3f}" if ln_sdnn is not None else "0.000")
+                ws4.cell(row=row_idx, column=5, value=f"{row.get('sdnn', 0):.3f}")
+                ws4.cell(row=row_idx, column=6, value=f"{row.get('pnn50', 0):.3f}")
+            
+            # Median row (Readout) - ALL metrics
+            median_row = len(valid) + 2
+            ws4.cell(row=median_row, column=1, value="Median")
+            ws4.cell(row=median_row, column=1).font = Font(bold=True)
+            
+            rmssd_vals = [r.get('rmssd70', 0) for r in valid]
+            sdnn_vals = [r.get('sdnn', 0) for r in valid]
+            pnn50_vals = [r.get('pnn50', 0) for r in valid]
+            
+            median_rmssd = float(np.median(rmssd_vals)) if rmssd_vals else 0
+            median_sdnn = float(np.median(sdnn_vals)) if sdnn_vals else 0
+            median_pnn50 = float(np.median(pnn50_vals)) if pnn50_vals else 0
+            ln_median_rmssd = float(np.log(median_rmssd)) if median_rmssd > 0 else 0
+            ln_median_sdnn = float(np.log(median_sdnn)) if median_sdnn > 0 else 0
+            
+            ws4.cell(row=median_row, column=2, value=f"{ln_median_rmssd:.3f}")
+            ws4.cell(row=median_row, column=3, value=f"{median_rmssd:.3f}")
+            ws4.cell(row=median_row, column=4, value=f"{ln_median_sdnn:.3f}")
+            ws4.cell(row=median_row, column=5, value=f"{median_sdnn:.3f}")
+            ws4.cell(row=median_row, column=6, value=f"{median_pnn50:.3f}")
+            
+            # Style median row
+            for col in range(1, 7):
+                cell = ws4.cell(row=median_row, column=col)
+                cell.fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
             
             style_data_rows(ws4, 2)
             auto_width(ws4)
