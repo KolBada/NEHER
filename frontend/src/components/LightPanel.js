@@ -281,7 +281,7 @@ export default function LightPanel({
                       width={45}
                       label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} 
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
                       labelFormatter={(v) => formatTimeMinSec(v)}
                       formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
