@@ -471,7 +471,6 @@ def compute_light_stim_metrics(beat_times_min, bf_filtered, nn_70, pulse):
     bf_stim = bf[p_mask]
     nn_stim = nn[p_mask]
     nn70_stim = nn70[p_mask]
-    bt_stim = bt[p_mask]
     
     # Valid counts (non-NaN)
     valid_bf = bf_stim[~np.isnan(bf_stim)]
