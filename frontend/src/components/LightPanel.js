@@ -308,9 +308,9 @@ export default function LightPanel({
                         x1={pulse.start_min}
                         x2={pulse.end_min}
                         fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
-                        fillOpacity={selectedPulseIdx === i ? 0.3 : 0.12}
+                        fillOpacity={selectedPulseIdx === i ? 0.35 : 0.18}
                         stroke="#facc15"
-                        strokeOpacity={selectedPulseIdx === i ? 0.8 : 0.4}
+                        strokeOpacity={selectedPulseIdx === i ? 0.9 : 0.5}
                         strokeWidth={selectedPulseIdx === i ? 2 : 1}
                         onClick={() => setSelectedPulseIdx(i)}
                         style={{ cursor: 'pointer' }}
