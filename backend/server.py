@@ -517,13 +517,19 @@ async def export_xlsx(request: ExportRequest):
         style_data_rows(ws, 2)
         auto_width(ws)
 
-    # Per-minute sheet
+    # Per-minute sheet - renamed to "BF Analysis"
     if request.per_minute_data:
-        ws_pm = wb.create_sheet("Per-Minute Analysis")
+        ws_pm = wb.create_sheet("BF Analysis")
         headers = ['Time Window', 'Beat Count', 'Mean BF (bpm)', 'Mean NN (ms)', 'Mean NN₇₀ (ms)']
         for col, h in enumerate(headers, 1):
             ws_pm.cell(row=1, column=col, value=h)
         style_header(ws_pm, 1)
+        
+        # Get baseline and drug readout minutes for highlighting
+        baseline_bf_minute = request.baseline.get('baseline_bf_minute', 1) if request.baseline else 1
+        drug_readout_minute = None
+        if request.drug_readout:
+            drug_readout_minute = request.drug_readout.get('bf_minute')
         
         for row_idx, row in enumerate(request.per_minute_data, 2):
             ws_pm.cell(row=row_idx, column=1, value=row.get('label', ''))
@@ -531,6 +537,18 @@ async def export_xlsx(request: ExportRequest):
             ws_pm.cell(row=row_idx, column=3, value=f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—')
             ws_pm.cell(row=row_idx, column=4, value=f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—')
             ws_pm.cell(row=row_idx, column=5, value=f"{row.get('avg_nn_70', 0):.1f}" if row.get('avg_nn_70') else '—')
+            
+            # Highlight baseline and drug readout rows
+            row_minute = row.get('minute', -1)
+            is_baseline = row_minute == baseline_bf_minute
+            is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
+            
+            if is_baseline or is_drug:
+                highlight_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid") if is_baseline else PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+                for col in range(1, 6):
+                    cell = ws_pm.cell(row=row_idx, column=col)
+                    cell.fill = highlight_fill
+                    cell.font = Font(bold=True, size=10, name='Arial')
         
         style_data_rows(ws_pm, 2)
         auto_width(ws_pm)
