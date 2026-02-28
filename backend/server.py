@@ -938,10 +938,11 @@ async def export_pdf(request: ExportRequest):
             
             minutes = [w.get('minute', 0) for w in request.hrv_windows]
             ln_rmssd = [w.get('ln_rmssd70') for w in request.hrv_windows]
-            sdnn = [w.get('sdnn', 0) for w in request.hrv_windows]
+            # Calculate ln(SDNN) for the chart
+            ln_sdnn = [np.log(w.get('sdnn', 0)) if w.get('sdnn') and w.get('sdnn') > 0 else None for w in request.hrv_windows]
             pnn50 = [w.get('pnn50', 0) for w in request.hrv_windows]
 
-            # ln(RMSSD) - FIXED Y-AXIS 0-8
+            # ln(RMSSD₇₀) - FIXED Y-AXIS 0-8
             axes3[0].plot(minutes, ln_rmssd, 'o-', color='#0ea5e9', markersize=4, linewidth=1.5)
             axes3[0].fill_between(minutes, ln_rmssd, alpha=0.2, color='#0ea5e9')
             axes3[0].set_ylabel('ln(RMSSD₇₀)', fontsize=11, fontweight='bold')
@@ -952,22 +953,26 @@ async def export_pdf(request: ExportRequest):
             axes3[0].spines['top'].set_visible(False)
             axes3[0].spines['right'].set_visible(False)
 
-            # SDNN - FIXED Y-AXIS 0-300
-            axes3[1].plot(minutes, sdnn, 'o-', color='#a855f7', markersize=4, linewidth=1.5)
-            axes3[1].fill_between(minutes, sdnn, alpha=0.2, color='#a855f7')
-            axes3[1].set_ylabel('SDNN (ms)', fontsize=11, fontweight='bold')
-            axes3[1].set_ylim(0, 300)  # FIXED Y-AXIS
+            # ln(SDNN₇₀) - FIXED Y-AXIS 0-8 (changed from SDNN 0-300)
+            # Filter out None values for plotting
+            valid_minutes = [m for m, s in zip(minutes, ln_sdnn) if s is not None]
+            valid_ln_sdnn = [s for s in ln_sdnn if s is not None]
+            if valid_ln_sdnn:
+                axes3[1].plot(valid_minutes, valid_ln_sdnn, 'o-', color='#a855f7', markersize=4, linewidth=1.5)
+                axes3[1].fill_between(valid_minutes, valid_ln_sdnn, alpha=0.2, color='#a855f7')
+            axes3[1].set_ylabel('ln(SDNN₇₀)', fontsize=11, fontweight='bold')
+            axes3[1].set_ylim(0, 8)  # FIXED Y-AXIS 0-8
             axes3[1].set_title('Overall HRV', fontsize=11, pad=10)
             axes3[1].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
             axes3[1].set_facecolor('#fafafa')
             axes3[1].spines['top'].set_visible(False)
             axes3[1].spines['right'].set_visible(False)
 
-            # pNN50 - FIXED Y-AXIS 0-100
+            # pNN50₇₀ - FIXED Y-AXIS 0-100
             axes3[2].plot(minutes, pnn50, 'o-', color='#f97316', markersize=4, linewidth=1.5)
             axes3[2].fill_between(minutes, pnn50, alpha=0.2, color='#f97316')
             axes3[2].set_xlabel('Window Start (min)', fontsize=11)
-            axes3[2].set_ylabel('pNN50 (%)', fontsize=11, fontweight='bold')
+            axes3[2].set_ylabel('pNN50₇₀ (%)', fontsize=11, fontweight='bold')
             axes3[2].set_ylim(0, 100)  # FIXED Y-AXIS
             axes3[2].set_title('Beat-to-Beat Variability', fontsize=11, pad=10)
             axes3[2].grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
