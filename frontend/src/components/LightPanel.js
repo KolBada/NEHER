@@ -80,6 +80,10 @@ export default function LightPanel({
   const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
   const [localPulses, setLocalPulses] = useState(null);
   const [originalPulses, setOriginalPulses] = useState(null);
+  
+  // State for interactive chart editing
+  const [editMode, setEditMode] = useState(null); // null | 'start' | 'end'
+  const chartContainerRef = useRef(null);
 
   // Sync local pulses with prop
   useMemo(() => {
