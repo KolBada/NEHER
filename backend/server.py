@@ -631,8 +631,12 @@ async def export_xlsx(request: ExportRequest):
             ws_pm.cell(row=row_idx, column=3, value=f"{row.get('avg_bf', 0):.1f}" if row.get('avg_bf') else '—')
             ws_pm.cell(row=row_idx, column=4, value=f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—')
             ws_pm.cell(row=row_idx, column=5, value=f"{row.get('avg_nn_70', 0):.1f}" if row.get('avg_nn_70') else '—')
-            
-            # Highlight baseline and drug readout rows with different colors
+        
+        style_data_rows(ws_pm, 2)
+        auto_width(ws_pm)
+        
+        # Apply highlighting AFTER style_data_rows (so it doesn't get overwritten)
+        for row_idx, row in enumerate(request.per_minute_data, 2):
             row_minute = row.get('minute', -1)
             is_baseline = row_minute == baseline_bf_minute
             is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
@@ -651,9 +655,6 @@ async def export_xlsx(request: ExportRequest):
                     cell = ws_pm.cell(row=row_idx, column=col)
                     cell.fill = highlight_fill
                     cell.font = Font(bold=True, size=10, name='Arial')
-        
-        style_data_rows(ws_pm, 2)
-        auto_width(ws_pm)
 
     # HRV windows
     if request.hrv_windows:
