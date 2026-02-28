@@ -645,7 +645,6 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
         # Step 1: Isolate beats within this stimulus
         p_mask = (bt >= pulse['start_min']) & (bt < pulse['end_min'])
         
-        bt_isolated = bt[p_mask]
         nn_isolated = nn[p_mask]
         
         # Filter out NaN values
