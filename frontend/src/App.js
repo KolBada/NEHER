@@ -264,10 +264,8 @@ function App() {
         beat_times_min: metrics.filtered_beat_times_min,
         bf_filtered: metrics.filtered_bf_bpm,
         readout_minute: readoutMinute,
-        baseline_hrv_start: baselineParams.hrvStart ?? 0,
-        baseline_hrv_end: baselineParams.hrvEnd ?? 3,
-        baseline_bf_start: baselineParams.bfStart ?? 1,
-        baseline_bf_end: baselineParams.bfEnd ?? 2,
+        baseline_hrv_minute: baselineParams.hrvMinute ?? 0,
+        baseline_bf_minute: baselineParams.bfMinute ?? 1,
       });
       setHrvResults(data);
       toast.success(`HRV computed — ${data.windows.length} windows`);
