@@ -610,12 +610,14 @@ export default function LightPanel({
                 <Separator className="bg-zinc-800 my-3" />
                 <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-2">
                   Manual Stim Boundaries
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                        <button type="button" className="inline-flex">
+                          <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700">
+                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50">
                         Edit the start and end times directly. Changes apply after clicking "Apply Changes".
                       </TooltipContent>
                     </ShadcnTooltip>
