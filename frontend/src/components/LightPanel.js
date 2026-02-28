@@ -976,7 +976,7 @@ export default function LightPanel({
                                     <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                                   Log-transformed RMSSD₇₀
                                 </TooltipContent>
                               </ShadcnTooltip>
@@ -994,7 +994,7 @@ export default function LightPanel({
                                     <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                                   Log-transformed SDNN₇₀
                                 </TooltipContent>
                               </ShadcnTooltip>
@@ -1012,7 +1012,7 @@ export default function LightPanel({
                                     <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50">
+                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                                   Percentage of successive intervals differing &gt;50 ms (after 70 bpm normalization)
                                 </TooltipContent>
                               </ShadcnTooltip>
