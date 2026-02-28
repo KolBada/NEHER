@@ -632,13 +632,20 @@ async def export_xlsx(request: ExportRequest):
             ws_pm.cell(row=row_idx, column=4, value=f"{row.get('avg_nn', 0):.1f}" if row.get('avg_nn') else '—')
             ws_pm.cell(row=row_idx, column=5, value=f"{row.get('avg_nn_70', 0):.1f}" if row.get('avg_nn_70') else '—')
             
-            # Highlight baseline and drug readout rows - both use same purple color
+            # Highlight baseline and drug readout rows with different colors
             row_minute = row.get('minute', -1)
             is_baseline = row_minute == baseline_bf_minute
             is_drug = drug_readout_minute is not None and row_minute == drug_readout_minute
             
-            if is_baseline or is_drug:
-                # Use same purple highlight for both baseline and drug
+            if is_baseline:
+                # Yellow/amber highlight for baseline
+                highlight_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                for col in range(1, 6):
+                    cell = ws_pm.cell(row=row_idx, column=col)
+                    cell.fill = highlight_fill
+                    cell.font = Font(bold=True, size=10, name='Arial')
+            elif is_drug:
+                # Purple highlight for drug readout
                 highlight_fill = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
                 for col in range(1, 6):
                     cell = ws_pm.cell(row=row_idx, column=col)
