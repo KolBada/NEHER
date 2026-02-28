@@ -621,10 +621,12 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
         if hrv:
             rmssd, sdnn, pnn50 = hrv
             ln_rmssd = float(np.log(rmssd)) if rmssd > 0 else None
+            ln_sdnn = float(np.log(sdnn)) if sdnn > 0 else None
             per_pulse.append({
                 'rmssd70': float(rmssd),
                 'ln_rmssd70': ln_rmssd,
                 'sdnn': float(sdnn),
+                'ln_sdnn70': ln_sdnn,
                 'pnn50': float(pnn50),
                 'n_beats': int(len(nn_stim)),
                 'median_nn_ref': median_nn_stim,
