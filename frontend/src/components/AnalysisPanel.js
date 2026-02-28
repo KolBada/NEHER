@@ -79,12 +79,12 @@ function HrvInfoPopover({ metric }) {
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
-          <HelpCircle className="w-3 h-3" />
+          <Info className="w-3 h-3" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 bg-zinc-900 border-zinc-700 text-zinc-300 text-[10px] p-3">
-        <p className="font-medium mb-1">{metric}</p>
-        <p className="text-zinc-400">{info[metric] || 'HRV metric computed over 3-minute window, normalized to 70 bpm.'}</p>
+      <PopoverContent className="w-64 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3">
+        <p className="font-medium mb-1 text-zinc-100">{metric}</p>
+        <p className="text-zinc-300">{info[metric] || 'HRV metric computed over 3-minute window, normalized to 70 bpm.'}</p>
       </PopoverContent>
     </Popover>
   );
