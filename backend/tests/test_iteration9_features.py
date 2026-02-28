@@ -123,9 +123,9 @@ class TestLightHRVIsolatedNN70:
                 assert "sdnn" in pulse_metrics, f"Pulse {i} missing sdnn"
                 assert "pnn50" in pulse_metrics, f"Pulse {i} missing pnn50"
                 assert "n_beats" in pulse_metrics, f"Pulse {i} missing n_beats"
-                # Check for median_nn_isolated (new field showing isolated median)
-                assert "median_nn_isolated" in pulse_metrics, \
-                    f"Pulse {i} missing median_nn_isolated - should show isolated median NN"
+                # Check for median_nn_ref (renamed field showing isolated median NN reference)
+                assert "median_nn_ref" in pulse_metrics, \
+                    f"Pulse {i} missing median_nn_ref - should show isolated median NN"
     
     def test_light_hrv_returns_median_final_metrics(self):
         """Light HRV final metrics are median across valid pulses"""
