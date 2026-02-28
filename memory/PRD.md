@@ -26,6 +26,17 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - [x] **BF baseline**: mean(BF_k,filt) for 1.0 ≤ t_k < 2.0 min
 - [x] HRV baseline guaranteed to be numerically identical to sliding HRV table value
 
+### Readout Panel Order (Updated Feb 28, 2026)
+Baseline and Drug readouts now display in this exact order:
+1. Mean BF (bpm)
+2. ln(RMSSD₇₀)
+3. ln(SDNN₇₀)
+4. pNN50₇₀ (%)
+
+**Removed from display:**
+- Raw RMSSD (only show ln version)
+- Raw SDNN (only show ln version)
+
 ### HRV Analysis (Spontaneous Activity)
 - [x] Rolling 3-minute HRV with overlapping windows
 - [x] HRV metrics: ln(RMSSD₇₀), RMSSD₇₀, SDNN, pNN50 (normalized to 70 bpm)
