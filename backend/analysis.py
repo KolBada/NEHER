@@ -639,10 +639,12 @@ def compute_light_hrv(beat_times_min_list, bf_filtered_list, pulses):
     valid = [p for p in per_pulse if p is not None]
     if valid:
         rmssd_median = float(np.median([p['rmssd70'] for p in valid]))
+        sdnn_median = float(np.median([p['sdnn'] for p in valid]))
         final = {
             'rmssd70': rmssd_median,
             'ln_rmssd70': float(np.log(rmssd_median)) if rmssd_median > 0 else None,
-            'sdnn': float(np.median([p['sdnn'] for p in valid])),
+            'sdnn': sdnn_median,
+            'ln_sdnn70': float(np.log(sdnn_median)) if sdnn_median > 0 else None,
             'pnn50': float(np.median([p['pnn50'] for p in valid])),
             'n_pulses_valid': len(valid),
         }
