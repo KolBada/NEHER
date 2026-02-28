@@ -96,6 +96,10 @@ class ExportRequest(BaseModel):
     drug_used: Optional[str] = None
     per_minute_data: Optional[List[dict]] = None
     baseline: Optional[dict] = None
+    # Full recording beat-by-beat data
+    full_recording_data: Optional[List[dict]] = None
+    # Light stim isolated beat-by-beat data
+    light_stim_data: Optional[List[dict]] = None
 
 
 # --- Endpoints ---
