@@ -365,6 +365,7 @@ async def export_xlsx(request: ExportRequest):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, NamedStyle
     from openpyxl.utils import get_column_letter
+    import numpy as np
     
     wb = openpyxl.Workbook()
     
