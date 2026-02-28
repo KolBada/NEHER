@@ -70,45 +70,53 @@ function BFChart({ metrics, lightPulses }) {
     return data.filter(d => d.time >= zoomDomain[0] && d.time <= zoomDomain[1]);
   }, [data, zoomDomain]);
   
-  // Handle wheel zoom (trackpad)
-  const handleWheel = useCallback((e) => {
-    if (!containerRef.current || !data.length) return;
+  // Handle wheel zoom (trackpad) - using useEffect for non-passive listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
     
-    // Only zoom with ctrl/cmd key or pinch gesture
-    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+    const handleWheel = (e) => {
+      if (!data.length) return;
+      
+      // Only zoom with ctrl/cmd key or pinch gesture
+      if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+      
+      e.preventDefault();
+      
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const chartWidth = rect.width - 60;
+      const mouseRatio = Math.max(0, Math.min(1, (mouseX - 10) / chartWidth));
+      
+      const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+      const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+      const currentRange = currentMax - currentMin;
+      
+      const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+      const newRange = Math.max(0.1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
+      
+      const mouseTime = currentMin + mouseRatio * currentRange;
+      let newMin = mouseTime - mouseRatio * newRange;
+      let newMax = mouseTime + (1 - mouseRatio) * newRange;
+      
+      if (newMin < timeBounds.min) {
+        newMin = timeBounds.min;
+        newMax = Math.min(timeBounds.max, newMin + newRange);
+      }
+      if (newMax > timeBounds.max) {
+        newMax = timeBounds.max;
+        newMin = Math.max(timeBounds.min, newMax - newRange);
+      }
+      
+      if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+        setZoomDomain(null);
+      } else {
+        setZoomDomain([newMin, newMax]);
+      }
+    };
     
-    e.preventDefault();
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const chartWidth = rect.width - 60;
-    const mouseRatio = Math.max(0, Math.min(1, (mouseX - 10) / chartWidth));
-    
-    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
-    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
-    const currentRange = currentMax - currentMin;
-    
-    const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
-    const newRange = Math.max(0.1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
-    
-    const mouseTime = currentMin + mouseRatio * currentRange;
-    let newMin = mouseTime - mouseRatio * newRange;
-    let newMax = mouseTime + (1 - mouseRatio) * newRange;
-    
-    if (newMin < timeBounds.min) {
-      newMin = timeBounds.min;
-      newMax = Math.min(timeBounds.max, newMin + newRange);
-    }
-    if (newMax > timeBounds.max) {
-      newMax = timeBounds.max;
-      newMin = Math.max(timeBounds.min, newMax - newRange);
-    }
-    
-    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
-      setZoomDomain(null);
-    } else {
-      setZoomDomain([newMin, newMax]);
-    }
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
   }, [data, zoomDomain, timeBounds]);
 
   const handleResetZoom = useCallback(() => {
@@ -128,7 +136,7 @@ function BFChart({ metrics, lightPulses }) {
           <span className="text-[9px] text-zinc-600">Ctrl+Scroll to zoom</span>
         </div>
       </div>
-      <div ref={containerRef} onWheel={handleWheel} style={{ touchAction: 'pan-y' }}>
+      <div ref={containerRef} style={{ touchAction: 'none' }}>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={filteredData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
