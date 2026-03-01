@@ -697,6 +697,12 @@ function App() {
     setSelectedDrugs([]);
     setDrugSettings({});
     setOtherDrugs([]);
+    setDrugReadoutSettings({
+      hrvReadoutMinute: '',
+      bfReadoutMinute: '',
+      enableHrvReadout: false,
+      enableBfReadout: false,
+    });
     setLightEnabled(true);
     setSavedRecordingId(null);
     setSavedFolderId(null);
