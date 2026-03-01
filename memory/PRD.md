@@ -255,9 +255,12 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 ## Key Files
 - `/app/backend/analysis.py` - Scientific computations
 - `/app/backend/server.py` - FastAPI routes
-- `/app/frontend/src/App.js` - Main component (tab renamed to "Spontaneous Activity")
+- `/app/backend/storage.py` - Persistent storage (folders, recordings)
+- `/app/frontend/src/App.js` - Main component with workflow and state management
 - `/app/frontend/src/components/AnalysisPanel.js` - Spontaneous Activity panel
 - `/app/frontend/src/components/LightPanel.js` - Light Stimulation analysis
+- `/app/frontend/src/components/HomeBrowser.js` - Home page with folder browser
+- `/app/frontend/src/components/SaveRecording.js` - Save recording interface
 
 ## Test Reports
 - `/app/test_reports/iteration_12.json` - Latest (100% pass - 81/81 tests including 13 new export tests)
