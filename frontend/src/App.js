@@ -214,6 +214,7 @@ function App() {
   });
   const [lightPulses, setLightPulses] = useState(null);
   const [lightHrv, setLightHrv] = useState(null);
+  const [lightHrvDetrended, setLightHrvDetrended] = useState(null);
   const [lightResponse, setLightResponse] = useState(null);
 
   // Loading
