@@ -855,7 +855,6 @@ async def export_xlsx(request: ExportRequest):
                 
                 # Per-stim detrended data
                 per_pulse_det = request.light_metrics_detrended['per_pulse']
-                valid_det = [p for p in per_pulse_det if p is not None]
                 for row_idx, row in enumerate(per_pulse_det, header_row + 1):
                     ws4.cell(row=row_idx, column=1, value=row_idx - header_row)
                     if row:
