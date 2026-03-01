@@ -1010,10 +1010,16 @@ export default function LightPanel({
                       tooltip="Peak BF normalized to baseline: 100 × Peak BF / Baseline BF"
                     />
                     <MetricCard 
-                      label="Time to Peak" 
+                      label="Time to Peak (1st)" 
+                      value={lightResponse?.per_stim?.[0]?.time_to_peak_sec} 
+                      unit="s"
+                      tooltip="Time to peak for the first light stimulation only"
+                    />
+                    <MetricCard 
+                      label="Time to Peak (avg)" 
                       value={avgHra.time_to_peak_sec} 
                       unit="s"
-                      tooltip="Time from stimulation start to peak beat frequency"
+                      tooltip="Average time from stimulation start to peak beat frequency (all 5 stims)"
                     />
                     <MetricCard 
                       label="Amplitude" 
