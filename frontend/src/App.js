@@ -247,14 +247,33 @@ function App() {
     try {
       const formData = new FormData();
       uploadedFiles.forEach(f => formData.append('files', f));
-      const { data } = await api.upload(formData);
-      setSessionId(data.session_id);
-      setFiles(data.files);
-      setActiveFileIdx(0);
-      if (data.files.length > 0) loadFileData(data.files[0]);
-      toast.success(`Loaded ${data.files.length} file(s) — ${data.files[0]?.n_beats_detected} beats detected`);
+      
+      // Retry logic for large files
+      let lastError = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const { data } = await api.upload(formData);
+          setSessionId(data.session_id);
+          setFiles(data.files);
+          setActiveFileIdx(0);
+          if (data.files.length > 0) loadFileData(data.files[0]);
+          toast.success(`Loaded ${data.files.length} file(s) — ${data.files[0]?.n_beats_detected} beats detected`);
+          return; // Success, exit
+        } catch (err) {
+          lastError = err;
+          if (attempt < 3 && (err.code === 'ECONNABORTED' || err.message?.includes('timeout') || err.message?.includes('Network'))) {
+            toast.info(`Upload attempt ${attempt} failed, retrying...`);
+            await new Promise(r => setTimeout(r, 1000 * attempt)); // Wait before retry
+            continue;
+          }
+          throw err; // Don't retry for other errors
+        }
+      }
+      throw lastError;
     } catch (err) {
-      toast.error('Upload failed: ' + (err.response?.data?.detail || err.message));
+      const errorMsg = err.response?.data?.detail || err.message || 'Unknown error';
+      toast.error('Upload failed: ' + errorMsg);
+      console.error('Upload error:', err);
     } finally {
       setUploadLoading(false);
     }
