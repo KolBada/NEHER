@@ -31,6 +31,8 @@ const api = {
 
   lightHrv: (data) => axios.post(`${API_URL}/light-hrv`, data),
 
+  lightHrvDetrended: (data) => axios.post(`${API_URL}/light-hrv-detrended`, data),
+
   lightResponse: (data) => axios.post(`${API_URL}/light-response`, data),
 
   exportCsv: (data) =>
