@@ -1,5 +1,65 @@
 import numpy as np
 from scipy.signal import find_peaks, butter, sosfiltfilt
+from scipy.interpolate import UnivariateSpline
+
+
+def loess_smooth(x, y, frac=0.25):
+    """
+    Robust LOESS (Locally Weighted Scatterplot Smoothing) implementation.
+    
+    Parameters:
+    - x: array of x values (time)
+    - y: array of y values (NN_70)
+    - frac: fraction of data to use for each local regression (span)
+    
+    Returns:
+    - trend: smoothed trend values
+    """
+    n = len(x)
+    if n < 4:
+        return y.copy()
+    
+    # Number of points to use for each local fit
+    k = max(3, int(np.ceil(frac * n)))
+    trend = np.zeros(n)
+    
+    for i in range(n):
+        # Calculate distances to all points
+        distances = np.abs(x - x[i])
+        
+        # Find k nearest neighbors
+        sorted_indices = np.argsort(distances)
+        neighbor_indices = sorted_indices[:k]
+        
+        # Calculate weights using tricube function
+        max_dist = distances[neighbor_indices[-1]]
+        if max_dist == 0:
+            max_dist = 1.0
+        
+        u = distances[neighbor_indices] / max_dist
+        weights = (1 - u**3)**3
+        weights = np.maximum(weights, 0)
+        
+        # Weighted linear regression
+        x_local = x[neighbor_indices]
+        y_local = y[neighbor_indices]
+        
+        # Center the data
+        x_mean = np.average(x_local, weights=weights)
+        y_mean = np.average(y_local, weights=weights)
+        
+        # Compute weighted slope
+        numerator = np.sum(weights * (x_local - x_mean) * (y_local - y_mean))
+        denominator = np.sum(weights * (x_local - x_mean)**2)
+        
+        if denominator != 0:
+            slope = numerator / denominator
+            intercept = y_mean - slope * x_mean
+            trend[i] = slope * x[i] + intercept
+        else:
+            trend[i] = y_mean
+    
+    return trend
 
 
 def bandpass_filter(signal, sr, lowcut=0.5, highcut=None, order=3):
