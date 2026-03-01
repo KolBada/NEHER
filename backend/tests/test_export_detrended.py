@@ -3,7 +3,7 @@ Test suite for export features with Corrected Light-Induced HRV (Detrended) data
 Features tested:
 - PDF export: Light-Induced HRV Analysis page with original + detrended tables
 - PDF export: Detrending Visualization page with 5 stim panels (A, B, C)
-- XLSX export: Light Stim HRV sheet with both original and detrended sections
+- XLSX export: Light Stimulus HRV sheet with both original and detrended sections
 """
 
 import pytest
@@ -179,7 +179,7 @@ class TestExportWithDetrendedData:
         assert content[:2] == b'PK', "Response is not a valid XLSX file"
     
     def test_xlsx_has_light_stim_hrv_sheet(self, full_export_payload):
-        """Test XLSX contains Light Stim HRV sheet"""
+        """Test XLSX contains Light Stimulus HRV sheet"""
         response = requests.post(
             f"{BASE_URL}/api/export/xlsx", 
             json=full_export_payload,
@@ -192,10 +192,10 @@ class TestExportWithDetrendedData:
         wb = load_workbook(io.BytesIO(response.content))
         sheet_names = wb.sheetnames
         
-        assert 'Light Stim HRV' in sheet_names, f"Missing 'Light Stim HRV' sheet. Found: {sheet_names}"
+        assert 'Light Stimulus HRV' in sheet_names, f"Missing 'Light Stimulus HRV' sheet. Found: {sheet_names}"
     
     def test_xlsx_light_stim_hrv_has_original_data(self, full_export_payload):
-        """Test Light Stim HRV sheet has original HRV data"""
+        """Test Light Stimulus HRV sheet has original HRV data"""
         response = requests.post(
             f"{BASE_URL}/api/export/xlsx", 
             json=full_export_payload,
@@ -203,7 +203,7 @@ class TestExportWithDetrendedData:
         )
         
         wb = load_workbook(io.BytesIO(response.content))
-        ws = wb['Light Stim HRV']
+        ws = wb['Light Stimulus HRV']
         
         # Check header row has original HRV columns
         header_values = [cell.value for cell in ws[1] if cell.value]
@@ -213,7 +213,7 @@ class TestExportWithDetrendedData:
         assert any('RMSSD' in str(v) for v in header_values), "Missing RMSSD header"
     
     def test_xlsx_light_stim_hrv_has_detrended_section(self, full_export_payload):
-        """Test Light Stim HRV sheet has Corrected HRV (Detrended) section"""
+        """Test Light Stimulus HRV sheet has Corrected HRV (Detrended) section"""
         response = requests.post(
             f"{BASE_URL}/api/export/xlsx", 
             json=full_export_payload,
@@ -221,7 +221,7 @@ class TestExportWithDetrendedData:
         )
         
         wb = load_workbook(io.BytesIO(response.content))
-        ws = wb['Light Stim HRV']
+        ws = wb['Light Stimulus HRV']
         
         # Search for "Corrected" or "Detrended" text in the sheet
         found_detrended = False
@@ -233,7 +233,7 @@ class TestExportWithDetrendedData:
             if found_detrended:
                 break
         
-        assert found_detrended, "Missing 'Corrected Light-Induced HRV (Detrended)' section in Light Stim HRV sheet"
+        assert found_detrended, "Missing 'Corrected Light-Induced HRV (Detrended)' section in Light Stimulus HRV sheet"
     
     def test_xlsx_detrended_section_has_correct_columns(self, full_export_payload):
         """Test detrended section has correct column headers"""
@@ -244,7 +244,7 @@ class TestExportWithDetrendedData:
         )
         
         wb = load_workbook(io.BytesIO(response.content))
-        ws = wb['Light Stim HRV']
+        ws = wb['Light Stimulus HRV']
         
         # Find the detrended header row
         detrended_header_row = None
@@ -275,7 +275,7 @@ class TestExportWithDetrendedData:
         )
         
         wb = load_workbook(io.BytesIO(response.content))
-        ws = wb['Light Stim HRV']
+        ws = wb['Light Stimulus HRV']
         
         # Count total rows in sheet
         max_row = ws.max_row
@@ -284,7 +284,7 @@ class TestExportWithDetrendedData:
         # - Original header + 5 stims + median (7 rows)
         # - Detrended header + 5 stims + median (7 rows)
         # - Title rows and spacing
-        assert max_row >= 14, f"Light Stim HRV sheet has only {max_row} rows, expected at least 14 (original + detrended)"
+        assert max_row >= 14, f"Light Stimulus HRV sheet has only {max_row} rows, expected at least 14 (original + detrended)"
     
     def test_xlsx_without_detrended_works(self, light_hrv_data, pulses_data):
         """Test XLSX export works without detrended data (backward compatibility)"""
@@ -304,7 +304,7 @@ class TestExportWithDetrendedData:
         
         # Should still create valid workbook
         wb = load_workbook(io.BytesIO(response.content))
-        assert 'Light Stim HRV' in wb.sheetnames
+        assert 'Light Stimulus HRV' in wb.sheetnames
 
 
 class TestExportDetrendedVisualization:
