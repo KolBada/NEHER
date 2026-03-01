@@ -249,6 +249,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 - `/app/frontend/src/components/LightPanel.js` - Light Stimulation analysis
 
 ## Test Reports
-- `/app/test_reports/iteration_11.json` - Latest (100% pass - 68/68 tests including 12 new detrended HRV tests)
+- `/app/test_reports/iteration_12.json` - Latest (100% pass - 81/81 tests including 13 new export tests)
+- `/app/test_reports/iteration_11.json` - Previous (100% pass - 68/68 tests)
 - `/app/test_reports/iteration_10.json` - Previous
 - `/app/test_reports/iteration_9.json` - Previous (100% pass)
