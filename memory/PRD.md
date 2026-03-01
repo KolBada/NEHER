@@ -220,6 +220,10 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 - Light stim HRV algorithm rebuilt with formula: `NN_70 = NN × (857 / median(NN within stim))`
 - HRA shared baseline implemented: mean BF from -2 to -1 min before first stim
 - Info tooltips added to Light Panel for HRA and HRV sections
+- **NEW (Dec 2025):** Corrected Light-Induced HRV (Detrended) with LOESS smoothing
+  - Backend: `compute_light_hrv_detrended()` in analysis.py
+  - API: POST /api/light-hrv-detrended
+  - Frontend: Full visualization with 3-panel charts and overlay mode
 
 ### P1 - In Progress
 - [ ] Light stim highlights on LightPanel trace (code present, needs verification)
