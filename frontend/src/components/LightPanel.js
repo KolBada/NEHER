@@ -1049,6 +1049,176 @@ export default function LightPanel({
               </CardContent>
             </Card>
           )}
+
+          {/* Corrected Light-Induced HRV (Detrended) Section */}
+          {lightHrv && displayPulses && (
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+                  <TrendingDown className="w-4 h-4 text-emerald-500" />
+                  Corrected Light-Induced HRV (Detrended)
+                  <TooltipProvider delayDuration={100}>
+                    <ShadcnTooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="inline-flex">
+                          <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-sm text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                        <p className="font-semibold mb-1">Detrending Purpose:</p>
+                        <p className="text-zinc-300 mb-2">Removes slow deterministic adaptation curve (peak → decay or delayed rise in CPVT) so HRV reflects true beat-to-beat irregularity only.</p>
+                        <p className="font-semibold mb-1">Algorithm:</p>
+                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
+                          <li>Convert BF → NN: NN_k = 60000 / BF_k</li>
+                          <li>Normalize: NN₇₀ = NN × (857 / median(NN))</li>
+                          <li>Apply Robust LOESS smoothing (span ~25%)</li>
+                          <li>Residual: NN_residual = NN₇₀ - Trend</li>
+                          <li>HRV metrics computed on residuals</li>
+                        </ul>
+                      </TooltipContent>
+                    </ShadcnTooltip>
+                  </TooltipProvider>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Configuration and Compute Button */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] text-zinc-500">LOESS Span:</Label>
+                    <Select
+                      value={String(loessFrac)}
+                      onValueChange={(v) => setLoessFrac(parseFloat(v))}
+                    >
+                      <SelectTrigger className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0.15">15%</SelectItem>
+                        <SelectItem value="0.2">20%</SelectItem>
+                        <SelectItem value="0.25">25%</SelectItem>
+                        <SelectItem value="0.3">30%</SelectItem>
+                        <SelectItem value="0.35">35%</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    data-testid="compute-detrended-hrv-btn"
+                    className="h-7 text-xs rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                    onClick={() => onComputeLightHRVDetrended(loessFrac)}
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                    Compute Detrended HRV
+                  </Button>
+                </div>
+
+                {lightHrvDetrended ? (
+                  <>
+                    {/* Readout (median of 5 stims) */}
+                    {lightHrvDetrended.final && (
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        <MetricCard 
+                          label="ln(RMSSD₇₀) detrended" 
+                          value={lightHrvDetrended.final.ln_rmssd70_detrended}
+                          tooltip="Log-transformed RMSSD after removing trend - reflects pure beat-to-beat variability"
+                        />
+                        <MetricCard 
+                          label="ln(SDNN₇₀) detrended" 
+                          value={lightHrvDetrended.final.ln_sdnn70_detrended}
+                          tooltip="Log-transformed SDNN after removing trend - reflects residual overall variability"
+                        />
+                        <MetricCard 
+                          label="pNN50₇₀ detrended" 
+                          value={lightHrvDetrended.final.pnn50_detrended}
+                          unit="%"
+                          tooltip="Percentage of successive detrended intervals differing >50 ms"
+                        />
+                      </div>
+                    )}
+
+                    <Separator className="bg-zinc-800 my-3" />
+                    <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation Detrended HRV</p>
+                    
+                    {/* Per-stim table */}
+                    <ScrollArea className="h-[160px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-zinc-800 hover:bg-transparent">
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">ln(RMSSD₇₀)_det</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">RMSSD₇₀_det</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">ln(SDNN₇₀)_det</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">SDNN₇₀_det</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7">pNN50₇₀_det</TableHead>
+                            <TableHead className="text-[10px] font-data text-zinc-500 h-7 w-20">Visualize</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {lightHrvDetrended.per_pulse.map((p, i) => (
+                            <TableRow 
+                              key={i} 
+                              className={`border-zinc-800/50 data-row ${expandedStim === i ? 'bg-emerald-950/20' : ''}`}
+                            >
+                              <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
+                              <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_rmssd70_detrended?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
+                              <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.rmssd70_detrended?.toFixed(3) : '\u2014'}</TableCell>
+                              <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? (p.ln_sdnn70_detrended?.toFixed(3) ?? '\u2014') : '\u2014'}</TableCell>
+                              <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.sdnn_detrended?.toFixed(3) : '\u2014'}</TableCell>
+                              <TableCell className="text-[10px] font-data text-zinc-300 py-1">{p ? p.pnn50_detrended?.toFixed(3) : '\u2014'}</TableCell>
+                              <TableCell className="py-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-5 text-[9px] px-2 ${expandedStim === i ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                  onClick={() => setExpandedStim(expandedStim === i ? null : i)}
+                                  disabled={!p || !p.viz}
+                                >
+                                  {expandedStim === i ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+
+                    {/* Expandable Visualization Panel */}
+                    {expandedStim !== null && lightHrvDetrended.per_pulse[expandedStim]?.viz && (
+                      <div className="mt-4 p-3 bg-zinc-900/50 rounded-sm border border-emerald-800/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[10px] text-emerald-400 font-medium uppercase tracking-wider">
+                            Detrending Visualization — Stim {expandedStim + 1}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              id="overlay-toggle"
+                              checked={showOverlay}
+                              onCheckedChange={setShowOverlay}
+                              className="h-4 w-7"
+                            />
+                            <Label htmlFor="overlay-toggle" className="text-[9px] text-zinc-400 cursor-pointer">
+                              Overlay Mode
+                            </Label>
+                          </div>
+                        </div>
+
+                        {/* Visualization Charts */}
+                        <DetrendingVisualization 
+                          vizData={lightHrvDetrended.per_pulse[expandedStim].viz}
+                          showOverlay={showOverlay}
+                          stimIdx={expandedStim}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-6 text-zinc-600 text-sm">
+                    Click "Compute Detrended HRV" above to calculate corrected HRV metrics with trend removal.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>
