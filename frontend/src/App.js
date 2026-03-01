@@ -851,6 +851,9 @@ function App() {
       drugSettings,
       otherDrugs,
       
+      // Drug readout settings (Spontaneous Activity)
+      drugReadoutSettings,
+      
       // Light stim
       lightEnabled,
       lightParams,
@@ -862,7 +865,7 @@ function App() {
   }, [
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
-    lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse
+    drugReadoutSettings, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse
   ]);
 
   // Handle save complete
