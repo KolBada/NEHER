@@ -88,6 +88,7 @@ class ExportRequest(BaseModel):
     per_beat_data: Optional[List[dict]] = None
     hrv_windows: Optional[List[dict]] = None
     light_metrics: Optional[List[dict]] = None
+    light_metrics_detrended: Optional[dict] = None  # Corrected HRV (Detrended) data
     light_response: Optional[List[dict]] = None
     light_pulses: Optional[List[dict]] = None  # For showing light stim zones on charts
     summary: Optional[dict] = None
