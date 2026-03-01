@@ -690,14 +690,210 @@ function App() {
     setDrugSettings({});
     setOtherDrugs([]);
     setLightEnabled(true);
+    setSavedRecordingId(null);
+    setSavedFolderId(null);
+    setHasExported(false);
+  }, []);
+
+  // Go back to home view
+  const handleGoHome = useCallback(() => {
+    handleReset();
+    setAppView('home');
+  }, [handleReset]);
+
+  // Handle opening a saved recording
+  const handleOpenRecording = useCallback((recordingData) => {
+    const state = recordingData.analysis_state;
+    
+    // Set recording identifiers
+    setSavedRecordingId(recordingData.id);
+    setSavedFolderId(recordingData.folder_id);
+    
+    // Restore session info
+    setRecordingName(state.recordingName || recordingData.name);
+    
+    // Restore file info
+    if (state.file_info) {
+      setFiles([{
+        file_id: state.file_info.file_id || 'restored',
+        filename: recordingData.filename,
+        ...state.file_info,
+      }]);
+    }
+    
+    // Restore trace data
+    if (state.trace_data) {
+      setTraceData(state.trace_data);
+    }
+    
+    // Restore beats
+    if (state.beats) {
+      setBeats(state.beats);
+    }
+    
+    // Restore detection params
+    if (state.detectionParams) {
+      setDetectionParams(state.detectionParams);
+    }
+    
+    // Restore filter params
+    if (state.filterParams) {
+      setFilterParams(state.filterParams);
+    }
+    
+    // Restore signal stats
+    if (state.signalStats) {
+      setSignalStats(state.signalStats);
+    }
+    
+    // Restore validation state
+    setIsValidated(state.isValidated || false);
+    
+    // Restore metrics
+    if (state.metrics) {
+      setMetrics(state.metrics);
+    }
+    
+    // Restore HRV results
+    if (state.hrvResults) {
+      setHrvResults(state.hrvResults);
+    }
+    
+    // Restore per-minute data
+    if (state.perMinuteData) {
+      setPerMinuteData(state.perMinuteData);
+    }
+    
+    // Restore drug config
+    if (state.selectedDrugs) {
+      setSelectedDrugs(state.selectedDrugs);
+    }
+    if (state.drugSettings) {
+      setDrugSettings(state.drugSettings);
+    }
+    if (state.otherDrugs) {
+      setOtherDrugs(state.otherDrugs);
+    }
+    
+    // Restore light stim
+    setLightEnabled(state.lightEnabled !== false);
+    if (state.lightParams) {
+      setLightParams(state.lightParams);
+    }
+    if (state.lightPulses) {
+      setLightPulses(state.lightPulses);
+    }
+    if (state.lightHrv) {
+      setLightHrv(state.lightHrv);
+    }
+    if (state.lightHrvDetrended) {
+      setLightHrvDetrended(state.lightHrvDetrended);
+    }
+    if (state.lightResponse) {
+      setLightResponse(state.lightResponse);
+    }
+    
+    // Mark as exported if was saved before (since save requires export)
+    setHasExported(true);
+    
+    // Set a dummy session ID to enter analysis view
+    setSessionId('restored-' + recordingData.id);
+    setAppView('analysis');
+    
+    toast.success(`Loaded "${recordingData.name}"`);
+  }, []);
+
+  // Build analysis state for saving
+  const buildAnalysisState = useCallback(() => {
+    return {
+      // File info
+      file_info: activeFile ? {
+        file_id: activeFile.file_id,
+        filename: activeFile.filename,
+        duration_sec: activeFile.duration_sec,
+        sample_rate: activeFile.sample_rate,
+        n_samples: activeFile.n_samples,
+      } : null,
+      filename: activeFile?.filename,
+      recordingName,
+      
+      // Trace data (decimated for storage)
+      trace_data: traceData,
+      
+      // Beats
+      beats,
+      
+      // Detection params
+      detectionParams,
+      filterParams,
+      signalStats,
+      
+      // Validation
+      isValidated,
+      
+      // Metrics
+      metrics,
+      
+      // HRV
+      hrvResults,
+      perMinuteData,
+      
+      // Drug config
+      selectedDrugs,
+      drugSettings,
+      otherDrugs,
+      
+      // Light stim
+      lightEnabled,
+      lightParams,
+      lightPulses,
+      lightHrv,
+      lightHrvDetrended,
+      lightResponse,
+    };
+  }, [
+    activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
+    isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
+    lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse
+  ]);
+
+  // Handle save complete
+  const handleSaveComplete = useCallback((folderId) => {
+    setSavedFolderId(folderId);
   }, []);
 
   // --- RENDER ---
-  if (!sessionId) {
+  
+  // Home view - folder browser
+  if (appView === 'home') {
     return (
       <div className="min-h-screen bg-[#09090b]">
         <Toaster theme="dark" position="top-right" />
-        <FileUpload onUpload={handleUpload} loading={uploadLoading} appName="NeuCarS" />
+        <HomeBrowser 
+          onNewAnalysis={() => setAppView('upload')}
+          onOpenRecording={handleOpenRecording}
+        />
+      </div>
+    );
+  }
+
+  // Upload view - file upload screen
+  if (appView === 'upload' || !sessionId) {
+    return (
+      <div className="min-h-screen bg-[#09090b]">
+        <Toaster theme="dark" position="top-right" />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4"
+            onClick={() => setAppView('home')}
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+        <FileUpload onUpload={(files) => { handleUpload(files); setAppView('analysis'); }} loading={uploadLoading} appName="NeuCarS" />
       </div>
     );
   }
