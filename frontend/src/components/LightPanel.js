@@ -65,6 +65,181 @@ function MetricCard({ label, value, unit, tooltip }) {
   );
 }
 
+// Detrending Visualization Component
+function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
+  // Transform data for charts
+  const chartData = useMemo(() => {
+    if (!vizData || !vizData.time_rel || !vizData.nn_70) return [];
+    return vizData.time_rel.map((t, i) => ({
+      time: t,
+      nn_70: vizData.nn_70[i],
+      trend: vizData.trend[i],
+      residual: vizData.residual[i],
+    }));
+  }, [vizData]);
+
+  // Calculate Y-axis bounds
+  const yBounds = useMemo(() => {
+    if (!chartData.length) return { nn: [800, 900], residual: [-50, 50] };
+    
+    const nn70Values = chartData.map(d => d.nn_70).filter(v => !isNaN(v));
+    const trendValues = chartData.map(d => d.trend).filter(v => !isNaN(v));
+    const residualValues = chartData.map(d => d.residual).filter(v => !isNaN(v));
+    
+    const nnMin = Math.min(...nn70Values, ...trendValues);
+    const nnMax = Math.max(...nn70Values, ...trendValues);
+    const nnPadding = (nnMax - nnMin) * 0.1;
+    
+    const resMin = Math.min(...residualValues);
+    const resMax = Math.max(...residualValues);
+    const resPadding = Math.max(Math.abs(resMax), Math.abs(resMin)) * 0.2;
+    
+    return {
+      nn: [Math.floor(nnMin - nnPadding), Math.ceil(nnMax + nnPadding)],
+      residual: [Math.floor(resMin - resPadding), Math.ceil(resMax + resPadding)],
+    };
+  }, [chartData]);
+
+  if (!chartData.length) {
+    return <div className="text-zinc-500 text-sm text-center py-4">No visualization data available</div>;
+  }
+
+  if (showOverlay) {
+    // Overlay mode: Raw NN_70 and detrended NN_residual plotted together
+    return (
+      <div className="space-y-2">
+        <p className="text-[9px] text-zinc-500 text-center uppercase tracking-wider mb-1">
+          Overlay: Raw NN₇₀ (cyan) vs Detrended Residual (green, shifted for visibility)
+        </p>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <XAxis 
+              dataKey="time" 
+              tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -2, fill: '#52525b', fontSize: 8 }}
+            />
+            <YAxis 
+              yAxisId="nn"
+              tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} 
+              width={50}
+              domain={yBounds.nn}
+              label={{ value: 'NN₇₀ (ms)', angle: -90, fill: '#52525b', fontSize: 8, position: 'insideLeft' }}
+            />
+            <YAxis 
+              yAxisId="residual"
+              orientation="right"
+              tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} 
+              width={50}
+              domain={yBounds.residual}
+              label={{ value: 'Residual (ms)', angle: 90, fill: '#52525b', fontSize: 8, position: 'insideRight' }}
+            />
+            <RechartsTooltip
+              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
+              formatter={(v, name) => [typeof v === 'number' ? v.toFixed(2) : v, name]}
+            />
+            <ReferenceLine yAxisId="residual" y={0} stroke="#52525b" strokeDasharray="3 3" />
+            <Line yAxisId="nn" type="monotone" dataKey="nn_70" name="Raw NN₇₀" stroke="#22d3ee" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            <Line yAxisId="nn" type="monotone" dataKey="trend" name="LOESS Trend" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} strokeDasharray="5 5" />
+            <Line yAxisId="residual" type="monotone" dataKey="residual" name="Residual" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  // Three-panel view
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* Panel A: Raw Data */}
+      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
+        <p className="text-[9px] text-cyan-400 text-center uppercase tracking-wider mb-1 font-medium">
+          Panel A: Raw NN₇₀
+        </p>
+        <ResponsiveContainer width="100%" height={140}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <XAxis 
+              dataKey="time" 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
+              tickFormatter={(v) => v.toFixed(0)}
+            />
+            <YAxis 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }} 
+              width={40}
+              domain={yBounds.nn}
+            />
+            <RechartsTooltip
+              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'NN₇₀']}
+            />
+            <Line type="monotone" dataKey="nn_70" stroke="#22d3ee" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="text-[8px] text-zinc-600 text-center">Time (s) from stim start</p>
+      </div>
+
+      {/* Panel B: Trend Extraction */}
+      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
+        <p className="text-[9px] text-amber-400 text-center uppercase tracking-wider mb-1 font-medium">
+          Panel B: Trend Extraction
+        </p>
+        <ResponsiveContainer width="100%" height={140}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <XAxis 
+              dataKey="time" 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
+              tickFormatter={(v) => v.toFixed(0)}
+            />
+            <YAxis 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }} 
+              width={40}
+              domain={yBounds.nn}
+            />
+            <RechartsTooltip
+              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              formatter={(v, name) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, name]}
+            />
+            <Line type="monotone" dataKey="nn_70" name="Raw" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} opacity={0.5} />
+            <Line type="monotone" dataKey="trend" name="LOESS" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="text-[8px] text-zinc-600 text-center">LOESS smoothed trend overlay</p>
+      </div>
+
+      {/* Panel C: Detrended Signal */}
+      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
+        <p className="text-[9px] text-emerald-400 text-center uppercase tracking-wider mb-1 font-medium">
+          Panel C: Detrended Residual
+        </p>
+        <ResponsiveContainer width="100%" height={140}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <XAxis 
+              dataKey="time" 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
+              tickFormatter={(v) => v.toFixed(0)}
+            />
+            <YAxis 
+              tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }} 
+              width={40}
+              domain={yBounds.residual}
+            />
+            <RechartsTooltip
+              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'Residual']}
+            />
+            <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="residual" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="text-[8px] text-zinc-600 text-center">NN₇₀ - Trend (zero reference)</p>
+      </div>
+    </div>
+  );
+}
+
 export default function LightPanel({
   lightParams, onParamsChange,
   pulses, onDetectPulses, onPulsesUpdate,
