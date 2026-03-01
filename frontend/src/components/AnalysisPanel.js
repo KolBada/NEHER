@@ -99,13 +99,28 @@ function HrvInfoPopover({ metric }) {
 export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
-  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses
+  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses,
+  drugReadoutSettings, onDrugReadoutSettingsChange
 }) {
-  // Separate readout controls for HRV and BF
-  const [hrvReadoutMinute, setHrvReadoutMinute] = useState('');
-  const [bfReadoutMinute, setBfReadoutMinute] = useState('');
-  const [enableHrvReadout, setEnableHrvReadout] = useState(false);
-  const [enableBfReadout, setEnableBfReadout] = useState(false);
+  // Use drugReadoutSettings from props, with local fallbacks for backwards compatibility
+  const hrvReadoutMinute = drugReadoutSettings?.hrvReadoutMinute ?? '';
+  const bfReadoutMinute = drugReadoutSettings?.bfReadoutMinute ?? '';
+  const enableHrvReadout = drugReadoutSettings?.enableHrvReadout ?? false;
+  const enableBfReadout = drugReadoutSettings?.enableBfReadout ?? false;
+  
+  // Update functions that call parent callback
+  const setHrvReadoutMinute = (val) => {
+    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, hrvReadoutMinute: val });
+  };
+  const setBfReadoutMinute = (val) => {
+    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, bfReadoutMinute: val });
+  };
+  const setEnableHrvReadout = (val) => {
+    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, enableHrvReadout: val });
+  };
+  const setEnableBfReadout = (val) => {
+    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, enableBfReadout: val });
+  };
   
   // Baseline settings - HRV readout at minute 0, BF readout at minute 1
   const [baselineHrvMinute, setBaselineHrvMinute] = useState(0);
