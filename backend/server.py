@@ -366,6 +366,119 @@ async def per_minute_metrics_endpoint(request: PerMinuteRequest):
     return {'rows': rows}
 
 
+# ==============================================================================
+# STORAGE API - Folders and Recordings
+# ==============================================================================
+
+@api_router.get("/folders")
+async def get_folders_endpoint():
+    """Get all folders with recording counts."""
+    folders = await storage.get_folders(db)
+    return {"folders": folders}
+
+
+@api_router.post("/folders")
+async def create_folder_endpoint(request: storage.FolderCreate):
+    """Create a new folder."""
+    folder = await storage.create_folder(db, request.name)
+    return folder
+
+
+@api_router.get("/folders/{folder_id}")
+async def get_folder_endpoint(folder_id: str):
+    """Get a single folder."""
+    folder = await storage.get_folder(db, folder_id)
+    if not folder:
+        raise HTTPException(404, "Folder not found")
+    return folder
+
+
+@api_router.put("/folders/{folder_id}")
+async def update_folder_endpoint(folder_id: str, request: storage.FolderUpdate):
+    """Update a folder's name."""
+    folder = await storage.update_folder(db, folder_id, request.name)
+    if not folder:
+        raise HTTPException(404, "Folder not found")
+    return folder
+
+
+@api_router.delete("/folders/{folder_id}")
+async def delete_folder_endpoint(folder_id: str):
+    """Delete a folder and all its recordings."""
+    success = await storage.delete_folder(db, folder_id)
+    if not success:
+        raise HTTPException(404, "Folder not found")
+    return {"success": True}
+
+
+@api_router.get("/folders/{folder_id}/recordings")
+async def get_recordings_endpoint(folder_id: str):
+    """Get all recordings in a folder."""
+    # Verify folder exists
+    folder = await storage.get_folder(db, folder_id)
+    if not folder:
+        raise HTTPException(404, "Folder not found")
+    recordings = await storage.get_recordings_in_folder(db, folder_id)
+    return {"folder": folder, "recordings": recordings}
+
+
+@api_router.post("/recordings")
+async def create_recording_endpoint(request: storage.RecordingCreate):
+    """Create a new recording in a folder."""
+    # Verify folder exists
+    folder = await storage.get_folder(db, request.folder_id)
+    if not folder:
+        raise HTTPException(404, "Folder not found")
+    
+    # Check for duplicates
+    is_duplicate = await storage.check_duplicate_recording(db, request.folder_id, request.filename)
+    if is_duplicate:
+        raise HTTPException(400, f"A recording with filename '{request.filename}' already exists in this folder")
+    
+    recording = await storage.create_recording(db, request.folder_id, request.name, request.filename, request.analysis_state)
+    return recording
+
+
+@api_router.get("/recordings/{recording_id}")
+async def get_recording_endpoint(recording_id: str):
+    """Get a single recording with full analysis state."""
+    recording = await storage.get_recording(db, recording_id)
+    if not recording:
+        raise HTTPException(404, "Recording not found")
+    return recording
+
+
+@api_router.put("/recordings/{recording_id}")
+async def update_recording_endpoint(recording_id: str, request: storage.RecordingUpdate):
+    """Update a recording's name and/or analysis state."""
+    recording = await storage.update_recording(db, recording_id, request.name, request.analysis_state)
+    if not recording:
+        raise HTTPException(404, "Recording not found")
+    return recording
+
+
+@api_router.delete("/recordings/{recording_id}")
+async def delete_recording_endpoint(recording_id: str):
+    """Delete a recording."""
+    success = await storage.delete_recording(db, recording_id)
+    if not success:
+        raise HTTPException(404, "Recording not found")
+    return {"success": True}
+
+
+@api_router.post("/recordings/{recording_id}/move")
+async def move_recording_endpoint(recording_id: str, request: storage.RecordingMove):
+    """Move a recording to a different folder."""
+    recording = await storage.move_recording(db, recording_id, request.target_folder_id)
+    if not recording:
+        raise HTTPException(400, "Could not move recording. Target folder may not exist or a duplicate filename exists.")
+    return recording
+
+
+# ==============================================================================
+# EXPORT API
+# ==============================================================================
+
 @api_router.post("/export/csv")
 async def export_csv(request: ExportRequest):
     output = io.StringIO()
