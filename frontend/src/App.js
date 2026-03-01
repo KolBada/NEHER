@@ -1216,6 +1216,8 @@ function App() {
               otherDrugs={otherDrugs}
               DRUG_CONFIG={DRUG_CONFIG}
               lightPulses={lightPulses}
+              drugReadoutSettings={drugReadoutSettings}
+              onDrugReadoutSettingsChange={setDrugReadoutSettings}
             />
           </TabsContent>
 
