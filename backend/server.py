@@ -334,6 +334,25 @@ async def light_response_endpoint(request: LightResponseRequest):
     }
 
 
+class LightHRVDetrendedRequest(BaseModel):
+    beat_times_min: List[float]
+    bf_filtered: List[float]
+    pulses: List[dict]
+    loess_frac: float = 0.25  # LOESS span (20-30% of stim duration)
+
+
+@api_router.post("/light-hrv-detrended")
+async def light_hrv_detrended_endpoint(request: LightHRVDetrendedRequest):
+    """
+    Compute Corrected Light-Induced HRV using LOESS detrending.
+    Removes slow deterministic adaptation curves to isolate true beat-to-beat variability.
+    """
+    result = analysis.compute_light_hrv_detrended(
+        request.beat_times_min, request.bf_filtered, request.pulses, request.loess_frac
+    )
+    return {'per_pulse': result['per_pulse'], 'final': result['final']}
+
+
 @api_router.post("/per-minute-metrics")
 async def per_minute_metrics_endpoint(request: PerMinuteRequest):
     if len(request.beat_times_min) < 2:
