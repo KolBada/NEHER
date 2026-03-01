@@ -79,9 +79,43 @@ For each stim j:
 Display: ln(RMSSD₇₀), RMSSD₇₀, ln(SDNN₇₀), SDNN₇₀, pNN50₇₀
 
 #### HRV Light Stim - Readout (Median of 5 Stims)
-Display ONLY: ln(RMSSD₇₀), ln(SDNN₇₀)
+Display ONLY: ln(RMSSD₇₀), ln(SDNN₇₀), pNN50₇₀
 
 Do NOT display: Raw RMSSD or SDNN in the readout
+
+### Corrected Light-Induced HRV (Detrended) - NEW Dec 2025
+
+#### Purpose
+Remove slow deterministic adaptation curve during each light stimulation (peak → decay or delayed rise in CPVT) so HRV reflects true beat-to-beat irregularity only.
+
+#### Algorithm
+For each stim j:
+1. Use filtered BF only
+2. Convert to NN: NN_k = 60000 / BF_k,filt
+3. Normalize to 70 bpm: NN_k,70 = NN_k × (857 / median(NN_k within stim))
+4. Apply Robust LOESS smoothing (span ~25% default, configurable 15-35%)
+5. Compute residual: NN_residual = NN_k,70 − Trend_k
+6. Compute HRV metrics on residuals: RMSSD_70_detrended, SDNN_70_detrended, pNN50_70_detrended
+
+#### Tables
+**Per-Stim (display):**
+- ln(RMSSD₇₀)_detrended
+- RMSSD₇₀_detrended
+- ln(SDNN₇₀)_detrended
+- SDNN₇₀_detrended
+- pNN50₇₀_detrended
+
+**Readout (median of 5 stims):**
+- ln(RMSSD₇₀)_detrended
+- ln(SDNN₇₀)_detrended
+- pNN50₇₀_detrended
+
+#### Visualization Module
+Expandable panel per stim with:
+- **Panel A**: Raw NN₇₀ vs time (cyan)
+- **Panel B**: Trend Extraction - NN₇₀ with LOESS overlay (amber)
+- **Panel C**: Detrended Residual - zero reference line (green)
+- **Overlay Mode**: Toggle to show raw + trend + residual on same chart with dual Y-axes
 
 #### Per-Stim Metrics (HRA - Heart Rate Acceleration)
 For each stim j with window [S_j, E_j]:
