@@ -416,6 +416,26 @@ function App() {
     }
   }, [metrics, lightPulses]);
 
+  // Light HRV Detrended (Corrected HRV using LOESS)
+  const handleLightHRVDetrended = useCallback(async (loessFrac = 0.25) => {
+    if (!metrics || !lightPulses) return;
+    setAnalysisLoading(true);
+    try {
+      const { data } = await api.lightHrvDetrended({
+        beat_times_min: metrics.filtered_beat_times_min,
+        bf_filtered: metrics.filtered_bf_bpm,
+        pulses: lightPulses,
+        loess_frac: loessFrac,
+      });
+      setLightHrvDetrended(data);
+      toast.success('Corrected HRV (Detrended) computed');
+    } catch (err) {
+      toast.error('Detrended HRV failed: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }, [metrics, lightPulses]);
+
   // Light Response
   const handleLightResponse = useCallback(async () => {
     if (!metrics || !lightPulses) return;
