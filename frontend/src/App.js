@@ -596,6 +596,7 @@ function App() {
       per_beat_data: perBeat,
       hrv_windows: hrvResults?.windows || null,
       light_metrics: lightEnabled ? (lightHrv?.per_pulse || null) : null,
+      light_metrics_detrended: lightEnabled ? lightHrvDetrended : null,  // Corrected HRV (Detrended)
       light_response: lightEnabled ? (lightResponse?.per_stim || null) : null,
       light_pulses: lightEnabled ? lightPulses : null,  // For showing light stim zones on PDF charts
       summary: Object.keys(summary).length > 0 ? summary : null,
@@ -607,7 +608,7 @@ function App() {
       drug_readout: drugReadout,
       perfusion_params: perfusionParams,
     };
-  }, [metrics, hrvResults, lightHrv, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses]);
+  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
