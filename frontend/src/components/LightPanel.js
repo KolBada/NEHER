@@ -65,8 +65,8 @@ function MetricCard({ label, value, unit, tooltip }) {
 export default function LightPanel({
   lightParams, onParamsChange,
   pulses, onDetectPulses, onPulsesUpdate,
-  lightHrv, lightResponse,
-  onComputeLightHRV, onComputeLightResponse,
+  lightHrv, lightHrvDetrended, lightResponse,
+  onComputeLightHRV, onComputeLightHRVDetrended, onComputeLightResponse,
   loading, metrics, lightEnabled, onLightEnabledChange
 }) {
   const [localParams, setLocalParams] = useState(lightParams || {
@@ -78,6 +78,11 @@ export default function LightPanel({
     searchRange: 20,
   });
   const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
+  
+  // State for detrended visualization expansion
+  const [expandedStim, setExpandedStim] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [loessFrac, setLoessFrac] = useState(0.25);
   const [localPulses, setLocalPulses] = useState(null);
   const [originalPulses, setOriginalPulses] = useState(null);
   
