@@ -45,6 +45,21 @@ const api = {
     axios.post(`${API_URL}/export/pdf`, data, { responseType: 'blob' }),
 
   perMinuteMetrics: (data) => axios.post(`${API_URL}/per-minute-metrics`, data),
+
+  // Storage API - Folders
+  getFolders: () => axios.get(`${API_URL}/folders`),
+  createFolder: (name) => axios.post(`${API_URL}/folders`, { name }),
+  getFolder: (folderId) => axios.get(`${API_URL}/folders/${folderId}`),
+  updateFolder: (folderId, name) => axios.put(`${API_URL}/folders/${folderId}`, { name }),
+  deleteFolder: (folderId) => axios.delete(`${API_URL}/folders/${folderId}`),
+  
+  // Storage API - Recordings
+  getRecordingsInFolder: (folderId) => axios.get(`${API_URL}/folders/${folderId}/recordings`),
+  createRecording: (data) => axios.post(`${API_URL}/recordings`, data),
+  getRecording: (recordingId) => axios.get(`${API_URL}/recordings/${recordingId}`),
+  updateRecording: (recordingId, data) => axios.put(`${API_URL}/recordings/${recordingId}`, data),
+  deleteRecording: (recordingId) => axios.delete(`${API_URL}/recordings/${recordingId}`),
+  moveRecording: (recordingId, targetFolderId) => axios.post(`${API_URL}/recordings/${recordingId}/move`, { target_folder_id: targetFolderId }),
 };
 
 export function downloadBlob(blob, filename) {
