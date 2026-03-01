@@ -337,6 +337,7 @@ function App() {
     setPerMinuteData(null);
     setLightPulses(null);
     setLightHrv(null);
+    setLightHrvDetrended(null);
     setLightResponse(null);
   }, []);
 
