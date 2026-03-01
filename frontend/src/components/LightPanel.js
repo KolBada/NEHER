@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, RotateCcw, Minus, Plus, Info } from 'lucide-react';
+import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, RotateCcw, Minus, Plus, Info, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger
+} from '@/components/ui/collapsible';
+import {
   Tooltip as ShadcnTooltip,
   TooltipContent,
   TooltipProvider,
@@ -22,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea
+  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea, ReferenceLine
 } from 'recharts';
 
 // Format time as "Xmin Ys" or "X.Xmin"
