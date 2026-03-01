@@ -783,6 +783,11 @@ function App() {
       setOtherDrugs(state.otherDrugs);
     }
     
+    // Restore drug readout settings (Spontaneous Activity)
+    if (state.drugReadoutSettings) {
+      setDrugReadoutSettings(state.drugReadoutSettings);
+    }
+    
     // Restore light stim
     setLightEnabled(state.lightEnabled !== false);
     if (state.lightParams) {
