@@ -378,6 +378,7 @@ function App() {
       });
       setLightPulses(data.pulses);
       setLightHrv(null);
+      setLightHrvDetrended(null);
       setLightResponse(null);
       const startMin = (data.detected_start_sec / 60).toFixed(2);
       toast.success(`${data.pulses.length} pulses detected (start: ${startMin} min)`);
