@@ -215,6 +215,14 @@ function App() {
   // HRV
   const [hrvResults, setHrvResults] = useState(null);
   const [perMinuteData, setPerMinuteData] = useState(null);
+  
+  // Drug readout settings (for Spontaneous Activity)
+  const [drugReadoutSettings, setDrugReadoutSettings] = useState({
+    hrvReadoutMinute: '',
+    bfReadoutMinute: '',
+    enableHrvReadout: false,
+    enableBfReadout: false,
+  });
 
   // Light
   const [lightEnabled, setLightEnabled] = useState(true);
