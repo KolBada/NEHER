@@ -962,8 +962,10 @@ function App() {
               onDetectPulses={handleDetectPulses}
               onPulsesUpdate={handlePulsesUpdate}
               lightHrv={lightHrv}
+              lightHrvDetrended={lightHrvDetrended}
               lightResponse={lightResponse}
               onComputeLightHRV={handleLightHRV}
+              onComputeLightHRVDetrended={handleLightHRVDetrended}
               onComputeLightResponse={handleLightResponse}
               loading={analysisLoading}
               metrics={metrics}
