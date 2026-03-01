@@ -1341,15 +1341,17 @@ async def export_pdf(request: ExportRequest):
                 pdf.savefig(fig4)
                 plt.close(fig4)
 
-        # Page 5: Light HRV metrics (if available)
+        # Page 5: Light HRV metrics (if available) - includes both original and detrended
         if request.light_metrics:
             valid_hrv = [m for m in request.light_metrics if m is not None]
             if valid_hrv:
                 fig5 = plt.figure(figsize=(8.5, 11))
                 fig5.suptitle('Light-Induced HRV Analysis', fontsize=14, fontweight='bold', y=0.96)
                 
-                ax5 = fig5.add_axes([0.08, 0.45, 0.84, 0.40])
+                # Original HRV table - upper portion
+                ax5 = fig5.add_axes([0.08, 0.58, 0.84, 0.30])
                 ax5.axis('off')
+                ax5.text(0.5, 1.05, 'Original HRV (NN₇₀ Normalized)', ha='center', fontsize=10, fontweight='bold', color='#0891b2', transform=ax5.transAxes)
                 
                 # Per-stim columns as specified: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
                 headers = ['Stim #', 'ln(RMSSD₇₀)', 'RMSSD₇₀\n(ms)', 'ln(SDNN₇₀)', 'SDNN₇₀\n(ms)', 'pNN50₇₀\n(%)']
@@ -1395,7 +1397,7 @@ async def export_pdf(request: ExportRequest):
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(9)
-                table.scale(1.0, 2.2)
+                table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#d1d5db')
@@ -1411,8 +1413,136 @@ async def export_pdf(request: ExportRequest):
                         cell.set_facecolor('#ecfeff' if row % 2 == 0 else '#ffffff')
                         cell.set_height(0.06)
                 
+                # Corrected HRV (Detrended) table - lower portion
+                if request.light_metrics_detrended and request.light_metrics_detrended.get('per_pulse'):
+                    ax5b = fig5.add_axes([0.08, 0.12, 0.84, 0.30])
+                    ax5b.axis('off')
+                    ax5b.text(0.5, 1.05, 'Corrected HRV (LOESS Detrended)', ha='center', fontsize=10, fontweight='bold', color='#059669', transform=ax5b.transAxes)
+                    
+                    per_pulse_det = request.light_metrics_detrended['per_pulse']
+                    final_det = request.light_metrics_detrended.get('final', {})
+                    
+                    headers_det = ['Stim #', 'ln(RMSSD₇₀)\ndetrended', 'RMSSD₇₀\ndet (ms)', 'ln(SDNN₇₀)\ndetrended', 'SDNN₇₀\ndet (ms)', 'pNN50₇₀\ndet (%)']
+                    table_data_det = []
+                    
+                    for i, row in enumerate(per_pulse_det):
+                        if row:
+                            ln_rmssd_det = row.get('ln_rmssd70_detrended')
+                            ln_sdnn_det = row.get('ln_sdnn70_detrended')
+                            table_data_det.append([
+                                str(i + 1),
+                                f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else "—",
+                                f"{row.get('rmssd70_detrended', 0):.3f}",
+                                f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else "—",
+                                f"{row.get('sdnn_detrended', 0):.3f}",
+                                f"{row.get('pnn50_detrended', 0):.3f}",
+                            ])
+                        else:
+                            table_data_det.append([str(i + 1), "—", "—", "—", "—", "—"])
+                    
+                    # Median row for detrended
+                    if final_det:
+                        ln_rmssd_med = final_det.get('ln_rmssd70_detrended')
+                        ln_sdnn_med = final_det.get('ln_sdnn70_detrended')
+                        table_data_det.append([
+                            'Median',
+                            f"{ln_rmssd_med:.3f}" if ln_rmssd_med is not None else "—",
+                            f"{final_det.get('rmssd70_detrended', 0):.3f}",
+                            f"{ln_sdnn_med:.3f}" if ln_sdnn_med is not None else "—",
+                            f"{final_det.get('sdnn_detrended', 0):.3f}",
+                            f"{final_det.get('pnn50_detrended', 0):.3f}",
+                        ])
+                    
+                    table_det = ax5b.table(
+                        cellText=table_data_det,
+                        colLabels=headers_det,
+                        loc='center',
+                        cellLoc='center',
+                        colWidths=[0.12, 0.17, 0.17, 0.17, 0.17, 0.14]
+                    )
+                    table_det.auto_set_font_size(False)
+                    table_det.set_fontsize(9)
+                    table_det.scale(1.0, 1.8)
+                    
+                    for (row, col), cell in table_det.get_celld().items():
+                        cell.set_edgecolor('#d1d5db')
+                        if row == 0:
+                            cell.set_text_props(fontweight='bold', color='white')
+                            cell.set_facecolor('#059669')
+                            cell.set_height(0.09)
+                        elif row == len(table_data_det):  # Median row
+                            cell.set_text_props(fontweight='bold')
+                            cell.set_facecolor('#a7f3d0')
+                            cell.set_height(0.07)
+                        else:
+                            cell.set_facecolor('#d1fae5' if row % 2 == 0 else '#ffffff')
+                            cell.set_height(0.06)
+                
                 pdf.savefig(fig5)
                 plt.close(fig5)
+        
+        # Page 5b: Detrending Visualization (5 stim panels A, B, C)
+        if request.light_metrics_detrended and request.light_metrics_detrended.get('per_pulse'):
+            per_pulse_det = request.light_metrics_detrended['per_pulse']
+            valid_viz = [(i, p) for i, p in enumerate(per_pulse_det) if p and p.get('viz')]
+            
+            if valid_viz:
+                fig5c = plt.figure(figsize=(8.5, 11))
+                fig5c.suptitle('Detrending Visualization\n(LOESS Trend Removal per Stimulation)', fontsize=14, fontweight='bold', y=0.97)
+                
+                n_stims = len(valid_viz)
+                for plot_idx, (stim_idx, pulse_data) in enumerate(valid_viz):
+                    viz = pulse_data['viz']
+                    time_rel = np.array(viz['time_rel'])  # in seconds
+                    nn_70 = np.array(viz['nn_70'])
+                    trend = np.array(viz['trend'])
+                    residual = np.array(viz['residual'])
+                    
+                    # Calculate row position (5 rows, each with 3 panels)
+                    row_height = 0.16
+                    row_bottom = 0.82 - (plot_idx * row_height)
+                    
+                    # Panel A: Raw NN_70
+                    ax_a = fig5c.add_axes([0.08, row_bottom, 0.26, row_height - 0.03])
+                    ax_a.plot(time_rel, nn_70, color='#22d3ee', linewidth=1)
+                    ax_a.set_ylabel(f'Stim {stim_idx + 1}', fontsize=8, fontweight='bold')
+                    ax_a.tick_params(axis='both', labelsize=6)
+                    ax_a.set_facecolor('#fafafa')
+                    ax_a.spines['top'].set_visible(False)
+                    ax_a.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_a.set_title('Panel A: Raw NN₇₀', fontsize=8, fontweight='bold', color='#22d3ee')
+                    if plot_idx == n_stims - 1:
+                        ax_a.set_xlabel('Time (s)', fontsize=7)
+                    
+                    # Panel B: Trend Extraction
+                    ax_b = fig5c.add_axes([0.40, row_bottom, 0.26, row_height - 0.03])
+                    ax_b.plot(time_rel, nn_70, color='#22d3ee', linewidth=0.8, alpha=0.5, label='Raw')
+                    ax_b.plot(time_rel, trend, color='#f59e0b', linewidth=1.5, label='LOESS')
+                    ax_b.tick_params(axis='both', labelsize=6)
+                    ax_b.set_facecolor('#fafafa')
+                    ax_b.spines['top'].set_visible(False)
+                    ax_b.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_b.set_title('Panel B: Trend Extraction', fontsize=8, fontweight='bold', color='#f59e0b')
+                    if plot_idx == n_stims - 1:
+                        ax_b.set_xlabel('Time (s)', fontsize=7)
+                    
+                    # Panel C: Detrended Residual
+                    ax_c = fig5c.add_axes([0.72, row_bottom, 0.26, row_height - 0.03])
+                    ax_c.plot(time_rel, residual, color='#10b981', linewidth=1)
+                    ax_c.axhline(y=0, color='#6b7280', linestyle='--', linewidth=0.5)
+                    ax_c.tick_params(axis='both', labelsize=6)
+                    ax_c.set_facecolor('#fafafa')
+                    ax_c.spines['top'].set_visible(False)
+                    ax_c.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_c.set_title('Panel C: Detrended Residual', fontsize=8, fontweight='bold', color='#10b981')
+                    if plot_idx == n_stims - 1:
+                        ax_c.set_xlabel('Time (s)', fontsize=7)
+                
+                pdf.savefig(fig5c)
+                plt.close(fig5c)
 
         # Page 6: BF Analysis Table (per-minute data)
         if request.per_minute_data:
