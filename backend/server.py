@@ -731,7 +731,7 @@ async def export_xlsx(request: ExportRequest):
 
     # Light response - HRA (Heart Rate Acceleration) - BEFORE HRV sheet
     if request.light_response:
-        ws3 = wb.create_sheet("Light Stim HRA")
+        ws3 = wb.create_sheet("Light Stimulus HRA")
         valid = [m for m in request.light_response if m is not None]
         if valid:
             # Per-stim HRA columns as specified
