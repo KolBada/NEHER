@@ -1225,14 +1225,26 @@ function App() {
               hrvResults={hrvResults}
               lightHrv={lightEnabled ? lightHrv : null}
               lightResponse={lightEnabled ? lightResponse : null}
-              onExportCsv={handleExportCsv}
-              onExportXlsx={handleExportXlsx}
-              onExportPdf={handleExportPdf}
+              onExportCsv={() => { handleExportCsv(); setHasExported(true); }}
+              onExportXlsx={() => { handleExportXlsx(); setHasExported(true); }}
+              onExportPdf={() => { handleExportPdf(); setHasExported(true); }}
               loading={exportLoading}
               recordingName={recordingName}
               drugUsed={[...selectedDrugs, ...otherDrugs.map(d => d.name)].filter(Boolean).join(',')}
               perMinuteData={perMinuteData}
             />
+          </TabsContent>
+
+          {/* Save Recording Tab */}
+          <TabsContent value="save">
+            <div className="max-w-lg mx-auto">
+              <SaveRecording
+                analysisState={buildAnalysisState()}
+                onSaveComplete={handleSaveComplete}
+                existingRecordingId={savedRecordingId}
+                existingFolderId={savedFolderId}
+              />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
