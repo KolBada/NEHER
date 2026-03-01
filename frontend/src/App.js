@@ -175,6 +175,14 @@ function BFChart({ metrics, lightPulses }) {
 }
 
 function App() {
+  // App view mode: 'home' (folder browser) or 'analysis' (main analysis view)
+  const [appView, setAppView] = useState('home');
+  
+  // Saved recording info (when editing an existing recording)
+  const [savedRecordingId, setSavedRecordingId] = useState(null);
+  const [savedFolderId, setSavedFolderId] = useState(null);
+  const [hasExported, setHasExported] = useState(false);
+
   // Session
   const [sessionId, setSessionId] = useState(null);
   const [files, setFiles] = useState([]);
