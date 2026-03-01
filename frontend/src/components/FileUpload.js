@@ -83,8 +83,8 @@ export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
             className={`border-2 border-dashed ${
               dragActive ? 'border-cyan-500 bg-cyan-950/20' : 'border-zinc-700 hover:border-zinc-600'
             } rounded-sm p-12 text-center cursor-pointer transition-colors`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => document.getElementById('file-input').click()}
