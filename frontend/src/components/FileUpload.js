@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Upload, FileAudio, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,26 +6,48 @@ import { Card, CardContent } from '@/components/ui/card';
 export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const dragCounter = useRef(0);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setDragActive(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragActive(false);
+    }
   }, []);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    const files = Array.from(e.dataTransfer.files).filter(f =>
-      f.name.toLowerCase().endsWith('.abf')
-    );
-    if (files.length === 0 && e.dataTransfer.files.length > 0) {
-      // Show all dropped files even if extension doesn't match - user knows best
-      setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-    } else if (files.length > 0) {
-      setSelectedFiles(prev => [...prev, ...files]);
+    dragCounter.current = 0;
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      const abfFiles = droppedFiles.filter(f => f.name.toLowerCase().endsWith('.abf'));
+      
+      if (abfFiles.length > 0) {
+        setSelectedFiles(prev => [...prev, ...abfFiles]);
+      } else if (droppedFiles.length > 0) {
+        // Allow any files if user drops them - they might know better
+        setSelectedFiles(prev => [...prev, ...droppedFiles]);
+      }
+      e.dataTransfer.clearData();
     }
   }, []);
 
