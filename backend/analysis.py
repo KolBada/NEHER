@@ -845,3 +845,130 @@ def generate_pulses(start_sec, duration_sec, interval_pattern, n_pulses):
             current_start += duration_sec + intervals[-1] if intervals else 60
     
     return pulses
+
+
+# ==============================================================================
+# STEP 8: Corrected Light-Induced HRV (Detrended) using Robust LOESS
+# ==============================================================================
+def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, loess_frac=0.25):
+    """
+    Compute Corrected Light-Induced HRV using LOESS detrending.
+    
+    Purpose: Remove the slow deterministic adaptation curve during each light stimulation 
+    (peak → decay or delayed rise in CPVT) so HRV reflects true beat-to-beat irregularity only.
+    
+    Algorithm per stim j:
+    1. Use filtered BF only
+    2. Convert to NN: NN_k = 60000 / BF_k,filt
+    3. Normalize to 70 bpm: NN_k,70 = NN_k × (857 / median(NN_k within that stim))
+    4. Detrend within that stim using Robust LOESS smoothing (span ~20-30% of stim duration)
+    5. Compute residual: NN_residual = NN_k,70 − Trend_k
+    6. Compute HRV metrics on NN_residual: RMSSD_70_detrended, SDNN_70_detrended, pNN50_70_detrended
+    
+    Returns: Dictionary with per_pulse data (including visualization data) and final median metrics.
+    """
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    # Align beat times with BF/NN intervals (N-1 values)
+    bt_full = np.array(beat_times_min_list, dtype=np.float64)
+    if len(bt_full) > len(bf):
+        bt = bt_full[:len(bf)]
+    else:
+        bt = bt_full
+    
+    # Convert BF to NN intervals
+    nn = np.where((bf > 0) & (~np.isnan(bf)), 60000.0 / bf, np.nan)
+    
+    if len(pulses) == 0:
+        return {'per_pulse': [], 'final': None}
+    
+    per_pulse = []
+    for pulse in pulses:
+        S_j = pulse['start_min']
+        E_j = pulse['end_min']
+        
+        # Extract data for this stim
+        p_mask = (bt >= S_j) & (bt < E_j) & (~np.isnan(nn))
+        nn_stim = nn[p_mask]
+        bt_stim = bt[p_mask]
+        
+        if len(nn_stim) < 4:  # Need at least 4 points for LOESS
+            per_pulse.append(None)
+            continue
+        
+        # Step 1: Calculate median NN for THIS stim as reference
+        median_nn_stim = float(np.median(nn_stim))
+        
+        # Step 2: Normalize NN to 70 bpm using this stim's median
+        # NN_70 = NN * (857 / median_NN_of_this_stim)
+        norm_factor = 857.0 / median_nn_stim
+        nn_70_stim = nn_stim * norm_factor
+        
+        # Step 3: Apply LOESS smoothing to get trend
+        # Use relative time within stim for LOESS
+        t_rel = bt_stim - S_j  # Time in minutes from stim start
+        t_rel_normalized = (t_rel - t_rel.min()) / (t_rel.max() - t_rel.min() + 1e-10)  # Normalize to 0-1
+        
+        trend = loess_smooth(t_rel_normalized, nn_70_stim, frac=loess_frac)
+        
+        # Step 4: Compute residual (detrended signal)
+        nn_residual = nn_70_stim - trend
+        
+        # Step 5: Calculate HRV metrics from detrended signal
+        # Note: For HRV, we use the residuals directly, which are centered around 0
+        valid_residual = nn_residual[~np.isnan(nn_residual)]
+        
+        if len(valid_residual) < 3:
+            per_pulse.append(None)
+            continue
+        
+        # RMSSD on residuals
+        diffs = np.diff(valid_residual)
+        rmssd_detrended = float(np.sqrt(np.mean(diffs ** 2)))
+        
+        # SDNN on residuals
+        sdnn_detrended = float(np.std(valid_residual, ddof=1)) if len(valid_residual) > 1 else 0.0
+        
+        # pNN50 on residuals
+        pnn50_detrended = float(100.0 * np.sum(np.abs(diffs) > 50.0) / len(diffs)) if len(diffs) > 0 else 0.0
+        
+        # Log transforms
+        ln_rmssd_detrended = float(np.log(rmssd_detrended)) if rmssd_detrended > 0 else None
+        ln_sdnn_detrended = float(np.log(sdnn_detrended)) if sdnn_detrended > 0 else None
+        
+        # Store visualization data for frontend (convert to lists for JSON serialization)
+        per_pulse.append({
+            'rmssd70_detrended': float(rmssd_detrended),
+            'ln_rmssd70_detrended': ln_rmssd_detrended,
+            'sdnn_detrended': float(sdnn_detrended),
+            'ln_sdnn70_detrended': ln_sdnn_detrended,
+            'pnn50_detrended': float(pnn50_detrended),
+            'n_beats': int(len(nn_stim)),
+            'median_nn_ref': median_nn_stim,
+            'norm_factor': float(norm_factor),
+            # Visualization data
+            'viz': {
+                'time_rel': (t_rel * 60).tolist(),  # Convert to seconds for display
+                'nn_70': nn_70_stim.tolist(),
+                'trend': trend.tolist(),
+                'residual': nn_residual.tolist(),
+            }
+        })
+    
+    # Step 6: Median across pulses for final detrended HRV metrics
+    valid = [p for p in per_pulse if p is not None]
+    if valid:
+        rmssd_median = float(np.median([p['rmssd70_detrended'] for p in valid]))
+        sdnn_median = float(np.median([p['sdnn_detrended'] for p in valid]))
+        final = {
+            'rmssd70_detrended': rmssd_median,
+            'ln_rmssd70_detrended': float(np.log(rmssd_median)) if rmssd_median > 0 else None,
+            'sdnn_detrended': sdnn_median,
+            'ln_sdnn70_detrended': float(np.log(sdnn_median)) if sdnn_median > 0 else None,
+            'pnn50_detrended': float(np.median([p['pnn50_detrended'] for p in valid])),
+            'n_pulses_valid': len(valid),
+        }
+    else:
+        final = None
+    
+    return {'per_pulse': per_pulse, 'final': final}
