@@ -1,0 +1,71 @@
+{
+  "summary": "Iteration 12: Export enhancement testing for Corrected Light-Induced HRV (Detrended) data. All 81 backend tests pass (including 13 new export-specific tests). Verified PDF export with Light-Induced HRV Analysis page showing both original and detrended tables. Verified XLSX export with 'Light Stim HRV' sheet containing 17 rows: original HRV (rows 1-7) + detrended section (rows 10-17). Frontend UI fully functional with per-stim detrended table and visualization buttons.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_export_detrended.py",
+    "/app/backend/tests/test_light_hrv_detrended.py",
+    "/app/test_reports/pytest/pytest_results_iter12.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "PDF export correctly renders Light-Induced HRV Analysis page with two tables (original cyan, detrended green)",
+    "PDF export includes Detrending Visualization page with 5 stim rows, 3 panels each (A: Raw NN₇₀, B: Trend Extraction, C: Detrended Residual)",
+    "XLSX export 'Light Stim HRV' sheet has correct structure: original HRV + detrended section below",
+    "Detrended section uses green header styling (fill color #059669)",
+    "Frontend buildExportData() correctly passes lightHrvDetrended to export endpoints"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_export_detrended.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (81/81 tests passed)",
+    "frontend": "100% (all export features working)"
+  },
+
+  "seed_data_creation": "Used /app/4D030006.abf for all testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Export enhancement complete. PDF has Light-Induced HRV Analysis page (both tables) and Detrending Visualization page (5 stim × 3 panels). XLSX has 'Light Stim HRV' sheet with original (rows 1-7) and detrended (rows 10-17) sections. Backend accepts light_metrics_detrended field with per_pulse and final keys. Frontend passes detrended data correctly via buildExportData().",
+
+  "features_verified": {
+    "pdf_export_light_hrv_page": "✅ Contains original HRV table (cyan header) and detrended HRV table (green header)",
+    "pdf_export_detrending_viz_page": "✅ 5 stim rows with Panel A (Raw), Panel B (Trend), Panel C (Residual)",
+    "xlsx_light_stim_hrv_sheet": "✅ 17 rows total with both sections",
+    "xlsx_original_hrv_section": "✅ Rows 1-7 with ln(RMSSD₇₀), RMSSD₇₀, ln(SDNN₇₀), SDNN₇₀, pNN50₇₀",
+    "xlsx_detrended_section": "✅ Rows 10-17 with _det suffix columns",
+    "xlsx_section_title": "✅ Row 10: 'Corrected Light-Induced HRV (Detrended)'",
+    "xlsx_detrended_median_row": "✅ Row 17 shows median of detrended values",
+    "backend_export_pdf_endpoint": "✅ /api/export/pdf accepts light_metrics_detrended",
+    "backend_export_xlsx_endpoint": "✅ /api/export/xlsx accepts light_metrics_detrended",
+    "frontend_build_export_data": "✅ Includes lightHrvDetrended in export payload",
+    "frontend_export_tab_indicator": "✅ Shows 'Light Metrics: Available'"
+  },
+
+  "test_results": {
+    "backend_tests_total": 81,
+    "backend_tests_passed": 81,
+    "backend_tests_failed": 0,
+    "new_tests_added": 13,
+    "frontend_ui_verified": true,
+    "integration_verified": true,
+    "export_pdf_verified": true,
+    "export_xlsx_verified": true
+  }
+}
