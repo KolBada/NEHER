@@ -224,6 +224,9 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Backend: `compute_light_hrv_detrended()` in analysis.py
   - API: POST /api/light-hrv-detrended
   - Frontend: Full visualization with 3-panel charts and overlay mode
+- **NEW (Dec 2025):** Export enhancement for detrended HRV
+  - PDF: Light-Induced HRV Analysis page with both tables + Detrending Visualization page (5 stim × 3 panels)
+  - Excel: 'Light Stim HRV' sheet includes Corrected HRV (Detrended) section below original
 
 ### P1 - In Progress
 - [ ] Light stim highlights on LightPanel trace (code present, needs verification)
