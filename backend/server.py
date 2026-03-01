@@ -835,6 +835,71 @@ async def export_xlsx(request: ExportRequest):
                 cell.fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
             
             style_data_rows(ws4, 2)
+            
+            # Add Corrected HRV (Detrended) section below original HRV
+            if request.light_metrics_detrended and request.light_metrics_detrended.get('per_pulse'):
+                detrended_start_row = median_row + 3
+                
+                # Section title
+                ws4.cell(row=detrended_start_row, column=1, value="Corrected Light-Induced HRV (Detrended)")
+                ws4.merge_cells(start_row=detrended_start_row, start_column=1, end_row=detrended_start_row, end_column=6)
+                ws4.cell(row=detrended_start_row, column=1).font = Font(bold=True, color="10B981")
+                ws4.cell(row=detrended_start_row, column=1).fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+                
+                # Headers for detrended
+                detrended_headers = ['Stim #', 'ln(RMSSD₇₀)_det', 'RMSSD₇₀_det (ms)', 'ln(SDNN₇₀)_det', 'SDNN₇₀_det (ms)', 'pNN50₇₀_det (%)']
+                header_row = detrended_start_row + 1
+                for col, h in enumerate(detrended_headers, 1):
+                    ws4.cell(row=header_row, column=col, value=h)
+                style_header(ws4, header_row, fill=PatternFill(start_color="059669", end_color="059669", fill_type="solid"))
+                
+                # Per-stim detrended data
+                per_pulse_det = request.light_metrics_detrended['per_pulse']
+                valid_det = [p for p in per_pulse_det if p is not None]
+                for row_idx, row in enumerate(per_pulse_det, header_row + 1):
+                    ws4.cell(row=row_idx, column=1, value=row_idx - header_row)
+                    if row:
+                        ln_rmssd_det = row.get('ln_rmssd70_detrended')
+                        ln_sdnn_det = row.get('ln_sdnn70_detrended')
+                        ws4.cell(row=row_idx, column=2, value=f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else "—")
+                        ws4.cell(row=row_idx, column=3, value=f"{row.get('rmssd70_detrended', 0):.3f}")
+                        ws4.cell(row=row_idx, column=4, value=f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else "—")
+                        ws4.cell(row=row_idx, column=5, value=f"{row.get('sdnn_detrended', 0):.3f}")
+                        ws4.cell(row=row_idx, column=6, value=f"{row.get('pnn50_detrended', 0):.3f}")
+                    else:
+                        for col in range(2, 7):
+                            ws4.cell(row=row_idx, column=col, value="—")
+                
+                # Detrended median row (Readout)
+                det_median_row = header_row + 1 + len(per_pulse_det)
+                final_det = request.light_metrics_detrended.get('final', {})
+                ws4.cell(row=det_median_row, column=1, value="Median")
+                ws4.cell(row=det_median_row, column=1).font = Font(bold=True)
+                
+                if final_det:
+                    ln_rmssd_med = final_det.get('ln_rmssd70_detrended')
+                    ln_sdnn_med = final_det.get('ln_sdnn70_detrended')
+                    ws4.cell(row=det_median_row, column=2, value=f"{ln_rmssd_med:.3f}" if ln_rmssd_med is not None else "—")
+                    ws4.cell(row=det_median_row, column=3, value=f"{final_det.get('rmssd70_detrended', 0):.3f}")
+                    ws4.cell(row=det_median_row, column=4, value=f"{ln_sdnn_med:.3f}" if ln_sdnn_med is not None else "—")
+                    ws4.cell(row=det_median_row, column=5, value=f"{final_det.get('sdnn_detrended', 0):.3f}")
+                    ws4.cell(row=det_median_row, column=6, value=f"{final_det.get('pnn50_detrended', 0):.3f}")
+                
+                # Style detrended median row
+                for col in range(1, 7):
+                    cell = ws4.cell(row=det_median_row, column=col)
+                    cell.fill = PatternFill(start_color="A7F3D0", end_color="A7F3D0", fill_type="solid")
+                
+                # Style detrended data rows
+                for row_idx in range(header_row + 1, det_median_row):
+                    for col in range(1, 7):
+                        cell = ws4.cell(row=row_idx, column=col)
+                        cell.font = Font(name='Arial', size=10)
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        cell.border = Border(
+                            bottom=Side(style='thin', color='E5E7EB')
+                        )
+            
             auto_width(ws4)
 
     buf = io.BytesIO()
