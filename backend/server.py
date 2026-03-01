@@ -1260,6 +1260,72 @@ async def export_pdf(request: ExportRequest):
             pdf.savefig(fig3)
             plt.close(fig3)
 
+        # Page 3b: Detrending Visualization (5 stim panels A, B, C) - AFTER HRV Evolution, BEFORE HRA
+        if request.light_metrics_detrended and request.light_metrics_detrended.get('per_pulse'):
+            per_pulse_det = request.light_metrics_detrended['per_pulse']
+            valid_viz = [(i, p) for i, p in enumerate(per_pulse_det) if p and p.get('viz')]
+            
+            if valid_viz:
+                fig3b = plt.figure(figsize=(8.5, 11))
+                fig3b.suptitle('Detrending Visualization\n(LOESS Trend Removal per Stimulation)', fontsize=14, fontweight='bold', y=0.98)
+                
+                n_stims = len(valid_viz)
+                # Adjusted layout: start lower (0.78 instead of 0.82) to avoid title overlap
+                row_height = 0.15
+                start_y = 0.78
+                
+                for plot_idx, (stim_idx, pulse_data) in enumerate(valid_viz):
+                    viz = pulse_data['viz']
+                    time_rel = np.array(viz['time_rel'])  # in seconds
+                    nn_70 = np.array(viz['nn_70'])
+                    trend = np.array(viz['trend'])
+                    residual = np.array(viz['residual'])
+                    
+                    # Calculate row position (5 rows, each with 3 panels)
+                    row_bottom = start_y - (plot_idx * row_height)
+                    
+                    # Panel A: Raw NN_70
+                    ax_a = fig3b.add_axes([0.08, row_bottom, 0.26, row_height - 0.03])
+                    ax_a.plot(time_rel, nn_70, color='#22d3ee', linewidth=1)
+                    ax_a.set_ylabel(f'Stim {stim_idx + 1}', fontsize=8, fontweight='bold')
+                    ax_a.tick_params(axis='both', labelsize=6)
+                    ax_a.set_facecolor('#fafafa')
+                    ax_a.spines['top'].set_visible(False)
+                    ax_a.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_a.set_title('Panel A: Raw NN₇₀', fontsize=8, fontweight='bold', color='#22d3ee', pad=8)
+                    if plot_idx == n_stims - 1:
+                        ax_a.set_xlabel('Time (s)', fontsize=7)
+                    
+                    # Panel B: Trend Extraction
+                    ax_b = fig3b.add_axes([0.40, row_bottom, 0.26, row_height - 0.03])
+                    ax_b.plot(time_rel, nn_70, color='#22d3ee', linewidth=0.8, alpha=0.5, label='Raw')
+                    ax_b.plot(time_rel, trend, color='#f59e0b', linewidth=1.5, label='LOESS')
+                    ax_b.tick_params(axis='both', labelsize=6)
+                    ax_b.set_facecolor('#fafafa')
+                    ax_b.spines['top'].set_visible(False)
+                    ax_b.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_b.set_title('Panel B: Trend Extraction', fontsize=8, fontweight='bold', color='#f59e0b', pad=8)
+                    if plot_idx == n_stims - 1:
+                        ax_b.set_xlabel('Time (s)', fontsize=7)
+                    
+                    # Panel C: Detrended Residual
+                    ax_c = fig3b.add_axes([0.72, row_bottom, 0.26, row_height - 0.03])
+                    ax_c.plot(time_rel, residual, color='#10b981', linewidth=1)
+                    ax_c.axhline(y=0, color='#6b7280', linestyle='--', linewidth=0.5)
+                    ax_c.tick_params(axis='both', labelsize=6)
+                    ax_c.set_facecolor('#fafafa')
+                    ax_c.spines['top'].set_visible(False)
+                    ax_c.spines['right'].set_visible(False)
+                    if plot_idx == 0:
+                        ax_c.set_title('Panel C: Detrended Residual', fontsize=8, fontweight='bold', color='#10b981', pad=8)
+                    if plot_idx == n_stims - 1:
+                        ax_c.set_xlabel('Time (s)', fontsize=7)
+                
+                pdf.savefig(fig3b)
+                plt.close(fig3b)
+
         # Page 4: Light HRA (Heart Rate Acceleration) Analysis
         if request.light_response:
             valid = [m for m in request.light_response if m is not None]
