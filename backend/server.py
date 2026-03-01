@@ -789,7 +789,7 @@ async def export_xlsx(request: ExportRequest):
 
     # Light HRV metrics - AFTER HRA sheet
     if request.light_metrics:
-        ws4 = wb.create_sheet("Light Stim HRV")
+        ws4 = wb.create_sheet("Light Stimulus HRV")
         valid = [m for m in request.light_metrics if m is not None]
         if valid:
             # Per-stim HRV columns: ln(RMSSD_70), RMSSD_70, ln(SDNN_70), SDNN_70, pNN50_70
