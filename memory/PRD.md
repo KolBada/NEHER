@@ -243,7 +243,6 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 
 ### P2 (Future)
 - [ ] Synchronized zoom across all charts
-- [ ] Save/Load analysis state functionality
 - [ ] Cohort normalization
 - [ ] Batch processing mode
 
