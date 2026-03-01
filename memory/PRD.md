@@ -226,7 +226,16 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Frontend: Full visualization with 3-panel charts and overlay mode
 - **NEW (Dec 2025):** Export enhancement for detrended HRV
   - PDF: Light-Induced HRV Analysis page with both tables + Detrending Visualization page (5 stim × 3 panels)
-  - Excel: 'Light Stim HRV' sheet includes Corrected HRV (Detrended) section below original
+  - Excel: 'Light Stimulus HRV' sheet includes Corrected HRV (Detrended) section below original
+- **NEW (Dec 2025):** Persistent Recording Storage System
+  - MongoDB backend for folders and recordings (`/app/backend/storage.py`)
+  - Home page with folder browser and "New Analysis" option (`/app/frontend/src/components/HomeBrowser.js`)
+  - Folder management: create, rename, delete folders
+  - Recording management: save, load, rename, delete, move recordings between folders
+  - Full analysis state persistence: trace data, beats, metrics, HRV, light stim, drug config
+  - Workflow order: Trace → Spontaneous Activity → Light Stimulus → Export → Save Recording
+  - "Save Recording" tab only enabled after export step completed
+  - Storage API endpoints: `/api/folders`, `/api/recordings`
 
 ### P1 - In Progress
 - [ ] Light stim highlights on LightPanel trace (code present, needs verification)
