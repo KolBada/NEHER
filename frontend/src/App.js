@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -22,6 +22,8 @@ import DetectionPanel from '@/components/DetectionPanel';
 import AnalysisPanel from '@/components/AnalysisPanel';
 import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
+import HomeBrowser from '@/components/HomeBrowser';
+import SaveRecording from '@/components/SaveRecording';
 import api, { downloadBlob } from '@/api';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
