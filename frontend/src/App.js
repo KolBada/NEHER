@@ -393,6 +393,7 @@ function App() {
   const handlePulsesUpdate = useCallback((updatedPulses) => {
     setLightPulses(updatedPulses);
     setLightHrv(null);
+    setLightHrvDetrended(null);
     setLightResponse(null);
   }, []);
 
