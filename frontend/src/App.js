@@ -236,6 +236,7 @@ function App() {
     setHrvResults(null);
     setLightPulses(null);
     setLightHrv(null);
+    setLightHrvDetrended(null);
     setLightResponse(null);
     setRecordingName(fileData.filename?.replace('.abf', '') || '');
   }, []);
