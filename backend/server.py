@@ -1449,7 +1449,7 @@ async def export_pdf(request: ExportRequest):
         ax_left.axis('off')
         
         left_rows = []
-        left_rows.append(['ANALYSIS SUMMARY', ''])
+        left_rows.append(['ANALYSIS', ''])  # Shortened title
         
         if request.original_filename:
             left_rows.append(['Original File', request.original_filename])
