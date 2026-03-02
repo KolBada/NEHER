@@ -1396,15 +1396,19 @@ async def export_pdf(request: ExportRequest):
                 if request.organoid_info:
                     for idx, info in enumerate(request.organoid_info, 1):
                         cell_type = info.get('cell_type', '')
+                        passage_number = info.get('passage_number')
                         age_at_recording = info.get('age_at_recording')
                         transfection = info.get('transfection')
                         
                         label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
                         
-                        # Build value string with calculated ages
+                        # Build value string with passage and calculated ages
                         parts = []
                         if cell_type:
-                            parts.append(cell_type)
+                            if passage_number:
+                                parts.append(f"{cell_type} (P{passage_number})")
+                            else:
+                                parts.append(cell_type)
                         if age_at_recording is not None:
                             parts.append(f"Age: D{age_at_recording}")
                         
