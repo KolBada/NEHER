@@ -349,6 +349,75 @@ export default function FolderComparison({ folder, onBack }) {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          {/* Expandable Normalized Spontaneous Activity Section */}
+          <div className="mt-3">
+            <button
+              onClick={() => setSpontNormExpanded(!spontNormExpanded)}
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-2 px-1"
+              data-testid="expand-spont-norm"
+            >
+              <ChevronRight 
+                className={`w-4 h-4 transition-transform duration-200 ${spontNormExpanded ? 'rotate-90' : ''}`}
+              />
+              <span className="font-medium">Normalized to Baseline — Spontaneous Activity</span>
+            </button>
+            
+            <div 
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                spontNormExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <Card className="bg-zinc-900/20 border-zinc-800/50 rounded-sm mt-2">
+                <CardContent className="pt-4">
+                  <ScrollArea className="max-h-[500px]">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-800">
+                          <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(RMSSD) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(SDNN) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline pNN50 (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug BF (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(RMSSD) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(SDNN) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug pNN50 (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {normalizedSpontaneous.map((rec, idx) => (
+                          <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_ln_rmssd, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_ln_sdnn, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_pnn50, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_rmssd, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_sdnn, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_pnn50, 1)}</td>
+                          </tr>
+                        ))}
+                        {/* Folder Average Row */}
+                        <tr className="bg-zinc-800/50 font-semibold">
+                          <td className="py-2 px-2 text-zinc-200">Folder Average (n={normalizedSpontaneous.length})</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_baseline_bf, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_baseline_ln_rmssd, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_baseline_ln_sdnn, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_baseline_pnn50, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_drug_bf, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_drug_ln_rmssd, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_drug_ln_sdnn, 1)}</td>
+                          <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedSpontAverages?.norm_drug_pnn50, 1)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Light Stimulus Tab - Combined HRA and Corrected HRV */}
