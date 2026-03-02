@@ -1415,32 +1415,136 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
     output = io.BytesIO()
     
     with PdfPages(output) as pdf:
-        # Page 1: Summary
+        # Page 1: Summary - prettier version
         fig1 = plt.figure(figsize=(11, 8.5))
-        fig1.suptitle(f'{request.folder_name} - Folder Comparison', fontsize=14, fontweight='bold', y=0.96)
         
-        # Summary info
-        ax_summary = fig1.add_axes([0.1, 0.75, 0.8, 0.15])
-        ax_summary.axis('off')
+        # Title bar
+        ax_title = fig1.add_axes([0, 0.88, 1, 0.1])
+        ax_title.set_facecolor('#1F2937')
+        ax_title.axis('off')
+        ax_title.text(0.5, 0.5, f'{request.folder_name}', fontsize=18, fontweight='bold', 
+                     color='white', ha='center', va='center', transform=ax_title.transAxes)
+        ax_title.text(0.5, 0.1, 'Folder Comparison Report', fontsize=10, color='#9CA3AF', 
+                     ha='center', va='center', transform=ax_title.transAxes)
         
-        summary_text = [
-            ['Folder Name', request.folder_name],
-            ['Number of Recordings', str(summary.get('recording_count', 0))],
-            ['hSpO Age Range', f"{summary.get('hspo_age_range', {}).get('min', '—')} - {summary.get('hspo_age_range', {}).get('max', '—')} days (n={summary.get('hspo_age_range', {}).get('n', 0)})"],
-            ['hCO Age Range', f"{summary.get('hco_age_range', {}).get('min', '—')} - {summary.get('hco_age_range', {}).get('max', '—')} days (n={summary.get('hco_age_range', {}).get('n', 0)})"],
+        # Overview section
+        ax_overview = fig1.add_axes([0.08, 0.68, 0.35, 0.16])
+        ax_overview.axis('off')
+        ax_overview.text(0, 1, 'OVERVIEW', fontsize=10, fontweight='bold', color='#374151', 
+                        transform=ax_overview.transAxes, va='top')
+        
+        overview_text = [
+            ['Recordings', str(summary.get('recording_count', 0))],
+            ['Generated', datetime.now().strftime('%B %d, %Y')],
         ]
-        
-        table_summary = ax_summary.table(cellText=summary_text, loc='center', cellLoc='left', colWidths=[0.3, 0.7])
-        table_summary.auto_set_font_size(False)
-        table_summary.set_fontsize(9)
-        table_summary.scale(1.0, 1.5)
-        for (row, col), cell in table_summary.get_celld().items():
+        table_overview = ax_overview.table(cellText=overview_text, loc='upper left', 
+                                           cellLoc='left', colWidths=[0.5, 0.5], 
+                                           bbox=[0, 0.1, 1, 0.7])
+        table_overview.auto_set_font_size(False)
+        table_overview.set_fontsize(9)
+        for (row, col), cell in table_overview.get_celld().items():
+            cell.set_edgecolor('#E5E7EB')
             if col == 0:
                 cell.set_text_props(fontweight='bold')
-            cell.set_edgecolor('#e0e0e0')
+        
+        # Age Ranges section
+        ax_ages = fig1.add_axes([0.55, 0.68, 0.38, 0.16])
+        ax_ages.axis('off')
+        ax_ages.text(0, 1, 'AGE RANGES', fontsize=10, fontweight='bold', color='#374151', 
+                    transform=ax_ages.transAxes, va='top')
+        
+        def fmt_age_range(age_dict):
+            if not age_dict or age_dict.get('min') is None:
+                return '—'
+            return f"{age_dict.get('min')} - {age_dict.get('max')} days"
+        
+        age_text = [
+            ['Type', 'Range', 'n'],
+            ['hSpOs', fmt_age_range(summary.get('hspo_age_range')), str(summary.get('hspo_age_range', {}).get('n', 0))],
+            ['hCOs', fmt_age_range(summary.get('hco_age_range')), str(summary.get('hco_age_range', {}).get('n', 0))],
+            ['Fusion', fmt_age_range(summary.get('fusion_age_range')), str(summary.get('fusion_age_range', {}).get('n', 0))],
+        ]
+        table_ages = ax_ages.table(cellText=age_text, loc='upper left', cellLoc='center', 
+                                   colWidths=[0.3, 0.45, 0.15], bbox=[0, -0.1, 1, 0.85])
+        table_ages.auto_set_font_size(False)
+        table_ages.set_fontsize(8)
+        for (row, col), cell in table_ages.get_celld().items():
+            cell.set_edgecolor('#E5E7EB')
+            if row == 0:
+                cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold')
+        
+        # Spontaneous Activity Averages
+        ax_spont_avg = fig1.add_axes([0.08, 0.35, 0.4, 0.28])
+        ax_spont_avg.axis('off')
+        ax_spont_avg.text(0, 1, 'SPONTANEOUS ACTIVITY AVERAGES', fontsize=10, fontweight='bold', 
+                         color='#374151', transform=ax_spont_avg.transAxes, va='top')
+        
+        spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+        
+        def fmt_val(val, dec=2):
+            if val is None:
+                return '—'
+            if dec == 1:
+                return f"{val:.1f}"
+            elif dec == 3:
+                return f"{val:.3f}"
+            return f"{val:.{dec}f}"
+        
+        spont_avg_text = [
+            ['Metric', 'Baseline', 'Drug'],
+            ['Mean BF (bpm)', fmt_val(spont_averages.get('baseline_bf'), 1), fmt_val(spont_averages.get('drug_bf'), 1)],
+            ['ln(RMSSD70)', fmt_val(spont_averages.get('baseline_ln_rmssd70'), 3), fmt_val(spont_averages.get('drug_ln_rmssd70'), 3)],
+            ['ln(SDNN70)', fmt_val(spont_averages.get('baseline_ln_sdnn70'), 3), fmt_val(spont_averages.get('drug_ln_sdnn70'), 3)],
+            ['pNN50 (%)', fmt_val(spont_averages.get('baseline_pnn50'), 1), fmt_val(spont_averages.get('drug_pnn50'), 1)],
+        ]
+        table_spont_avg = ax_spont_avg.table(cellText=spont_avg_text, loc='upper left', 
+                                              cellLoc='center', colWidths=[0.4, 0.3, 0.3], 
+                                              bbox=[0, 0.05, 1, 0.85])
+        table_spont_avg.auto_set_font_size(False)
+        table_spont_avg.set_fontsize(8)
+        for (row, col), cell in table_spont_avg.get_celld().items():
+            cell.set_edgecolor('#E5E7EB')
+            if row == 0:
+                if col == 1:
+                    cell.set_facecolor('#F59E0B')  # Amber for baseline
+                elif col == 2:
+                    cell.set_facecolor('#8B5CF6')  # Purple for drug
+                else:
+                    cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold')
+        
+        # Light Stimulation Averages
+        ax_light_avg = fig1.add_axes([0.55, 0.35, 0.38, 0.28])
+        ax_light_avg.axis('off')
+        ax_light_avg.text(0, 1, 'LIGHT STIMULATION AVERAGES', fontsize=10, fontweight='bold', 
+                         color='#374151', transform=ax_light_avg.transAxes, va='top')
+        
+        hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+        hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+        
+        light_avg_text = [
+            ['Metric', 'Value'],
+            ['Avg BF (bpm)', fmt_val(hra_averages.get('light_avg_bf'), 1)],
+            ['Peak BF (bpm)', fmt_val(hra_averages.get('light_peak_bf'), 1)],
+            ['Normalized Peak (%)', fmt_val(hra_averages.get('light_peak_norm'), 1)],
+            ['ln(RMSSD70) corr.', fmt_val(hrv_averages.get('light_hrv_ln_rmssd70'), 3)],
+            ['ln(SDNN70) corr.', fmt_val(hrv_averages.get('light_hrv_ln_sdnn70'), 3)],
+        ]
+        table_light_avg = ax_light_avg.table(cellText=light_avg_text, loc='upper left', 
+                                              cellLoc='center', colWidths=[0.6, 0.4], 
+                                              bbox=[0, 0.05, 1, 0.85])
+        table_light_avg.auto_set_font_size(False)
+        table_light_avg.set_fontsize(8)
+        for (row, col), cell in table_light_avg.get_celld().items():
+            cell.set_edgecolor('#E5E7EB')
+            if row == 0:
+                cell.set_facecolor('#06B6D4')  # Cyan for light
+                cell.set_text_props(color='white', fontweight='bold')
         
         # Footer
-        fig1.text(0.5, 0.02, f'Generated: {datetime.now().strftime("%B %d, %Y at %H:%M")}', ha='center', fontsize=8, color='gray')
+        fig1.text(0.5, 0.02, f'Generated: {datetime.now().strftime("%B %d, %Y at %H:%M")}', 
+                 ha='center', fontsize=8, color='gray')
         pdf.savefig(fig1, bbox_inches='tight')
         plt.close(fig1)
         
