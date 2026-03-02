@@ -461,13 +461,15 @@ export default function TraceViewer({
             isAnimationActive={false}
             activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : false}
           />
-          {/* Timeline brush/slider */}
+          {/* Timeline brush/slider - always shows full recording */}
           <Brush
             dataKey="time"
             height={25}
             stroke="#3f3f46"
             fill="#0c0c0e"
             tickFormatter={(v) => v.toFixed(1)}
+            startIndex={brushIndices.start}
+            endIndex={brushIndices.end}
             onChange={handleBrushChange}
           />
         </ComposedChart>
