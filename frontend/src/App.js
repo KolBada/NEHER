@@ -191,7 +191,7 @@ function App() {
   // Recording metadata
   const [recordingName, setRecordingName] = useState('');
   const [recordingDate, setRecordingDate] = useState('');
-  const [organoidInfo, setOrganoidInfo] = useState([{ cell_type: '', birth_date: '', transfection: null }]);
+  const [organoidInfo, setOrganoidInfo] = useState([{ cell_type: '', birth_date: '', passage_number: '', transfection: null }]);
   const [fusionDate, setFusionDate] = useState('');
   const [recordingDescription, setRecordingDescription] = useState('');
   
