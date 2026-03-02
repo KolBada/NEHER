@@ -1255,7 +1255,7 @@ export default function LightPanel({
 
           {/* Corrected Light-Induced HRV (Detrended) Section */}
           {lightHrv && displayPulses && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600 mt-4">
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-emerald-500" />
