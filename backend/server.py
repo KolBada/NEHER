@@ -752,17 +752,32 @@ def extract_comparison_metrics(recording: dict) -> dict:
     result['drug_pnn50'] = None
     
     if drug_readout and (drug_readout.get('enableHrvReadout') or drug_readout.get('enableBfReadout')):
-        drug_bf_minute = drug_readout.get('bfMinute') or drug_readout.get('bf_minute')
-        drug_hrv_minute = drug_readout.get('hrvMinute') or drug_readout.get('hrv_minute')
+        # Frontend uses 'bfReadoutMinute' and 'hrvReadoutMinute' (as strings)
+        drug_bf_minute_str = drug_readout.get('bfReadoutMinute') or drug_readout.get('bfMinute') or drug_readout.get('bf_minute')
+        drug_hrv_minute_str = drug_readout.get('hrvReadoutMinute') or drug_readout.get('hrvMinute') or drug_readout.get('hrv_minute')
+        
+        # Convert to int
+        drug_bf_minute = None
+        drug_hrv_minute = None
+        try:
+            if drug_bf_minute_str is not None:
+                drug_bf_minute = int(drug_bf_minute_str)
+        except (ValueError, TypeError):
+            pass
+        try:
+            if drug_hrv_minute_str is not None:
+                drug_hrv_minute = int(drug_hrv_minute_str)
+        except (ValueError, TypeError):
+            pass
         
         # Get drug BF from per_minute_data
         if drug_bf_minute is not None and per_minute_data:
             for pm in per_minute_data:
-                minute_str = pm.get('minute', '0')
+                minute_val = pm.get('minute', '0')
                 try:
-                    minute_num = int(str(minute_str).split('-')[0])
+                    minute_num = int(str(minute_val).split('-')[0])
                     if minute_num == drug_bf_minute:
-                        result['drug_bf'] = pm.get('mean_bf')
+                        result['drug_bf'] = pm.get('avg_bf') or pm.get('mean_bf')
                         break
                 except (ValueError, TypeError, AttributeError):
                     pass
