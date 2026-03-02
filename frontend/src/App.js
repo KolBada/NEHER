@@ -179,16 +179,22 @@ function BFChart({ metrics, lightPulses }) {
       <div className="p-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between">
         <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
         <div className="flex items-center gap-2">
-          {zoomDomain && (
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomIn} title="Zoom In">
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
+            <Minus className="w-4 h-4" />
+          </Button>
+          {isZoomed && (
             <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-zinc-400" onClick={handleResetZoom}>
-              <RotateCcw className="w-3 h-3 mr-1" /> Reset Zoom
+              <RotateCcw className="w-3 h-3 mr-1" /> Reset
             </Button>
           )}
           <span className="text-[9px] text-zinc-600">Ctrl+Scroll to zoom</span>
         </div>
       </div>
       <div ref={containerRef} style={{ touchAction: 'none' }}>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={225}>
           <LineChart data={filteredData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis dataKey="time" type="number" 
@@ -215,7 +221,16 @@ function BFChart({ metrics, lightPulses }) {
               />
             ))}
             <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
-            <Brush height={20} stroke="#3f3f46" fill="#0c0c0e" />
+            <Brush 
+              dataKey="time"
+              height={20} 
+              stroke="#3f3f46" 
+              fill="#0c0c0e"
+              tickFormatter={(v) => v.toFixed(1)}
+              startIndex={brushIndices.start}
+              endIndex={brushIndices.end}
+              onChange={handleBrushChange}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
