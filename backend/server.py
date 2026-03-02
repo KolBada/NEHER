@@ -596,8 +596,817 @@ async def batch_update_recordings():
 
 
 # ==============================================================================
-# EXPORT API
+# FOLDER COMPARISON API
 # ==============================================================================
+
+class FolderComparisonExportRequest(BaseModel):
+    folder_id: str
+    folder_name: str
+    comparison_data: dict
+
+
+def extract_comparison_metrics(recording: dict) -> dict:
+    """Extract comparison metrics from a recording's analysis_state."""
+    state = recording.get('analysis_state', {})
+    
+    # Basic info
+    result = {
+        'id': recording.get('id', ''),
+        'name': recording.get('name', ''),
+        'filename': recording.get('filename', ''),
+    }
+    
+    # Recording metadata
+    result['recording_date'] = state.get('recording_date', '')
+    result['recording_description'] = state.get('recording_description', '')
+    
+    # Organoid/Cell info
+    organoid_info = state.get('organoid_info', [])
+    if organoid_info:
+        # Get first sample's info
+        first_sample = organoid_info[0] if organoid_info else {}
+        result['cell_type'] = first_sample.get('cell_type', '')
+        result['line_name'] = first_sample.get('line_name', '')
+        result['passage_number'] = first_sample.get('passage_number', '')
+        
+        # Get ages for hSpO and hCO
+        hspo_age = None
+        hco_age = None
+        for sample in organoid_info:
+            cell_type = sample.get('cell_type', '')
+            age = sample.get('age_at_recording')
+            if cell_type == 'hSpO' and age is not None:
+                hspo_age = age
+            elif cell_type == 'hCO' and age is not None:
+                hco_age = age
+        result['hspo_age'] = hspo_age
+        result['hco_age'] = hco_age
+    else:
+        result['cell_type'] = ''
+        result['line_name'] = ''
+        result['passage_number'] = ''
+        result['hspo_age'] = None
+        result['hco_age'] = None
+    
+    # Drug info - derive condition
+    selected_drugs = state.get('selected_drugs', [])
+    drug_concentrations = state.get('drug_concentrations', {})
+    if selected_drugs:
+        drug_names = ', '.join(selected_drugs)
+        concentrations = ', '.join([f"{drug_concentrations.get(d, '')}".strip() for d in selected_drugs if drug_concentrations.get(d)])
+        result['condition'] = f"Drug: {drug_names}"
+        result['drug_names'] = drug_names
+        result['drug_concentrations'] = concentrations
+    else:
+        result['condition'] = 'Control'
+        result['drug_names'] = ''
+        result['drug_concentrations'] = ''
+    
+    # Drug equilibration time (from perfusion params)
+    perfusion_params = state.get('perfusion_params', {})
+    result['drug_equilibration_time'] = perfusion_params.get('perfusion_delay', '')
+    
+    # Light stim protocol
+    light_settings = state.get('light_settings', {})
+    stim_duration = light_settings.get('stim_duration_sec', 20)
+    # Get ISI structure from pulse timings if available
+    light_pulses = state.get('light_pulses', [])
+    if light_pulses and len(light_pulses) > 1:
+        # Calculate intervals between pulses
+        intervals = []
+        for i in range(1, len(light_pulses)):
+            interval = light_pulses[i].get('start_min', 0) - light_pulses[i-1].get('start_min', 0)
+            intervals.append(f"{interval:.0f}s" if interval < 1 else f"{interval:.1f}min")
+        result['stim_protocol'] = f"{stim_duration}s stim, ISI: {'-'.join(intervals[:4])}" if intervals else f"{stim_duration}s stim"
+    else:
+        result['stim_protocol'] = f"{stim_duration}s stim" if light_pulses else ''
+    
+    # Spontaneous Activity - Baseline metrics
+    baseline = state.get('baseline', {})
+    result['baseline_bf'] = baseline.get('baseline_bf')
+    result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
+    result['baseline_ln_sdnn70'] = np.log(baseline.get('baseline_sdnn')) if baseline.get('baseline_sdnn') and baseline.get('baseline_sdnn') > 0 else None
+    result['baseline_pnn50'] = baseline.get('baseline_pnn50')
+    
+    # Spontaneous Activity - Drug metrics
+    drug_readout = state.get('drug_readout', {})
+    hrv_windows = state.get('hrv_windows', [])
+    per_minute_data = state.get('per_minute_data', [])
+    
+    if drug_readout:
+        drug_bf_minute = drug_readout.get('bf_minute')
+        drug_hrv_minute = drug_readout.get('hrv_minute')
+        
+        # Get drug BF from per_minute_data
+        drug_bf = None
+        if drug_bf_minute is not None and per_minute_data:
+            for pm in per_minute_data:
+                minute_str = pm.get('minute', '0')
+                try:
+                    minute_num = int(str(minute_str).split('-')[0])
+                    if minute_num == drug_bf_minute:
+                        drug_bf = pm.get('mean_bf')
+                        break
+                except:
+                    pass
+        result['drug_bf'] = drug_bf
+        
+        # Get drug HRV from hrv_windows
+        if drug_hrv_minute is not None and hrv_windows:
+            for w in hrv_windows:
+                if w.get('minute') == drug_hrv_minute:
+                    result['drug_ln_rmssd70'] = w.get('ln_rmssd70')
+                    result['drug_ln_sdnn70'] = np.log(w.get('sdnn')) if w.get('sdnn') and w.get('sdnn') > 0 else None
+                    result['drug_pnn50'] = w.get('pnn50')
+                    break
+        else:
+            result['drug_ln_rmssd70'] = None
+            result['drug_ln_sdnn70'] = None
+            result['drug_pnn50'] = None
+    else:
+        result['drug_bf'] = None
+        result['drug_ln_rmssd70'] = None
+        result['drug_ln_sdnn70'] = None
+        result['drug_pnn50'] = None
+    
+    # Light HRA metrics
+    light_response = state.get('light_response', [])
+    if light_response:
+        valid_resp = [r for r in light_response if r is not None]
+        if valid_resp:
+            # Avg Baseline BF (pre-light) - this should be from baseline
+            result['light_baseline_bf'] = baseline.get('baseline_bf')
+            
+            # Compute means across all stims
+            result['light_avg_bf'] = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
+            result['light_peak_bf'] = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
+            peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
+            result['light_peak_norm'] = np.mean(peak_norm_vals) if peak_norm_vals else None
+            
+            # Time to Peak - first stim only
+            result['light_ttp_first'] = valid_resp[0].get('time_to_peak_sec') if valid_resp else None
+            # Time to Peak - average
+            ttp_vals = [r.get('time_to_peak_sec') for r in valid_resp if r.get('time_to_peak_sec') is not None]
+            result['light_ttp_avg'] = np.mean(ttp_vals) if ttp_vals else None
+            
+            # Recovery, Amplitude, Rate of Change
+            recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
+            result['light_recovery_bf'] = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+            recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
+            result['light_recovery_pct'] = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+            amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
+            result['light_amplitude'] = np.mean(amplitude_vals) if amplitude_vals else None
+            roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
+            result['light_roc'] = np.mean(roc_vals) if roc_vals else None
+        else:
+            for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
+                       'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                       'light_amplitude', 'light_roc']:
+                result[key] = None
+    else:
+        for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
+                   'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                   'light_amplitude', 'light_roc']:
+            result[key] = None
+    
+    # Corrected Light HRV (detrended)
+    light_metrics_detrended = state.get('light_metrics_detrended', {})
+    if light_metrics_detrended and light_metrics_detrended.get('final'):
+        final = light_metrics_detrended['final']
+        result['light_hrv_ln_rmssd70'] = final.get('ln_rmssd70_detrended')
+        result['light_hrv_ln_sdnn70'] = final.get('ln_sdnn70_detrended')
+        result['light_hrv_pnn50'] = final.get('pnn50_detrended')
+    else:
+        result['light_hrv_ln_rmssd70'] = None
+        result['light_hrv_ln_sdnn70'] = None
+        result['light_hrv_pnn50'] = None
+    
+    return result
+
+
+def compute_folder_averages(recordings_data: list, metrics: list) -> dict:
+    """Compute folder averages for specified metrics, ignoring None values."""
+    averages = {}
+    counts = {}
+    
+    for metric in metrics:
+        values = [r.get(metric) for r in recordings_data if r.get(metric) is not None]
+        if values:
+            averages[metric] = float(np.mean(values))
+            counts[metric] = len(values)
+        else:
+            averages[metric] = None
+            counts[metric] = 0
+    
+    return {'averages': averages, 'counts': counts}
+
+
+@api_router.get("/folders/{folder_id}/comparison")
+async def get_folder_comparison(folder_id: str):
+    """Get comparison data for all recordings in a folder."""
+    # Get folder info
+    folder = await storage.get_folder(db, folder_id)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    # Get all recordings with full analysis_state
+    recordings_data = []
+    async for rec in db.recordings.find({"folder_id": folder_id}):
+        recording = {
+            "id": str(rec["_id"]),
+            "name": rec["name"],
+            "filename": rec["filename"],
+            "analysis_state": rec.get("analysis_state", {}),
+        }
+        metrics = extract_comparison_metrics(recording)
+        recordings_data.append(metrics)
+    
+    # Compute age ranges
+    hspo_ages = [r['hspo_age'] for r in recordings_data if r.get('hspo_age') is not None]
+    hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
+    
+    # Compute averages for spontaneous activity
+    spontaneous_metrics = [
+        'baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+        'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50'
+    ]
+    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+    
+    # Compute averages for Light HRA
+    light_hra_metrics = [
+        'light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+        'light_amplitude', 'light_roc'
+    ]
+    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+    
+    # Compute averages for Corrected Light HRV
+    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+    
+    return {
+        "folder": folder,
+        "summary": {
+            "recording_count": len(recordings_data),
+            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+        },
+        "recordings": recordings_data,
+        "spontaneous_averages": spontaneous_averages,
+        "light_hra_averages": light_hra_averages,
+        "light_hrv_averages": light_hrv_averages,
+    }
+
+
+@api_router.post("/folders/{folder_id}/export/xlsx")
+async def export_folder_comparison_xlsx(folder_id: str, request: FolderComparisonExportRequest):
+    """Export folder comparison data to Excel."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from datetime import datetime
+    
+    data = request.comparison_data
+    recordings = data.get('recordings', [])
+    summary = data.get('summary', {})
+    
+    wb = openpyxl.Workbook()
+    
+    # Styling
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+    header_fill_baseline = PatternFill(start_color="F59E0B", end_color="F59E0B", fill_type="solid")  # Amber for baseline
+    header_fill_drug = PatternFill(start_color="8B5CF6", end_color="8B5CF6", fill_type="solid")  # Purple for drug
+    header_fill_light = PatternFill(start_color="06B6D4", end_color="06B6D4", fill_type="solid")  # Cyan for light
+    avg_fill = PatternFill(start_color="E5E7EB", end_color="E5E7EB", fill_type="solid")
+    data_font = Font(size=9)
+    thin_border = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB')
+    )
+    
+    def auto_width(ws):
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_len = max(max_len, len(str(cell.value)))
+                except:
+                    pass
+            ws.column_dimensions[col_letter].width = min(max_len + 2, 30)
+    
+    def format_value(val, decimals=2):
+        if val is None:
+            return '—'
+        if isinstance(val, (int, float)):
+            if decimals == 0:
+                return f"{val:.0f}"
+            elif decimals == 1:
+                return f"{val:.1f}"
+            elif decimals == 3:
+                return f"{val:.3f}"
+            elif decimals == 4:
+                return f"{val:.4f}"
+            return f"{val:.{decimals}f}"
+        return str(val) if val else '—'
+    
+    # Sheet 1: Folder Summary
+    ws_summary = wb.active
+    ws_summary.title = "Folder Summary"
+    
+    ws_summary['A1'] = 'Folder Comparison Summary'
+    ws_summary['A1'].font = Font(bold=True, size=14)
+    ws_summary.merge_cells('A1:B1')
+    
+    summary_data = [
+        ('Folder Name', request.folder_name),
+        ('Number of Recordings', summary.get('recording_count', 0)),
+        ('', ''),
+        ('hSpO Age Range', f"{summary.get('hspo_age_range', {}).get('min', '—')} - {summary.get('hspo_age_range', {}).get('max', '—')} days (n={summary.get('hspo_age_range', {}).get('n', 0)})"),
+        ('hCO Age Range', f"{summary.get('hco_age_range', {}).get('min', '—')} - {summary.get('hco_age_range', {}).get('max', '—')} days (n={summary.get('hco_age_range', {}).get('n', 0)})"),
+        ('', ''),
+        ('Generated', datetime.now().strftime('%Y-%m-%d %H:%M')),
+    ]
+    
+    for row_idx, (label, value) in enumerate(summary_data, start=3):
+        ws_summary[f'A{row_idx}'] = label
+        ws_summary[f'B{row_idx}'] = value
+        ws_summary[f'A{row_idx}'].font = Font(bold=True) if label else data_font
+        ws_summary[f'B{row_idx}'].font = data_font
+    
+    auto_width(ws_summary)
+    
+    # Sheet 2: Spontaneous Activity Comparison
+    ws_spont = wb.create_sheet("Spontaneous Activity")
+    
+    # Headers
+    spont_headers = [
+        ('Recording', None),
+        ('Baseline BF (bpm)', 'baseline'),
+        ('Baseline ln(RMSSD70)', 'baseline'),
+        ('Baseline ln(SDNN70)', 'baseline'),
+        ('Baseline pNN50 (%)', 'baseline'),
+        ('Drug BF (bpm)', 'drug'),
+        ('Drug ln(RMSSD70)', 'drug'),
+        ('Drug ln(SDNN70)', 'drug'),
+        ('Drug pNN50 (%)', 'drug'),
+    ]
+    
+    for col_idx, (header, header_type) in enumerate(spont_headers, start=1):
+        cell = ws_spont.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+        if header_type == 'baseline':
+            cell.fill = header_fill_baseline
+        elif header_type == 'drug':
+            cell.fill = header_fill_drug
+        else:
+            cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+    
+    # Data rows
+    spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+    for row_idx, rec in enumerate(recordings, start=2):
+        ws_spont.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        ws_spont.cell(row=row_idx, column=2, value=format_value(rec.get('baseline_bf'), 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=3, value=format_value(rec.get('baseline_ln_rmssd70'), 3)).font = data_font
+        ws_spont.cell(row=row_idx, column=4, value=format_value(rec.get('baseline_ln_sdnn70'), 3)).font = data_font
+        ws_spont.cell(row=row_idx, column=5, value=format_value(rec.get('baseline_pnn50'), 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=6, value=format_value(rec.get('drug_bf'), 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=7, value=format_value(rec.get('drug_ln_rmssd70'), 3)).font = data_font
+        ws_spont.cell(row=row_idx, column=8, value=format_value(rec.get('drug_ln_sdnn70'), 3)).font = data_font
+        ws_spont.cell(row=row_idx, column=9, value=format_value(rec.get('drug_pnn50'), 1)).font = data_font
+        
+        for col in range(1, 10):
+            ws_spont.cell(row=row_idx, column=col).border = thin_border
+            # Color code baseline vs drug columns
+            if 2 <= col <= 5:
+                ws_spont.cell(row=row_idx, column=col).fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            elif 6 <= col <= 9:
+                ws_spont.cell(row=row_idx, column=col).fill = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+    
+    # Average row
+    avg_row = len(recordings) + 2
+    ws_spont.cell(row=avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=2, value=format_value(spont_averages.get('baseline_bf'), 1)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=3, value=format_value(spont_averages.get('baseline_ln_rmssd70'), 3)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=4, value=format_value(spont_averages.get('baseline_ln_sdnn70'), 3)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=5, value=format_value(spont_averages.get('baseline_pnn50'), 1)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=6, value=format_value(spont_averages.get('drug_bf'), 1)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=7, value=format_value(spont_averages.get('drug_ln_rmssd70'), 3)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=8, value=format_value(spont_averages.get('drug_ln_sdnn70'), 3)).font = Font(bold=True, size=9)
+    ws_spont.cell(row=avg_row, column=9, value=format_value(spont_averages.get('drug_pnn50'), 1)).font = Font(bold=True, size=9)
+    
+    for col in range(1, 10):
+        ws_spont.cell(row=avg_row, column=col).fill = avg_fill
+        ws_spont.cell(row=avg_row, column=col).border = thin_border
+    
+    auto_width(ws_spont)
+    
+    # Sheet 3: Light HRA Comparison
+    ws_hra = wb.create_sheet("Light HRA")
+    
+    hra_headers = [
+        'Recording', 'Baseline BF (bpm)', 'Avg BF (bpm)', 'Peak BF (bpm)', 
+        'Norm. Peak (%)', 'TTP 1st (s)', 'TTP Avg (s)', 
+        'Recovery BF (bpm)', 'Recovery (%)', 'Amplitude (bpm)', 'Rate of Change'
+    ]
+    
+    for col_idx, header in enumerate(hra_headers, start=1):
+        cell = ws_hra.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill_light
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+    
+    hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+    for row_idx, rec in enumerate(recordings, start=2):
+        ws_hra.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        ws_hra.cell(row=row_idx, column=2, value=format_value(rec.get('light_baseline_bf'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=3, value=format_value(rec.get('light_avg_bf'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=4, value=format_value(rec.get('light_peak_bf'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=5, value=format_value(rec.get('light_peak_norm'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=6, value=format_value(rec.get('light_ttp_first'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=7, value=format_value(rec.get('light_ttp_avg'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=8, value=format_value(rec.get('light_recovery_bf'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=9, value=format_value(rec.get('light_recovery_pct'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=10, value=format_value(rec.get('light_amplitude'), 1)).font = data_font
+        ws_hra.cell(row=row_idx, column=11, value=format_value(rec.get('light_roc'), 4)).font = data_font
+        
+        for col in range(1, 12):
+            ws_hra.cell(row=row_idx, column=col).border = thin_border
+    
+    # Average row
+    avg_row = len(recordings) + 2
+    ws_hra.cell(row=avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=2, value=format_value(hra_averages.get('light_baseline_bf'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=3, value=format_value(hra_averages.get('light_avg_bf'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=4, value=format_value(hra_averages.get('light_peak_bf'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=5, value=format_value(hra_averages.get('light_peak_norm'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=6, value=format_value(hra_averages.get('light_ttp_first'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=7, value=format_value(hra_averages.get('light_ttp_avg'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=8, value=format_value(hra_averages.get('light_recovery_bf'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=9, value=format_value(hra_averages.get('light_recovery_pct'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=10, value=format_value(hra_averages.get('light_amplitude'), 1)).font = Font(bold=True, size=9)
+    ws_hra.cell(row=avg_row, column=11, value=format_value(hra_averages.get('light_roc'), 4)).font = Font(bold=True, size=9)
+    
+    for col in range(1, 12):
+        ws_hra.cell(row=avg_row, column=col).fill = avg_fill
+        ws_hra.cell(row=avg_row, column=col).border = thin_border
+    
+    auto_width(ws_hra)
+    
+    # Sheet 4: Corrected Light HRV
+    ws_hrv = wb.create_sheet("Corrected Light HRV")
+    
+    hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50 corr. (%)']
+    
+    for col_idx, header in enumerate(hrv_headers, start=1):
+        cell = ws_hrv.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill_light
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+    
+    hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    for row_idx, rec in enumerate(recordings, start=2):
+        ws_hrv.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        ws_hrv.cell(row=row_idx, column=2, value=format_value(rec.get('light_hrv_ln_rmssd70'), 3)).font = data_font
+        ws_hrv.cell(row=row_idx, column=3, value=format_value(rec.get('light_hrv_ln_sdnn70'), 3)).font = data_font
+        ws_hrv.cell(row=row_idx, column=4, value=format_value(rec.get('light_hrv_pnn50'), 1)).font = data_font
+        
+        for col in range(1, 5):
+            ws_hrv.cell(row=row_idx, column=col).border = thin_border
+    
+    # Average row
+    avg_row = len(recordings) + 2
+    ws_hrv.cell(row=avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    ws_hrv.cell(row=avg_row, column=2, value=format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)).font = Font(bold=True, size=9)
+    ws_hrv.cell(row=avg_row, column=3, value=format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)).font = Font(bold=True, size=9)
+    ws_hrv.cell(row=avg_row, column=4, value=format_value(hrv_averages.get('light_hrv_pnn50'), 1)).font = Font(bold=True, size=9)
+    
+    for col in range(1, 5):
+        ws_hrv.cell(row=avg_row, column=col).fill = avg_fill
+        ws_hrv.cell(row=avg_row, column=col).border = thin_border
+    
+    auto_width(ws_hrv)
+    
+    # Sheet 5: Recording Metadata
+    ws_meta = wb.create_sheet("Recording Metadata")
+    
+    meta_headers = [
+        'Recording', 'Filename', 'Recording Date', 'Cell Type', 'Line Name',
+        'Condition', 'Drug Name(s)', 'Drug Conc.', 'Drug Equil. Time',
+        'Stim Protocol', 'hSpO Age (days)', 'hCO Age (days)'
+    ]
+    
+    for col_idx, header in enumerate(meta_headers, start=1):
+        cell = ws_meta.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+    
+    for row_idx, rec in enumerate(recordings, start=2):
+        ws_meta.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=2, value=rec.get('filename', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=3, value=rec.get('recording_date', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=4, value=rec.get('cell_type', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=5, value=rec.get('line_name', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=6, value=rec.get('condition', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=7, value=rec.get('drug_names', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=8, value=rec.get('drug_concentrations', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=9, value=format_value(rec.get('drug_equilibration_time'), 0) + ' min' if rec.get('drug_equilibration_time') else '').font = data_font
+        ws_meta.cell(row=row_idx, column=10, value=rec.get('stim_protocol', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=11, value=format_value(rec.get('hspo_age'), 0) if rec.get('hspo_age') else '').font = data_font
+        ws_meta.cell(row=row_idx, column=12, value=format_value(rec.get('hco_age'), 0) if rec.get('hco_age') else '').font = data_font
+        
+        for col in range(1, 13):
+            ws_meta.cell(row=row_idx, column=col).border = thin_border
+    
+    auto_width(ws_meta)
+    
+    # Save to buffer
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"{request.folder_name}_comparison.xlsx".replace(' ', '_')
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@api_router.post("/folders/{folder_id}/export/pdf")
+async def export_folder_comparison_pdf(folder_id: str, request: FolderComparisonExportRequest):
+    """Export folder comparison data to PDF."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+    from datetime import datetime
+    
+    data = request.comparison_data
+    recordings = data.get('recordings', [])
+    summary = data.get('summary', {})
+    
+    output = io.BytesIO()
+    
+    with PdfPages(output) as pdf:
+        # Page 1: Summary
+        fig1 = plt.figure(figsize=(11, 8.5))
+        fig1.suptitle(f'{request.folder_name} - Folder Comparison', fontsize=14, fontweight='bold', y=0.96)
+        
+        # Summary info
+        ax_summary = fig1.add_axes([0.1, 0.75, 0.8, 0.15])
+        ax_summary.axis('off')
+        
+        summary_text = [
+            ['Folder Name', request.folder_name],
+            ['Number of Recordings', str(summary.get('recording_count', 0))],
+            ['hSpO Age Range', f"{summary.get('hspo_age_range', {}).get('min', '—')} - {summary.get('hspo_age_range', {}).get('max', '—')} days (n={summary.get('hspo_age_range', {}).get('n', 0)})"],
+            ['hCO Age Range', f"{summary.get('hco_age_range', {}).get('min', '—')} - {summary.get('hco_age_range', {}).get('max', '—')} days (n={summary.get('hco_age_range', {}).get('n', 0)})"],
+        ]
+        
+        table_summary = ax_summary.table(cellText=summary_text, loc='center', cellLoc='left', colWidths=[0.3, 0.7])
+        table_summary.auto_set_font_size(False)
+        table_summary.set_fontsize(9)
+        table_summary.scale(1.0, 1.5)
+        for (row, col), cell in table_summary.get_celld().items():
+            if col == 0:
+                cell.set_text_props(fontweight='bold')
+            cell.set_edgecolor('#e0e0e0')
+        
+        # Footer
+        fig1.text(0.5, 0.02, f'Generated: {datetime.now().strftime("%B %d, %Y at %H:%M")}', ha='center', fontsize=8, color='gray')
+        pdf.savefig(fig1, bbox_inches='tight')
+        plt.close(fig1)
+        
+        # Page 2: Spontaneous Activity Table
+        fig2 = plt.figure(figsize=(11, 8.5))
+        fig2.suptitle('Spontaneous Activity Comparison', fontsize=12, fontweight='bold', y=0.96)
+        
+        ax_spont = fig2.add_axes([0.05, 0.1, 0.9, 0.8])
+        ax_spont.axis('off')
+        
+        def fmt(val, dec=2):
+            if val is None:
+                return '—'
+            if dec == 0:
+                return f"{val:.0f}"
+            elif dec == 1:
+                return f"{val:.1f}"
+            elif dec == 3:
+                return f"{val:.3f}"
+            return f"{val:.{dec}f}"
+        
+        spont_headers = ['Recording', 'Baseline\nBF', 'Baseline\nln(RMSSD)', 'Baseline\nln(SDNN)', 'Baseline\npNN50', 
+                        'Drug\nBF', 'Drug\nln(RMSSD)', 'Drug\nln(SDNN)', 'Drug\npNN50']
+        spont_data = [spont_headers]
+        
+        spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+        for rec in recordings:
+            spont_data.append([
+                rec.get('name', '')[:20],
+                fmt(rec.get('baseline_bf'), 1),
+                fmt(rec.get('baseline_ln_rmssd70'), 3),
+                fmt(rec.get('baseline_ln_sdnn70'), 3),
+                fmt(rec.get('baseline_pnn50'), 1),
+                fmt(rec.get('drug_bf'), 1),
+                fmt(rec.get('drug_ln_rmssd70'), 3),
+                fmt(rec.get('drug_ln_sdnn70'), 3),
+                fmt(rec.get('drug_pnn50'), 1),
+            ])
+        
+        # Add average row
+        spont_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(spont_averages.get('baseline_bf'), 1),
+            fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
+            fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
+            fmt(spont_averages.get('baseline_pnn50'), 1),
+            fmt(spont_averages.get('drug_bf'), 1),
+            fmt(spont_averages.get('drug_ln_rmssd70'), 3),
+            fmt(spont_averages.get('drug_ln_sdnn70'), 3),
+            fmt(spont_averages.get('drug_pnn50'), 1),
+        ])
+        
+        table_spont = ax_spont.table(cellText=spont_data, loc='upper center', cellLoc='center',
+                                     colWidths=[0.18, 0.09, 0.11, 0.11, 0.09, 0.09, 0.11, 0.11, 0.09])
+        table_spont.auto_set_font_size(False)
+        table_spont.set_fontsize(7)
+        table_spont.scale(1.0, 1.3)
+        
+        for (row, col), cell in table_spont.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=6)
+            elif row == len(spont_data) - 1:
+                cell.set_facecolor('#E5E7EB')
+                cell.set_text_props(fontweight='bold', fontsize=7)
+            else:
+                if 1 <= col <= 4:
+                    cell.set_facecolor('#FEF3C7')  # Baseline amber
+                elif 5 <= col <= 8:
+                    cell.set_facecolor('#EDE9FE')  # Drug purple
+        
+        pdf.savefig(fig2, bbox_inches='tight')
+        plt.close(fig2)
+        
+        # Page 3: Light HRA Table
+        fig3 = plt.figure(figsize=(11, 8.5))
+        fig3.suptitle('Light-Induced HRA Comparison', fontsize=12, fontweight='bold', y=0.96)
+        
+        ax_hra = fig3.add_axes([0.05, 0.1, 0.9, 0.8])
+        ax_hra.axis('off')
+        
+        hra_headers = ['Recording', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Norm\nPeak', 'TTP\n1st', 'TTP\nAvg', 
+                      'Rec\nBF', 'Rec\n%', 'Amp', 'RoC']
+        hra_data = [hra_headers]
+        
+        hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+        for rec in recordings:
+            hra_data.append([
+                rec.get('name', '')[:15],
+                fmt(rec.get('light_baseline_bf'), 1),
+                fmt(rec.get('light_avg_bf'), 1),
+                fmt(rec.get('light_peak_bf'), 1),
+                fmt(rec.get('light_peak_norm'), 1),
+                fmt(rec.get('light_ttp_first'), 1),
+                fmt(rec.get('light_ttp_avg'), 1),
+                fmt(rec.get('light_recovery_bf'), 1),
+                fmt(rec.get('light_recovery_pct'), 1),
+                fmt(rec.get('light_amplitude'), 1),
+                fmt(rec.get('light_roc'), 3),
+            ])
+        
+        hra_data.append([
+            f'Avg (n={len(recordings)})',
+            fmt(hra_averages.get('light_baseline_bf'), 1),
+            fmt(hra_averages.get('light_avg_bf'), 1),
+            fmt(hra_averages.get('light_peak_bf'), 1),
+            fmt(hra_averages.get('light_peak_norm'), 1),
+            fmt(hra_averages.get('light_ttp_first'), 1),
+            fmt(hra_averages.get('light_ttp_avg'), 1),
+            fmt(hra_averages.get('light_recovery_bf'), 1),
+            fmt(hra_averages.get('light_recovery_pct'), 1),
+            fmt(hra_averages.get('light_amplitude'), 1),
+            fmt(hra_averages.get('light_roc'), 3),
+        ])
+        
+        table_hra = ax_hra.table(cellText=hra_data, loc='upper center', cellLoc='center',
+                                 colWidths=[0.14, 0.07, 0.07, 0.07, 0.08, 0.07, 0.07, 0.07, 0.07, 0.07, 0.08])
+        table_hra.auto_set_font_size(False)
+        table_hra.set_fontsize(7)
+        table_hra.scale(1.0, 1.3)
+        
+        for (row, col), cell in table_hra.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#06B6D4')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=6)
+            elif row == len(hra_data) - 1:
+                cell.set_facecolor('#E5E7EB')
+                cell.set_text_props(fontweight='bold', fontsize=7)
+        
+        pdf.savefig(fig3, bbox_inches='tight')
+        plt.close(fig3)
+        
+        # Page 4: Corrected Light HRV Table
+        fig4 = plt.figure(figsize=(11, 8.5))
+        fig4.suptitle('Corrected Light-Induced HRV Comparison (Detrended)', fontsize=12, fontweight='bold', y=0.96)
+        
+        ax_hrv = fig4.add_axes([0.15, 0.2, 0.7, 0.6])
+        ax_hrv.axis('off')
+        
+        hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50 corr. (%)']
+        hrv_data = [hrv_headers]
+        
+        hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+        for rec in recordings:
+            hrv_data.append([
+                rec.get('name', '')[:25],
+                fmt(rec.get('light_hrv_ln_rmssd70'), 3),
+                fmt(rec.get('light_hrv_ln_sdnn70'), 3),
+                fmt(rec.get('light_hrv_pnn50'), 1),
+            ])
+        
+        hrv_data.append([
+            f'Folder Average (n={len(recordings)})',
+            fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3),
+            fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3),
+            fmt(hrv_averages.get('light_hrv_pnn50'), 1),
+        ])
+        
+        table_hrv = ax_hrv.table(cellText=hrv_data, loc='upper center', cellLoc='center',
+                                 colWidths=[0.35, 0.2, 0.2, 0.2])
+        table_hrv.auto_set_font_size(False)
+        table_hrv.set_fontsize(9)
+        table_hrv.scale(1.0, 1.5)
+        
+        for (row, col), cell in table_hrv.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#06B6D4')
+                cell.set_text_props(color='white', fontweight='bold')
+            elif row == len(hrv_data) - 1:
+                cell.set_facecolor('#E5E7EB')
+                cell.set_text_props(fontweight='bold')
+        
+        pdf.savefig(fig4, bbox_inches='tight')
+        plt.close(fig4)
+        
+        # Page 5: Recording Metadata
+        fig5 = plt.figure(figsize=(11, 8.5))
+        fig5.suptitle('Recording Metadata', fontsize=12, fontweight='bold', y=0.96)
+        
+        ax_meta = fig5.add_axes([0.02, 0.1, 0.96, 0.8])
+        ax_meta.axis('off')
+        
+        meta_headers = ['Recording', 'Date', 'Type', 'Line', 'Condition', 'Drug', 'hSpO', 'hCO']
+        meta_data = [meta_headers]
+        
+        for rec in recordings:
+            meta_data.append([
+                rec.get('name', '')[:15],
+                rec.get('recording_date', '')[:10] if rec.get('recording_date') else '',
+                rec.get('cell_type', ''),
+                rec.get('line_name', '')[:12] if rec.get('line_name') else '',
+                rec.get('condition', '')[:12] if rec.get('condition') else '',
+                rec.get('drug_names', '')[:15] if rec.get('drug_names') else '',
+                str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '',
+                str(rec.get('hco_age', '')) if rec.get('hco_age') else '',
+            ])
+        
+        table_meta = ax_meta.table(cellText=meta_data, loc='upper center', cellLoc='center',
+                                   colWidths=[0.15, 0.1, 0.08, 0.12, 0.12, 0.15, 0.08, 0.08])
+        table_meta.auto_set_font_size(False)
+        table_meta.set_fontsize(7)
+        table_meta.scale(1.0, 1.3)
+        
+        for (row, col), cell in table_meta.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+        
+        pdf.savefig(fig5, bbox_inches='tight')
+        plt.close(fig5)
+    
+    output.seek(0)
+    filename = f"{request.folder_name}_comparison.pdf".replace(' ', '_')
+    
+    return StreamingResponse(
+        output,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @api_router.post("/export/csv")
 async def export_csv(request: ExportRequest):
