@@ -370,7 +370,7 @@ export default function TraceViewer({
             type="number"
             domain={xDomain}
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-            tickFormatter={(v) => `${Number(v).toFixed(2)}`}
+            tickFormatter={(v) => v.toFixed(1)}
             label={{ value: 'Time (min)', fill: '#52525b', fontSize: 10, position: 'insideBottomRight', offset: -5 }}
             allowDataOverflow
           />
