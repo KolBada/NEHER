@@ -209,7 +209,7 @@ export default function TraceViewer({
     }
   }, [zoomDomain, timeBounds]);
 
-  // Handle brush change (timeline slider)
+  // Handle brush change (timeline slider) - for navigation after zoom
   const handleBrushChange = useCallback((brushArea) => {
     if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
       const startTime = chartData[brushArea.startIndex]?.time;
@@ -219,6 +219,20 @@ export default function TraceViewer({
       }
     }
   }, [chartData]);
+
+  // Calculate brush indices from current zoom domain
+  const brushIndices = useMemo(() => {
+    if (!chartData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: chartData.length - 1 };
+    
+    let startIdx = chartData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = chartData.findIndex(d => d.time >= zoomDomain[1]);
+    
+    if (startIdx === -1) startIdx = 0;
+    if (endIdx === -1) endIdx = chartData.length - 1;
+    
+    return { start: Math.max(0, startIdx), end: Math.min(chartData.length - 1, endIdx) };
+  }, [chartData, zoomDomain]);
 
   // Reset zoom when trace data changes
   useEffect(() => {
