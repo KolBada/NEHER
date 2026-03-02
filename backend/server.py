@@ -793,7 +793,7 @@ async def export_xlsx(request: ExportRequest):
         current_row += 1
     
     # Analysis Summary - only include essential info (no intermediate calculations)
-    if request.summary or request.perfusion_params:
+    if request.summary or request.perfusion_params or request.original_filename:
         ws_summary[f'A{current_row}'] = 'Analysis Summary'
         ws_summary[f'A{current_row}'].font = subtitle_font
         current_row += 1
@@ -802,6 +802,15 @@ async def export_xlsx(request: ExportRequest):
         ws_summary[f'B{current_row}'] = 'Value'
         style_header(ws_summary, current_row)
         current_row += 1
+        
+        # Add original ABF filename first
+        if request.original_filename:
+            ws_summary[f'A{current_row}'] = 'Original File'
+            ws_summary[f'B{current_row}'] = request.original_filename
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            current_row += 1
         
         # Only include: Recording Name, Drug(s) Used, Total/Kept/Removed Beats, Filter Range
         if request.summary:
@@ -837,6 +846,48 @@ async def export_xlsx(request: ExportRequest):
         if request.summary and 'Light Stimulation' in request.summary:
             ws_summary[f'A{current_row}'] = 'Light Stimulation'
             ws_summary[f'B{current_row}'] = str(request.summary['Light Stimulation'])
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            current_row += 1
+        
+        current_row += 1
+    
+    # Organoid/Cell Information section
+    if request.recording_date or request.organoid_info or request.recording_description:
+        ws_summary[f'A{current_row}'] = 'Organoid/Cell Information'
+        ws_summary[f'A{current_row}'].font = subtitle_font
+        current_row += 1
+        
+        ws_summary[f'A{current_row}'] = 'Field'
+        ws_summary[f'B{current_row}'] = 'Value'
+        style_header(ws_summary, current_row)
+        current_row += 1
+        
+        if request.recording_date:
+            ws_summary[f'A{current_row}'] = 'Recording Date'
+            ws_summary[f'B{current_row}'] = request.recording_date
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            current_row += 1
+        
+        if request.organoid_info:
+            for idx, info in enumerate(request.organoid_info, 1):
+                age = info.get('age', '')
+                cell_type = info.get('cell_type', '')
+                label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
+                value = f"{cell_type} - Age: {age}" if cell_type and age else (cell_type or age or '—')
+                ws_summary[f'A{current_row}'] = label
+                ws_summary[f'B{current_row}'] = value
+                for col in ['A', 'B']:
+                    ws_summary[f'{col}{current_row}'].font = data_font
+                    ws_summary[f'{col}{current_row}'].border = thin_border
+                current_row += 1
+        
+        if request.recording_description:
+            ws_summary[f'A{current_row}'] = 'Description'
+            ws_summary[f'B{current_row}'] = request.recording_description
             for col in ['A', 'B']:
                 ws_summary[f'{col}{current_row}'].font = data_font
                 ws_summary[f'{col}{current_row}'].border = thin_border
