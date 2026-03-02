@@ -917,7 +917,7 @@ function App() {
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
     drugReadoutSettings, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
-    recordingDate, organoidInfo, recordingDescription
+    recordingDate, organoidInfo, fusionDate, recordingDescription
   ]);
 
   // Handle save complete
