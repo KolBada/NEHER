@@ -147,7 +147,7 @@ function BFChart({ metrics, lightPulses }) {
               label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
             <Tooltip
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-              labelFormatter={(v) => formatTimeMinSec(v)}
+              labelFormatter={(v) => `${formatTimeMin(v)} min`}
               formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
             {/* Highlight light pulses */}
             {lightPulses && lightPulses.map((pulse, i) => (
