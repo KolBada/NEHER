@@ -10,6 +10,31 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented (Mar 2026)
 
+### Tooltip Consistency Update (Mar 2, 2026)
+- [x] **Unified tooltip text** across single-recording analysis views and folder comparison view
+- [x] **AnalysisPanel.js tooltips** now match FolderComparison.js for HRV metrics
+- [x] **LightPanel.js tooltips** updated to match comparison view HRA tooltips:
+  - Baseline BF: "Beat Frequency (bpm)"
+  - Avg BF: "Average Beat Frequency during light stimulation"
+  - Peak BF: "Maximum Beat Frequency reached during light stimulation"
+  - Peak %: "Normalized Peak: 100 × Peak/Baseline"
+  - Time to Peak (1st): "Time To Peak (1st stim)"
+  - Time to Peak (avg): "Time To Peak (average)"
+  - Recovery BF: "Last beat frequency before the drop"
+  - Recovery %: "Recovery %: 100 × Recovery/Baseline"
+  - Amplitude: "Amplitude: Peak BF − Recovery BF"
+  - Rate of Change: "Rate of Change"
+- [x] **Metadata header**: Renamed "Light Stim (ISI) Info" → "Light Stim Info"
+- [x] **ISI tooltip in cell**: Added (i) tooltip for "ISI" inside the metadata cell content
+
+### Export Enhancement: Inline Normalized Tables (Mar 2, 2026)
+- [x] **Excel Export**: Added normalized tables INLINE within same sheets:
+  - Spontaneous Activity sheet now has "Normalized to Baseline — Spontaneous Activity" section below main table
+  - Light Stimulus sheet now has "Normalized to Baseline — Light-Induced HRA" section below main HRA table
+- [x] **PDF Export**: Added normalized tables INLINE within same pages:
+  - Spontaneous Activity page now has normalized section below main table
+  - Light Stimulus page now has normalized HRA section below main HRA table
+
 ### Folder Comparison System (UPDATED - Mar 2, 2026)
 - [x] **Comparison View**: Accessible via "Comparison" button in folder view
 - [x] **Summary Cards**: 
