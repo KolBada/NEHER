@@ -516,30 +516,26 @@ export default function FolderComparison({ folder, onBack }) {
                     </tbody>
                   </table>
                 </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Expandable Normalized Light HRA Section */}
-            <div className="mt-3">
-              <button
-                onClick={() => setLightNormExpanded(!lightNormExpanded)}
-                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-2 px-1"
-                data-testid="expand-light-norm"
-              >
-                <ChevronRight 
-                  className={`w-4 h-4 transition-transform duration-200 ${lightNormExpanded ? 'rotate-90' : ''}`}
-                />
-                <span className="font-medium">Normalized to Baseline — Light-Induced Heart Rate Adaptation (HRA)</span>
-              </button>
-              
-              <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  lightNormExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <Card className="bg-zinc-900/20 border-zinc-800/50 rounded-sm mt-2">
-                  <CardContent className="pt-4">
-                    <ScrollArea className="max-h-[500px]">
+                
+                {/* Expandable Normalized Section - Inside Card */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setLightNormExpanded(!lightNormExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-light-norm"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${lightNormExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Normalized to Baseline</span>
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      lightNormExpanded ? 'max-h-[400px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <ScrollArea className="max-h-[350px]">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-zinc-800">
@@ -571,10 +567,10 @@ export default function FolderComparison({ folder, onBack }) {
                         </tbody>
                       </table>
                     </ScrollArea>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Corrected HRV Table */}
             <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
