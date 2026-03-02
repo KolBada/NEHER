@@ -122,6 +122,58 @@ function BFChart({ metrics, lightPulses }) {
     setZoomDomain(null);
   }, []);
 
+  // Zoom in/out handlers
+  const handleZoomIn = useCallback(() => {
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const currentRange = currentMax - currentMin;
+    const newRange = currentRange * 0.7;
+    const center = (currentMin + currentMax) / 2;
+    const newMin = Math.max(timeBounds.min, center - newRange / 2);
+    const newMax = Math.min(timeBounds.max, center + newRange / 2);
+    setZoomDomain([newMin, newMax]);
+  }, [zoomDomain, timeBounds]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!zoomDomain) return;
+    const currentRange = zoomDomain[1] - zoomDomain[0];
+    const newRange = Math.min(timeBounds.max - timeBounds.min, currentRange * 1.5);
+    const center = (zoomDomain[0] + zoomDomain[1]) / 2;
+    let newMin = center - newRange / 2;
+    let newMax = center + newRange / 2;
+    if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = newMin + newRange; }
+    if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = newMax - newRange; }
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+      setZoomDomain(null);
+    } else {
+      setZoomDomain([newMin, newMax]);
+    }
+  }, [zoomDomain, timeBounds]);
+
+  // Handle brush change for navigation
+  const handleBrushChange = useCallback((brushArea) => {
+    if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
+      const startTime = data[brushArea.startIndex]?.time;
+      const endTime = data[brushArea.endIndex]?.time;
+      if (startTime !== undefined && endTime !== undefined) {
+        setZoomDomain([startTime, endTime]);
+      }
+    }
+  }, [data]);
+
+  // Calculate brush indices from zoom domain
+  const brushIndices = useMemo(() => {
+    if (!data.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: data.length - 1 };
+    let startIdx = data.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = data.findIndex(d => d.time >= zoomDomain[1]);
+    if (startIdx === -1) startIdx = 0;
+    if (endIdx === -1) endIdx = data.length - 1;
+    return { start: Math.max(0, startIdx), end: Math.min(data.length - 1, endIdx) };
+  }, [data, zoomDomain]);
+
+  const isZoomed = zoomDomain !== null;
+
   return (
     <div className="trace-container" data-testid="bf-chart">
       <div className="p-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between">
