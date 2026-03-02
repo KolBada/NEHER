@@ -1675,16 +1675,18 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ])
         
         table_spont = ax_spont.table(cellText=spont_data, loc='upper center', cellLoc='center',
-                                     colWidths=[0.18, 0.09, 0.11, 0.11, 0.09, 0.09, 0.11, 0.11, 0.09])
+                                     colWidths=[0.16, 0.09, 0.11, 0.11, 0.09, 0.09, 0.11, 0.11, 0.09])
         table_spont.auto_set_font_size(False)
         table_spont.set_fontsize(7)
-        table_spont.scale(1.0, 1.3)
+        table_spont.scale(1.0, 1.25)
         
         for (row, col), cell in table_spont.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
+            cell.set_height(0.06)
             if row == 0:
                 cell.set_facecolor('#374151')
                 cell.set_text_props(color='white', fontweight='bold', fontsize=6)
+                cell.set_height(0.08)  # Taller header for wrapped text
             elif row == len(spont_data) - 1:
                 cell.set_facecolor('#E5E7EB')
                 cell.set_text_props(fontweight='bold', fontsize=7)
