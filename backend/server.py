@@ -1620,9 +1620,9 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         pdf.savefig(fig2, bbox_inches='tight')
         plt.close(fig2)
         
-        # Page 3: Light HRA Table
+        # Page 3: Light Heart Rate Adaptation Table
         fig3 = plt.figure(figsize=(11, 8.5))
-        fig3.suptitle('Light-Induced HRA Comparison', fontsize=12, fontweight='bold', y=0.96)
+        fig3.suptitle('Light-Induced Heart Rate Adaptation Comparison', fontsize=12, fontweight='bold', y=0.96)
         
         ax_hra = fig3.add_axes([0.05, 0.1, 0.9, 0.8])
         ax_hra.axis('off')
