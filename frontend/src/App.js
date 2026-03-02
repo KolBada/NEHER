@@ -873,6 +873,7 @@ function App() {
       // Recording metadata
       recordingDate,
       organoidInfo,
+      fusionDate,
       recordingDescription,
       
       // Trace data (decimated for storage)
