@@ -648,7 +648,7 @@ export default function FolderComparison({ folder, onBack }) {
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
                       <th className="text-left py-2 px-1.5 font-medium text-green-400 bg-green-950/30 whitespace-nowrap">Drug Info</th>
                       <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
-                        <InfoTip text="Inter-Stimuli Interval">Light Stim (ISI) Info</InfoTip>
+                        Light Stim Info
                       </th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
                     </tr>
