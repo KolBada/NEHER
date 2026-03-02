@@ -1100,10 +1100,10 @@ export default function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? `${s.time_to_peak_sec?.toFixed(1)}s` : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-500 py-1">
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.bf_end?.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-500 py-1">
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.bf_end_pct != null ? s.bf_end_pct.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
