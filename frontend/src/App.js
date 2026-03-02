@@ -1277,13 +1277,13 @@ function App() {
                          disabled={!isValidated} data-testid="tab-light">
               <Zap className="w-3 h-3" /> Light Stimulus
             </TabsTrigger>
+            <TabsTrigger value="save" className="text-xs rounded-sm gap-1 data-[state=active]:bg-emerald-800"
+                         disabled={!isValidated} data-testid="tab-save">
+              <Save className="w-3 h-3" /> Save Recording
+            </TabsTrigger>
             <TabsTrigger value="export" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
                          disabled={!isValidated} data-testid="tab-export">
               <Download className="w-3 h-3" /> Export
-            </TabsTrigger>
-            <TabsTrigger value="save" className="text-xs rounded-sm gap-1 data-[state=active]:bg-emerald-800"
-                         disabled={!hasExported && !savedRecordingId} data-testid="tab-save">
-              <Save className="w-3 h-3" /> Save Recording
             </TabsTrigger>
           </TabsList>
 
