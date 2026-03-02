@@ -40,12 +40,9 @@ const DRUG_CONFIG = {
 };
 
 // Format time as min:sec
-function formatTimeMinSec(minutes) {
-  const totalSec = minutes * 60;
-  const min = Math.floor(totalSec / 60);
-  const sec = Math.round(totalSec % 60);
-  if (sec === 0) return `${min}min`;
-  return `${min}min${sec}s`;
+// Format time in minutes only (e.g., 0.0, 0.5, 1.0, 2.0)
+function formatTimeMin(minutes) {
+  return minutes.toFixed(1);
 }
 
 // Inline BF chart component for the Trace tab
