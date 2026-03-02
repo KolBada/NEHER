@@ -703,7 +703,7 @@ function App() {
     setLightResponse(null);
     setRecordingName('');
     setRecordingDate('');
-    setOrganoidInfo([{ age: '', cell_type: '' }]);
+    setOrganoidInfo([{ cell_type: '', birth_date: '', fusion_date: '' }]);
     setRecordingDescription('');
     setSelectedDrugs([]);
     setDrugSettings({});
