@@ -440,7 +440,7 @@ export default function ExportPanel({
                   <span className="text-xs font-medium text-zinc-300">Excel (XLSX)</span>
                 </div>
                 <p className="text-[10px] text-zinc-500">
-                  Multi-sheet workbook with formatted tables. Includes: Summary, Per-Beat, Per-Minute, HRV Windows, Light Metrics.
+                  Multi-sheet workbook with formatted tables. Includes: Summary, Per-Beat, Per-Minute, Baseline, Drug, Light Metrics.
                 </p>
               </div>
               <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm">
