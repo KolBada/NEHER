@@ -1806,9 +1806,9 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         
         # Page 4: Recording Metadata - Updated with Drug Info and Light Stim Info columns
         fig4 = plt.figure(figsize=(11, 8.5))
-        fig4.suptitle('Recording Metadata', fontsize=12, fontweight='bold', y=0.96)
+        fig4.suptitle('Recording Metadata', fontsize=14, fontweight='bold', y=0.98)
         
-        ax_meta = fig4.add_axes([0.02, 0.1, 0.96, 0.8])
+        ax_meta = fig4.add_axes([0.02, 0.15, 0.96, 0.75])
         ax_meta.axis('off')
         
         meta_headers = ['Recording', 'Date', 'hSpO\nAge', 'hCO\nAge', 'Fusion\nAge', 'Drug Info', 'Light Stim\nInfo', 'Notes']
@@ -1819,42 +1819,45 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
             if rec.get('has_drug') and rec.get('drug_info'):
                 drug_parts = []
                 for d in rec.get('drug_info', []):
-                    drug_str = d.get('name', '')
+                    drug_str = d.get('name', '')[:12]
                     if d.get('concentration'):
                         drug_str += f" ({d.get('concentration')})"
                     drug_parts.append(drug_str)
-                drug_display = ', '.join(drug_parts)[:25] if drug_parts else '—'
+                drug_display = ', '.join(drug_parts)[:22] if drug_parts else '—'
             else:
                 drug_display = '—'
             
-            # Format light stim info
+            # Format light stim info - shorter ISI
             if rec.get('has_light_stim'):
                 light_display = f"{rec.get('stim_duration', '')}s"
                 if rec.get('isi_structure'):
-                    light_display += f"\n{rec.get('isi_structure', '')[:15]}"
+                    isi = rec.get('isi_structure', '')
+                    light_display += f" ISI:{isi[:12]}"
             else:
                 light_display = '—'
             
             meta_data.append([
-                rec.get('name', '')[:15],
+                rec.get('name', '')[:12],
                 rec.get('recording_date', '')[:10] if rec.get('recording_date') else '—',
                 str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '—',
                 str(rec.get('hco_age', '')) if rec.get('hco_age') else '—',
                 str(rec.get('fusion_age', '')) if rec.get('fusion_age') else '—',
                 drug_display,
                 light_display,
-                (rec.get('recording_description', '')[:20] if rec.get('recording_description') else '—'),
+                (rec.get('recording_description', '')[:15] if rec.get('recording_description') else '—'),
             ])
         
         table_meta = ax_meta.table(cellText=meta_data, loc='upper center', cellLoc='center',
-                                   colWidths=[0.14, 0.1, 0.08, 0.08, 0.08, 0.2, 0.14, 0.16])
+                                   colWidths=[0.12, 0.1, 0.07, 0.07, 0.07, 0.2, 0.18, 0.17])
         table_meta.auto_set_font_size(False)
         table_meta.set_fontsize(7)
-        table_meta.scale(1.0, 1.4)
+        table_meta.scale(1.0, 1.3)
         
         for (row, col), cell in table_meta.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
+            cell.set_height(0.07)
             if row == 0:
+                cell.set_height(0.085)  # Taller header for wrapped text
                 if col == 2:  # hSpO Age
                     cell.set_facecolor('#F59E0B')  # Amber
                 elif col == 3:  # hCO Age
