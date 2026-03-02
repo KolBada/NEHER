@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, FolderPlus, FolderOpen, Loader2, Check } from 'lucide-react';
+import { Save, FolderPlus, FolderOpen, Loader2, Check, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import api from '../api';
 
@@ -14,7 +16,16 @@ export default function SaveRecording({
   analysisState, 
   onSaveComplete, 
   existingRecordingId = null,
-  existingFolderId = null 
+  existingFolderId = null,
+  // Organoid/Cell info props
+  recordingDate,
+  setRecordingDate,
+  organoidInfo,
+  setOrganoidInfo,
+  fusionDate,
+  setFusionDate,
+  recordingDescription,
+  setRecordingDescription
 }) {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +36,60 @@ export default function SaveRecording({
   const [selectedFolderId, setSelectedFolderId] = useState(existingFolderId || '');
   const [newFolderName, setNewFolderName] = useState('');
   const [recordingName, setRecordingName] = useState(analysisState?.recordingName || analysisState?.filename || 'Untitled');
+
+  // Track which samples have transfection expanded
+  const [expandedTransfection, setExpandedTransfection] = useState({});
+
+  // Handle organoid info updates
+  const handleOrganoidChange = (index, field, value) => {
+    const updated = [...organoidInfo];
+    updated[index] = { ...updated[index], [field]: value };
+    setOrganoidInfo(updated);
+  };
+  
+  // Handle transfection info updates
+  const handleTransfectionChange = (index, field, value) => {
+    const updated = [...organoidInfo];
+    const transfection = updated[index].transfection || {};
+    updated[index] = { 
+      ...updated[index], 
+      transfection: { ...transfection, [field]: value }
+    };
+    setOrganoidInfo(updated);
+  };
+  
+  // Toggle transfection section
+  const toggleTransfection = (index) => {
+    setExpandedTransfection(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const addOrganoidEntry = () => {
+    setOrganoidInfo([...organoidInfo, { cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
+  };
+
+  const removeOrganoidEntry = (index) => {
+    if (organoidInfo.length > 1) {
+      setOrganoidInfo(organoidInfo.filter((_, i) => i !== index));
+      setExpandedTransfection(prev => {
+        const newState = { ...prev };
+        delete newState[index];
+        return newState;
+      });
+    }
+  };
+
+  // Calculate age in days between two dates
+  const calculateDays = (fromDate, toDate) => {
+    if (!fromDate || !toDate) return null;
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    const diffTime = to - from;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 ? diffDays : null;
+  };
 
   useEffect(() => {
     loadFolders();
