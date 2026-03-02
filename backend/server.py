@@ -874,10 +874,23 @@ async def export_xlsx(request: ExportRequest):
         
         if request.organoid_info:
             for idx, info in enumerate(request.organoid_info, 1):
-                age = info.get('age', '')
                 cell_type = info.get('cell_type', '')
+                age_at_recording = info.get('age_at_recording')
+                days_since_fusion = info.get('days_since_fusion')
+                
                 label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
-                value = f"{cell_type} - Age: {age}" if cell_type and age else (cell_type or age or '—')
+                
+                # Build value string with calculated ages
+                parts = []
+                if cell_type:
+                    parts.append(cell_type)
+                if age_at_recording is not None:
+                    parts.append(f"Age: D{age_at_recording}")
+                if days_since_fusion is not None:
+                    parts.append(f"Fusion: D{days_since_fusion}")
+                
+                value = ' - '.join(parts) if parts else '—'
+                
                 ws_summary[f'A{current_row}'] = label
                 ws_summary[f'B{current_row}'] = value
                 for col in ['A', 'B']:
