@@ -603,6 +603,10 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         if BF_base_j is not None and BF_base_j > 0 and BF_end_j is not None:
             bf_end_pct_j = float(100.0 * BF_end_j / BF_base_j)
         
+        # Debug logging for Recovery % calculation
+        import logging
+        logging.info(f"Stim {pulse['index']}: BF_base_j={BF_base_j}, BF_end_j={BF_end_j}, bf_end_pct_j={bf_end_pct_j}")
+        
         per_stim.append({
             'pulse_index': pulse['index'],
             'n_beats': n_beats,
