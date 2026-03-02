@@ -395,7 +395,7 @@ export default function ExportPanel({
               <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-[10px] font-data text-zinc-400">Per-Minute</p>
                 <p className={`text-xs font-data ${hasPerMinute ? 'text-green-400' : 'text-zinc-600'}`}>
-                  {hasPerMinute ? `${perMinuteData.length} rows` : 'Not computed'}
+                  {hasPerMinute ? `${perMinuteData.length} rows` : 'Not available'}
                 </p>
               </div>
               <div className={`p-2 rounded-sm border ${hasBaseline ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
