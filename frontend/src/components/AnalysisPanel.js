@@ -53,7 +53,7 @@ const CHART_COLORS = {
   pnn50: '#fb923c',
 };
 
-function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 'cyan' }) {
+function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 'cyan', tooltip }) {
   const colorClasses = {
     cyan: {
       bg: 'bg-cyan-950/30 border-cyan-800',
@@ -68,9 +68,13 @@ function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 
   };
   const colors = highlight ? colorClasses[highlightColor] : { bg: 'bg-zinc-900/50 border-zinc-800', label: 'text-zinc-500', value: 'text-zinc-100' };
   
+  const labelContent = tooltip ? (
+    <InfoTip text={tooltip}>{label}</InfoTip>
+  ) : label;
+  
   return (
     <div className={`border rounded-sm p-3 ${colors.bg}`}>
-      <p className={`text-[9px] uppercase tracking-wider font-bold ${colors.label}`}>{label}</p>
+      <p className={`text-[9px] uppercase tracking-wider font-bold ${colors.label}`}>{labelContent}</p>
       {sublabel && <p className="text-[8px] text-zinc-600">{sublabel}</p>}
       <p className={`text-lg font-data mt-1 ${colors.value}`}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
