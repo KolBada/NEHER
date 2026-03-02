@@ -651,6 +651,7 @@ function App() {
       // New metadata fields
       original_filename: activeFile?.filename || null,
       recording_date: recordingDate || null,
+      fusion_date: fusionDate || null,
       // Calculate ages from dates for export
       organoid_info: organoidInfo.some(o => o.cell_type || o.birth_date) ? organoidInfo.filter(o => o.cell_type || o.birth_date).map(o => {
         const calculateDays = (from, to) => {
@@ -662,14 +663,28 @@ function App() {
         return {
           cell_type: o.cell_type || '',
           birth_date: o.birth_date || null,
-          fusion_date: o.fusion_date || null,
           age_at_recording: calculateDays(o.birth_date, recordingDate),
-          days_since_fusion: calculateDays(o.fusion_date, recordingDate),
+          // Transfection info
+          transfection: o.transfection ? {
+            technique: o.transfection.technique || null,
+            other_technique: o.transfection.other_technique || null,
+            name: o.transfection.name || null,
+            amount: o.transfection.amount || null,
+            date: o.transfection.date || null,
+            days_since_transfection: calculateDays(o.transfection.date, recordingDate),
+          } : null,
         };
       }) : null,
+      // Calculate fusion days (shared for all samples)
+      days_since_fusion: (() => {
+        if (!fusionDate || !recordingDate) return null;
+        const diffTime = new Date(recordingDate) - new Date(fusionDate);
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return days >= 0 ? days : null;
+      })(),
       recording_description: recordingDescription || null,
     };
-  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, recordingDescription]);
+  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, fusionDate, recordingDescription]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
