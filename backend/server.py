@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException
+from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ import io
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime, timezone
 import numpy as np
 
 import analysis
@@ -23,14 +24,15 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Dependency to get database
+async def get_db():
+    return db
+
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# In-memory session store
+# In-memory session store (for active analysis sessions only)
 sessions = {}
-
-# Chunked upload storage
-chunk_uploads = {}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -134,27 +136,22 @@ async def root():
 
 
 # --- Chunked Upload Endpoints (for large files) ---
+# Store chunks directly in MongoDB GridFS-style for persistence across restarts
+
 @api_router.post("/upload/init")
-async def init_chunked_upload(request: ChunkInitRequest):
-    """Initialize a chunked upload session"""
+async def init_chunked_upload(request: ChunkInitRequest, db=Depends(get_db)):
+    """Initialize a chunked upload session - stored in MongoDB for persistence"""
     upload_id = str(uuid.uuid4())
     
-    # Create temp file for this upload
-    temp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(temp_dir, f"upload_{upload_id}.tmp")
-    
-    chunk_uploads[upload_id] = {
+    # Store upload session in MongoDB
+    await db.upload_sessions.insert_one({
+        '_id': upload_id,
         'filename': request.filename,
         'total_size': request.total_size,
         'total_chunks': request.total_chunks,
-        'received_chunks': set(),
-        'temp_path': temp_path,
-        'created_at': uuid.uuid1().time
-    }
-    
-    # Pre-create the temp file
-    with open(temp_path, 'wb') as f:
-        pass
+        'received_chunks': [],
+        'created_at': datetime.now(timezone.utc)
+    })
     
     logging.info(f"Initialized chunked upload {upload_id} for {request.filename} ({request.total_size} bytes, {request.total_chunks} chunks)")
     
@@ -162,69 +159,91 @@ async def init_chunked_upload(request: ChunkInitRequest):
 
 
 @api_router.post("/upload/chunk/{upload_id}/{chunk_index}")
-async def upload_chunk(upload_id: str, chunk_index: int, file: UploadFile = File(...)):
-    """Upload a single chunk"""
-    if upload_id not in chunk_uploads:
-        raise HTTPException(404, "Upload session not found")
+async def upload_chunk(upload_id: str, chunk_index: int, file: UploadFile = File(...), db=Depends(get_db)):
+    """Upload a single chunk - stored in MongoDB for persistence"""
+    # Check if session exists
+    session = await db.upload_sessions.find_one({'_id': upload_id})
+    if not session:
+        raise HTTPException(404, "Upload session not found or expired. Please retry the upload.")
     
-    upload_info = chunk_uploads[upload_id]
-    
-    if chunk_index < 0 or chunk_index >= upload_info['total_chunks']:
+    if chunk_index < 0 or chunk_index >= session['total_chunks']:
         raise HTTPException(400, f"Invalid chunk index: {chunk_index}")
     
     # Read chunk data
     chunk_data = await file.read()
     
-    # Calculate offset and write to temp file
-    chunk_size = 1 * 1024 * 1024  # 1MB chunks to match frontend
-    offset = chunk_index * chunk_size
+    # Store chunk in MongoDB
+    await db.upload_chunks.update_one(
+        {'upload_id': upload_id, 'chunk_index': chunk_index},
+        {'$set': {
+            'upload_id': upload_id,
+            'chunk_index': chunk_index,
+            'data': chunk_data,
+            'size': len(chunk_data)
+        }},
+        upsert=True
+    )
     
-    # Use 'ab' mode for appending, but seek to correct position
-    temp_path = upload_info['temp_path']
-    try:
-        # Ensure file exists and write at correct offset
-        with open(temp_path, 'ab') as f:
-            pass  # Create if not exists
-        with open(temp_path, 'r+b') as f:
-            f.seek(offset)
-            f.write(chunk_data)
-    except Exception as e:
-        logging.error(f"Failed to write chunk {chunk_index} for upload {upload_id}: {e}")
-        raise HTTPException(500, f"Failed to write chunk: {str(e)}")
+    # Update received chunks list
+    await db.upload_sessions.update_one(
+        {'_id': upload_id},
+        {'$addToSet': {'received_chunks': chunk_index}}
+    )
     
-    upload_info['received_chunks'].add(chunk_index)
+    # Get updated session
+    session = await db.upload_sessions.find_one({'_id': upload_id})
+    received_count = len(session.get('received_chunks', []))
     
-    logging.info(f"Received chunk {chunk_index + 1}/{upload_info['total_chunks']} for upload {upload_id}")
+    logging.info(f"Received chunk {chunk_index + 1}/{session['total_chunks']} for upload {upload_id}")
     
     return {
         'chunk_index': chunk_index,
-        'received': len(upload_info['received_chunks']),
-        'total': upload_info['total_chunks']
+        'received': received_count,
+        'total': session['total_chunks']
     }
 
 
 @api_router.post("/upload/complete")
-async def complete_chunked_upload(request: ChunkCompleteRequest):
-    """Complete the chunked upload and process the file"""
+async def complete_chunked_upload(request: ChunkCompleteRequest, db=Depends(get_db)):
+    """Complete the chunked upload and process the file - reads chunks from MongoDB"""
     import pyabf
     import gc
     
     upload_id = request.upload_id
     
-    if upload_id not in chunk_uploads:
-        raise HTTPException(404, "Upload session not found")
-    
-    upload_info = chunk_uploads[upload_id]
+    # Get session from MongoDB
+    session = await db.upload_sessions.find_one({'_id': upload_id})
+    if not session:
+        raise HTTPException(404, "Upload session not found or expired. Please retry the upload.")
     
     # Verify all chunks received
-    if len(upload_info['received_chunks']) != upload_info['total_chunks']:
-        missing = set(range(upload_info['total_chunks'])) - upload_info['received_chunks']
-        raise HTTPException(400, f"Missing chunks: {sorted(missing)}")
+    received_chunks = set(session.get('received_chunks', []))
+    total_chunks = session['total_chunks']
     
-    temp_path = upload_info['temp_path']
-    filename = upload_info['filename']
+    if len(received_chunks) != total_chunks:
+        missing = set(range(total_chunks)) - received_chunks
+        raise HTTPException(400, f"Missing chunks: {sorted(list(missing)[:10])}...")
+    
+    filename = session['filename']
+    temp_path = None
     
     try:
+        # Reassemble file from MongoDB chunks
+        temp_path = os.path.join(tempfile.gettempdir(), f"assembled_{upload_id}.abf")
+        
+        with open(temp_path, 'wb') as f:
+            for chunk_index in range(total_chunks):
+                chunk_doc = await db.upload_chunks.find_one({
+                    'upload_id': upload_id,
+                    'chunk_index': chunk_index
+                })
+                if chunk_doc and 'data' in chunk_doc:
+                    f.write(chunk_doc['data'])
+                else:
+                    raise HTTPException(500, f"Chunk {chunk_index} data not found")
+        
+        logging.info(f"Reassembled file {filename} from {total_chunks} chunks")
+        
         # Process the assembled file
         session_id = str(uuid.uuid4())
         sessions[session_id] = {}
@@ -300,14 +319,20 @@ async def complete_chunked_upload(request: ChunkCompleteRequest):
         return result
         
     finally:
-        # Cleanup
-        if os.path.exists(temp_path):
+        # Cleanup: delete temp file
+        if temp_path and os.path.exists(temp_path):
             try:
                 os.unlink(temp_path)
             except:
                 pass
-        if upload_id in chunk_uploads:
-            del chunk_uploads[upload_id]
+        
+        # Cleanup: delete chunks and session from MongoDB
+        try:
+            await db.upload_chunks.delete_many({'upload_id': upload_id})
+            await db.upload_sessions.delete_one({'_id': upload_id})
+        except:
+            pass
+        
         gc.collect()
 
 
