@@ -243,7 +243,7 @@ async def get_recording(db, recording_id: str) -> Optional[dict]:
         return None
 
 
-async def update_recording(db, recording_id: str, name: Optional[str] = None, analysis_state: Optional[dict] = None) -> Optional[dict]:
+async def update_recording(db, recording_id: str, name: Optional[str] = None, analysis_state: Optional[dict] = None, update_version: bool = True) -> Optional[dict]:
     """Update a recording's name and/or analysis_state."""
     try:
         now = datetime.now(timezone.utc).isoformat()
@@ -259,6 +259,9 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
             update_fields["duration_sec"] = analysis_state.get("file_info", {}).get("duration_sec", 0)
             update_fields["has_light_stim"] = bool(analysis_state.get("light_pulses"))
             update_fields["has_drug_analysis"] = bool(analysis_state.get("selected_drugs"))
+            # Update metrics version
+            if update_version:
+                update_fields["metrics_version"] = METRICS_VERSION
         
         result = await db.recordings.update_one(
             {"_id": ObjectId(recording_id)},
