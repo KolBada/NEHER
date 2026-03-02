@@ -1561,29 +1561,59 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                     cell.set_facecolor('#374151')
                 cell.set_text_props(color='white', fontweight='bold')
         
-        # Light Stimulation Averages
-        ax_light_avg = fig1.add_axes([0.55, 0.35, 0.38, 0.28])
+        # Light Stimulation Averages - ALL Metrics (split into two sections)
+        ax_light_avg = fig1.add_axes([0.55, 0.12, 0.38, 0.52])
         ax_light_avg.axis('off')
-        ax_light_avg.text(0, 1, 'LIGHT STIMULATION AVERAGES', fontsize=10, fontweight='bold', 
+        ax_light_avg.text(0, 1, 'LIGHT STIMULUS AVERAGES', fontsize=10, fontweight='bold', 
                          color='#374151', transform=ax_light_avg.transAxes, va='top')
         
         hra_averages = data.get('light_hra_averages', {}).get('averages', {})
         hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
         
-        light_avg_text = [
+        # HRA Section
+        ax_light_avg.text(0, 0.88, 'Heart Rate Adaptation (HRA)', fontsize=8, fontstyle='italic', 
+                         color='#6B7280', transform=ax_light_avg.transAxes, va='top')
+        
+        light_hra_text = [
             ['Metric', 'Value'],
+            ['Baseline BF (bpm)', fmt_val(hra_averages.get('light_baseline_bf'), 1)],
             ['Avg BF (bpm)', fmt_val(hra_averages.get('light_avg_bf'), 1)],
             ['Peak BF (bpm)', fmt_val(hra_averages.get('light_peak_bf'), 1)],
             ['Normalized Peak (%)', fmt_val(hra_averages.get('light_peak_norm'), 1)],
+            ['TTP 1st (s)', fmt_val(hra_averages.get('light_ttp_first'), 1)],
+            ['TTP Avg (s)', fmt_val(hra_averages.get('light_ttp_avg'), 1)],
+            ['Recovery BF (bpm)', fmt_val(hra_averages.get('light_recovery_bf'), 1)],
+            ['Recovery (%)', fmt_val(hra_averages.get('light_recovery_pct'), 1)],
+            ['Amplitude (bpm)', fmt_val(hra_averages.get('light_amplitude'), 1)],
+            ['Rate of Change', fmt_val(hra_averages.get('light_roc'), 4)],
+        ]
+        table_light_hra = ax_light_avg.table(cellText=light_hra_text, loc='upper left', 
+                                              cellLoc='center', colWidths=[0.6, 0.4], 
+                                              bbox=[0, 0.35, 1, 0.52])
+        table_light_hra.auto_set_font_size(False)
+        table_light_hra.set_fontsize(7)
+        for (row, col), cell in table_light_hra.get_celld().items():
+            cell.set_edgecolor('#E5E7EB')
+            if row == 0:
+                cell.set_facecolor('#06B6D4')  # Cyan for light
+                cell.set_text_props(color='white', fontweight='bold')
+        
+        # Corrected HRV Section
+        ax_light_avg.text(0, 0.32, 'Corrected HRV', fontsize=8, fontstyle='italic', 
+                         color='#6B7280', transform=ax_light_avg.transAxes, va='top')
+        
+        light_hrv_text = [
+            ['Metric', 'Value'],
             ['ln(RMSSD70) corr.', fmt_val(hrv_averages.get('light_hrv_ln_rmssd70'), 3)],
             ['ln(SDNN70) corr.', fmt_val(hrv_averages.get('light_hrv_ln_sdnn70'), 3)],
+            ['pNN50 corr. (%)', fmt_val(hrv_averages.get('light_hrv_pnn50'), 1)],
         ]
-        table_light_avg = ax_light_avg.table(cellText=light_avg_text, loc='upper left', 
+        table_light_hrv = ax_light_avg.table(cellText=light_hrv_text, loc='upper left', 
                                               cellLoc='center', colWidths=[0.6, 0.4], 
-                                              bbox=[0, 0.05, 1, 0.85])
-        table_light_avg.auto_set_font_size(False)
-        table_light_avg.set_fontsize(8)
-        for (row, col), cell in table_light_avg.get_celld().items():
+                                              bbox=[0, 0.05, 1, 0.26])
+        table_light_hrv.auto_set_font_size(False)
+        table_light_hrv.set_fontsize(7)
+        for (row, col), cell in table_light_hrv.get_celld().items():
             cell.set_edgecolor('#E5E7EB')
             if row == 0:
                 cell.set_facecolor('#06B6D4')  # Cyan for light
