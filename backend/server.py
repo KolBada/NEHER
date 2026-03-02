@@ -1559,17 +1559,15 @@ async def export_pdf(request: ExportRequest):
         # Baseline Metrics - shortened labels
         right_rows.append(['BASELINE METRICS', ''])
         if request.baseline:
-            bf_range = request.baseline.get('baseline_bf_range', '1-2 min')
-            hrv_range = request.baseline.get('baseline_hrv_range', '0-3 min')
             bf_val = request.baseline.get('baseline_bf')
             ln_rmssd = request.baseline.get('baseline_ln_rmssd70')
             sdnn = request.baseline.get('baseline_sdnn')
             pnn50 = request.baseline.get('baseline_pnn50')
             
-            right_rows.append([f'Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
-            right_rows.append([f'ln(RMSSD₇₀)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
-            right_rows.append([f'ln(SDNN₇₀)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
-            right_rows.append([f'pNN50₇₀', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+            right_rows.append(['Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
+            right_rows.append(['ln(RMSSD₇₀)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
+            right_rows.append(['ln(SDNN₇₀)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
+            right_rows.append(['pNN50₇₀', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
         else:
             right_rows.append(['Status', 'Not available'])
         
