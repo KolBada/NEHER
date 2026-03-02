@@ -8,7 +8,24 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - **Backend**: FastAPI + pyABF + NumPy/SciPy
 - **Export**: openpyxl (XLSX), matplotlib (PDF)
 
-## What's Been Implemented (Feb 2026)
+## What's Been Implemented (Mar 2026)
+
+### Folder Comparison System (NEW - Mar 2, 2026)
+- [x] **Comparison View**: Accessible via "Comparison" button in folder view
+- [x] **Summary Cards**: Recording count, hSpO/hCO age ranges, Light Stim count
+- [x] **Spontaneous Activity Table**: Baseline (amber) and Drug (purple) columns
+- [x] **Light HRA Table**: All heart rate acceleration metrics
+- [x] **Corrected Light HRV Table**: Detrended HRV metrics
+- [x] **Metadata Table**: Recording info, cell type, line, condition, drug, protocol
+- [x] **Folder Averages**: Computed per table, ignoring missing values
+- [x] **Excel Export**: 5 sheets (Summary, Spontaneous, Light HRA, Light HRV, Metadata)
+- [x] **PDF Export**: Multi-page with all tables
+
+### Export Enhancements (Mar 2, 2026)
+- [x] **Light Metrics in Summary**: Added Time to Peak 1st, Recovery BF, Recovery %, Amplitude, Rate of Change
+- [x] **PDF Table Fitting**: Dynamic cell heights based on line count
+- [x] **Shortened Labels**: "ANALYSIS", "SAMPLE INFO" for PDF readability
+- [x] **UI Text Change**: "Computed" → "Available" in Export panel
 
 ### Core Features
 - [x] ABF file upload with pyABF parsing
