@@ -19,15 +19,15 @@ export default function ExportPanel({
   recordingDescription, setRecordingDescription,
   originalFilename,
   fusionDate, setFusionDate,
-  // Drug readout for metrics availability
-  drugReadout
+  // Drug readout settings for metrics availability
+  drugReadoutSettings
 }) {
   const hasData = !!metrics;
   const hasHrv = !!hrvResults?.windows?.length;
   const hasLight = !!lightHrv || !!lightResponse;
   const hasPerMinute = !!perMinuteData?.length;
   const hasBaseline = !!hrvResults?.baseline;
-  const hasDrugMetrics = !!(drugReadout?.drug_bf || drugReadout?.drug_hrv);
+  const hasDrugMetrics = !!(drugReadoutSettings?.enableHrvReadout || drugReadoutSettings?.enableBfReadout);
   
   // Track which samples have transfection expanded
   const [expandedTransfection, setExpandedTransfection] = useState({});
