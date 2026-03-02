@@ -1723,39 +1723,68 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         pdf.savefig(fig4, bbox_inches='tight')
         plt.close(fig4)
         
-        # Page 5: Recording Metadata
+        # Page 5: Recording Metadata - Updated with Drug Info and Light Stim Info columns
         fig5 = plt.figure(figsize=(11, 8.5))
         fig5.suptitle('Recording Metadata', fontsize=12, fontweight='bold', y=0.96)
         
         ax_meta = fig5.add_axes([0.02, 0.1, 0.96, 0.8])
         ax_meta.axis('off')
         
-        meta_headers = ['Recording', 'Date', 'Type', 'Line', 'Condition', 'Drug', 'hSpO', 'hCO']
+        meta_headers = ['Recording', 'Date', 'hSpO\nAge', 'hCO\nAge', 'Fusion\nAge', 'Drug Info', 'Light Stim\nInfo', 'Notes']
         meta_data = [meta_headers]
         
         for rec in recordings:
+            # Format drug info
+            if rec.get('has_drug') and rec.get('drug_info'):
+                drug_parts = []
+                for d in rec.get('drug_info', []):
+                    drug_str = d.get('name', '')
+                    if d.get('concentration'):
+                        drug_str += f" ({d.get('concentration')})"
+                    drug_parts.append(drug_str)
+                drug_display = ', '.join(drug_parts)[:25] if drug_parts else '—'
+            else:
+                drug_display = '—'
+            
+            # Format light stim info
+            if rec.get('has_light_stim'):
+                light_display = f"{rec.get('stim_duration', '')}s"
+                if rec.get('isi_structure'):
+                    light_display += f"\n{rec.get('isi_structure', '')[:15]}"
+            else:
+                light_display = '—'
+            
             meta_data.append([
                 rec.get('name', '')[:15],
-                rec.get('recording_date', '')[:10] if rec.get('recording_date') else '',
-                rec.get('cell_type', ''),
-                rec.get('line_name', '')[:12] if rec.get('line_name') else '',
-                rec.get('condition', '')[:12] if rec.get('condition') else '',
-                rec.get('drug_names', '')[:15] if rec.get('drug_names') else '',
-                str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '',
-                str(rec.get('hco_age', '')) if rec.get('hco_age') else '',
+                rec.get('recording_date', '')[:10] if rec.get('recording_date') else '—',
+                str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '—',
+                str(rec.get('hco_age', '')) if rec.get('hco_age') else '—',
+                str(rec.get('fusion_age', '')) if rec.get('fusion_age') else '—',
+                drug_display,
+                light_display,
+                (rec.get('recording_description', '')[:20] if rec.get('recording_description') else '—'),
             ])
         
         table_meta = ax_meta.table(cellText=meta_data, loc='upper center', cellLoc='center',
-                                   colWidths=[0.15, 0.1, 0.08, 0.12, 0.12, 0.15, 0.08, 0.08])
+                                   colWidths=[0.14, 0.1, 0.08, 0.08, 0.08, 0.2, 0.14, 0.16])
         table_meta.auto_set_font_size(False)
         table_meta.set_fontsize(7)
-        table_meta.scale(1.0, 1.3)
+        table_meta.scale(1.0, 1.4)
         
         for (row, col), cell in table_meta.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
             if row == 0:
-                cell.set_facecolor('#374151')
-                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+                if col == 2:  # hSpO Age
+                    cell.set_facecolor('#F59E0B')  # Amber
+                elif col == 3:  # hCO Age
+                    cell.set_facecolor('#8B5CF6')  # Purple
+                elif col == 5:  # Drug Info
+                    cell.set_facecolor('#059669')  # Green
+                elif col == 6:  # Light Stim Info
+                    cell.set_facecolor('#06B6D4')  # Cyan
+                else:
+                    cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=6)
         
         pdf.savefig(fig5, bbox_inches='tight')
         plt.close(fig5)
