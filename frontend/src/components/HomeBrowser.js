@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
-  ChevronRight, Loader2, Plus, X, Check, BarChart3
+  ChevronRight, Loader2, Plus, X, Check, BarChart3, ArrowUpDown,
+  SortAsc, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,6 +61,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [recordingToMove, setRecordingToMove] = useState(null);
   const [moveTargetFolder, setMoveTargetFolder] = useState('');
   const [updateCheckDone, setUpdateCheckDone] = useState(false);
+  const [folderSortBy, setFolderSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
 
   // Auto-update outdated recordings on mount
   useEffect(() => {
@@ -229,6 +231,27 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Sort folders based on selected criteria
+  const sortedFolders = useMemo(() => {
+    if (!folders.length) return [];
+    const sorted = [...folders];
+    
+    switch (folderSortBy) {
+      case 'alpha':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'created':
+        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        break;
+      case 'modified':
+      default:
+        sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+        break;
+    }
+    
+    return sorted;
+  }, [folders, folderSortBy]);
+
   // Home view - show folders and new analysis option
   if (view === 'home') {
     return (
@@ -262,16 +285,58 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
         {/* Folders Section */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Saved Recordings</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
-            onClick={() => setCreateFolderOpen(true)}
-            data-testid="create-folder-btn"
-          >
-            <FolderPlus className="w-3.5 h-3.5 mr-1.5" />
-            New Folder
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Sort Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+                  data-testid="sort-folders-btn"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+                  {folderSortBy === 'alpha' ? 'A-Z' : folderSortBy === 'created' ? 'Created' : 'Modified'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                <DropdownMenuItem 
+                  className={`text-xs ${folderSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
+                  onClick={() => setFolderSortBy('modified')}
+                >
+                  <Clock className="w-3.5 h-3.5 mr-2" />
+                  Last Modified
+                  {folderSortBy === 'modified' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className={`text-xs ${folderSortBy === 'alpha' ? 'bg-zinc-800' : ''}`}
+                  onClick={() => setFolderSortBy('alpha')}
+                >
+                  <SortAsc className="w-3.5 h-3.5 mr-2" />
+                  Alphabetical (A-Z)
+                  {folderSortBy === 'alpha' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className={`text-xs ${folderSortBy === 'created' ? 'bg-zinc-800' : ''}`}
+                  onClick={() => setFolderSortBy('created')}
+                >
+                  <Calendar className="w-3.5 h-3.5 mr-2" />
+                  Date Created
+                  {folderSortBy === 'created' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+              onClick={() => setCreateFolderOpen(true)}
+              data-testid="create-folder-btn"
+            >
+              <FolderPlus className="w-3.5 h-3.5 mr-1.5" />
+              New Folder
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -288,7 +353,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
           </Card>
         ) : (
           <div className="grid gap-3">
-            {folders.map((folder) => (
+            {sortedFolders.map((folder) => (
               <Card 
                 key={folder.id}
                 className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
