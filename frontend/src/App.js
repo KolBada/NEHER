@@ -142,7 +142,7 @@ function BFChart({ metrics, lightPulses }) {
             <XAxis dataKey="time" type="number" 
               domain={zoomDomain || ['dataMin', 'dataMax']}
               tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-              tickFormatter={(v) => formatTimeMinSec(v)} />
+              tickFormatter={(v) => formatTimeMin(v)} />
             <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
               label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
             <Tooltip
