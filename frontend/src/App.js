@@ -647,8 +647,13 @@ function App() {
       baseline: hrvResults?.baseline,
       drug_readout: drugReadout,
       perfusion_params: perfusionParams,
+      // New metadata fields
+      original_filename: activeFile?.filename || null,
+      recording_date: recordingDate || null,
+      organoid_info: organoidInfo.some(o => o.age || o.cell_type) ? organoidInfo.filter(o => o.age || o.cell_type) : null,
+      recording_description: recordingDescription || null,
     };
-  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses]);
+  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, recordingDescription]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
