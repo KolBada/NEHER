@@ -172,6 +172,7 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         "name": name,
         "filename": filename,
         "analysis_state": analysis_state,
+        "metrics_version": METRICS_VERSION,  # Track version for auto-updates
         "n_beats": n_beats,
         "duration_sec": duration_sec,
         "has_light_stim": has_light_stim,
