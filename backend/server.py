@@ -1440,16 +1440,20 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
         cell.border = thin_border
         cell.alignment = Alignment(horizontal='center', wrap_text=True)
     
-    # Data rows with normalized values (using avg_baseline_bf calculated earlier in Spontaneous sheet)
+    # Calculate the average of light_baseline_bf for Light HRA normalization
+    light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
+    avg_light_baseline_bf = sum(light_baseline_bfs) / len(light_baseline_bfs) if light_baseline_bfs else 1
+    
+    # Data rows with normalized values (using avg_light_baseline_bf - NOT spontaneous baseline)
     light_norm_sums = {'baseline_bf': [], 'avg_bf': [], 'peak_bf': [], 'recovery_bf': []}
     
     for row_idx, rec in enumerate(recordings, start=norm_hra_start_row + 2):
         ws_light.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
         
-        n_light_baseline_bf = norm_val(rec.get('light_baseline_bf'), avg_baseline_bf)
-        n_light_avg_bf = norm_val(rec.get('light_avg_bf'), avg_baseline_bf)
-        n_light_peak_bf = norm_val(rec.get('light_peak_bf'), avg_baseline_bf)
-        n_light_recovery_bf = norm_val(rec.get('light_recovery_bf'), avg_baseline_bf)
+        n_light_baseline_bf = norm_val(rec.get('light_baseline_bf'), avg_light_baseline_bf)
+        n_light_avg_bf = norm_val(rec.get('light_avg_bf'), avg_light_baseline_bf)
+        n_light_peak_bf = norm_val(rec.get('light_peak_bf'), avg_light_baseline_bf)
+        n_light_recovery_bf = norm_val(rec.get('light_recovery_bf'), avg_light_baseline_bf)
         
         ws_light.cell(row=row_idx, column=2, value=format_value(n_light_baseline_bf, 1)).font = data_font
         ws_light.cell(row=row_idx, column=3, value=format_value(n_light_avg_bf, 1)).font = data_font
@@ -2047,26 +2051,18 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         norm_hra_headers = ['Recording', 'Base BF%', 'Avg BF%', 'Peak BF%', 'Rec BF%']
         norm_hra_data = [norm_hra_headers]
         
+        # Calculate the average of light_baseline_bf for Light HRA normalization
+        light_baseline_bfs_pdf = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
+        avg_light_baseline_bf_pdf = sum(light_baseline_bfs_pdf) / len(light_baseline_bfs_pdf) if light_baseline_bfs_pdf else 1
+        
         light_norm_sums_pdf = {'baseline_bf': [], 'avg_bf': [], 'peak_bf': [], 'recovery_bf': []}
         
         for rec in recordings:
-            n_light_baseline_bf = norm_val_pdf(rec.get('light_baseline_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
-            n_light_avg_bf = norm_val_pdf(rec.get('light_avg_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
-            n_light_peak_bf = norm_val_pdf(rec.get('light_peak_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
-            n_light_recovery_bf = norm_val_pdf(rec.get('light_recovery_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
-            
-            # Fallback calculation if norm_val_pdf not available
-            if 'norm_val_pdf' not in dir():
-                def local_norm(val, avg):
-                    if val is None or avg == 0:
-                        return None
-                    return 100 * val / avg
-                bfs_temp = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
-                avg_bf_temp = sum(bfs_temp) / len(bfs_temp) if bfs_temp else 1
-                n_light_baseline_bf = local_norm(rec.get('light_baseline_bf'), avg_bf_temp)
-                n_light_avg_bf = local_norm(rec.get('light_avg_bf'), avg_bf_temp)
-                n_light_peak_bf = local_norm(rec.get('light_peak_bf'), avg_bf_temp)
-                n_light_recovery_bf = local_norm(rec.get('light_recovery_bf'), avg_bf_temp)
+            # Normalize Light HRA values to the average of light_baseline_bf (NOT spontaneous baseline)
+            n_light_baseline_bf = norm_val_pdf(rec.get('light_baseline_bf'), avg_light_baseline_bf_pdf)
+            n_light_avg_bf = norm_val_pdf(rec.get('light_avg_bf'), avg_light_baseline_bf_pdf)
+            n_light_peak_bf = norm_val_pdf(rec.get('light_peak_bf'), avg_light_baseline_bf_pdf)
+            n_light_recovery_bf = norm_val_pdf(rec.get('light_recovery_bf'), avg_light_baseline_bf_pdf)
             
             norm_hra_data.append([
                 rec.get('name', '')[:12],

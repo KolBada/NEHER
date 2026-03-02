@@ -172,13 +172,20 @@ export default function FolderComparison({ folder, onBack }) {
 
   // Compute normalized light HRA values (using same cohort baseline BF)
   const normalizedLightHRA = useMemo(() => {
-    if (!comparisonData?.recordings || !cohortBaselines) return [];
+    if (!comparisonData?.recordings) return [];
     const recs = comparisonData.recordings;
-    const avgBF = cohortBaselines.avg_baseline_bf;
+    
+    // Calculate the average of light_baseline_bf values for Light HRA normalization
+    const lightBaselineBFs = recs
+      .map(r => r.light_baseline_bf)
+      .filter(v => v !== null && v !== undefined);
+    const avgLightBaselineBF = lightBaselineBFs.length > 0 
+      ? lightBaselineBFs.reduce((a, b) => a + b, 0) / lightBaselineBFs.length 
+      : null;
     
     const normalize = (val) => {
-      if (val === null || val === undefined || avgBF === null || avgBF === 0) return null;
-      return 100 * val / avgBF;
+      if (val === null || val === undefined || avgLightBaselineBF === null || avgLightBaselineBF === 0) return null;
+      return 100 * val / avgLightBaselineBF;
     };
     
     return recs.map(rec => ({
@@ -188,7 +195,7 @@ export default function FolderComparison({ folder, onBack }) {
       norm_peak_bf: normalize(rec.light_peak_bf),
       norm_recovery_bf: normalize(rec.light_recovery_bf),
     }));
-  }, [comparisonData, cohortBaselines]);
+  }, [comparisonData]);
 
   // Compute normalized light HRA folder averages
   const normalizedLightHRAAverages = useMemo(() => {
