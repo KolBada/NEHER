@@ -894,7 +894,7 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
                 try:
                     if cell.value:
                         max_len = max(max_len, len(str(cell.value)))
-                except:
+                except (TypeError, AttributeError):
                     pass
             ws.column_dimensions[col_letter].width = min(max_len + 2, 30)
     
