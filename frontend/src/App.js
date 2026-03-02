@@ -1399,6 +1399,14 @@ function App() {
                 onSaveComplete={handleSaveComplete}
                 existingRecordingId={savedRecordingId}
                 existingFolderId={savedFolderId}
+                recordingDate={recordingDate}
+                setRecordingDate={setRecordingDate}
+                organoidInfo={organoidInfo}
+                setOrganoidInfo={setOrganoidInfo}
+                fusionDate={fusionDate}
+                setFusionDate={setFusionDate}
+                recordingDescription={recordingDescription}
+                setRecordingDescription={setRecordingDescription}
               />
             </div>
           </TabsContent>
