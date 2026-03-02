@@ -270,7 +270,9 @@ export default function FolderComparison({ folder, onBack }) {
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
           <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">hSpOs AGE RANGE</p>
+            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">
+              <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
+            </p>
             <p className="text-lg font-semibold text-zinc-100">
               {summary?.hspo_age_range?.min !== null 
                 ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
@@ -281,7 +283,9 @@ export default function FolderComparison({ folder, onBack }) {
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
           <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">hCOs AGE RANGE</p>
+            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">
+              <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
+            </p>
             <p className="text-lg font-semibold text-zinc-100">
               {summary?.hco_age_range?.min !== null 
                 ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
