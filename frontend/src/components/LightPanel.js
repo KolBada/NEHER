@@ -578,18 +578,33 @@ export default function LightPanel({
           {metrics && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Beat Frequency - bpm vs time
-                  {displayPulses && (
-                    <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
-                      {displayPulses.length} pulses detected
-                    </Badge>
-                  )}
-                  {pulsesModified && (
-                    <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
-                      Modified
-                    </Badge>
-                  )}
+                <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    Beat Frequency - bpm vs time
+                    {displayPulses && (
+                      <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
+                        {displayPulses.length} pulses detected
+                      </Badge>
+                    )}
+                    {pulsesModified && (
+                      <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
+                        Modified
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
+                      <Plus className="w-3 h-3 text-zinc-500" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
+                      <Minus className="w-3 h-3 text-zinc-500" />
+                    </Button>
+                    {isZoomed && (
+                      <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                        <RotateCcw className="w-3 h-3 mr-1" />Reset
+                      </Button>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2">
@@ -603,7 +618,7 @@ export default function LightPanel({
                 )}
                 
                 <div ref={chartContainerRef}>
-                  <ResponsiveContainer width="100%" height={225}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <LineChart 
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
@@ -614,7 +629,9 @@ export default function LightPanel({
                         dataKey="time" 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                         tickFormatter={xAxisTickFormatter}
-                        interval="preserveStartEnd"
+                        domain={zoomDomain || ['dataMin', 'dataMax']}
+                        type="number"
+                        allowDataOverflow
                         label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
                       />
                       <YAxis 
@@ -653,7 +670,16 @@ export default function LightPanel({
                         dot={false} 
                         isAnimationActive={false} 
                       />
-                      <Brush dataKey="time" height={20} stroke="#3f3f46" fill="#0c0c0e" tickFormatter={(v) => v.toFixed(1)} />
+                      <Brush 
+                        dataKey="time" 
+                        height={20} 
+                        stroke="#3f3f46" 
+                        fill="#0c0c0e" 
+                        tickFormatter={(v) => v.toFixed(1)}
+                        startIndex={brushIndices.start}
+                        endIndex={brushIndices.end}
+                        onChange={handleBrushChange}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
