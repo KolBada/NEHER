@@ -97,33 +97,18 @@ async def create_folder(db, name: str) -> dict:
 
 
 async def get_folders(db) -> List[dict]:
-    """Get all folders with recording counts using aggregation."""
+    """Get all folders with recording counts."""
     folders = []
-    # Use aggregation to get folders with recording counts in a single query
-    pipeline = [
-        {"$sort": {"updated_at": -1}},
-        {"$lookup": {
-            "from": "recordings",
-            "let": {"folder_id": {"$toString": "$_id"}},
-            "pipeline": [
-                {"$match": {"$expr": {"$eq": ["$folder_id", "$$folder_id"]}}},
-                {"$count": "count"}
-            ],
-            "as": "recording_info"
-        }},
-        {"$addFields": {
-            "recording_count": {
-                "$ifNull": [{"$arrayElemAt": ["$recording_info.count", 0]}, 0]
-            }
-        }},
-        {"$project": {"recording_info": 0}}
-    ]
+    # Simple approach - fetch folders first, then count
+    folder_list = await db.folders.find().sort("updated_at", -1).to_list(length=100)
     
-    async for folder in db.folders.aggregate(pipeline):
+    for folder in folder_list:
+        folder_id_str = str(folder["_id"])
+        count = await db.recordings.count_documents({"folder_id": folder_id_str})
         folders.append({
-            "id": str(folder["_id"]),
+            "id": folder_id_str,
             "name": folder["name"],
-            "recording_count": folder["recording_count"],
+            "recording_count": count,
             "created_at": folder["created_at"],
             "updated_at": folder["updated_at"],
         })

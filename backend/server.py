@@ -179,9 +179,18 @@ async def upload_chunk(upload_id: str, chunk_index: int, file: UploadFile = File
     chunk_size = 5 * 1024 * 1024  # 5MB chunks
     offset = chunk_index * chunk_size
     
-    with open(upload_info['temp_path'], 'r+b') as f:
-        f.seek(offset)
-        f.write(chunk_data)
+    # Use 'ab' mode for appending, but seek to correct position
+    temp_path = upload_info['temp_path']
+    try:
+        # Ensure file exists and write at correct offset
+        with open(temp_path, 'ab') as f:
+            pass  # Create if not exists
+        with open(temp_path, 'r+b') as f:
+            f.seek(offset)
+            f.write(chunk_data)
+    except Exception as e:
+        logging.error(f"Failed to write chunk {chunk_index} for upload {upload_id}: {e}")
+        raise HTTPException(500, f"Failed to write chunk: {str(e)}")
     
     upload_info['received_chunks'].add(chunk_index)
     
