@@ -62,6 +62,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [moveTargetFolder, setMoveTargetFolder] = useState('');
   const [updateCheckDone, setUpdateCheckDone] = useState(false);
   const [folderSortBy, setFolderSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
+  const [recordingSortBy, setRecordingSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
 
   // Auto-update outdated recordings on mount
   useEffect(() => {
@@ -251,6 +252,27 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     
     return sorted;
   }, [folders, folderSortBy]);
+
+  // Sort recordings based on selected criteria
+  const sortedRecordings = useMemo(() => {
+    if (!recordings.length) return [];
+    const sorted = [...recordings];
+    
+    switch (recordingSortBy) {
+      case 'alpha':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'created':
+        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        break;
+      case 'modified':
+      default:
+        sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+        break;
+    }
+    
+    return sorted;
+  }, [recordings, recordingSortBy]);
 
   // Home view - show folders and new analysis option
   if (view === 'home') {
@@ -524,18 +546,62 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
         </div>
         
         {/* Comparison Button */}
-        {recordings.length >= 1 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs border-cyan-700/50 hover:border-cyan-600 hover:bg-cyan-950/30 text-cyan-400"
-            onClick={() => setView('comparison')}
-            data-testid="comparison-btn"
-          >
-            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-            Comparison
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Sort Recordings Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+                data-testid="sort-recordings-btn"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+                {recordingSortBy === 'alpha' ? 'A-Z' : recordingSortBy === 'created' ? 'Created' : 'Modified'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+              <DropdownMenuItem 
+                className={`text-xs ${recordingSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
+                onClick={() => setRecordingSortBy('modified')}
+              >
+                <Clock className="w-3.5 h-3.5 mr-2" />
+                Last Modified
+                {recordingSortBy === 'modified' && <Check className="w-3.5 h-3.5 ml-auto" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className={`text-xs ${recordingSortBy === 'alpha' ? 'bg-zinc-800' : ''}`}
+                onClick={() => setRecordingSortBy('alpha')}
+              >
+                <SortAsc className="w-3.5 h-3.5 mr-2" />
+                Alphabetical (A-Z)
+                {recordingSortBy === 'alpha' && <Check className="w-3.5 h-3.5 ml-auto" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className={`text-xs ${recordingSortBy === 'created' ? 'bg-zinc-800' : ''}`}
+                onClick={() => setRecordingSortBy('created')}
+              >
+                <Calendar className="w-3.5 h-3.5 mr-2" />
+                Date Created
+                {recordingSortBy === 'created' && <Check className="w-3.5 h-3.5 ml-auto" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Comparison Button */}
+          {recordings.length >= 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-cyan-700/50 hover:border-cyan-600 hover:bg-cyan-950/30 text-cyan-400"
+              onClick={() => setView('comparison')}
+              data-testid="comparison-btn"
+            >
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+              Comparison
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -553,7 +619,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
       ) : (
         <ScrollArea className="h-[calc(100vh-200px)]">
           <div className="grid gap-3">
-            {recordings.map((recording) => (
+            {sortedRecordings.map((recording) => (
               <Card 
                 key={recording.id}
                 className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
