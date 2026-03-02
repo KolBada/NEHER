@@ -1,18 +1,43 @@
-import { Loader2, FileSpreadsheet, FileText, FileDown } from 'lucide-react';
+import { Loader2, FileSpreadsheet, FileText, FileDown, Plus, X, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ExportPanel({
   metrics, hrvResults, lightHrv, lightResponse,
   onExportCsv, onExportXlsx, onExportPdf,
-  loading, recordingName, drugUsed, perMinuteData
+  loading, recordingName, drugUsed, perMinuteData,
+  // New metadata props
+  recordingDate, setRecordingDate,
+  organoidInfo, setOrganoidInfo,
+  recordingDescription, setRecordingDescription,
+  originalFilename
 }) {
   const hasData = !!metrics;
   const hasHrv = !!hrvResults?.windows?.length;
   const hasLight = !!lightHrv || !!lightResponse;
   const hasPerMinute = !!perMinuteData?.length;
+
+  // Handle organoid info updates
+  const handleOrganoidChange = (index, field, value) => {
+    const updated = [...organoidInfo];
+    updated[index] = { ...updated[index], [field]: value };
+    setOrganoidInfo(updated);
+  };
+
+  const addOrganoidEntry = () => {
+    setOrganoidInfo([...organoidInfo, { age: '', cell_type: '' }]);
+  };
+
+  const removeOrganoidEntry = (index) => {
+    if (organoidInfo.length > 1) {
+      setOrganoidInfo(organoidInfo.filter((_, i) => i !== index));
+    }
+  };
 
   return (
     <div className="space-y-4" data-testid="export-panel">
