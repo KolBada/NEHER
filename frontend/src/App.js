@@ -1324,6 +1324,7 @@ function App() {
               recordingDescription={recordingDescription}
               setRecordingDescription={setRecordingDescription}
               originalFilename={activeFile?.filename}
+              drugReadout={drugReadout}
             />
           </TabsContent>
 
