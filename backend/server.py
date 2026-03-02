@@ -2278,7 +2278,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ax_hrv.axis('off')
         
         # HRV subtitle positioned clearly above table
-        fig3.text(0.5, 0.44, 'Corrected Light-Induced Heart Rate Variability (HRV)', fontsize=11, fontweight='bold', 
+        fig3.text(0.5, 0.40, 'Corrected Light-Induced Heart Rate Variability (HRV)', fontsize=11, fontweight='bold', 
                  color='#374151', ha='center')
         
         hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50-70 corr. (%)']
