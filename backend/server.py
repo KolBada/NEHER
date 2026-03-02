@@ -724,25 +724,35 @@ def extract_comparison_metrics(recording: dict) -> dict:
         result['drug_concentrations'] = ''
         result['condition'] = 'Control'
     
-    # Light stim info - frontend uses camelCase
+    # Light stim info - use ORIGINAL search parameters (not adjusted pulses)
     light_enabled = state.get('lightEnabled', False)
     light_params = state.get('lightParams') or state.get('light_params', {})
     light_pulses = state.get('lightPulses') or state.get('light_pulses', [])
     
     result['has_light_stim'] = light_enabled and bool(light_pulses)
-    result['stim_duration'] = light_params.get('stim_duration_sec', light_params.get('stimDurationSec', 20)) if light_params else 20
     
-    # Calculate ISI structure from pulse timings
-    if light_pulses and len(light_pulses) > 1:
-        intervals = []
-        for i in range(1, min(len(light_pulses), 5)):
-            start_curr = light_pulses[i].get('start_min', 0)
-            start_prev = light_pulses[i-1].get('start_min', 0)
-            interval_sec = (start_curr - start_prev) * 60
-            intervals.append(int(round(interval_sec)))
-        result['isi_structure'] = '-'.join([f"{i}s" for i in intervals])
+    # Use original search parameters from lightParams
+    pulse_duration = light_params.get('pulseDuration', light_params.get('pulse_duration_sec', 20)) if light_params else 20
+    result['stim_duration'] = pulse_duration
+    
+    # Get ISI structure from original interval setting, not from calculated pulse timings
+    interval_setting = light_params.get('interval', 'decreasing') if light_params else 'decreasing'
+    if interval_setting == 'decreasing':
+        result['isi_structure'] = '60s-30s-20s-10s'
+    elif interval_setting == 'constant':
+        result['isi_structure'] = 'constant'
     else:
-        result['isi_structure'] = ''
+        # Custom or unknown - fall back to calculated ISI from pulses
+        if light_pulses and len(light_pulses) > 1:
+            intervals = []
+            for i in range(1, min(len(light_pulses), 5)):
+                start_curr = light_pulses[i].get('start_min', 0)
+                start_prev = light_pulses[i-1].get('start_min', 0)
+                interval_sec = (start_curr - start_prev) * 60
+                intervals.append(int(round(interval_sec)))
+            result['isi_structure'] = '-'.join([f"{i}s" for i in intervals])
+        else:
+            result['isi_structure'] = ''
     
     # Spontaneous Activity - Baseline metrics from hrvResults
     hrv_results = state.get('hrvResults') or state.get('hrv_results', {})
