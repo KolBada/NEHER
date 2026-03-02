@@ -1699,12 +1699,12 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         
         # Page 3: Light Stimulus (Combined HRA and Corrected HRV)
         fig3 = plt.figure(figsize=(11, 8.5))
-        fig3.suptitle('Light Stimulus Comparison', fontsize=12, fontweight='bold', y=0.97)
+        fig3.suptitle('Light Stimulus Comparison', fontsize=14, fontweight='bold', y=0.98)
         
-        # HRA Section
-        ax_hra = fig3.add_axes([0.03, 0.48, 0.94, 0.45])
+        # HRA Section - move down to avoid title overlap
+        ax_hra = fig3.add_axes([0.03, 0.52, 0.94, 0.40])
         ax_hra.axis('off')
-        ax_hra.text(0.5, 1.0, 'Light-Induced Heart Rate Adaptation (HRA)', fontsize=10, fontweight='bold', 
+        ax_hra.text(0.5, 0.98, 'Light-Induced Heart Rate Adaptation (HRA)', fontsize=10, fontweight='bold', 
                    color='#374151', ha='center', transform=ax_hra.transAxes, va='top')
         
         hra_headers = ['Recording', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Norm\nPeak', 'TTP\n1st', 'TTP\nAvg', 
@@ -1714,7 +1714,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         hra_averages = data.get('light_hra_averages', {}).get('averages', {})
         for rec in recordings:
             hra_data.append([
-                rec.get('name', '')[:15],
+                rec.get('name', '')[:12],
                 fmt(rec.get('light_baseline_bf'), 1),
                 fmt(rec.get('light_avg_bf'), 1),
                 fmt(rec.get('light_peak_bf'), 1),
@@ -1742,24 +1742,26 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ])
         
         table_hra = ax_hra.table(cellText=hra_data, loc='upper center', cellLoc='center',
-                                 colWidths=[0.14, 0.07, 0.07, 0.07, 0.08, 0.07, 0.07, 0.07, 0.07, 0.07, 0.08])
+                                 colWidths=[0.12, 0.07, 0.07, 0.07, 0.08, 0.07, 0.07, 0.07, 0.08, 0.07, 0.08])
         table_hra.auto_set_font_size(False)
         table_hra.set_fontsize(7)
-        table_hra.scale(1.0, 1.2)
+        table_hra.scale(1.0, 1.15)
         
         for (row, col), cell in table_hra.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
+            cell.set_height(0.06)  # Fixed row height
             if row == 0:
                 cell.set_facecolor('#06B6D4')
                 cell.set_text_props(color='white', fontweight='bold', fontsize=6)
+                cell.set_height(0.08)  # Taller header row for wrapped text
             elif row == len(hra_data) - 1:
                 cell.set_facecolor('#E5E7EB')
                 cell.set_text_props(fontweight='bold', fontsize=7)
         
-        # Corrected HRV Section
-        ax_hrv = fig3.add_axes([0.15, 0.05, 0.7, 0.38])
+        # Corrected HRV Section - position below HRA with proper spacing
+        ax_hrv = fig3.add_axes([0.15, 0.08, 0.7, 0.38])
         ax_hrv.axis('off')
-        ax_hrv.text(0.5, 1.0, 'Corrected Light-Induced Heart Rate Variability (HRV)', fontsize=10, fontweight='bold', 
+        ax_hrv.text(0.5, 0.95, 'Corrected Light-Induced Heart Rate Variability (HRV)', fontsize=10, fontweight='bold', 
                    color='#374151', ha='center', transform=ax_hrv.transAxes, va='top')
         
         hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50 corr. (%)']
@@ -1768,7 +1770,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
         for rec in recordings:
             hrv_data.append([
-                rec.get('name', '')[:25],
+                rec.get('name', '')[:20],
                 fmt(rec.get('light_hrv_ln_rmssd70'), 3),
                 fmt(rec.get('light_hrv_ln_sdnn70'), 3),
                 fmt(rec.get('light_hrv_pnn50'), 1),
@@ -1782,13 +1784,14 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ])
         
         table_hrv = ax_hrv.table(cellText=hrv_data, loc='upper center', cellLoc='center',
-                                 colWidths=[0.35, 0.2, 0.2, 0.2])
+                                 colWidths=[0.30, 0.22, 0.22, 0.22])
         table_hrv.auto_set_font_size(False)
         table_hrv.set_fontsize(8)
-        table_hrv.scale(1.0, 1.3)
+        table_hrv.scale(1.0, 1.25)
         
         for (row, col), cell in table_hrv.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
+            cell.set_height(0.07)
             if row == 0:
                 cell.set_facecolor('#06B6D4')
                 cell.set_text_props(color='white', fontweight='bold')
