@@ -831,7 +831,7 @@ export default function LightPanel({
                       onClick={onComputeLightResponse}
                       disabled={loading}
                     >
-                      Compute HRA Metrics
+                      Compute Heart Rate Adaptation
                     </Button>
                   </>
                 )}
