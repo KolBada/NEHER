@@ -915,7 +915,7 @@ async def export_xlsx(request: ExportRequest):
                     if trans_name:
                         trans_parts.append(trans_name)
                     if trans_amount:
-                        trans_parts.append(trans_amount)
+                        trans_parts.append(f"{trans_amount} µL")
                     if trans_days is not None:
                         trans_parts.append(f"D{trans_days}")
                     
