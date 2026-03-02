@@ -104,6 +104,12 @@ class ExportRequest(BaseModel):
     full_recording_data: Optional[List[dict]] = None
     # Light stim isolated beat-by-beat data
     light_stim_data: Optional[List[dict]] = None
+    # Original ABF filename
+    original_filename: Optional[str] = None
+    # Recording metadata
+    recording_date: Optional[str] = None  # Date of recording
+    organoid_info: Optional[List[dict]] = None  # List of {age: str, cell_type: str}
+    recording_description: Optional[str] = None  # Description/notes
 
 
 # --- Endpoints ---
