@@ -651,7 +651,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
                         bd = datetime.strptime(birth_date, '%Y-%m-%d')
                         rd = datetime.strptime(rec_date, '%Y-%m-%d')
                         age = (rd - bd).days
-                    except:
+                    except (ValueError, TypeError):
                         pass
             
             # Check for transduction/transfection
