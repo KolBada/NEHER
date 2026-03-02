@@ -1521,10 +1521,10 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_facecolor('#374151')
                 cell.set_text_props(color='white', fontweight='bold')
         
-        # Spontaneous Activity Averages
-        ax_spont_avg = fig1.add_axes([0.08, 0.35, 0.4, 0.28])
+        # Spontaneous Activity Averages - position to avoid overlap
+        ax_spont_avg = fig1.add_axes([0.08, 0.32, 0.4, 0.30])
         ax_spont_avg.axis('off')
-        ax_spont_avg.text(0, 1, 'SPONTANEOUS ACTIVITY AVERAGES', fontsize=10, fontweight='bold', 
+        ax_spont_avg.text(0, 0.95, 'SPONTANEOUS AVERAGES', fontsize=10, fontweight='bold', 
                          color='#374151', transform=ax_spont_avg.transAxes, va='top')
         
         spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
