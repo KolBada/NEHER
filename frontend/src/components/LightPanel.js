@@ -963,7 +963,7 @@ export default function LightPanel({
 
           {/* Light Induced HRA (Heart Rate Acceleration) - using BPM */}
           {lightResponse && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
                   Light Induced HRA (Heart Rate Acceleration)
