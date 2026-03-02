@@ -1236,7 +1236,7 @@ export default function LightPanel({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(lightHrv.per_pulse || []).map((p, i) => (
+                      {Array.isArray(lightHrv?.per_pulse) && lightHrv.per_pulse.map((p, i) => (
                         <TableRow 
                           key={i} 
                           className={`border-zinc-800/50 data-row ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
