@@ -611,11 +611,17 @@ export default function FolderComparison({ folder, onBack }) {
                     <tr className="border-b border-zinc-800">
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Recording</th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Date</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">hSpO Info</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">hCO Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                        <InfoTip text="human Spinal Organoids">hSpO</InfoTip> Info
+                      </th>
+                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">
+                        <InfoTip text="human Cardiac Organoids">hCO</InfoTip> Info
+                      </th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
                       <th className="text-left py-2 px-1.5 font-medium text-green-400 bg-green-950/30 whitespace-nowrap">Drug Info</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">Light Stim Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                        <InfoTip text="Inter-Stimuli Interval">Light Stim</InfoTip> Info
+                      </th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
                     </tr>
                   </thead>
