@@ -1121,27 +1121,60 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
             ws_summary.cell(row=row_idx, column=col).border = thin_border
             ws_summary.cell(row=row_idx, column=col).alignment = Alignment(horizontal='center' if col > 1 else 'left')
     
-    # Section: Light Metrics Averages
-    ws_summary['A20'] = 'FOLDER AVERAGES - LIGHT STIMULATION'
+    # Section: Light Metrics Averages (ALL metrics)
+    ws_summary['A20'] = 'FOLDER AVERAGES - LIGHT STIMULUS'
     ws_summary['A20'].font = section_font
     ws_summary.merge_cells('A20:D20')
     
-    light_headers = ['Metric', 'Value']
-    for col_idx, header in enumerate(light_headers, start=1):
-        cell = ws_summary.cell(row=21, column=col_idx, value=header)
+    # HRA Metrics subsection
+    ws_summary['A21'] = 'Heart Rate Adaptation (HRA)'
+    ws_summary['A21'].font = Font(bold=True, size=9, italic=True)
+    ws_summary.merge_cells('A21:D21')
+    
+    hra_headers_sum = ['Metric', 'Value']
+    for col_idx, header in enumerate(hra_headers_sum, start=1):
+        cell = ws_summary.cell(row=22, column=col_idx, value=header)
         cell.font = header_font
         cell.fill = header_fill_light
         cell.border = thin_border
     
-    light_avg_data = [
+    hra_avg_data = [
+        ('Baseline BF (bpm)', format_value(hra_averages.get('light_baseline_bf'), 1)),
         ('Avg BF (bpm)', format_value(hra_averages.get('light_avg_bf'), 1)),
         ('Peak BF (bpm)', format_value(hra_averages.get('light_peak_bf'), 1)),
         ('Normalized Peak (%)', format_value(hra_averages.get('light_peak_norm'), 1)),
-        ('ln(RMSSD70) corr.', format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)),
-        ('ln(SDNN70) corr.', format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)),
+        ('Time to Peak 1st (s)', format_value(hra_averages.get('light_ttp_first'), 1)),
+        ('Time to Peak Avg (s)', format_value(hra_averages.get('light_ttp_avg'), 1)),
+        ('Recovery BF (bpm)', format_value(hra_averages.get('light_recovery_bf'), 1)),
+        ('Recovery (%)', format_value(hra_averages.get('light_recovery_pct'), 1)),
+        ('Amplitude (bpm)', format_value(hra_averages.get('light_amplitude'), 1)),
+        ('Rate of Change', format_value(hra_averages.get('light_roc'), 4)),
     ]
     
-    for row_idx, (metric, val) in enumerate(light_avg_data, start=22):
+    for row_idx, (metric, val) in enumerate(hra_avg_data, start=23):
+        ws_summary.cell(row=row_idx, column=1, value=metric).font = label_font
+        ws_summary.cell(row=row_idx, column=2, value=val).font = value_font
+        for col in range(1, 3):
+            ws_summary.cell(row=row_idx, column=col).border = thin_border
+    
+    # Corrected HRV Metrics subsection
+    hrv_start = 23 + len(hra_avg_data) + 1
+    ws_summary.cell(row=hrv_start, column=1, value='Corrected HRV').font = Font(bold=True, size=9, italic=True)
+    ws_summary.merge_cells(f'A{hrv_start}:D{hrv_start}')
+    
+    for col_idx, header in enumerate(hra_headers_sum, start=1):
+        cell = ws_summary.cell(row=hrv_start + 1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill_light
+        cell.border = thin_border
+    
+    hrv_avg_data = [
+        ('ln(RMSSD70) corr.', format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)),
+        ('ln(SDNN70) corr.', format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)),
+        ('pNN50 corr. (%)', format_value(hrv_averages.get('light_hrv_pnn50'), 1)),
+    ]
+    
+    for row_idx, (metric, val) in enumerate(hrv_avg_data, start=hrv_start + 2):
         ws_summary.cell(row=row_idx, column=1, value=metric).font = label_font
         ws_summary.cell(row=row_idx, column=2, value=val).font = value_font
         for col in range(1, 3):
