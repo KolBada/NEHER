@@ -10,29 +10,42 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented (Mar 2026)
 
-### Folder Comparison System (FIXED - Mar 2, 2026)
+### Folder Comparison System (UPDATED - Mar 2, 2026)
 - [x] **Comparison View**: Accessible via "Comparison" button in folder view
-- [x] **Summary Cards**: Recording count, hSpO/hCO age ranges, Light Stim count
+- [x] **Summary Cards**: 
+  - Recordings count
+  - hSpOs Age Range (renamed from hSpO)
+  - hCOs Age Range (renamed from hCO)
+  - Fusion Age Range (replaced Light Stim count)
 - [x] **Spontaneous Activity Table**: Baseline (amber) and Drug (purple) columns - WORKING
-- [x] **Light Heart Rate Adaptation Table**: All heart rate adaptation metrics - FIXED (was empty)
+- [x] **Light Heart Rate Adaptation Table**: All heart rate adaptation metrics - FIXED
 - [x] **Corrected Light HRV Table**: Detrended HRV metrics - WORKING
 - [x] **Metadata Table**: Recording info, cell type, line, condition, drug, protocol
   - [x] Renamed "Light Stim" to "Light Stim Info"
   - [x] Shows "No drug" when drug analysis not computed
   - [x] Shows "No Light Stim" when light stim not activated
 - [x] **Folder Averages**: Computed per table, ignoring missing values
-- [x] **Excel Export**: 5 sheets (Summary, Spontaneous, Light HRA, Light HRV, Metadata)
-- [x] **PDF Export**: Multi-page with all tables
+- [x] **Excel Export**: 
+  - 5 sheets (Folder Summary, Spontaneous Activity, Light HRA, Corrected Light HRV, Recording Metadata)
+  - **Prettier Summary Sheet** with sections: OVERVIEW, AGE RANGES, FOLDER AVERAGES - SPONTANEOUS ACTIVITY, FOLDER AVERAGES - LIGHT STIMULATION
+  - Uses dashes (—) for empty drug/light stim cells in metadata
+- [x] **PDF Export**: 
+  - Multi-page with all tables
+  - **Prettier Summary Page** with title bar, overview section, age ranges table, spontaneous averages, light averages
+  - Updated Metadata table with Drug Info and Light Stim Info columns using dashes for empty values
+  - Color-coded column headers (amber for hSpO, purple for hCO, green for Drug, cyan for Light)
 
 ### Terminology Update (Mar 2, 2026)
 - [x] **"HRA" renamed to "Heart Rate Adaptation"** throughout the app
   - Comparison tab: "Light Heart Rate Adaptation"
   - LightPanel: Button, title, tooltip
   - Toast messages updated
+  - PDF titles updated
 
 ### Data Extraction Fixes (Mar 2, 2026)
 - [x] **Light HRA data**: Fixed parsing of `lightResponse` object (dict with `mean_metrics`, not list)
 - [x] **Drug readout data**: Fixed key names (`bfReadoutMinute`/`hrvReadoutMinute` instead of `bfMinute`/`hrvMinute`)
+- [x] **Fusion age**: Added calculation from fusionDate and recordingDate
 
 ### Export Enhancements (Mar 2, 2026)
 - [x] **Light Metrics in Summary**: Added Time to Peak 1st, Recovery BF, Recovery %, Amplitude, Rate of Change
