@@ -682,18 +682,21 @@ export default function AnalysisPanel({
                     value={baseline.baseline_bf} 
                     unit="bpm"
                     highlight
+                    tooltip="Beat Frequency (bpm)"
                   />
                   <MetricCard 
                     label="ln(RMSSD₇₀)" 
                     sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
                     value={baseline.baseline_ln_rmssd70}
                     highlight
+                    tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
                   />
                   <MetricCard 
                     label="ln(SDNN₇₀)" 
                     sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
                     value={baseline.baseline_sdnn ? Math.log(baseline.baseline_sdnn) : null}
                     highlight
+                    tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
                   />
                   <MetricCard 
                     label="pNN50₇₀" 
@@ -701,6 +704,7 @@ export default function AnalysisPanel({
                     value={baseline.baseline_pnn50} 
                     unit="%"
                     highlight
+                    tooltip="% of successive NN > 50ms (normalized to 70 bpm)"
                   />
                 </div>
               </div>
