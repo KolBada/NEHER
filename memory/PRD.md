@@ -148,28 +148,44 @@ Aggregate:
 - [x] Zoom In/Out/Reset buttons on charts
 - [x] Threshold visible as dashed amber line
 
-### Export Features (Updated Feb 28, 2026)
+### Export Features (Updated Mar 2, 2026)
 
-#### Summary Sheet Structure
-1. **Baseline Metrics** section:
-   - Mean BF (1-2 min)
-   - ln(RMSSD₇₀) (0-3 min)
-   - ln(SDNN₇₀) (0-3 min)
-   - pNN50₇₀ (0-3 min)
-   - Time window shown in parentheses next to each metric
+#### Summary Sheet Structure (Excel & PDF)
+Both Excel summary sheet and PDF summary page now include:
 
-2. **Drug Metrics** section (when drug selected):
-   - Same 4 metrics as Baseline
-   - Drug-specific time windows displayed
-   - Purple highlight for visual distinction
-
-3. **Analysis Summary** section:
-   - Recording Name, Drug(s) Used
-   - Total/Kept/Removed Beats, Filter Range
+1. **Analysis Summary** section:
+   - Original File, Total/Kept/Removed Beats, Filter Range
+   - Perfusion parameters (if drug selected)
    - Light Stimulation status
-   - **Removed:** intermediate calculations between Filter Range and Light Stimulation
 
-No raw RMSSD/SDNN, no duplicates.
+2. **Organoid/Cell Information** section:
+   - Recording Date, Sample details (Type, Line, Passage, Age)
+   - Transfection info, Fusion Date, Description
+
+3. **Baseline Metrics** section:
+   - Mean BF (bpm) with time range
+   - ln(RMSSD₇₀), ln(SDNN₇₀), pNN50₇₀ with time range
+   - Yellow highlight for visual distinction
+
+4. **Drug Metrics** section:
+   - Same 4 metrics as Baseline with drug-specific time windows
+   - Purple highlight for visual distinction
+   - Shows "Disabled" if no drug analysis configured
+
+5. **Light Metrics (Readout)** section:
+   - HRA metrics: Avg BF, Peak BF, Normalized Peak, Time to Peak (mean of 5 stims)
+   - HRV metrics: ln(RMSSD₇₀), ln(SDNN₇₀), pNN50₇₀ (median of 5 stims)
+   - Amber highlight for visual distinction
+   - Shows "Disabled" if no light stimulation analysis
+
+#### PDF Layout (Cell Magazine Style)
+- Two-column layout for better readability
+- Left column: Analysis Summary + Organoid/Cell Info
+- Right column: Baseline Metrics + Drug Metrics + Light Metrics
+- Color-coded sections with professional formatting
+
+#### UI Changes (Mar 2, 2026)
+- "Available Data" section text changed from "Computed"/"Not Computed" to "Available"/"Not Available"
 
 #### Sheet Names
 - "BF Analysis" (renamed from Per-Minute Analysis)
