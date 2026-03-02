@@ -1360,7 +1360,7 @@ export default function LightPanel({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {lightHrvDetrended.per_pulse.map((p, i) => (
+                          {(lightHrvDetrended.per_pulse || []).map((p, i) => (
                             <TableRow 
                               key={i} 
                               className={`border-zinc-800/50 data-row ${expandedStim === i ? 'bg-emerald-950/20' : ''}`}
