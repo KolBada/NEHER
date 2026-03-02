@@ -475,6 +475,118 @@ async def move_recording_endpoint(recording_id: str, request: storage.RecordingM
     return recording
 
 
+@api_router.post("/recordings/batch-update")
+async def batch_update_recordings():
+    """
+    Check all recordings for outdated metrics and recompute them.
+    Only recomputes sections that were already computed in each recording.
+    Returns list of updated recording names.
+    """
+    import logging
+    
+    outdated = await storage.get_outdated_recordings(db)
+    updated_recordings = []
+    
+    for rec in outdated:
+        try:
+            state = rec["analysis_state"]
+            recording_name = rec["name"]
+            updated_sections = []
+            
+            # Get the required data for recomputation
+            metrics = state.get("metrics")
+            if not metrics:
+                continue  # Can't recompute without base metrics
+            
+            beat_times_min = metrics.get("filtered_beat_times_min", [])
+            bf_filtered = metrics.get("filtered_bf_bpm", [])
+            
+            if not beat_times_min or not bf_filtered:
+                continue  # Can't recompute without beat data
+            
+            # Check and recompute HRV results (Spontaneous Activity)
+            if state.get("hrvResults"):
+                try:
+                    hrv_windows = analysis.compute_rolling_hrv(beat_times_min, bf_filtered)
+                    baseline = None
+                    if hrv_windows:
+                        baseline = analysis.compute_baseline_metrics(
+                            beat_times_min, bf_filtered, 
+                            hrv_windows=hrv_windows, hrv_minute=0, bf_minute=1
+                        )
+                    state["hrvResults"] = {
+                        "windows": hrv_windows,
+                        "baseline": baseline
+                    }
+                    updated_sections.append("HRV")
+                except Exception as e:
+                    logging.warning(f"HRV recomputation failed for {recording_name}: {e}")
+            
+            # Check and recompute Light Response (HRA)
+            if state.get("lightResponse") and state.get("lightPulses"):
+                try:
+                    pulses = state["lightPulses"]
+                    per_stim, mean_metrics, baseline_bf = analysis.compute_light_response_v2(
+                        beat_times_min, bf_filtered, pulses
+                    )
+                    state["lightResponse"] = {
+                        "per_stim": per_stim,
+                        "mean_metrics": mean_metrics,
+                        "baseline_bf": baseline_bf
+                    }
+                    updated_sections.append("Light HRA")
+                except Exception as e:
+                    logging.warning(f"Light HRA recomputation failed for {recording_name}: {e}")
+            
+            # Check and recompute Light HRV
+            if state.get("lightHrv") and state.get("lightPulses"):
+                try:
+                    pulses = state["lightPulses"]
+                    per_pulse, final_metrics = analysis.compute_light_hrv(
+                        beat_times_min, bf_filtered, pulses
+                    )
+                    state["lightHrv"] = {
+                        "per_pulse": per_pulse,
+                        "final": final_metrics
+                    }
+                    updated_sections.append("Light HRV")
+                except Exception as e:
+                    logging.warning(f"Light HRV recomputation failed for {recording_name}: {e}")
+            
+            # Check and recompute Detrended HRV
+            if state.get("lightHrvDetrended") and state.get("lightPulses"):
+                try:
+                    pulses = state["lightPulses"]
+                    loess_frac = state.get("lightParams", {}).get("loessFrac", 0.25)
+                    detrended_results = analysis.compute_light_hrv_detrended(
+                        beat_times_min, bf_filtered, pulses, loess_frac
+                    )
+                    state["lightHrvDetrended"] = detrended_results
+                    updated_sections.append("Detrended HRV")
+                except Exception as e:
+                    logging.warning(f"Detrended HRV recomputation failed for {recording_name}: {e}")
+            
+            # Save updated state if any sections were updated
+            if updated_sections:
+                success = await storage.update_recording_metrics_version(db, rec["id"], state)
+                if success:
+                    updated_recordings.append({
+                        "name": recording_name,
+                        "sections": updated_sections
+                    })
+                    logging.info(f"Updated recording '{recording_name}': {', '.join(updated_sections)}")
+        
+        except Exception as e:
+            logging.error(f"Error updating recording {rec.get('name', 'unknown')}: {e}")
+            continue
+    
+    return {
+        "updated_count": len(updated_recordings),
+        "current_version": storage.METRICS_VERSION,
+        "recordings": updated_recordings
+    }
+
+
 # ==============================================================================
 # EXPORT API
 # ==============================================================================
