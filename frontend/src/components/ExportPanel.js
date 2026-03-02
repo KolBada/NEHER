@@ -174,20 +174,33 @@ export default function ExportPanel({
                     )}
                   </div>
                   
-                  {/* Cell Type */}
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-zinc-500">Cell/Organoid Type</Label>
-                    <Input
-                      placeholder="e.g., Human iPSC-CM Organoid"
-                      value={info.cell_type || ''}
-                      onChange={(e) => handleOrganoidChange(idx, 'cell_type', e.target.value)}
-                      className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
-                    />
+                  {/* Organoid/Cell Type and Passage Number */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-[10px] text-zinc-500">Organoid/Cell Type</Label>
+                      <Input
+                        placeholder="e.g., Human iPSC-CM Organoid"
+                        value={info.cell_type || ''}
+                        onChange={(e) => handleOrganoidChange(idx, 'cell_type', e.target.value)}
+                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-zinc-500">Passage #</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="P#"
+                        value={info.passage_number || ''}
+                        onChange={(e) => handleOrganoidChange(idx, 'passage_number', e.target.value)}
+                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                      />
+                    </div>
                   </div>
                   
-                  {/* Birth/Creation Date */}
+                  {/* Differentiation Date */}
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-zinc-500">Birth/Creation Date</Label>
+                    <Label className="text-[10px] text-zinc-500">Differentiation Date</Label>
                     <Input
                       type="date"
                       value={info.birth_date || ''}
