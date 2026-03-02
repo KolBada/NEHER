@@ -924,6 +924,7 @@ async def get_folder_comparison(folder_id: str):
     # Compute age ranges
     hspo_ages = [r['hspo_age'] for r in recordings_data if r.get('hspo_age') is not None]
     hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
+    fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
     
     # Compute averages for spontaneous activity
     spontaneous_metrics = [
@@ -950,6 +951,7 @@ async def get_folder_comparison(folder_id: str):
             "recording_count": len(recordings_data),
             "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
             "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
         },
         "recordings": recordings_data,
         "spontaneous_averages": spontaneous_averages,
