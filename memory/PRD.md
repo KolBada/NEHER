@@ -249,6 +249,16 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Issue: Original condition `if BF_base_j and BF_end_j` used truthy checks that failed in edge cases
   - Fix: Changed to explicit None checks `if BF_base_j is not None and BF_end_j is not None`
   - File: `/app/backend/analysis.py` line ~601-604
+- [x] **UI Spacing in Light Stimulus Panel (Mar 2026):**
+  - Added spacing between HRA and HRV sections for better readability
+  - HRV and Corrected HRV sections grouped together (no extra spacing)
+- [x] **Auto-Update Saved Recordings (Mar 2026):**
+  - Automatic recomputation of metrics when analysis algorithms change
+  - Tracked via `METRICS_VERSION` in `/app/backend/storage.py`
+  - Only recomputes sections that were previously computed in each recording
+  - Runs automatically when app loads (on HomeBrowser mount)
+  - Shows toast notification listing updated recordings
+  - API endpoint: `POST /api/recordings/batch-update`
 
 ### P1 - In Progress
 - [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
