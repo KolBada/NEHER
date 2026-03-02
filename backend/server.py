@@ -1549,19 +1549,28 @@ async def export_pdf(request: ExportRequest):
             )
             table_left.auto_set_font_size(False)
             table_left.set_fontsize(6.5)
-            table_left.scale(1.0, 1.25)
+            table_left.scale(1.0, 1.2)
             
+            # Calculate cell heights based on number of lines
+            base_height = 0.025  # Base height for single line
             for (row, col), cell in table_left.get_celld().items():
                 cell.set_edgecolor('#e0e0e0')
                 text = cell.get_text().get_text()
+                
+                # Calculate height based on number of lines
+                num_lines = text.count('\n') + 1 if text else 1
+                cell_height = base_height * max(num_lines, 1)
+                
                 if text in ['ANALYSIS', 'SAMPLE INFO']:
                     cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=7)
                     cell.set_facecolor('#f0f0f0')
+                    cell.set_height(base_height)
                 elif text == '':
                     cell.set_facecolor('white')
                     cell.set_height(0.01)
                 else:
                     cell.set_facecolor('white')
+                    cell.set_height(cell_height)
                     if col == 0:
                         cell.set_text_props(color='#6b7280', fontsize=6.5)
                     else:
