@@ -1055,7 +1055,7 @@ export default function LightPanel({
                 )}
 
                 <Separator className="bg-zinc-800 my-3" />
-                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation HRA</p>
+                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation Heart Rate Adaptation</p>
                 
                 <ScrollArea className="max-h-[250px]">
                   <Table>
