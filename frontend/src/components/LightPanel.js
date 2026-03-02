@@ -871,7 +871,7 @@ export default function LightPanel({
                     >
                       <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
                       <p className="text-[10px] font-data text-yellow-400">
-                        {formatTimeMinSec(p.start_min)} - {formatTimeMinSec(p.end_min)}
+                        {formatTimeConfig(p.start_min)} - {formatTimeConfig(p.end_min)} min
                       </p>
                     </div>
                   ))}
