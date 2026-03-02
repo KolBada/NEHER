@@ -1220,8 +1220,15 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     
     auto_width(ws_spont)
     
-    # Sheet 3: Light HRA Comparison
-    ws_hra = wb.create_sheet("Light HRA")
+    # Sheet 3: Light Stimulus (Combined HRA and Corrected HRV)
+    ws_light = wb.create_sheet("Light Stimulus")
+    
+    # HRA Section Title
+    ws_light.merge_cells('A1:K1')
+    ws_light['A1'] = 'Light-Induced Heart Rate Adaptation (HRA)'
+    ws_light['A1'].font = Font(bold=True, size=11)
+    ws_light['A1'].fill = header_fill_light
+    ws_light['A1'].alignment = Alignment(horizontal='center')
     
     hra_headers = [
         'Recording', 'Baseline BF (bpm)', 'Avg BF (bpm)', 'Peak BF (bpm)', 
@@ -1230,85 +1237,92 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     ]
     
     for col_idx, header in enumerate(hra_headers, start=1):
-        cell = ws_hra.cell(row=1, column=col_idx, value=header)
+        cell = ws_light.cell(row=2, column=col_idx, value=header)
         cell.font = header_font
         cell.fill = header_fill_light
         cell.border = thin_border
         cell.alignment = Alignment(horizontal='center', wrap_text=True)
     
     hra_averages = data.get('light_hra_averages', {}).get('averages', {})
-    for row_idx, rec in enumerate(recordings, start=2):
-        ws_hra.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
-        ws_hra.cell(row=row_idx, column=2, value=format_value(rec.get('light_baseline_bf'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=3, value=format_value(rec.get('light_avg_bf'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=4, value=format_value(rec.get('light_peak_bf'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=5, value=format_value(rec.get('light_peak_norm'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=6, value=format_value(rec.get('light_ttp_first'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=7, value=format_value(rec.get('light_ttp_avg'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=8, value=format_value(rec.get('light_recovery_bf'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=9, value=format_value(rec.get('light_recovery_pct'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=10, value=format_value(rec.get('light_amplitude'), 1)).font = data_font
-        ws_hra.cell(row=row_idx, column=11, value=format_value(rec.get('light_roc'), 4)).font = data_font
+    for row_idx, rec in enumerate(recordings, start=3):
+        ws_light.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        ws_light.cell(row=row_idx, column=2, value=format_value(rec.get('light_baseline_bf'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=3, value=format_value(rec.get('light_avg_bf'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=4, value=format_value(rec.get('light_peak_bf'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=5, value=format_value(rec.get('light_peak_norm'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=6, value=format_value(rec.get('light_ttp_first'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=7, value=format_value(rec.get('light_ttp_avg'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=8, value=format_value(rec.get('light_recovery_bf'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=9, value=format_value(rec.get('light_recovery_pct'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=10, value=format_value(rec.get('light_amplitude'), 1)).font = data_font
+        ws_light.cell(row=row_idx, column=11, value=format_value(rec.get('light_roc'), 4)).font = data_font
         
         for col in range(1, 12):
-            ws_hra.cell(row=row_idx, column=col).border = thin_border
+            ws_light.cell(row=row_idx, column=col).border = thin_border
     
-    # Average row
-    avg_row = len(recordings) + 2
-    ws_hra.cell(row=avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=2, value=format_value(hra_averages.get('light_baseline_bf'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=3, value=format_value(hra_averages.get('light_avg_bf'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=4, value=format_value(hra_averages.get('light_peak_bf'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=5, value=format_value(hra_averages.get('light_peak_norm'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=6, value=format_value(hra_averages.get('light_ttp_first'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=7, value=format_value(hra_averages.get('light_ttp_avg'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=8, value=format_value(hra_averages.get('light_recovery_bf'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=9, value=format_value(hra_averages.get('light_recovery_pct'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=10, value=format_value(hra_averages.get('light_amplitude'), 1)).font = Font(bold=True, size=9)
-    ws_hra.cell(row=avg_row, column=11, value=format_value(hra_averages.get('light_roc'), 4)).font = Font(bold=True, size=9)
+    # HRA Average row
+    hra_avg_row = len(recordings) + 3
+    ws_light.cell(row=hra_avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=2, value=format_value(hra_averages.get('light_baseline_bf'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=3, value=format_value(hra_averages.get('light_avg_bf'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=4, value=format_value(hra_averages.get('light_peak_bf'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=5, value=format_value(hra_averages.get('light_peak_norm'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=6, value=format_value(hra_averages.get('light_ttp_first'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=7, value=format_value(hra_averages.get('light_ttp_avg'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=8, value=format_value(hra_averages.get('light_recovery_bf'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=9, value=format_value(hra_averages.get('light_recovery_pct'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=10, value=format_value(hra_averages.get('light_amplitude'), 1)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hra_avg_row, column=11, value=format_value(hra_averages.get('light_roc'), 4)).font = Font(bold=True, size=9)
     
     for col in range(1, 12):
-        ws_hra.cell(row=avg_row, column=col).fill = avg_fill
-        ws_hra.cell(row=avg_row, column=col).border = thin_border
+        ws_light.cell(row=hra_avg_row, column=col).fill = avg_fill
+        ws_light.cell(row=hra_avg_row, column=col).border = thin_border
     
-    auto_width(ws_hra)
+    # Spacer row
+    hrv_start_row = hra_avg_row + 2
     
-    # Sheet 4: Corrected Light HRV
-    ws_hrv = wb.create_sheet("Corrected Light HRV")
+    # Corrected HRV Section Title
+    ws_light.merge_cells(f'A{hrv_start_row}:D{hrv_start_row}')
+    ws_light.cell(row=hrv_start_row, column=1, value='Corrected Light-Induced Heart Rate Variability (HRV)').font = Font(bold=True, size=11)
+    ws_light.cell(row=hrv_start_row, column=1).fill = header_fill_light
+    ws_light.cell(row=hrv_start_row, column=1).alignment = Alignment(horizontal='center')
     
     hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50 corr. (%)']
     
     for col_idx, header in enumerate(hrv_headers, start=1):
-        cell = ws_hrv.cell(row=1, column=col_idx, value=header)
+        cell = ws_light.cell(row=hrv_start_row + 1, column=col_idx, value=header)
         cell.font = header_font
         cell.fill = header_fill_light
         cell.border = thin_border
         cell.alignment = Alignment(horizontal='center', wrap_text=True)
     
     hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
-    for row_idx, rec in enumerate(recordings, start=2):
-        ws_hrv.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
-        ws_hrv.cell(row=row_idx, column=2, value=format_value(rec.get('light_hrv_ln_rmssd70'), 3)).font = data_font
-        ws_hrv.cell(row=row_idx, column=3, value=format_value(rec.get('light_hrv_ln_sdnn70'), 3)).font = data_font
-        ws_hrv.cell(row=row_idx, column=4, value=format_value(rec.get('light_hrv_pnn50'), 1)).font = data_font
-        
-        for col in range(1, 5):
-            ws_hrv.cell(row=row_idx, column=col).border = thin_border
+    for row_idx, rec in enumerate(recordings, start=hrv_start_row + 2):
+        actual_rec_idx = row_idx - (hrv_start_row + 2)
+        if actual_rec_idx < len(recordings):
+            rec = recordings[actual_rec_idx]
+            ws_light.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+            ws_light.cell(row=row_idx, column=2, value=format_value(rec.get('light_hrv_ln_rmssd70'), 3)).font = data_font
+            ws_light.cell(row=row_idx, column=3, value=format_value(rec.get('light_hrv_ln_sdnn70'), 3)).font = data_font
+            ws_light.cell(row=row_idx, column=4, value=format_value(rec.get('light_hrv_pnn50'), 1)).font = data_font
+            
+            for col in range(1, 5):
+                ws_light.cell(row=row_idx, column=col).border = thin_border
     
-    # Average row
-    avg_row = len(recordings) + 2
-    ws_hrv.cell(row=avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
-    ws_hrv.cell(row=avg_row, column=2, value=format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)).font = Font(bold=True, size=9)
-    ws_hrv.cell(row=avg_row, column=3, value=format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)).font = Font(bold=True, size=9)
-    ws_hrv.cell(row=avg_row, column=4, value=format_value(hrv_averages.get('light_hrv_pnn50'), 1)).font = Font(bold=True, size=9)
+    # HRV Average row
+    hrv_avg_row = hrv_start_row + 2 + len(recordings)
+    ws_light.cell(row=hrv_avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    ws_light.cell(row=hrv_avg_row, column=2, value=format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hrv_avg_row, column=3, value=format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)).font = Font(bold=True, size=9)
+    ws_light.cell(row=hrv_avg_row, column=4, value=format_value(hrv_averages.get('light_hrv_pnn50'), 1)).font = Font(bold=True, size=9)
     
     for col in range(1, 5):
-        ws_hrv.cell(row=avg_row, column=col).fill = avg_fill
-        ws_hrv.cell(row=avg_row, column=col).border = thin_border
+        ws_light.cell(row=hrv_avg_row, column=col).fill = avg_fill
+        ws_light.cell(row=hrv_avg_row, column=col).border = thin_border
     
-    auto_width(ws_hrv)
+    auto_width(ws_light)
     
-    # Sheet 5: Recording Metadata
+    # Sheet 4: Recording Metadata
     ws_meta = wb.create_sheet("Recording Metadata")
     
     meta_headers = [
