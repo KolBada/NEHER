@@ -1562,7 +1562,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_text_props(color='white', fontweight='bold')
         
         # Light Stimulation Averages - ALL Metrics (split into two sections)
-        ax_light_avg = fig1.add_axes([0.55, 0.12, 0.38, 0.52])
+        ax_light_avg = fig1.add_axes([0.55, 0.08, 0.38, 0.56])
         ax_light_avg.axis('off')
         ax_light_avg.text(0, 1, 'LIGHT STIMULUS AVERAGES', fontsize=10, fontweight='bold', 
                          color='#374151', transform=ax_light_avg.transAxes, va='top')
@@ -1570,8 +1570,8 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         hra_averages = data.get('light_hra_averages', {}).get('averages', {})
         hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
         
-        # HRA Section
-        ax_light_avg.text(0, 0.88, 'Heart Rate Adaptation (HRA)', fontsize=8, fontstyle='italic', 
+        # HRA Section - subtitle well above table
+        ax_light_avg.text(0, 0.92, 'Heart Rate Adaptation (HRA)', fontsize=8, fontstyle='italic', 
                          color='#6B7280', transform=ax_light_avg.transAxes, va='top')
         
         light_hra_text = [
@@ -1587,9 +1587,11 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
             ['Amplitude (bpm)', fmt_val(hra_averages.get('light_amplitude'), 1)],
             ['Rate of Change', fmt_val(hra_averages.get('light_roc'), 4)],
         ]
+        # Table positioned below subtitle: bbox = [left, bottom, width, height]
+        # Top of table = bottom + height = 0.40 + 0.48 = 0.88, subtitle at 0.92
         table_light_hra = ax_light_avg.table(cellText=light_hra_text, loc='upper left', 
                                               cellLoc='center', colWidths=[0.6, 0.4], 
-                                              bbox=[0, 0.35, 1, 0.52])
+                                              bbox=[0, 0.40, 1, 0.48])
         table_light_hra.auto_set_font_size(False)
         table_light_hra.set_fontsize(7)
         for (row, col), cell in table_light_hra.get_celld().items():
@@ -1598,8 +1600,8 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_facecolor('#06B6D4')  # Cyan for light
                 cell.set_text_props(color='white', fontweight='bold')
         
-        # Corrected HRV Section
-        ax_light_avg.text(0, 0.32, 'Corrected HRV', fontsize=8, fontstyle='italic', 
+        # Corrected HRV Section - subtitle well above table
+        ax_light_avg.text(0, 0.36, 'Corrected HRV', fontsize=8, fontstyle='italic', 
                          color='#6B7280', transform=ax_light_avg.transAxes, va='top')
         
         light_hrv_text = [
@@ -1608,6 +1610,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
             ['ln(SDNN70) corr.', fmt_val(hrv_averages.get('light_hrv_ln_sdnn70'), 3)],
             ['pNN50 corr. (%)', fmt_val(hrv_averages.get('light_hrv_pnn50'), 1)],
         ]
+        # Top of table = 0.05 + 0.26 = 0.31, subtitle at 0.36
         table_light_hrv = ax_light_avg.table(cellText=light_hrv_text, loc='upper left', 
                                               cellLoc='center', colWidths=[0.6, 0.4], 
                                               bbox=[0, 0.05, 1, 0.26])
