@@ -369,7 +369,7 @@ export default function TraceViewer({
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={420}>
+      <ResponsiveContainer width="100%" height={455}>
         <ComposedChart
           data={visibleData}
           onClick={handleChartClick}
@@ -382,7 +382,7 @@ export default function TraceViewer({
             domain={xDomain}
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
             tickFormatter={(v) => v.toFixed(1)}
-            label={{ value: 'Time (min)', fill: '#52525b', fontSize: 10, position: 'insideBottomRight', offset: -5 }}
+            label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
             allowDataOverflow
           />
           <YAxis
@@ -446,6 +446,15 @@ export default function TraceViewer({
             dot={<CustomDot />}
             isAnimationActive={false}
             activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : false}
+          />
+          {/* Timeline brush/slider */}
+          <Brush
+            dataKey="time"
+            height={25}
+            stroke="#3f3f46"
+            fill="#0c0c0e"
+            tickFormatter={(v) => v.toFixed(1)}
+            onChange={handleBrushChange}
           />
         </ComposedChart>
       </ResponsiveContainer>
