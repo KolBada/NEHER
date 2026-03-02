@@ -1602,10 +1602,10 @@ async def export_pdf(request: ExportRequest):
         
         # Light Metrics
         right_rows.append(['', ''])
-        right_rows.append(['LIGHT METRICS (READOUT)', ''])
+        right_rows.append(['LIGHT METRICS', ''])
         
         light_metrics_available = False
-        if request.light_response or request.light_metrics:
+        if request.light_response or request.light_metrics_detrended:
             light_metrics_available = True
             
             # HRA metrics - averages
@@ -1614,25 +1614,26 @@ async def export_pdf(request: ExportRequest):
                 if valid_resp:
                     avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
                     peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
-                    peak_norm = np.mean([r.get('peak_bf_norm', 0) for r in valid_resp if r.get('peak_bf_norm') is not None])
+                    # Use peak_norm_pct (correct field name)
+                    peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
+                    peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                     ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid_resp if r.get('time_to_peak_sec') is not None])
                     
                     right_rows.append(['Avg BF (mean)', f"{avg_bf:.1f} bpm"])
                     right_rows.append(['Peak BF (mean)', f"{peak_bf:.1f} bpm"])
-                    right_rows.append(['Normalized Peak (mean)', f"{peak_norm:.1f}%"])
+                    right_rows.append(['Normalized Peak (mean)', f"{peak_norm:.1f}%" if peak_norm is not None else '—'])
                     right_rows.append(['Time to Peak (mean)', f"{ttp:.1f} s"])
             
-            # HRV metrics - medians
-            if request.light_metrics:
-                valid_hrv = [m for m in request.light_metrics if m is not None]
-                if valid_hrv:
-                    ln_rmssd_vals = [m.get('ln_rmssd70') for m in valid_hrv if m.get('ln_rmssd70') is not None]
-                    ln_sdnn_vals = [m.get('ln_sdnn70') for m in valid_hrv if m.get('ln_sdnn70') is not None]
-                    pnn50_vals = [m.get('pnn50') for m in valid_hrv if m.get('pnn50') is not None]
-                    
-                    right_rows.append(['ln(RMSSD₇₀) (median)', f"{np.median(ln_rmssd_vals):.3f}" if ln_rmssd_vals else '—'])
-                    right_rows.append(['ln(SDNN₇₀) (median)', f"{np.median(ln_sdnn_vals):.3f}" if ln_sdnn_vals else '—'])
-                    right_rows.append(['pNN50₇₀ (median)', f"{np.median(pnn50_vals):.1f}%" if pnn50_vals else '—'])
+            # Corrected HRV metrics (detrended) - use final medians
+            if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
+                final_det = request.light_metrics_detrended.get('final', {})
+                ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
+                ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
+                pnn50_det = final_det.get('pnn50_detrended')
+                
+                right_rows.append(['ln(RMSSD₇₀) corrected', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
+                right_rows.append(['ln(SDNN₇₀) corrected', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
+                right_rows.append(['pNN50₇₀ corrected', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
         
         if not light_metrics_available:
             right_rows.append(['Status', 'Disabled'])
@@ -1651,7 +1652,7 @@ async def export_pdf(request: ExportRequest):
             table_right.scale(1.0, 1.4)
             
             # Style right table with color coding
-            section_headers = ['BASELINE METRICS', 'DRUG METRICS', 'LIGHT METRICS (READOUT)']
+            section_headers = ['BASELINE METRICS', 'DRUG METRICS', 'LIGHT METRICS']
             baseline_color = '#FEF3C7'  # Yellow
             drug_color = '#EDE9FE'  # Purple
             light_color = '#FEF3C7'  # Amber
