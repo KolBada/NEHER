@@ -1445,24 +1445,51 @@ async def export_pdf(request: ExportRequest):
                     summary_rows.append(['Description', request.recording_description])
             
             if summary_rows:
+                # Helper function to wrap long text for PDF table
+                def wrap_text(text, max_chars=45):
+                    """Wrap text to fit in table cell."""
+                    if not text or len(text) <= max_chars:
+                        return text
+                    words = text.split(' ')
+                    lines = []
+                    current_line = ""
+                    for word in words:
+                        if len(current_line) + len(word) + 1 <= max_chars:
+                            current_line = f"{current_line} {word}".strip()
+                        else:
+                            if current_line:
+                                lines.append(current_line)
+                            current_line = word
+                    if current_line:
+                        lines.append(current_line)
+                    return '\n'.join(lines)
+                
+                # Wrap long values in the second column
+                wrapped_rows = []
+                for metric, value in summary_rows:
+                    wrapped_value = wrap_text(str(value)) if value else value
+                    wrapped_rows.append([metric, wrapped_value])
+                
                 table = ax_summary.table(
-                    cellText=summary_rows,
+                    cellText=wrapped_rows,
                     colLabels=['Metric', 'Value'],
                     loc='center',
                     cellLoc='left',
-                    colWidths=[0.55, 0.35]
+                    colWidths=[0.35, 0.55]
                 )
                 table.auto_set_font_size(False)
-                table.set_fontsize(10)
-                table.scale(1.0, 1.8)
+                table.set_fontsize(9)
+                table.scale(1.0, 1.6)
                 
                 # CELL style table formatting
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#e0e0e0')
+                    # Enable text wrapping
+                    cell.set_text_props(wrap=True)
                     if row == 0:
-                        cell.set_text_props(fontweight='bold', color='white')
+                        cell.set_text_props(fontweight='bold', color='white', wrap=True)
                         cell.set_facecolor('#2563eb')
-                        cell.set_height(0.06)
+                        cell.set_height(0.05)
                     else:
                         # Highlight baseline rows (cyan) and drug rows (purple)
                         text = cell.get_text().get_text()
@@ -1472,7 +1499,9 @@ async def export_pdf(request: ExportRequest):
                             cell.set_facecolor('#ede9fe')  # Light purple for drug
                         else:
                             cell.set_facecolor('#ffffff' if row % 2 == 1 else '#f8fafc')
-                        cell.set_height(0.05)
+                        # Increase row height for wrapped text
+                        num_lines = str(cell.get_text().get_text()).count('\n') + 1
+                        cell.set_height(0.04 * num_lines)
 
         # Footer
         fig1.text(0.5, 0.02, 'NeuCarS - Cardiac Electrophysiology Analysis Platform', 
