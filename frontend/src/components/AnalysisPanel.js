@@ -385,7 +385,7 @@ export default function AnalysisPanel({
                   <Minus className="w-3 h-3 text-zinc-500" />
                 </Button>
                 {zoomDomain && (
-                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400 hover:text-zinc-200" onClick={handleResetZoom}>
                     <RotateCcw className="w-3 h-3 mr-1" />Reset
                   </Button>
                 )}
@@ -460,7 +460,7 @@ export default function AnalysisPanel({
                   <Minus className="w-3 h-3 text-zinc-500" />
                 </Button>
                 {zoomDomain && (
-                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400 hover:text-zinc-200" onClick={handleResetZoom}>
                     <RotateCcw className="w-3 h-3 mr-1" />Reset
                   </Button>
                 )}
