@@ -155,7 +155,8 @@ export default function ExportPanel({
             </div>
             {organoidInfo.map((info, idx) => {
               const ageAtRecording = calculateDays(info.birth_date, recordingDate);
-              const daysSinceFusion = calculateDays(info.fusion_date, recordingDate);
+              const transfectionDays = info.transfection?.date ? calculateDays(info.transfection.date, recordingDate) : null;
+              const hasTransfection = expandedTransfection[idx] || info.transfection?.technique;
               
               return (
                 <div key={idx} className="p-3 bg-zinc-900/50 rounded-sm border border-zinc-800 space-y-2">
@@ -184,42 +185,129 @@ export default function ExportPanel({
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Birth/Creation Date */}
-                    <div className="space-y-1">
-                      <Label className="text-[10px] text-zinc-500">Birth/Creation Date</Label>
-                      <Input
-                        type="date"
-                        value={info.birth_date || ''}
-                        onChange={(e) => handleOrganoidChange(idx, 'birth_date', e.target.value)}
-                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
-                      />
-                      {ageAtRecording !== null && (
-                        <p className="text-[10px] text-cyan-400 font-data">
-                          Age at recording: D{ageAtRecording}
-                        </p>
-                      )}
-                    </div>
+                  {/* Birth/Creation Date */}
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-zinc-500">Birth/Creation Date</Label>
+                    <Input
+                      type="date"
+                      value={info.birth_date || ''}
+                      onChange={(e) => handleOrganoidChange(idx, 'birth_date', e.target.value)}
+                      className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                    />
+                    {ageAtRecording !== null && (
+                      <p className="text-[10px] text-cyan-400 font-data">
+                        Age at recording: D{ageAtRecording}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Transfection/Transduction Section */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleTransfection(idx)}
+                      className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-200 w-full justify-between"
+                    >
+                      <span>Transfection/Transduction <span className="text-zinc-600">(optional)</span></span>
+                      {hasTransfection ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </Button>
                     
-                    {/* Fusion Date (Optional) */}
-                    <div className="space-y-1">
-                      <Label className="text-[10px] text-zinc-500">Fusion Date <span className="text-zinc-600">(optional)</span></Label>
-                      <Input
-                        type="date"
-                        value={info.fusion_date || ''}
-                        onChange={(e) => handleOrganoidChange(idx, 'fusion_date', e.target.value)}
-                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
-                      />
-                      {daysSinceFusion !== null && (
-                        <p className="text-[10px] text-emerald-400 font-data">
-                          Days since fusion: {daysSinceFusion}
-                        </p>
-                      )}
-                    </div>
+                    {hasTransfection && (
+                      <div className="pl-2 border-l-2 border-zinc-700 space-y-2">
+                        {/* Technique */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500">Technique</Label>
+                            <Select
+                              value={info.transfection?.technique || ''}
+                              onValueChange={(value) => handleTransfectionChange(idx, 'technique', value)}
+                            >
+                              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8">
+                                <SelectValue placeholder="Select technique" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="electroporation">Electroporation</SelectItem>
+                                <SelectItem value="lipofection">Lipofection</SelectItem>
+                                <SelectItem value="transduction">Transduction</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Other technique input */}
+                          {info.transfection?.technique === 'other' && (
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-zinc-500">Specify Technique</Label>
+                              <Input
+                                placeholder="Enter technique"
+                                value={info.transfection?.other_technique || ''}
+                                onChange={(e) => handleTransfectionChange(idx, 'other_technique', e.target.value)}
+                                className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Name and Amount */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500">Name</Label>
+                            <Input
+                              placeholder="e.g., ChR2-GFP"
+                              value={info.transfection?.name || ''}
+                              onChange={(e) => handleTransfectionChange(idx, 'name', e.target.value)}
+                              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500">Amount</Label>
+                            <Input
+                              placeholder="e.g., 5 µg, MOI 10"
+                              value={info.transfection?.amount || ''}
+                              onChange={(e) => handleTransfectionChange(idx, 'amount', e.target.value)}
+                              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Transfection Date */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-zinc-500">Date of Transfection/Transduction</Label>
+                          <Input
+                            type="date"
+                            value={info.transfection?.date || ''}
+                            onChange={(e) => handleTransfectionChange(idx, 'date', e.target.value)}
+                            className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                          />
+                          {transfectionDays !== null && (
+                            <p className="text-[10px] text-amber-400 font-data">
+                              Days since transfection: {transfectionDays}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
+          </div>
+          
+          {/* Fusion Date - Shared for all samples */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-400">Fusion Date <span className="text-zinc-600">(optional - applies to all samples)</span></Label>
+            <Input
+              type="date"
+              value={fusionDate || ''}
+              onChange={(e) => setFusionDate(e.target.value)}
+              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+            />
+            {fusionDate && recordingDate && (
+              <p className="text-[10px] text-emerald-400 font-data">
+                Days since fusion: {calculateDays(fusionDate, recordingDate)}
+              </p>
+            )}
           </div>
 
           {/* Description */}
