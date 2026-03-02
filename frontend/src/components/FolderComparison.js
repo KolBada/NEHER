@@ -82,6 +82,104 @@ export default function FolderComparison({ folder, onBack }) {
     return val || '—';
   };
 
+  // Compute cohort baseline averages for normalization
+  const cohortBaselines = useMemo(() => {
+    if (!comparisonData?.recordings) return null;
+    const recs = comparisonData.recordings;
+    
+    // Helper to compute mean ignoring null/undefined
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      avg_baseline_bf: mean(recs.map(r => r.baseline_bf)),
+      avg_baseline_ln_rmssd: mean(recs.map(r => r.baseline_ln_rmssd70)),
+      avg_baseline_ln_sdnn: mean(recs.map(r => r.baseline_ln_sdnn70)),
+      avg_baseline_pnn50: mean(recs.map(r => r.baseline_pnn50)),
+    };
+  }, [comparisonData]);
+
+  // Compute normalized spontaneous activity values
+  const normalizedSpontaneous = useMemo(() => {
+    if (!comparisonData?.recordings || !cohortBaselines) return [];
+    const recs = comparisonData.recordings;
+    const cb = cohortBaselines;
+    
+    // Normalize helper: 100 * value / baseline_avg
+    const normalize = (val, baseAvg) => {
+      if (val === null || val === undefined || baseAvg === null || baseAvg === 0) return null;
+      return 100 * val / baseAvg;
+    };
+    
+    return recs.map(rec => ({
+      name: rec.name,
+      norm_baseline_bf: normalize(rec.baseline_bf, cb.avg_baseline_bf),
+      norm_baseline_ln_rmssd: normalize(rec.baseline_ln_rmssd70, cb.avg_baseline_ln_rmssd),
+      norm_baseline_ln_sdnn: normalize(rec.baseline_ln_sdnn70, cb.avg_baseline_ln_sdnn),
+      norm_baseline_pnn50: normalize(rec.baseline_pnn50, cb.avg_baseline_pnn50),
+      norm_drug_bf: normalize(rec.drug_bf, cb.avg_baseline_bf),
+      norm_drug_ln_rmssd: normalize(rec.drug_ln_rmssd70, cb.avg_baseline_ln_rmssd),
+      norm_drug_ln_sdnn: normalize(rec.drug_ln_sdnn70, cb.avg_baseline_ln_sdnn),
+      norm_drug_pnn50: normalize(rec.drug_pnn50, cb.avg_baseline_pnn50),
+    }));
+  }, [comparisonData, cohortBaselines]);
+
+  // Compute normalized spontaneous folder averages
+  const normalizedSpontAverages = useMemo(() => {
+    if (!normalizedSpontaneous.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    return {
+      norm_baseline_bf: mean(normalizedSpontaneous.map(r => r.norm_baseline_bf)),
+      norm_baseline_ln_rmssd: mean(normalizedSpontaneous.map(r => r.norm_baseline_ln_rmssd)),
+      norm_baseline_ln_sdnn: mean(normalizedSpontaneous.map(r => r.norm_baseline_ln_sdnn)),
+      norm_baseline_pnn50: mean(normalizedSpontaneous.map(r => r.norm_baseline_pnn50)),
+      norm_drug_bf: mean(normalizedSpontaneous.map(r => r.norm_drug_bf)),
+      norm_drug_ln_rmssd: mean(normalizedSpontaneous.map(r => r.norm_drug_ln_rmssd)),
+      norm_drug_ln_sdnn: mean(normalizedSpontaneous.map(r => r.norm_drug_ln_sdnn)),
+      norm_drug_pnn50: mean(normalizedSpontaneous.map(r => r.norm_drug_pnn50)),
+    };
+  }, [normalizedSpontaneous]);
+
+  // Compute normalized light HRA values (using same cohort baseline BF)
+  const normalizedLightHRA = useMemo(() => {
+    if (!comparisonData?.recordings || !cohortBaselines) return [];
+    const recs = comparisonData.recordings;
+    const avgBF = cohortBaselines.avg_baseline_bf;
+    
+    const normalize = (val) => {
+      if (val === null || val === undefined || avgBF === null || avgBF === 0) return null;
+      return 100 * val / avgBF;
+    };
+    
+    return recs.map(rec => ({
+      name: rec.name,
+      norm_baseline_bf: normalize(rec.light_baseline_bf),
+      norm_avg_bf: normalize(rec.light_avg_bf),
+      norm_peak_bf: normalize(rec.light_peak_bf),
+      norm_recovery_bf: normalize(rec.light_recovery_bf),
+    }));
+  }, [comparisonData, cohortBaselines]);
+
+  // Compute normalized light HRA folder averages
+  const normalizedLightHRAAverages = useMemo(() => {
+    if (!normalizedLightHRA.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    return {
+      norm_baseline_bf: mean(normalizedLightHRA.map(r => r.norm_baseline_bf)),
+      norm_avg_bf: mean(normalizedLightHRA.map(r => r.norm_avg_bf)),
+      norm_peak_bf: mean(normalizedLightHRA.map(r => r.norm_peak_bf)),
+      norm_recovery_bf: mean(normalizedLightHRA.map(r => r.norm_recovery_bf)),
+    };
+  }, [normalizedLightHRA]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
