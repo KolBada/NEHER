@@ -274,9 +274,9 @@ export default function ExportPanel({
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-zinc-500">Amount</Label>
+                            <Label className="text-[10px] text-zinc-500">Amount (µL)</Label>
                             <Input
-                              placeholder="e.g., 5 µg, MOI 10"
+                              placeholder="e.g., 5"
                               value={info.transfection?.amount || ''}
                               onChange={(e) => handleTransfectionChange(idx, 'amount', e.target.value)}
                               className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
