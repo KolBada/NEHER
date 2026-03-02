@@ -877,21 +877,35 @@ async def export_xlsx(request: ExportRequest):
         if request.organoid_info:
             for idx, info in enumerate(request.organoid_info, 1):
                 cell_type = info.get('cell_type', '')
+                other_cell_type = info.get('other_cell_type', '')
+                line_name = info.get('line_name', '')
                 passage_number = info.get('passage_number')
                 age_at_recording = info.get('age_at_recording')
                 transfection = info.get('transfection')
                 
+                # Resolve cell type display name
+                cell_type_display = ''
+                if cell_type == 'hSpO':
+                    cell_type_display = 'hSpO'
+                elif cell_type == 'hCO':
+                    cell_type_display = 'hCO'
+                elif cell_type == 'other' and other_cell_type:
+                    cell_type_display = other_cell_type
+                elif cell_type and cell_type not in ['hSpO', 'hCO', 'other']:
+                    cell_type_display = cell_type  # Legacy support
+                
                 label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
                 
-                # Build value string with passage and calculated ages
+                # Build value string: Type - Line - P# - Age
                 parts = []
-                if cell_type:
-                    if passage_number:
-                        parts.append(f"{cell_type} (P{passage_number})")
-                    else:
-                        parts.append(cell_type)
+                if cell_type_display:
+                    parts.append(cell_type_display)
+                if line_name:
+                    parts.append(line_name)
+                if passage_number:
+                    parts.append(f"P{passage_number}")
                 if age_at_recording is not None:
-                    parts.append(f"Age: D{age_at_recording}")
+                    parts.append(f"D{age_at_recording}")
                 
                 value = ' - '.join(parts) if parts else '—'
                 
