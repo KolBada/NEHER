@@ -7,6 +7,10 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from bson import ObjectId
 
+# ==============================================================================
+# Metrics Version - Bump this when analysis algorithms change
+# ==============================================================================
+METRICS_VERSION = 2  # Increment when metrics calculations are modified
 
 # ==============================================================================
 # Pydantic Models for API
