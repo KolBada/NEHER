@@ -786,8 +786,8 @@ def extract_comparison_metrics(recording: dict) -> dict:
                'light_amplitude', 'light_roc']:
         result[key] = None
     
-    if light_response:
-        valid_resp = [r for r in light_response if r is not None]
+    if light_response and isinstance(light_response, list):
+        valid_resp = [r for r in light_response if r is not None and isinstance(r, dict)]
         if valid_resp:
             # Avg Baseline BF (pre-light) - from baseline
             result['light_baseline_bf'] = baseline.get('baseline_bf')
