@@ -1411,22 +1411,38 @@ async def export_pdf(request: ExportRequest):
         
         # Helper function to wrap long text for PDF table
         def wrap_text(text, max_chars=40):
-            """Wrap text to fit in table cell."""
+            """Wrap text to fit in table cell, breaking on spaces and dashes."""
             if not text or len(str(text)) <= max_chars:
                 return str(text) if text else ''
-            words = str(text).split(' ')
-            lines = []
-            current_line = ""
-            for word in words:
-                if len(current_line) + len(word) + 1 <= max_chars:
-                    current_line = f"{current_line} {word}".strip()
-                else:
-                    if current_line:
-                        lines.append(current_line)
-                    current_line = word
-            if current_line:
-                lines.append(current_line)
-            return '\n'.join(lines)
+            text = str(text)
+            # Replace dashes with dash+space for better breaking
+            text = text.replace(' - ', '\n')
+            # If still too long, do word-based wrapping
+            if len(text) > max_chars and '\n' not in text:
+                words = text.split(' ')
+                lines = []
+                current_line = ""
+                for word in words:
+                    # If single word is too long, break it
+                    if len(word) > max_chars:
+                        if current_line:
+                            lines.append(current_line)
+                            current_line = ""
+                        # Break long word at max_chars
+                        while len(word) > max_chars:
+                            lines.append(word[:max_chars-1] + '-')
+                            word = word[max_chars-1:]
+                        current_line = word
+                    elif len(current_line) + len(word) + 1 <= max_chars:
+                        current_line = f"{current_line} {word}".strip()
+                    else:
+                        if current_line:
+                            lines.append(current_line)
+                        current_line = word
+                if current_line:
+                    lines.append(current_line)
+                return '\n'.join(lines)
+            return text
         
         # LEFT COLUMN: Analysis Summary + Organoid/Cell Info
         ax_left = fig1.add_axes([0.05, 0.12, 0.42, 0.7])
