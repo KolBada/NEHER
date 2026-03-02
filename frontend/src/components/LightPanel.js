@@ -268,6 +268,9 @@ export default function LightPanel({
   // State for interactive chart editing
   const [editMode, setEditMode] = useState(null); // null | 'start' | 'end'
   const chartContainerRef = useRef(null);
+  
+  // Zoom state for the light chart
+  const [zoomDomain, setZoomDomain] = useState(null);
 
   // Sync local pulses with prop
   useMemo(() => {
