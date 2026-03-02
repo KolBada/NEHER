@@ -1457,7 +1457,7 @@ async def export_pdf(request: ExportRequest):
         # Organoid/Cell Info section
         if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:
             left_rows.append(['', ''])
-            left_rows.append(['ORGANOID/CELL INFO', ''])
+            left_rows.append(['SAMPLE INFO', ''])  # Shortened title
             
             if request.recording_date:
                 left_rows.append(['Recording Date', request.recording_date])
