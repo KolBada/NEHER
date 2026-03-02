@@ -856,7 +856,7 @@ async def export_xlsx(request: ExportRequest):
         current_row += 1
     
     # Organoid/Cell Information section
-    if request.recording_date or request.organoid_info or request.recording_description:
+    if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:
         ws_summary[f'A{current_row}'] = 'Organoid/Cell Information'
         ws_summary[f'A{current_row}'].font = subtitle_font
         current_row += 1
@@ -878,7 +878,7 @@ async def export_xlsx(request: ExportRequest):
             for idx, info in enumerate(request.organoid_info, 1):
                 cell_type = info.get('cell_type', '')
                 age_at_recording = info.get('age_at_recording')
-                days_since_fusion = info.get('days_since_fusion')
+                transfection = info.get('transfection')
                 
                 label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
                 
@@ -888,8 +888,6 @@ async def export_xlsx(request: ExportRequest):
                     parts.append(cell_type)
                 if age_at_recording is not None:
                     parts.append(f"Age: D{age_at_recording}")
-                if days_since_fusion is not None:
-                    parts.append(f"Fusion: D{days_since_fusion}")
                 
                 value = ' - '.join(parts) if parts else '—'
                 
@@ -899,6 +897,43 @@ async def export_xlsx(request: ExportRequest):
                     ws_summary[f'{col}{current_row}'].font = data_font
                     ws_summary[f'{col}{current_row}'].border = thin_border
                 current_row += 1
+                
+                # Add transfection info if present
+                if transfection and transfection.get('technique'):
+                    technique = transfection.get('technique', '')
+                    if technique == 'other':
+                        technique = transfection.get('other_technique', 'Other')
+                    trans_name = transfection.get('name', '')
+                    trans_amount = transfection.get('amount', '')
+                    trans_days = transfection.get('days_since_transfection')
+                    
+                    trans_parts = [technique.capitalize()]
+                    if trans_name:
+                        trans_parts.append(trans_name)
+                    if trans_amount:
+                        trans_parts.append(trans_amount)
+                    if trans_days is not None:
+                        trans_parts.append(f"D{trans_days}")
+                    
+                    trans_label = f'  └ Transfection' if len(request.organoid_info) > 1 else 'Transfection'
+                    ws_summary[f'A{current_row}'] = trans_label
+                    ws_summary[f'B{current_row}'] = ' - '.join(trans_parts)
+                    for col in ['A', 'B']:
+                        ws_summary[f'{col}{current_row}'].font = data_font
+                        ws_summary[f'{col}{current_row}'].border = thin_border
+                    current_row += 1
+        
+        # Fusion date (shared for all samples)
+        if request.fusion_date or request.days_since_fusion is not None:
+            fusion_value = request.fusion_date or ''
+            if request.days_since_fusion is not None:
+                fusion_value = f"{fusion_value} (D{request.days_since_fusion})" if fusion_value else f"D{request.days_since_fusion}"
+            ws_summary[f'A{current_row}'] = 'Fusion Date'
+            ws_summary[f'B{current_row}'] = fusion_value
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            current_row += 1
         
         if request.recording_description:
             ws_summary[f'A{current_row}'] = 'Description'
