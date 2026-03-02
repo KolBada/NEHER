@@ -778,7 +778,8 @@ def extract_comparison_metrics(recording: dict) -> dict:
                     break
     
     # Light HRA metrics - frontend uses camelCase
-    light_response = state.get('lightResponse') or state.get('light_response', [])
+    # lightResponse is a dict: {per_stim: [...], mean_metrics: {...}, baseline_bf: number}
+    light_response = state.get('lightResponse') or state.get('light_response')
     
     # Initialize light metrics
     for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
@@ -786,40 +787,58 @@ def extract_comparison_metrics(recording: dict) -> dict:
                'light_amplitude', 'light_roc']:
         result[key] = None
     
-    if light_response and isinstance(light_response, list):
-        valid_resp = [r for r in light_response if r is not None and isinstance(r, dict)]
-        if valid_resp:
-            # Avg Baseline BF (pre-light) - from baseline
-            result['light_baseline_bf'] = baseline.get('baseline_bf')
+    if light_response and isinstance(light_response, dict):
+        # Use mean_metrics if available (pre-computed averages)
+        mean_metrics = light_response.get('mean_metrics', {})
+        per_stim = light_response.get('per_stim', [])
+        
+        if mean_metrics:
+            # Use baseline from lightResponse or fallback to hrvResults baseline
+            result['light_baseline_bf'] = light_response.get('baseline_bf') or baseline.get('baseline_bf')
             
-            # Compute means across all stims
-            avg_bf_vals = [r.get('avg_bf') for r in valid_resp if r.get('avg_bf') is not None]
-            result['light_avg_bf'] = np.mean(avg_bf_vals) if avg_bf_vals else None
+            # Direct extraction from mean_metrics
+            result['light_avg_bf'] = mean_metrics.get('avg_bf')
+            result['light_peak_bf'] = mean_metrics.get('peak_bf')
+            result['light_peak_norm'] = mean_metrics.get('peak_norm_pct')
+            result['light_ttp_avg'] = mean_metrics.get('time_to_peak_sec')
+            result['light_recovery_bf'] = mean_metrics.get('bf_end')
+            result['light_recovery_pct'] = mean_metrics.get('bf_end_pct')
+            result['light_amplitude'] = mean_metrics.get('amplitude')
+            result['light_roc'] = mean_metrics.get('rate_of_change')
             
-            peak_bf_vals = [r.get('peak_bf') for r in valid_resp if r.get('peak_bf') is not None]
-            result['light_peak_bf'] = np.mean(peak_bf_vals) if peak_bf_vals else None
-            
-            peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
-            result['light_peak_norm'] = np.mean(peak_norm_vals) if peak_norm_vals else None
-            
-            # Time to Peak - first stim only
-            result['light_ttp_first'] = valid_resp[0].get('time_to_peak_sec') if valid_resp else None
-            # Time to Peak - average
-            ttp_vals = [r.get('time_to_peak_sec') for r in valid_resp if r.get('time_to_peak_sec') is not None]
-            result['light_ttp_avg'] = np.mean(ttp_vals) if ttp_vals else None
-            
-            # Recovery, Amplitude, Rate of Change
-            recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
-            result['light_recovery_bf'] = np.mean(recovery_bf_vals) if recovery_bf_vals else None
-            
-            recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
-            result['light_recovery_pct'] = np.mean(recovery_pct_vals) if recovery_pct_vals else None
-            
-            amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
-            result['light_amplitude'] = np.mean(amplitude_vals) if amplitude_vals else None
-            
-            roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
-            result['light_roc'] = np.mean(roc_vals) if roc_vals else None
+            # Time to Peak for first stim (from per_stim if available)
+            if per_stim and len(per_stim) > 0:
+                result['light_ttp_first'] = per_stim[0].get('time_to_peak_sec')
+        elif per_stim:
+            # Fallback: compute from per_stim if mean_metrics not present
+            valid_resp = [r for r in per_stim if r is not None and isinstance(r, dict)]
+            if valid_resp:
+                result['light_baseline_bf'] = light_response.get('baseline_bf') or baseline.get('baseline_bf')
+                
+                avg_bf_vals = [r.get('avg_bf') for r in valid_resp if r.get('avg_bf') is not None]
+                result['light_avg_bf'] = float(np.mean(avg_bf_vals)) if avg_bf_vals else None
+                
+                peak_bf_vals = [r.get('peak_bf') for r in valid_resp if r.get('peak_bf') is not None]
+                result['light_peak_bf'] = float(np.mean(peak_bf_vals)) if peak_bf_vals else None
+                
+                peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
+                result['light_peak_norm'] = float(np.mean(peak_norm_vals)) if peak_norm_vals else None
+                
+                result['light_ttp_first'] = valid_resp[0].get('time_to_peak_sec') if valid_resp else None
+                ttp_vals = [r.get('time_to_peak_sec') for r in valid_resp if r.get('time_to_peak_sec') is not None]
+                result['light_ttp_avg'] = float(np.mean(ttp_vals)) if ttp_vals else None
+                
+                recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
+                result['light_recovery_bf'] = float(np.mean(recovery_bf_vals)) if recovery_bf_vals else None
+                
+                recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
+                result['light_recovery_pct'] = float(np.mean(recovery_pct_vals)) if recovery_pct_vals else None
+                
+                amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
+                result['light_amplitude'] = float(np.mean(amplitude_vals)) if amplitude_vals else None
+                
+                roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
+                result['light_roc'] = float(np.mean(roc_vals)) if roc_vals else None
     
     # Corrected Light HRV (detrended) - frontend uses camelCase
     light_hrv_detrended = state.get('lightHrvDetrended') or state.get('light_metrics_detrended', {})
