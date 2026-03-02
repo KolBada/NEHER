@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, 
-  AlertCircle, Zap, Activity
+  AlertCircle, Zap, Activity, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ export default function FolderComparison({ folder, onBack }) {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
+  const [spontNormExpanded, setSpontNormExpanded] = useState(false);
+  const [lightNormExpanded, setLightNormExpanded] = useState(false);
 
   useEffect(() => {
     loadComparisonData();
