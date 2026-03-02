@@ -1603,15 +1603,13 @@ async def export_pdf(request: ExportRequest):
             
             if drug_hrv_data or drug_bf is not None:
                 drug_metrics_available = True
-                drug_bf_range = f"{drug_bf_minute}-{drug_bf_minute+1} min" if drug_bf_minute is not None else '—'
-                drug_hrv_range = f"{drug_hrv_minute}-{drug_hrv_minute+3} min" if drug_hrv_minute is not None else '—'
                 
-                right_rows.append([f'Mean BF ({drug_bf_range})', f"{drug_bf:.1f} bpm" if drug_bf is not None else '—'])
+                right_rows.append(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf is not None else '—'])
                 if drug_hrv_data:
-                    right_rows.append([f'ln(RMSSD₇₀) ({drug_hrv_range})', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data.get('ln_rmssd70') is not None else '—'])
+                    right_rows.append(['ln(RMSSD₇₀)', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data.get('ln_rmssd70') is not None else '—'])
                     sdnn_d = drug_hrv_data.get('sdnn')
-                    right_rows.append([f'ln(SDNN₇₀) ({drug_hrv_range})', f"{np.log(sdnn_d):.3f}" if sdnn_d and sdnn_d > 0 else '—'])
-                    right_rows.append([f'pNN50₇₀ ({drug_hrv_range})', f"{drug_hrv_data.get('pnn50', 0):.1f}%" if drug_hrv_data.get('pnn50') is not None else '—'])
+                    right_rows.append(['ln(SDNN₇₀)', f"{np.log(sdnn_d):.3f}" if sdnn_d and sdnn_d > 0 else '—'])
+                    right_rows.append(['pNN50₇₀', f"{drug_hrv_data.get('pnn50', 0):.1f}%" if drug_hrv_data.get('pnn50') is not None else '—'])
         
         if not drug_metrics_available:
             right_rows.append(['Status', 'Disabled'])
