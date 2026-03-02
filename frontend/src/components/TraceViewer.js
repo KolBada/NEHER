@@ -385,7 +385,7 @@ export default function TraceViewer({
 
       <ResponsiveContainer width="100%" height={455}>
         <ComposedChart
-          data={visibleData}
+          data={chartData}
           onClick={handleChartClick}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
