@@ -62,10 +62,96 @@ export default function ExportPanel({
                   </Badge>
                 </div>
               )}
+              {originalFilename && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-500">ABF File:</span>
+                  <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
+                    {originalFilename}
+                  </Badge>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Organoid/Cell Information */}
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium" style={{ fontFamily: 'Manrope' }}>
+            Organoid/Cell Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Recording Date */}
+            <div className="space-y-1">
+              <Label className="text-[10px] text-zinc-400">Recording Date</Label>
+              <div className="relative">
+                <Input
+                  type="date"
+                  value={recordingDate || ''}
+                  onChange={(e) => setRecordingDate(e.target.value)}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Organoid/Cell entries */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-zinc-400">Sample Information</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={addOrganoidEntry}
+                className="h-6 px-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add Sample
+              </Button>
+            </div>
+            {organoidInfo.map((info, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  placeholder="Cell/Organoid Type"
+                  value={info.cell_type || ''}
+                  onChange={(e) => handleOrganoidChange(idx, 'cell_type', e.target.value)}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data flex-1"
+                />
+                <Input
+                  placeholder="Age (e.g., D45, 6 weeks)"
+                  value={info.age || ''}
+                  onChange={(e) => handleOrganoidChange(idx, 'age', e.target.value)}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data w-36"
+                />
+                {organoidInfo.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeOrganoidEntry(idx)}
+                    className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-zinc-400">Description / Notes</Label>
+            <Textarea
+              placeholder="Additional notes about the recording..."
+              value={recordingDescription || ''}
+              onChange={(e) => setRecordingDescription(e.target.value)}
+              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs font-data min-h-[60px] resize-none"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
