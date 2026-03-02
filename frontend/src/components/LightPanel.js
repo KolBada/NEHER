@@ -1120,7 +1120,7 @@ export default function LightPanel({
                       label="Baseline BF" 
                       value={avgHra.baseline_bf} 
                       unit="bpm"
-                      tooltip="Beat Frequency (bpm)"
+                      tooltip="Mean Beat Frequency from -2 to -1 min before first light stimulation"
                     />
                     <MetricCard 
                       label="Avg BF" 
@@ -1156,7 +1156,7 @@ export default function LightPanel({
                       label="Recovery BF" 
                       value={avgHra.bf_end} 
                       unit="bpm"
-                      tooltip="Last beat frequency before the drop"
+                      tooltip="Beat Frequency at the end of the stimulation period, before the drop"
                     />
                     <MetricCard 
                       label="Recovery %" 
@@ -1174,7 +1174,7 @@ export default function LightPanel({
                       label="Rate of Change" 
                       value={avgHra.rate_of_change} 
                       unit="1/min"
-                      tooltip="Rate of Change"
+                      tooltip="Slope of BF during stimulation, normalized by mean BF"
                     />
                   </div>
                 )}
