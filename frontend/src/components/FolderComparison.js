@@ -493,7 +493,7 @@ export default function FolderComparison({ folder, onBack }) {
                           <InfoTip text="Amplitude: Peak BF − Recovery BF">Amp.</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
-                          <InfoTip text="Rate of Change">RoC</InfoTip>
+                          <InfoTip text="Slope of BF during stimulation, normalized by mean BF">RoC</InfoTip>
                         </th>
                       </tr>
                     </thead>
