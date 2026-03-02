@@ -60,6 +60,9 @@ const api = {
   updateRecording: (recordingId, data) => axios.put(`${API_URL}/recordings/${recordingId}`, data),
   deleteRecording: (recordingId) => axios.delete(`${API_URL}/recordings/${recordingId}`),
   moveRecording: (recordingId, targetFolderId) => axios.post(`${API_URL}/recordings/${recordingId}/move`, { target_folder_id: targetFolderId }),
+  
+  // Batch update recordings with outdated metrics
+  batchUpdateRecordings: () => axios.post(`${API_URL}/recordings/batch-update`),
 };
 
 export function downloadBlob(blob, filename) {
