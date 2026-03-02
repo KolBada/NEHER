@@ -484,7 +484,7 @@ export default function LightPanel({
 
   // X-axis tick formatter for min:sec
   const xAxisTickFormatter = (value) => {
-    return formatTimeMinSec(value);
+    return formatTimeConfig(value);
   };
 
   return (
