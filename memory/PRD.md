@@ -237,9 +237,17 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - "Save Recording" tab only enabled after export step completed
   - Storage API endpoints: `/api/folders`, `/api/recordings`
 
+### P0 - Completed (Dec 2025 - Latest)
+- [x] **UI Renaming in Light Panel (Dec 2025):**
+  - "PER-PULSE HRV (USING NN₇₀)" → "PER-STIMULATION HRV (USING NN₇₀)"
+  - "Pulse" column → "Stim" column in HRV table
+  - "BF End" → "Recovery BF" in HRA table (header + data column)
+  - "BF End %" → "Recovery %" in HRA table (header + data column)
+  - Recovery BF/% text colors changed to white (text-zinc-300) to match table styling
+
 ### P1 - In Progress
-- [ ] Light stim highlights on LightPanel trace (code present, needs verification)
-- [ ] Verify Excel export highlighting fix
+- [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
+- [ ] Verify Excel export highlighting fix (baseline vs drug row colors)
 
 ### P2 (Future)
 - [ ] Synchronized zoom across all charts
