@@ -55,7 +55,7 @@ export default function ExportPanel({
   };
 
   const addOrganoidEntry = () => {
-    setOrganoidInfo([...organoidInfo, { cell_type: '', birth_date: '', passage_number: '', transfection: null }]);
+    setOrganoidInfo([...organoidInfo, { cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
   };
 
   const removeOrganoidEntry = (index) => {
