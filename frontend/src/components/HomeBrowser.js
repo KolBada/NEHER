@@ -419,28 +419,57 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     );
   }
 
+  // Comparison view
+  if (view === 'comparison' && selectedFolder) {
+    return (
+      <FolderComparison 
+        folder={selectedFolder}
+        onBack={() => {
+          setView('folder');
+          loadRecordings(selectedFolder.id);
+        }}
+      />
+    );
+  }
+
   // Folder view - show recordings in selected folder
   return (
     <div className="p-6 max-w-4xl mx-auto" data-testid="folder-view">
       {/* Header with back button */}
-      <div className="flex items-center gap-3 mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2"
-          onClick={() => { setView('home'); setSelectedFolder(null); loadFolders(); }}
-          data-testid="back-to-home-btn"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          Back
-        </Button>
-        <div className="flex items-center gap-2">
-          <FolderOpen className="w-5 h-5 text-amber-500" />
-          <h2 className="text-lg font-medium text-zinc-100">{selectedFolder?.name}</h2>
-          <Badge variant="outline" className="text-xs border-zinc-700">
-            {recordings.length} recording{recordings.length !== 1 ? 's' : ''}
-          </Badge>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => { setView('home'); setSelectedFolder(null); loadFolders(); }}
+            data-testid="back-to-home-btn"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-medium text-zinc-100">{selectedFolder?.name}</h2>
+            <Badge variant="outline" className="text-xs border-zinc-700">
+              {recordings.length} recording{recordings.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
         </div>
+        
+        {/* Comparison Button */}
+        {recordings.length >= 1 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs border-cyan-700/50 hover:border-cyan-600 hover:bg-cyan-950/30 text-cyan-400"
+            onClick={() => setView('comparison')}
+            data-testid="comparison-btn"
+          >
+            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+            Comparison
+          </Button>
+        )}
       </div>
 
       {loading ? (
