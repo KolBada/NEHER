@@ -337,22 +337,22 @@ export default function FolderComparison({ folder, onBack }) {
                   <thead>
                     <tr className="border-b border-zinc-800">
                       <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
                         <InfoTip text="Beat Frequency (bpm)">Baseline BF</InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">
-                        <InfoTip text="Root Mean Square of Successive Differences (normalized to 70 bpm)">Baseline ln(RMSSD<sub>70</sub>)</InfoTip>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                        <InfoTip text="Root Mean Square of Successive Differences (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(RMSSD<sub>70</sub>)</span></InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">
-                        <InfoTip text="Standard Deviation of NN intervals (normalized to 70 bpm)">Baseline ln(SDNN<sub>70</sub>)</InfoTip>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                        <InfoTip text="Standard Deviation of NN intervals (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(SDNN<sub>70</sub>)</span></InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">
-                        <InfoTip text="% of successive NN intervals > 50ms (normalized to 70 bpm)">Baseline pNN50<sub>70</sub></InfoTip>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                        <InfoTip text="% of successive NN > 50ms (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline pNN50<sub>70</sub></span></InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug BF</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(RMSSD<sub>70</sub>)</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(SDNN<sub>70</sub>)</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug pNN50<sub>70</sub></th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">Drug BF</th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">Drug ln(RMSSD<sub>70</sub>)</span></th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">Drug ln(SDNN<sub>70</sub>)</span></th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">Drug pNN50<sub>70</sub></span></th>
                     </tr>
                   </thead>
                   <tbody>
