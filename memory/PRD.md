@@ -244,6 +244,11 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - "BF End" → "Recovery BF" in HRA table (header + data column)
   - "BF End %" → "Recovery %" in HRA table (header + data column)
   - Recovery BF/% text colors changed to white (text-zinc-300) to match table styling
+- [x] **Recovery % Calculation Fix (Mar 2026):**
+  - Fixed bug where Recovery % showed dashes in HRA table and readout
+  - Issue: Original condition `if BF_base_j and BF_end_j` used truthy checks that failed in edge cases
+  - Fix: Changed to explicit None checks `if BF_base_j is not None and BF_end_j is not None`
+  - File: `/app/backend/analysis.py` line ~601-604
 
 ### P1 - In Progress
 - [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
