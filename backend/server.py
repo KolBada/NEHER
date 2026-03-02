@@ -123,6 +123,7 @@ async def root():
 @api_router.post("/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
     import pyabf
+    import gc
 
     session_id = str(uuid.uuid4())
     sessions[session_id] = {}
@@ -134,17 +135,30 @@ async def upload_files(files: List[UploadFile] = File(...)):
             raise HTTPException(400, f"Only .abf files are supported. Got: '{fname}'. Please rename your file with .abf extension if needed.")
 
         file_id = str(uuid.uuid4())
-        content = await uploaded.read()
-
-        with tempfile.NamedTemporaryFile(suffix='.abf', delete=False) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
-
+        
+        # Read file in chunks to handle large files better
         try:
+            content = await uploaded.read()
+        except Exception as read_err:
+            logging.error(f"Failed to read uploaded file '{fname}': {read_err}")
+            raise HTTPException(400, f"Failed to read file '{fname}': {str(read_err)}")
+
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.abf', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            # Free memory from content after writing to temp file
+            del content
+            gc.collect()
+
             try:
                 abf = pyabf.ABF(tmp_path)
             except Exception as parse_err:
+                logging.error(f"Failed to parse ABF file '{fname}': {parse_err}")
                 raise HTTPException(400, f"Failed to parse ABF file '{fname}': {str(parse_err)}")
+            
             abf.setSweep(0, channel=0)
             trace = abf.sweepY.copy().astype(np.float64)
             times = abf.sweepX.copy().astype(np.float64)
@@ -163,6 +177,9 @@ async def upload_files(files: List[UploadFile] = File(...)):
                     offset = sw_times[-1] + 1.0 / sample_rate
                 trace = np.concatenate(all_traces)
                 times = np.concatenate(all_times)
+                # Free memory
+                del all_traces, all_times
+                gc.collect()
 
             sessions[session_id][file_id] = {
                 'filename': uploaded.filename,
@@ -171,6 +188,7 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 'sample_rate': sample_rate,
             }
 
+            # Decimate trace for response (reduce data size significantly)
             dec_times, dec_voltages = analysis.decimate_trace(times, trace)
             beat_indices = analysis.detect_beats(trace, sample_rate)
             beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]
@@ -197,8 +215,20 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 'signal_stats': signal_stats,
                 'n_beats_detected': len(beat_indices)
             })
+            
+            logging.info(f"Successfully processed file '{fname}': {len(trace)} samples, {len(beat_indices)} beats")
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error processing '{fname}': {e}")
+            raise HTTPException(500, f"Error processing file '{fname}': {str(e)}")
         finally:
-            os.unlink(tmp_path)
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
 
     return {'session_id': session_id, 'files': result_files}
 

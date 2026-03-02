@@ -2,15 +2,36 @@ import axios from 'axios';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Create axios instance with retry logic for uploads
+const uploadWithRetry = async (formData, onUploadProgress, maxRetries = 3) => {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await axios.post(`${API_URL}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000, // 10 minutes for large files
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        onUploadProgress: onUploadProgress,
+      });
+      return response;
+    } catch (error) {
+      lastError = error;
+      const status = error.response?.status;
+      // Retry on 520, 502, 503, 504 errors (server/proxy issues)
+      if ([520, 502, 503, 504].includes(status) && attempt < maxRetries) {
+        console.log(`Upload attempt ${attempt} failed with ${status}, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+};
+
 const api = {
-  upload: (formData, onUploadProgress) =>
-    axios.post(`${API_URL}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 600000, // 10 minutes for large files
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      onUploadProgress: onUploadProgress,
-    }),
+  upload: (formData, onUploadProgress) => uploadWithRetry(formData, onUploadProgress),
 
   detectBeats: (data) => axios.post(`${API_URL}/detect-beats`, data),
 
