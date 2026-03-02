@@ -830,8 +830,15 @@ def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_windows=
 # Pulse Generation Utilities
 # ==============================================================================
 def generate_pulses(start_sec, duration_sec, interval_pattern, n_pulses):
-    """Generate pulse timing information."""
+    """Generate pulse timing information.
+    
+    interval_pattern: 'decreasing' for standard 60-30-20-10 ISI pattern,
+                      or a number for fixed interval between pulse starts.
+    
+    ISI (Inter-Stimulus Interval) = time between START of consecutive pulses.
+    """
     if interval_pattern == 'decreasing':
+        # Standard decreasing ISI pattern: 60s, 30s, 20s, 10s between pulse starts
         intervals = [60, 30, 20, 10]
     else:
         intervals = [int(interval_pattern)] * (n_pulses - 1)
@@ -847,10 +854,11 @@ def generate_pulses(start_sec, duration_sec, interval_pattern, n_pulses):
             'start_min': current_start / 60.0,
             'end_min': (current_start + duration_sec) / 60.0,
         })
+        # ISI is the interval between START times (not gap between end and start)
         if i < len(intervals):
-            current_start += duration_sec + intervals[i]
+            current_start += intervals[i]
         else:
-            current_start += duration_sec + intervals[-1] if intervals else 60
+            current_start += intervals[-1] if intervals else 60
     
     return pulses
 
