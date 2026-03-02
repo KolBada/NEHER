@@ -350,7 +350,7 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={245}>
               <LineChart data={filteredBfData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
@@ -404,7 +404,7 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={245}>
               <LineChart data={filteredNnData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
