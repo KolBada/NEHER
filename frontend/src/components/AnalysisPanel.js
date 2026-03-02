@@ -379,7 +379,7 @@ export default function AnalysisPanel({
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
-                  <ZoomIn className="w-3 h-3 text-zinc-500" />
+                  <Plus className="w-3 h-3 text-zinc-500" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!zoomDomain} title="Zoom Out">
                   <Minus className="w-3 h-3 text-zinc-500" />
@@ -454,7 +454,7 @@ export default function AnalysisPanel({
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
-                  <ZoomIn className="w-3 h-3 text-zinc-500" />
+                  <Plus className="w-3 h-3 text-zinc-500" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!zoomDomain} title="Zoom Out">
                   <Minus className="w-3 h-3 text-zinc-500" />
