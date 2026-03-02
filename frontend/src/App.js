@@ -650,7 +650,22 @@ function App() {
       // New metadata fields
       original_filename: activeFile?.filename || null,
       recording_date: recordingDate || null,
-      organoid_info: organoidInfo.some(o => o.age || o.cell_type) ? organoidInfo.filter(o => o.age || o.cell_type) : null,
+      // Calculate ages from dates for export
+      organoid_info: organoidInfo.some(o => o.cell_type || o.birth_date) ? organoidInfo.filter(o => o.cell_type || o.birth_date).map(o => {
+        const calculateDays = (from, to) => {
+          if (!from || !to) return null;
+          const diffTime = new Date(to) - new Date(from);
+          const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          return days >= 0 ? days : null;
+        };
+        return {
+          cell_type: o.cell_type || '',
+          birth_date: o.birth_date || null,
+          fusion_date: o.fusion_date || null,
+          age_at_recording: calculateDays(o.birth_date, recordingDate),
+          days_since_fusion: calculateDays(o.fusion_date, recordingDate),
+        };
+      }) : null,
       recording_description: recordingDescription || null,
     };
   }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, recordingDescription]);
