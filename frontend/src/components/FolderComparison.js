@@ -187,13 +187,9 @@ export default function FolderComparison({ folder, onBack }) {
             <Activity className="w-3.5 h-3.5 mr-1.5" />
             Spontaneous Activity
           </TabsTrigger>
-          <TabsTrigger value="light-hra" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
+          <TabsTrigger value="light-stimulus" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
             <Zap className="w-3.5 h-3.5 mr-1.5" />
-            Light Heart Rate Adaptation
-          </TabsTrigger>
-          <TabsTrigger value="light-hrv" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
-            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-            Corrected Light HRV
+            Light Stimulus
           </TabsTrigger>
           <TabsTrigger value="metadata" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
             Metadata
