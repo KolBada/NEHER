@@ -409,7 +409,7 @@ export default function FolderComparison({ folder, onBack }) {
                             </div>
                           ))}
                         </div>
-                      ) : <span className="text-zinc-600">Control</span>;
+                      ) : <span className="text-zinc-500">No drug</span>;
                       
                       // Format light stim info
                       const lightDisplay = rec.has_light_stim ? (
@@ -417,7 +417,7 @@ export default function FolderComparison({ folder, onBack }) {
                           <div>{rec.stim_duration}s stim</div>
                           {rec.isi_structure && <div className="text-zinc-500">ISI: {rec.isi_structure}</div>}
                         </div>
-                      ) : <span className="text-zinc-600">—</span>;
+                      ) : <span className="text-zinc-500">No Light Stim</span>;
                       
                       return (
                         <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top">
