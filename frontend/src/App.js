@@ -488,9 +488,9 @@ function App() {
         pulses: lightPulses,
       });
       setLightResponse(data);
-      toast.success('Light HRA metrics computed');
+      toast.success('Light Heart Rate Adaptation computed');
     } catch (err) {
-      toast.error('Light HRA failed');
+      toast.error('Light Heart Rate Adaptation failed');
     } finally {
       setAnalysisLoading(false);
     }
