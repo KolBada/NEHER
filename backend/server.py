@@ -1261,6 +1261,108 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
         ws_spont.cell(row=avg_row, column=col).fill = avg_fill
         ws_spont.cell(row=avg_row, column=col).border = thin_border
     
+    # Add Normalized to Baseline section below the main table
+    norm_start_row = avg_row + 3
+    
+    # Calculate cohort baseline averages for normalization
+    baseline_bfs = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
+    baseline_ln_rmssds = [r.get('baseline_ln_rmssd70') for r in recordings if r.get('baseline_ln_rmssd70') is not None]
+    baseline_ln_sdnns = [r.get('baseline_ln_sdnn70') for r in recordings if r.get('baseline_ln_sdnn70') is not None]
+    baseline_pnn50s = [r.get('baseline_pnn50') for r in recordings if r.get('baseline_pnn50') is not None]
+    
+    avg_baseline_bf = sum(baseline_bfs) / len(baseline_bfs) if baseline_bfs else 1
+    avg_baseline_ln_rmssd = sum(baseline_ln_rmssds) / len(baseline_ln_rmssds) if baseline_ln_rmssds else 1
+    avg_baseline_ln_sdnn = sum(baseline_ln_sdnns) / len(baseline_ln_sdnns) if baseline_ln_sdnns else 1
+    avg_baseline_pnn50 = sum(baseline_pnn50s) / len(baseline_pnn50s) if baseline_pnn50s else 1
+    
+    def norm_val(val, avg):
+        if val is None or avg == 0:
+            return None
+        return 100 * val / avg
+    
+    # Section title
+    ws_spont.merge_cells(f'A{norm_start_row}:I{norm_start_row}')
+    ws_spont.cell(row=norm_start_row, column=1, value='Normalized to Baseline — Spontaneous Activity').font = Font(bold=True, size=11, color="FFFFFF")
+    ws_spont.cell(row=norm_start_row, column=1).fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+    ws_spont.cell(row=norm_start_row, column=1).alignment = Alignment(horizontal='center')
+    
+    norm_spont_headers = [
+        ('Recording', None),
+        ('Baseline BF (%)', 'baseline'),
+        ('Baseline ln(RMSSD) (%)', 'baseline'),
+        ('Baseline ln(SDNN) (%)', 'baseline'),
+        ('Baseline pNN50 (%)', 'baseline'),
+        ('Drug BF (%)', 'drug'),
+        ('Drug ln(RMSSD) (%)', 'drug'),
+        ('Drug ln(SDNN) (%)', 'drug'),
+        ('Drug pNN50 (%)', 'drug'),
+    ]
+    
+    for col_idx, (header, header_type) in enumerate(norm_spont_headers, start=1):
+        cell = ws_spont.cell(row=norm_start_row + 1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+        if header_type == 'baseline':
+            cell.fill = header_fill_baseline
+        elif header_type == 'drug':
+            cell.fill = header_fill_drug
+        else:
+            cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+    
+    # Data rows with normalized values
+    norm_sums = {'baseline_bf': [], 'baseline_ln_rmssd': [], 'baseline_ln_sdnn': [], 'baseline_pnn50': [],
+                 'drug_bf': [], 'drug_ln_rmssd': [], 'drug_ln_sdnn': [], 'drug_pnn50': []}
+    
+    for row_idx, rec in enumerate(recordings, start=norm_start_row + 2):
+        ws_spont.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        
+        n_baseline_bf = norm_val(rec.get('baseline_bf'), avg_baseline_bf)
+        n_baseline_ln_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_baseline_ln_rmssd)
+        n_baseline_ln_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_baseline_ln_sdnn)
+        n_baseline_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_baseline_pnn50)
+        n_drug_bf = norm_val(rec.get('drug_bf'), avg_baseline_bf)
+        n_drug_ln_rmssd = norm_val(rec.get('drug_ln_rmssd70'), avg_baseline_ln_rmssd)
+        n_drug_ln_sdnn = norm_val(rec.get('drug_ln_sdnn70'), avg_baseline_ln_sdnn)
+        n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_baseline_pnn50)
+        
+        ws_spont.cell(row=row_idx, column=2, value=format_value(n_baseline_bf, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=3, value=format_value(n_baseline_ln_rmssd, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=4, value=format_value(n_baseline_ln_sdnn, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=5, value=format_value(n_baseline_pnn50, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=6, value=format_value(n_drug_bf, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=7, value=format_value(n_drug_ln_rmssd, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=8, value=format_value(n_drug_ln_sdnn, 1)).font = data_font
+        ws_spont.cell(row=row_idx, column=9, value=format_value(n_drug_pnn50, 1)).font = data_font
+        
+        # Collect for averages
+        for key, val in [('baseline_bf', n_baseline_bf), ('baseline_ln_rmssd', n_baseline_ln_rmssd),
+                         ('baseline_ln_sdnn', n_baseline_ln_sdnn), ('baseline_pnn50', n_baseline_pnn50),
+                         ('drug_bf', n_drug_bf), ('drug_ln_rmssd', n_drug_ln_rmssd),
+                         ('drug_ln_sdnn', n_drug_ln_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+            if val is not None:
+                norm_sums[key].append(val)
+        
+        for col in range(1, 10):
+            ws_spont.cell(row=row_idx, column=col).border = thin_border
+            if 2 <= col <= 5:
+                ws_spont.cell(row=row_idx, column=col).fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            elif 6 <= col <= 9:
+                ws_spont.cell(row=row_idx, column=col).fill = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+    
+    # Folder Average row for normalized section
+    norm_avg_row = norm_start_row + 2 + len(recordings)
+    ws_spont.cell(row=norm_avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    
+    for col_idx, key in enumerate(['baseline_bf', 'baseline_ln_rmssd', 'baseline_ln_sdnn', 'baseline_pnn50',
+                                   'drug_bf', 'drug_ln_rmssd', 'drug_ln_sdnn', 'drug_pnn50'], start=2):
+        avg_val_norm = sum(norm_sums[key]) / len(norm_sums[key]) if norm_sums[key] else None
+        ws_spont.cell(row=norm_avg_row, column=col_idx, value=format_value(avg_val_norm, 1)).font = Font(bold=True, size=9)
+    
+    for col in range(1, 10):
+        ws_spont.cell(row=norm_avg_row, column=col).fill = avg_fill
+        ws_spont.cell(row=norm_avg_row, column=col).border = thin_border
+    
     auto_width(ws_spont)
     
     # Sheet 3: Light Stimulus (Combined HRA and Corrected HRV)
