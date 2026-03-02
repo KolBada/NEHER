@@ -624,6 +624,19 @@ def extract_comparison_metrics(recording: dict) -> dict:
     result['recording_description'] = state.get('recordingDescription') or state.get('recording_description', '')
     result['fusion_date'] = state.get('fusionDate') or state.get('fusion_date', '')
     
+    # Calculate fusion age (days from fusion to recording)
+    result['fusion_age'] = None
+    fusion_date = state.get('fusionDate') or state.get('fusion_date', '')
+    rec_date = state.get('recordingDate') or state.get('recording_date', '')
+    if fusion_date and rec_date:
+        try:
+            from datetime import datetime
+            fd = datetime.strptime(fusion_date, '%Y-%m-%d')
+            rd = datetime.strptime(rec_date, '%Y-%m-%d')
+            result['fusion_age'] = (rd - fd).days
+        except (ValueError, TypeError):
+            pass
+    
     # Organoid/Cell info - frontend uses camelCase 'organoidInfo'
     organoid_info = state.get('organoidInfo') or state.get('organoid_info', [])
     
