@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
-  ChevronRight, Loader2, Plus, X, Check
+  ChevronRight, Loader2, Plus, X, Check, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,9 +33,10 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import api from '../api';
+import FolderComparison from './FolderComparison';
 
 export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
-  const [view, setView] = useState('home'); // 'home', 'folder'
+  const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [recordings, setRecordings] = useState([]);
