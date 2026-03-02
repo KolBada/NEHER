@@ -324,9 +324,9 @@ export default function FolderComparison({ folder, onBack }) {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(RMSSD70) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(SDNN70) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">pNN50 corr. (%)</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(SDNN<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">pNN50<sub>70</sub> corr. (%)</th>
                       </tr>
                     </thead>
                     <tbody>
