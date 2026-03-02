@@ -662,6 +662,7 @@ function App() {
         };
         return {
           cell_type: o.cell_type || '',
+          passage_number: o.passage_number || null,
           birth_date: o.birth_date || null,
           age_at_recording: calculateDays(o.birth_date, recordingDate),
           // Transfection info
