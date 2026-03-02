@@ -67,14 +67,9 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
       try {
         const { data } = await api.batchUpdateRecordings();
         if (data.updated_count > 0) {
-          // Show notification for each updated recording
-          const recordingNames = data.recordings.map(r => r.name).join(', ');
-          toast.success(`Updated ${data.updated_count} recording(s): ${recordingNames}`, {
-            duration: 5000,
-            description: 'Metrics were automatically recomputed with the latest algorithms.'
+          toast.success(`${data.updated_count} recording(s) updated`, {
+            duration: 4000,
           });
-          // Refresh folders to update any counts
-          loadFolders();
         }
       } catch (err) {
         // Silently fail - this is a background task
