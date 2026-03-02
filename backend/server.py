@@ -936,7 +936,7 @@ async def export_xlsx(request: ExportRequest):
                     if minute_num == drug_bf_minute:
                         drug_bf = pm.get('mean_bf')
                         break
-                except:
+                except (ValueError, TypeError, AttributeError):
                     pass
         
         if drug_hrv_data or drug_bf is not None:
@@ -1581,7 +1581,7 @@ async def export_pdf(request: ExportRequest):
                         if minute_num == drug_bf_minute:
                             drug_bf = pm.get('mean_bf')
                             break
-                    except:
+                    except (ValueError, TypeError, AttributeError):
                         pass
             
             if drug_hrv_data or drug_bf is not None:
