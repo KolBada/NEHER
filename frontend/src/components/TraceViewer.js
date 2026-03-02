@@ -347,7 +347,7 @@ export default function TraceViewer({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"
@@ -355,7 +355,7 @@ export default function TraceViewer({
             onClick={handleZoomIn}
             title="Zoom In"
           >
-            <ZoomIn className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
@@ -367,16 +367,15 @@ export default function TraceViewer({
           >
             <Minus className="w-4 h-4" />
           </Button>
-          <span className="text-[10px] text-zinc-500">Ctrl+Scroll to zoom</span>
           {isZoomed && (
             <Button
               data-testid="reset-zoom-btn"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-6 text-[10px] rounded-sm gap-1 border-zinc-700 hover:bg-zinc-800"
+              className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-200"
               onClick={handleResetZoom}
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3 h-3 mr-1" />
               Reset
             </Button>
           )}
