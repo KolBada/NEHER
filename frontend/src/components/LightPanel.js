@@ -961,12 +961,12 @@ export default function LightPanel({
             </Card>
           )}
 
-          {/* Light Induced HRA (Heart Rate Acceleration) - using BPM */}
+          {/* Light Induced Heart Rate Adaptation - using BPM */}
           {lightResponse && (
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Light Induced HRA (Heart Rate Acceleration)
+                  Light Induced Heart Rate Adaptation
                   <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
@@ -975,7 +975,7 @@ export default function LightPanel({
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
-                        <p className="font-semibold mb-1">HRA Calculation:</p>
+                        <p className="font-semibold mb-1">Heart Rate Adaptation Calculation:</p>
                         <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
                           <li><strong>Baseline BF:</strong> Mean BF from -2 to -1 min before first stim (shared for all stims)</li>
                           <li><strong>Peak%:</strong> 100 × Peak BF / Baseline BF</li>
@@ -988,7 +988,7 @@ export default function LightPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Mean HRA metrics - readout (average of 5 stims) */}
+                {/* Mean Heart Rate Adaptation metrics - readout (average of 5 stims) */}
                 {avgHra && (
                   <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2 mb-4">
                     <MetricCard 
