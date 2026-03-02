@@ -147,7 +147,7 @@ export default function FolderComparison({ folder, onBack }) {
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
           <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">hSpO Age Range</p>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">hSpOs Age Range</p>
             <p className="text-lg font-semibold text-zinc-100">
               {summary?.hspo_age_range?.min !== null 
                 ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
@@ -158,7 +158,7 @@ export default function FolderComparison({ folder, onBack }) {
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
           <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">hCO Age Range</p>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">hCOs Age Range</p>
             <p className="text-lg font-semibold text-zinc-100">
               {summary?.hco_age_range?.min !== null 
                 ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
@@ -169,11 +169,13 @@ export default function FolderComparison({ folder, onBack }) {
         </Card>
         <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
           <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Light Stim</p>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Fusion Age Range</p>
             <p className="text-lg font-semibold text-zinc-100">
-              {recordings?.filter(r => r.has_light_stim).length || 0}
+              {summary?.fusion_age_range?.min !== null 
+                ? `${summary.fusion_age_range.min} - ${summary.fusion_age_range.max} days`
+                : '—'}
             </p>
-            <p className="text-[10px] text-zinc-500">recordings enabled</p>
+            <p className="text-[10px] text-zinc-500">n = {summary?.fusion_age_range?.n || 0}</p>
           </CardContent>
         </Card>
       </div>
