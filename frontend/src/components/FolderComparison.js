@@ -251,105 +251,106 @@ export default function FolderComparison({ folder, onBack }) {
           </Card>
         </TabsContent>
 
-        {/* Light HRA Tab */}
-        <TabsContent value="light-hra">
-          <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Adaptation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[500px]">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-zinc-800">
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Avg BF</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak BF</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Norm. Peak</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP 1st</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP Avg</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. BF</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. %</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Amp.</th>
-                      <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">RoC</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recordings?.map((rec, idx) => (
-                      <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                        <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_avg, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_bf, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
-                        <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
+        {/* Light Stimulus Tab - Combined HRA and Corrected HRV */}
+        <TabsContent value="light-stimulus">
+          <div className="space-y-4">
+            {/* HRA Table */}
+            <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Adaptation (HRA)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[350px]">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-800">
+                        <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Avg BF</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak BF</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Norm. Peak</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP 1st</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP Avg</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. BF</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. %</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Amp.</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">RoC</th>
                       </tr>
-                    ))}
-                    {/* Average Row */}
-                    <tr className="bg-zinc-800/50 font-semibold">
-                      <td className="py-2 px-2 text-zinc-200">Folder Average (n={recordings?.length || 0})</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_peak_norm, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_ttp_first, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_ttp_avg, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_recovery_bf, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_recovery_pct, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_amplitude, 1)}</td>
-                      <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_roc, 4)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    </thead>
+                    <tbody>
+                      {recordings?.map((rec, idx) => (
+                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                          <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_avg, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_bf, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
+                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
+                        </tr>
+                      ))}
+                      {/* Average Row */}
+                      <tr className="bg-zinc-800/50 font-semibold">
+                        <td className="py-2 px-2 text-zinc-200">Folder Average (n={recordings?.length || 0})</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_peak_norm, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_ttp_first, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_ttp_avg, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_recovery_bf, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_recovery_pct, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_amplitude, 1)}</td>
+                        <td className="py-2 px-1 text-center text-zinc-200">{formatValue(light_hra_averages?.averages?.light_roc, 4)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
 
-        {/* Corrected Light HRV Tab */}
-        <TabsContent value="light-hrv">
-          <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-300">Corrected Light-Induced HRV (Detrended)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[500px]">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-zinc-800">
-                      <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                      <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(RMSSD70) corr.</th>
-                      <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(SDNN70) corr.</th>
-                      <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">pNN50 corr. (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recordings?.map((rec, idx) => (
-                      <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                        <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
-                        <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_rmssd70, 3)}</td>
-                        <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_sdnn70, 3)}</td>
-                        <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_pnn50, 1)}</td>
+            {/* Corrected HRV Table */}
+            <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-zinc-300">Corrected Light-Induced Heart Rate Variability (HRV)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[300px]">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-800">
+                        <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(RMSSD70) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(SDNN70) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">pNN50 corr. (%)</th>
                       </tr>
-                    ))}
-                    {/* Average Row */}
-                    <tr className="bg-zinc-800/50 font-semibold">
-                      <td className="py-2 px-3 text-zinc-200">Folder Average (n={recordings?.length || 0})</td>
-                      <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
-                      <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
-                      <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {recordings?.map((rec, idx) => (
+                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                          <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
+                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_rmssd70, 3)}</td>
+                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_sdnn70, 3)}</td>
+                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_pnn50, 1)}</td>
+                        </tr>
+                      ))}
+                      {/* Average Row */}
+                      <tr className="bg-zinc-800/50 font-semibold">
+                        <td className="py-2 px-3 text-zinc-200">Folder Average (n={recordings?.length || 0})</td>
+                        <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
+                        <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
+                        <td className="py-2 px-3 text-center text-zinc-200">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Metadata Tab */}
