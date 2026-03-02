@@ -63,6 +63,13 @@ const api = {
   
   // Batch update recordings with outdated metrics
   batchUpdateRecordings: () => axios.post(`${API_URL}/recordings/batch-update`),
+  
+  // Folder Comparison API
+  getFolderComparison: (folderId) => axios.get(`${API_URL}/folders/${folderId}/comparison`),
+  exportFolderComparisonXlsx: (folderId, data) => 
+    axios.post(`${API_URL}/folders/${folderId}/export/xlsx`, data, { responseType: 'blob' }),
+  exportFolderComparisonPdf: (folderId, data) => 
+    axios.post(`${API_URL}/folders/${folderId}/export/pdf`, data, { responseType: 'blob' }),
 };
 
 export function downloadBlob(blob, filename) {
