@@ -1,4 +1,5 @@
-import { Loader2, FileSpreadsheet, FileText, FileDown, Plus, X, Calendar } from 'lucide-react';
+import { Loader2, FileSpreadsheet, FileText, FileDown, Plus, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ExportPanel({
   metrics, hrvResults, lightHrv, lightResponse,
@@ -15,12 +17,16 @@ export default function ExportPanel({
   recordingDate, setRecordingDate,
   organoidInfo, setOrganoidInfo,
   recordingDescription, setRecordingDescription,
-  originalFilename
+  originalFilename,
+  fusionDate, setFusionDate
 }) {
   const hasData = !!metrics;
   const hasHrv = !!hrvResults?.windows?.length;
   const hasLight = !!lightHrv || !!lightResponse;
   const hasPerMinute = !!perMinuteData?.length;
+  
+  // Track which samples have transfection expanded
+  const [expandedTransfection, setExpandedTransfection] = useState({});
 
   // Handle organoid info updates
   const handleOrganoidChange = (index, field, value) => {
@@ -28,14 +34,39 @@ export default function ExportPanel({
     updated[index] = { ...updated[index], [field]: value };
     setOrganoidInfo(updated);
   };
+  
+  // Handle transfection info updates
+  const handleTransfectionChange = (index, field, value) => {
+    const updated = [...organoidInfo];
+    const transfection = updated[index].transfection || {};
+    updated[index] = { 
+      ...updated[index], 
+      transfection: { ...transfection, [field]: value }
+    };
+    setOrganoidInfo(updated);
+  };
+  
+  // Toggle transfection section
+  const toggleTransfection = (index) => {
+    setExpandedTransfection(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const addOrganoidEntry = () => {
-    setOrganoidInfo([...organoidInfo, { cell_type: '', birth_date: '', fusion_date: '' }]);
+    setOrganoidInfo([...organoidInfo, { cell_type: '', birth_date: '', transfection: null }]);
   };
 
   const removeOrganoidEntry = (index) => {
     if (organoidInfo.length > 1) {
       setOrganoidInfo(organoidInfo.filter((_, i) => i !== index));
+      // Also remove from expanded state
+      setExpandedTransfection(prev => {
+        const newState = { ...prev };
+        delete newState[index];
+        return newState;
+      });
     }
   };
 
