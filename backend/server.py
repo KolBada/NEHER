@@ -1820,60 +1820,73 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         pdf.savefig(fig3, bbox_inches='tight')
         plt.close(fig3)
         
-        # Page 4: Recording Metadata - Updated with Drug Info and Light Stim Info columns
+        # Page 4: Recording Metadata
         fig4 = plt.figure(figsize=(11, 8.5))
-        fig4.suptitle('Recording Metadata', fontsize=14, fontweight='bold', y=0.98)
         
-        ax_meta = fig4.add_axes([0.02, 0.15, 0.96, 0.75])
+        # Main title
+        fig4.text(0.5, 0.96, 'Recording Metadata', fontsize=14, fontweight='bold', ha='center')
+        
+        ax_meta = fig4.add_axes([0.02, 0.08, 0.96, 0.84])
         ax_meta.axis('off')
         
-        meta_headers = ['Recording', 'Date', 'hSpO\nAge', 'hCO\nAge', 'Fusion\nAge', 'Drug Info', 'Light Stim\nInfo', 'Notes']
+        meta_headers = ['Recording', 'Date', 'hSpO', 'hCO', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
         meta_data = [meta_headers]
         
+        # Helper to truncate text
+        def trunc(text, max_len):
+            if not text:
+                return '—'
+            text = str(text)
+            if len(text) > max_len:
+                return text[:max_len-2] + '..'
+            return text
+        
         for rec in recordings:
-            # Format drug info
+            # Format drug info - keep it short
             if rec.get('has_drug') and rec.get('drug_info'):
                 drug_parts = []
                 for d in rec.get('drug_info', []):
-                    drug_str = d.get('name', '')[:12]
-                    if d.get('concentration'):
-                        drug_str += f" ({d.get('concentration')})"
+                    drug_str = d.get('name', '')[:10]
                     drug_parts.append(drug_str)
-                drug_display = ', '.join(drug_parts)[:22] if drug_parts else '—'
+                drug_display = ', '.join(drug_parts)[:18] if drug_parts else '—'
             else:
                 drug_display = '—'
             
-            # Format light stim info - shorter ISI
+            # Format light stim info - very short
             if rec.get('has_light_stim'):
-                light_display = f"{rec.get('stim_duration', '')}s"
-                if rec.get('isi_structure'):
-                    isi = rec.get('isi_structure', '')
-                    light_display += f" ISI:{isi[:12]}"
+                isi = rec.get('isi_structure', '')
+                light_display = f"{rec.get('stim_duration', '')}s {isi[:15]}"
             else:
                 light_display = '—'
             
+            # Truncate notes/description
+            notes = rec.get('recording_description', '')
+            notes_display = trunc(notes, 20) if notes else '—'
+            
             meta_data.append([
-                rec.get('name', '')[:12],
+                trunc(rec.get('name', ''), 14),
                 rec.get('recording_date', '')[:10] if rec.get('recording_date') else '—',
                 str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '—',
                 str(rec.get('hco_age', '')) if rec.get('hco_age') else '—',
                 str(rec.get('fusion_age', '')) if rec.get('fusion_age') else '—',
                 drug_display,
                 light_display,
-                (rec.get('recording_description', '')[:15] if rec.get('recording_description') else '—'),
+                notes_display,
             ])
         
+        n_meta_rows = len(meta_data)
+        meta_row_height = min(0.07, 0.75 / n_meta_rows)
+        meta_table_height = meta_row_height * n_meta_rows
+        
         table_meta = ax_meta.table(cellText=meta_data, loc='upper center', cellLoc='center',
-                                   colWidths=[0.12, 0.1, 0.07, 0.07, 0.07, 0.2, 0.18, 0.17])
+                                   colWidths=[0.12, 0.10, 0.06, 0.06, 0.06, 0.18, 0.20, 0.18],
+                                   bbox=[0.01, 1.0 - meta_table_height - 0.05, 0.98, meta_table_height])
         table_meta.auto_set_font_size(False)
         table_meta.set_fontsize(7)
-        table_meta.scale(1.0, 1.3)
         
         for (row, col), cell in table_meta.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
-            cell.set_height(0.07)
             if row == 0:
-                cell.set_height(0.085)  # Taller header for wrapped text
                 if col == 2:  # hSpO Age
                     cell.set_facecolor('#F59E0B')  # Amber
                 elif col == 3:  # hCO Age
@@ -1884,7 +1897,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                     cell.set_facecolor('#06B6D4')  # Cyan
                 else:
                     cell.set_facecolor('#374151')
-                cell.set_text_props(color='white', fontweight='bold', fontsize=6)
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
         
         pdf.savefig(fig4, bbox_inches='tight')
         plt.close(fig4)
