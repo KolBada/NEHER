@@ -28,13 +28,14 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea, ReferenceLine
 } from 'recharts';
 
-// Format time as "Xmin Ys" or "X.Xmin"
-function formatTimeMinSec(minutes) {
-  const totalSec = minutes * 60;
-  const min = Math.floor(totalSec / 60);
-  const sec = Math.round(totalSec % 60);
-  if (sec === 0) return `${min}min`;
-  return `${min}min${sec}s`;
+// Format time in minutes only (e.g., 0.0, 0.5, 1.0, 2.0)
+function formatTimeMin(minutes) {
+  return `${minutes.toFixed(1)} min`;
+}
+
+// Format time for display in configuration (minutes only)
+function formatTimeConfig(minutes) {
+  return `${minutes.toFixed(1)}`;
 }
 
 function MetricCard({ label, value, unit, tooltip }) {
