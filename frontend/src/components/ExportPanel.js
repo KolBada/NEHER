@@ -398,22 +398,22 @@ export default function ExportPanel({
                   {hasPerMinute ? `${perMinuteData.length} rows` : 'Not computed'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasHrv ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-[10px] font-data text-zinc-400">HRV Windows</p>
-                <p className={`text-xs font-data ${hasHrv ? 'text-green-400' : 'text-zinc-600'}`}>
-                  {hasHrv ? `${hrvResults.windows.length} windows` : 'Not computed'}
+              <div className={`p-2 rounded-sm border ${hasBaseline ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+                <p className="text-[10px] font-data text-zinc-400">Baseline Metrics</p>
+                <p className={`text-xs font-data ${hasBaseline ? 'text-green-400' : 'text-zinc-600'}`}>
+                  {hasBaseline ? 'Computed' : 'Not computed'}
+                </p>
+              </div>
+              <div className={`p-2 rounded-sm border ${hasDrugMetrics ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+                <p className="text-[10px] font-data text-zinc-400">Drug Metrics</p>
+                <p className={`text-xs font-data ${hasDrugMetrics ? 'text-green-400' : 'text-zinc-600'}`}>
+                  {hasDrugMetrics ? 'Computed' : 'Not computed'}
                 </p>
               </div>
               <div className={`p-2 rounded-sm border ${hasLight ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-[10px] font-data text-zinc-400">Light Metrics</p>
                 <p className={`text-xs font-data ${hasLight ? 'text-green-400' : 'text-zinc-600'}`}>
                   {hasLight ? 'Available' : 'Not computed'}
-                </p>
-              </div>
-              <div className={`p-2 rounded-sm border ${hrvResults?.baseline ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-[10px] font-data text-zinc-400">Baseline</p>
-                <p className={`text-xs font-data ${hrvResults?.baseline ? 'text-green-400' : 'text-zinc-600'}`}>
-                  {hrvResults?.baseline ? 'Computed' : 'Not computed'}
                 </p>
               </div>
             </div>
