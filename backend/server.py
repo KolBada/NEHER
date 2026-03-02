@@ -1862,8 +1862,8 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                     cell.set_facecolor('#374151')
                 cell.set_text_props(color='white', fontweight='bold', fontsize=6)
         
-        pdf.savefig(fig5, bbox_inches='tight')
-        plt.close(fig5)
+        pdf.savefig(fig4, bbox_inches='tight')
+        plt.close(fig4)
     
     output.seek(0)
     filename = f"{request.folder_name}_comparison.pdf".replace(' ', '_')
