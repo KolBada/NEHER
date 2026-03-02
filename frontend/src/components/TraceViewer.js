@@ -209,6 +209,17 @@ export default function TraceViewer({
     }
   }, [zoomDomain, timeBounds]);
 
+  // Handle brush change (timeline slider)
+  const handleBrushChange = useCallback((brushArea) => {
+    if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
+      const startTime = chartData[brushArea.startIndex]?.time;
+      const endTime = chartData[brushArea.endIndex]?.time;
+      if (startTime !== undefined && endTime !== undefined) {
+        setZoomDomain([startTime, endTime]);
+      }
+    }
+  }, [chartData]);
+
   // Reset zoom when trace data changes
   useEffect(() => {
     handleResetZoom();
