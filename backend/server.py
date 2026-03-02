@@ -1547,7 +1547,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ]
         table_spont_avg = ax_spont_avg.table(cellText=spont_avg_text, loc='upper left', 
                                               cellLoc='center', colWidths=[0.4, 0.3, 0.3], 
-                                              bbox=[0, 0.05, 1, 0.85])
+                                              bbox=[0, 0.15, 1, 0.75])
         table_spont_avg.auto_set_font_size(False)
         table_spont_avg.set_fontsize(8)
         for (row, col), cell in table_spont_avg.get_celld().items():
