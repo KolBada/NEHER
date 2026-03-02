@@ -1,8 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, 
-  AlertCircle, Zap, Activity, ChevronRight
+  AlertCircle, Zap, Activity, ChevronRight, Info
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
