@@ -25,7 +25,7 @@ function InfoTip({ text, children }) {
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 cursor-help whitespace-nowrap">
             {children}
-            <Info className="w-3 h-3 text-zinc-400 hover:text-zinc-200 flex-shrink-0" />
+            <Info className="w-3 h-3 text-white/70 hover:text-white flex-shrink-0" />
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs">
