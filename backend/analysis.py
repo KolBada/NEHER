@@ -598,6 +598,11 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         # Normalized: RateOfChange = slope / BF_mean (1/min)
         RateOfChange_j = float(slope_b / BF_mean_j) if BF_mean_j > 0 else None
 
+        # Compute bf_end_pct (Recovery %) - explicit None checks
+        bf_end_pct_j = None
+        if BF_base_j is not None and BF_base_j > 0 and BF_end_j is not None:
+            bf_end_pct_j = float(100.0 * BF_end_j / BF_base_j)
+        
         per_stim.append({
             'pulse_index': pulse['index'],
             'n_beats': n_beats,
@@ -609,7 +614,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'time_to_peak_sec': TimeToPeak_j,
             'amplitude': Amplitude_j,
             'bf_end': BF_end_j,
-            'bf_end_pct': float(100.0 * BF_end_j / BF_base_j) if BF_base_j and BF_base_j > 0 and BF_end_j else None,
+            'bf_end_pct': bf_end_pct_j,
             'rate_of_change': RateOfChange_j,
         })
 
