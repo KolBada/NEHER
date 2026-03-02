@@ -2202,8 +2202,79 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_facecolor('#E5E7EB')
                 cell.set_text_props(fontweight='bold')
         
+        # Add Normalized HRA section below main HRA table
+        norm_hra_start_y = 1.0 - hra_table_height - 0.18
+        
+        # Normalized HRA title
+        ax_hra.text(0.02, norm_hra_start_y, 'Normalized to Baseline — Light-Induced HRA', 
+                   fontsize=9, fontweight='bold', color='#374151', transform=ax_hra.transAxes)
+        
+        norm_hra_headers = ['Recording', 'Base BF%', 'Avg BF%', 'Peak BF%', 'Rec BF%']
+        norm_hra_data = [norm_hra_headers]
+        
+        light_norm_sums_pdf = {'baseline_bf': [], 'avg_bf': [], 'peak_bf': [], 'recovery_bf': []}
+        
+        for rec in recordings:
+            n_light_baseline_bf = norm_val_pdf(rec.get('light_baseline_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
+            n_light_avg_bf = norm_val_pdf(rec.get('light_avg_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
+            n_light_peak_bf = norm_val_pdf(rec.get('light_peak_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
+            n_light_recovery_bf = norm_val_pdf(rec.get('light_recovery_bf'), avg_baseline_bf_pdf) if 'norm_val_pdf' in dir() else None
+            
+            # Fallback calculation if norm_val_pdf not available
+            if 'norm_val_pdf' not in dir():
+                def local_norm(val, avg):
+                    if val is None or avg == 0:
+                        return None
+                    return 100 * val / avg
+                bfs_temp = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
+                avg_bf_temp = sum(bfs_temp) / len(bfs_temp) if bfs_temp else 1
+                n_light_baseline_bf = local_norm(rec.get('light_baseline_bf'), avg_bf_temp)
+                n_light_avg_bf = local_norm(rec.get('light_avg_bf'), avg_bf_temp)
+                n_light_peak_bf = local_norm(rec.get('light_peak_bf'), avg_bf_temp)
+                n_light_recovery_bf = local_norm(rec.get('light_recovery_bf'), avg_bf_temp)
+            
+            norm_hra_data.append([
+                rec.get('name', '')[:12],
+                fmt(n_light_baseline_bf, 1),
+                fmt(n_light_avg_bf, 1),
+                fmt(n_light_peak_bf, 1),
+                fmt(n_light_recovery_bf, 1),
+            ])
+            
+            for key, val in [('baseline_bf', n_light_baseline_bf), ('avg_bf', n_light_avg_bf),
+                             ('peak_bf', n_light_peak_bf), ('recovery_bf', n_light_recovery_bf)]:
+                if val is not None:
+                    light_norm_sums_pdf[key].append(val)
+        
+        norm_hra_data.append([
+            f'Avg (n={len(recordings)})',
+            fmt(sum(light_norm_sums_pdf['baseline_bf']) / len(light_norm_sums_pdf['baseline_bf']) if light_norm_sums_pdf['baseline_bf'] else None, 1),
+            fmt(sum(light_norm_sums_pdf['avg_bf']) / len(light_norm_sums_pdf['avg_bf']) if light_norm_sums_pdf['avg_bf'] else None, 1),
+            fmt(sum(light_norm_sums_pdf['peak_bf']) / len(light_norm_sums_pdf['peak_bf']) if light_norm_sums_pdf['peak_bf'] else None, 1),
+            fmt(sum(light_norm_sums_pdf['recovery_bf']) / len(light_norm_sums_pdf['recovery_bf']) if light_norm_sums_pdf['recovery_bf'] else None, 1),
+        ])
+        
+        n_norm_hra_rows = len(norm_hra_data)
+        norm_hra_row_height = min(0.05, 0.20 / n_norm_hra_rows)
+        norm_hra_table_height = norm_hra_row_height * n_norm_hra_rows
+        
+        table_norm_hra = ax_hra.table(cellText=norm_hra_data, loc='upper center', cellLoc='center',
+                                      colWidths=[0.22, 0.18, 0.18, 0.18, 0.18],
+                                      bbox=[0.02, norm_hra_start_y - norm_hra_table_height - 0.02, 0.96, norm_hra_table_height])
+        table_norm_hra.auto_set_font_size(False)
+        table_norm_hra.set_fontsize(7)
+        
+        for (row, col), cell in table_norm_hra.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#06B6D4')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(norm_hra_data) - 1:
+                cell.set_facecolor('#E5E7EB')
+                cell.set_text_props(fontweight='bold')
+        
         # Corrected HRV Section - lower half with more space
-        ax_hrv = fig3.add_axes([0.12, 0.05, 0.76, 0.42])
+        ax_hrv = fig3.add_axes([0.12, 0.05, 0.76, 0.38])
         ax_hrv.axis('off')
         
         # HRV subtitle positioned clearly above table
