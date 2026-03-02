@@ -702,6 +702,9 @@ function App() {
     setLightHrvDetrended(null);
     setLightResponse(null);
     setRecordingName('');
+    setRecordingDate('');
+    setOrganoidInfo([{ age: '', cell_type: '' }]);
+    setRecordingDescription('');
     setSelectedDrugs([]);
     setDrugSettings({});
     setOtherDrugs([]);
