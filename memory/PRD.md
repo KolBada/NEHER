@@ -10,20 +10,17 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented (Mar 2026)
 
-### Tooltip Consistency Update (Mar 2, 2026)
-- [x] **Unified tooltip text** across single-recording analysis views and folder comparison view
-- [x] **AnalysisPanel.js tooltips** now match FolderComparison.js for HRV metrics
-- [x] **LightPanel.js tooltips** updated to match comparison view HRA tooltips:
-  - Baseline BF: "Beat Frequency (bpm)"
-  - Avg BF: "Average Beat Frequency during light stimulation"
-  - Peak BF: "Maximum Beat Frequency reached during light stimulation"
-  - Peak %: "Normalized Peak: 100 × Peak/Baseline"
-  - Time to Peak (1st): "Time To Peak (1st stim)"
-  - Time to Peak (avg): "Time To Peak (average)"
-  - Recovery BF: "Last beat frequency before the drop"
-  - Recovery %: "Recovery %: 100 × Recovery/Baseline"
-  - Amplitude: "Amplitude: Peak BF − Recovery BF"
-  - Rate of Change: "Rate of Change"
+### UI Reorganization (Mar 2, 2026)
+- [x] **Tab Order Changed**: Trace → Spontaneous Activity → Light Stimulus → Save Recording → Export
+- [x] **Organoid/Cell Information Moved**: From Export tab to Save Recording tab (before the save boxes)
+- [x] **Save Recording Requirements**: Now only requires recording date, no PDF export prerequisite
+- [x] **Export Tab Simplified**: Now contains only export functionality (CSV, XLSX, PDF buttons)
+
+### Tooltip Enhancements (Mar 2, 2026)
+- [x] **More Explicit Tooltip Text** for key metrics in both single-recording and comparison views:
+  - Baseline BF: "Mean Beat Frequency from -2 to -1 min before first light stimulation"
+  - Recovery BF: "Beat Frequency at the end of the stimulation period, before the drop"
+  - Rate of Change (RoC): "Slope of BF during stimulation, normalized by mean BF"
 - [x] **Metadata header**: Renamed "Light Stim (ISI) Info" → "Light Stim Info"
 - [x] **ISI tooltip in cell**: Added (i) tooltip for "ISI" inside the metadata cell content
 
