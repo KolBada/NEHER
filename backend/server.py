@@ -707,7 +707,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
                     if minute_num == drug_bf_minute:
                         drug_bf = pm.get('mean_bf')
                         break
-                except:
+                except (ValueError, TypeError, AttributeError):
                     pass
         result['drug_bf'] = drug_bf
         
