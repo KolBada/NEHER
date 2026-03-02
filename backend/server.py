@@ -915,7 +915,7 @@ async def export_xlsx(request: ExportRequest):
                     if trans_days is not None:
                         trans_parts.append(f"D{trans_days}")
                     
-                    trans_label = f'  └ Transfection' if len(request.organoid_info) > 1 else 'Transfection'
+                    trans_label = '  └ Transfection' if len(request.organoid_info) > 1 else 'Transfection'
                     ws_summary[f'A{current_row}'] = trans_label
                     ws_summary[f'B{current_row}'] = ' - '.join(trans_parts)
                     for col in ['A', 'B']:
