@@ -1304,8 +1304,12 @@ async def export_pdf(request: ExportRequest):
                     summary_rows.append([f'Drug pNN50₇₀ ({drug_hrv_range})', f"{drug_pnn50:.1f}%"])
             
             # Analysis Summary - only essential info
-            if request.summary or request.perfusion_params:
+            if request.summary or request.perfusion_params or request.original_filename:
                 summary_rows.append(['', ''])  # Separator
+                
+                # Add original ABF filename first
+                if request.original_filename:
+                    summary_rows.append(['Original File', request.original_filename])
                 
                 if request.summary:
                     allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range']
@@ -1326,6 +1330,25 @@ async def export_pdf(request: ExportRequest):
                 # Light Stimulation status
                 if request.summary and 'Light Stimulation' in request.summary:
                     summary_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
+            
+            # Organoid/Cell Information section
+            if request.recording_date or request.organoid_info or request.recording_description:
+                summary_rows.append(['', ''])  # Separator
+                summary_rows.append(['--- Organoid/Cell Info ---', ''])
+                
+                if request.recording_date:
+                    summary_rows.append(['Recording Date', request.recording_date])
+                
+                if request.organoid_info:
+                    for idx, info in enumerate(request.organoid_info, 1):
+                        age = info.get('age', '')
+                        cell_type = info.get('cell_type', '')
+                        label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
+                        value = f"{cell_type} - Age: {age}" if cell_type and age else (cell_type or age or '—')
+                        summary_rows.append([label, value])
+                
+                if request.recording_description:
+                    summary_rows.append(['Description', request.recording_description])
             
             if summary_rows:
                 table = ax_summary.table(
