@@ -415,7 +415,16 @@ export default function AnalysisPanel({
                   />
                 ))}
                 <Line type="monotone" dataKey="bf" stroke={CHART_COLORS.bf} strokeWidth={1} dot={false} isAnimationActive={false} />
-                <Brush dataKey="time" height={20} stroke="#3f3f46" fill="#0c0c0e" tickFormatter={(v) => v.toFixed(1)} />
+                <Brush 
+                  dataKey="time" 
+                  height={20} 
+                  stroke="#3f3f46" 
+                  fill="#0c0c0e" 
+                  tickFormatter={(v) => v.toFixed(1)}
+                  startIndex={bfBrushIndices.start}
+                  endIndex={bfBrushIndices.end}
+                  onChange={handleBfBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
