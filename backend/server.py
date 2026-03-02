@@ -835,40 +835,6 @@ def extract_comparison_metrics(recording: dict) -> dict:
         result['light_hrv_pnn50'] = final.get('pnn50_detrended')
     
     return result
-            
-            # Recovery, Amplitude, Rate of Change
-            recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
-            result['light_recovery_bf'] = np.mean(recovery_bf_vals) if recovery_bf_vals else None
-            recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
-            result['light_recovery_pct'] = np.mean(recovery_pct_vals) if recovery_pct_vals else None
-            amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
-            result['light_amplitude'] = np.mean(amplitude_vals) if amplitude_vals else None
-            roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
-            result['light_roc'] = np.mean(roc_vals) if roc_vals else None
-        else:
-            for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
-                       'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
-                       'light_amplitude', 'light_roc']:
-                result[key] = None
-    else:
-        for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
-                   'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
-                   'light_amplitude', 'light_roc']:
-            result[key] = None
-    
-    # Corrected Light HRV (detrended)
-    light_metrics_detrended = state.get('light_metrics_detrended', {})
-    if light_metrics_detrended and light_metrics_detrended.get('final'):
-        final = light_metrics_detrended['final']
-        result['light_hrv_ln_rmssd70'] = final.get('ln_rmssd70_detrended')
-        result['light_hrv_ln_sdnn70'] = final.get('ln_sdnn70_detrended')
-        result['light_hrv_pnn50'] = final.get('pnn50_detrended')
-    else:
-        result['light_hrv_ln_rmssd70'] = None
-        result['light_hrv_ln_sdnn70'] = None
-        result['light_hrv_pnn50'] = None
-    
-    return result
 
 
 def compute_folder_averages(recordings_data: list, metrics: list) -> dict:
