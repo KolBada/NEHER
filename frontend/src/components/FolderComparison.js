@@ -361,43 +361,80 @@ export default function FolderComparison({ folder, onBack }) {
               <CardTitle className="text-sm font-medium text-zinc-300">Recording Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="max-h-[500px]">
+              <ScrollArea className="max-h-[600px]">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800">
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Filename</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Date</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Cell Type</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Line</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Condition</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Drug</th>
-                      <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Stim Protocol</th>
-                      <th className="text-center py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">hSpO Age</th>
-                      <th className="text-center py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">hCO Age</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Recording</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Date</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">hSpO Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">hCO Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-green-400 bg-green-950/30 whitespace-nowrap">Drug Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">Light Stim</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {recordings?.map((rec, idx) => (
-                      <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                        <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                        <td className="py-2 px-2 text-zinc-400">{rec.filename}</td>
-                        <td className="py-2 px-2 text-zinc-300">{rec.recording_date || '—'}</td>
-                        <td className="py-2 px-2 text-zinc-300">{rec.cell_type || '—'}</td>
-                        <td className="py-2 px-2 text-zinc-300">{rec.line_name || '—'}</td>
-                        <td className="py-2 px-2 text-zinc-300">
-                          {rec.condition === 'Control' ? (
-                            <Badge variant="outline" className="text-[10px] border-green-700/50 text-green-400 px-1.5 py-0">Control</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px] border-purple-700/50 text-purple-400 px-1.5 py-0">{rec.condition}</Badge>
-                          )}
-                        </td>
-                        <td className="py-2 px-2 text-zinc-300">{rec.drug_names || '—'}</td>
-                        <td className="py-2 px-2 text-zinc-300">{rec.stim_protocol || '—'}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300">{rec.hspo_age !== null ? rec.hspo_age : '—'}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300">{rec.hco_age !== null ? rec.hco_age : '—'}</td>
-                      </tr>
-                    ))}
+                    {recordings?.map((rec, idx) => {
+                      // Format hSpO info
+                      const hspoInfo = rec.hspo_info;
+                      const hspoDisplay = hspoInfo ? (
+                        <div className="text-[10px] leading-tight">
+                          <div>{hspoInfo.line_name || '—'}</div>
+                          {hspoInfo.passage && <div className="text-zinc-500">P{hspoInfo.passage}</div>}
+                          {hspoInfo.age !== null && <div className="text-zinc-500">D{hspoInfo.age}</div>}
+                          {hspoInfo.has_transduction && <div className="text-green-400">Transduced</div>}
+                        </div>
+                      ) : '—';
+                      
+                      // Format hCO info
+                      const hcoInfo = rec.hco_info;
+                      const hcoDisplay = hcoInfo ? (
+                        <div className="text-[10px] leading-tight">
+                          <div>{hcoInfo.line_name || '—'}</div>
+                          {hcoInfo.passage && <div className="text-zinc-500">P{hcoInfo.passage}</div>}
+                          {hcoInfo.age !== null && <div className="text-zinc-500">D{hcoInfo.age}</div>}
+                        </div>
+                      ) : '—';
+                      
+                      // Format drug info
+                      const drugDisplay = rec.has_drug && rec.drug_info?.length > 0 ? (
+                        <div className="text-[10px] leading-tight">
+                          {rec.drug_info.map((drug, i) => (
+                            <div key={i} className="mb-1">
+                              <div className="font-medium">{drug.name}</div>
+                              {drug.concentration && <div className="text-zinc-500">{drug.concentration}</div>}
+                              {drug.perfusion_time && <div className="text-zinc-500">{drug.perfusion_time} min</div>}
+                            </div>
+                          ))}
+                        </div>
+                      ) : <span className="text-zinc-600">Control</span>;
+                      
+                      // Format light stim info
+                      const lightDisplay = rec.has_light_stim ? (
+                        <div className="text-[10px] leading-tight">
+                          <div>{rec.stim_duration}s stim</div>
+                          {rec.isi_structure && <div className="text-zinc-500">ISI: {rec.isi_structure}</div>}
+                        </div>
+                      ) : <span className="text-zinc-600">—</span>;
+                      
+                      return (
+                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top">
+                          <td className="py-2 px-1.5">
+                            <div className="text-zinc-300 font-medium">{rec.name}</div>
+                            <div className="text-[10px] text-zinc-500">{rec.filename}</div>
+                          </td>
+                          <td className="py-2 px-1.5 text-zinc-300">{rec.recording_date || '—'}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-amber-950/5">{hspoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-purple-950/5">{hcoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300">{rec.fusion_date || '—'}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-green-950/5">{drugDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-cyan-950/5">{lightDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-400 text-[10px] max-w-[150px] truncate">{rec.recording_description || '—'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </ScrollArea>
