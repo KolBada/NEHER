@@ -335,6 +335,22 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Metadata exported to PDF and Excel summary sheets
   - Metadata saved with recording state for persistence
 
+### P0 - Completed (Mar 2, 2026 - Latest)
+- [x] **Expandable Normalization Sections in Folder Comparison:**
+  - **Spontaneous Activity Normalization Section:**
+    - Expandable section below main table, collapsed by default
+    - Normalizes Baseline BF, ln(RMSSD), ln(SDNN), pNN50 to cohort baseline average
+    - Drug columns also normalized to cohort baseline
+    - Folder Average row shows 100.0% for baseline columns
+    - Color scheme: amber/orange for baseline, purple for drug
+  - **Light HRA Normalization Section:**
+    - Expandable section below Light-Induced HRA table, collapsed by default
+    - Normalizes Baseline BF, Avg BF, Peak BF, Recovery BF to cohort spontaneous baseline average
+    - Allows cross-comparison between spontaneous and light response metrics
+    - Color scheme: cyan for light columns
+  - Both sections feature smooth expand/collapse animation with rotating arrow
+  - data-testid attributes for automated testing
+
 ### P1 - In Progress
 - [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
 - [ ] Verify Excel export highlighting fix (baseline vs drug row colors)
