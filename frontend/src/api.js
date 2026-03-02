@@ -3,10 +3,13 @@ import axios from 'axios';
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const api = {
-  upload: (formData) =>
+  upload: (formData, onUploadProgress) =>
     axios.post(`${API_URL}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 300000,
+      timeout: 600000, // 10 minutes for large files
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      onUploadProgress: onUploadProgress,
     }),
 
   detectBeats: (data) => axios.post(`${API_URL}/detect-beats`, data),
