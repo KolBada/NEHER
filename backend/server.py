@@ -1358,19 +1358,28 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
         ws_meta.cell(row=row_idx, column=11, value=rec.get('fusion_date', '')).font = data_font
         ws_meta.cell(row=row_idx, column=12, value=rec.get('condition', '')).font = data_font
         
-        # Drug info
+        # Drug info - use dashes if no drug
         drug_info = rec.get('drug_info', [])
-        drug_names = ', '.join([d.get('name', '') for d in drug_info]) if drug_info else ''
-        drug_concs = ', '.join([str(d.get('concentration', '')) for d in drug_info if d.get('concentration')]) if drug_info else ''
-        drug_times = ', '.join([str(d.get('perfusion_time', '')) for d in drug_info if d.get('perfusion_time')]) if drug_info else ''
+        if rec.get('has_drug') and drug_info:
+            drug_names = ', '.join([d.get('name', '') for d in drug_info]) if drug_info else ''
+            drug_concs = ', '.join([str(d.get('concentration', '')) for d in drug_info if d.get('concentration')]) if drug_info else ''
+            drug_times = ', '.join([str(d.get('perfusion_time', '')) for d in drug_info if d.get('perfusion_time')]) if drug_info else ''
+        else:
+            drug_names = '—'
+            drug_concs = '—'
+            drug_times = '—'
         ws_meta.cell(row=row_idx, column=13, value=drug_names).font = data_font
         ws_meta.cell(row=row_idx, column=14, value=drug_concs).font = data_font
         ws_meta.cell(row=row_idx, column=15, value=drug_times).font = data_font
         
-        # Light stim info
-        ws_meta.cell(row=row_idx, column=16, value=f"{rec.get('stim_duration', '')}s" if rec.get('has_light_stim') else '').font = data_font
-        ws_meta.cell(row=row_idx, column=17, value=rec.get('isi_structure', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=18, value=rec.get('recording_description', '')).font = data_font
+        # Light stim info - use dashes if no light stim
+        if rec.get('has_light_stim'):
+            ws_meta.cell(row=row_idx, column=16, value=f"{rec.get('stim_duration', '')}s").font = data_font
+            ws_meta.cell(row=row_idx, column=17, value=rec.get('isi_structure', '') or '—').font = data_font
+        else:
+            ws_meta.cell(row=row_idx, column=16, value='—').font = data_font
+            ws_meta.cell(row=row_idx, column=17, value='—').font = data_font
+        ws_meta.cell(row=row_idx, column=18, value=rec.get('recording_description', '') or '—').font = data_font
         
         for col in range(1, 19):
             ws_meta.cell(row=row_idx, column=col).border = thin_border
