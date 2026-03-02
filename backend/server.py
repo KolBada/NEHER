@@ -1388,174 +1388,300 @@ async def export_pdf(request: ExportRequest):
             fig1.text(0.5, 0.86, f'Treatment: {request.drug_used}', ha='center', fontsize=11, 
                       fontweight='bold', color='#7c3aed')
 
-        # Summary metrics in a clean table format (Cell magazine style)
-        if request.summary or request.organoid_info or request.original_filename:
-            ax_summary = fig1.add_axes([0.1, 0.35, 0.8, 0.45])
-            ax_summary.axis('off')
-            
-            # Build summary data - Analysis Summary and Organoid/Cell Info only
-            summary_rows = []
-            
-            # Analysis Summary section
-            summary_rows.append(['ANALYSIS SUMMARY', ''])
-            
-            # Add original ABF filename first
-            if request.original_filename:
-                summary_rows.append(['Original File', request.original_filename])
-            
-            if request.summary:
-                allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range']
-                for k, v in request.summary.items():
-                    if v is not None and k in allowed_keys:
-                        summary_rows.append([k, str(v)])
-            
-            # Add perfusion parameters
-            if request.perfusion_params:
-                pp = request.perfusion_params
-                summary_rows.append(['Perfusion Start', f"{pp.get('perfusion_start', 0)} min"])
-                summary_rows.append(['Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"])
-                if pp.get('perfusion_time_bf') is not None:
-                    summary_rows.append(['Perfusion Time (BF)', f"{pp.get('perfusion_time_bf')} min"])
-                if pp.get('perfusion_time_hrv') is not None:
-                    summary_rows.append(['Perfusion Time (HRV)', f"{pp.get('perfusion_time_hrv')} min"])
-            
-            # Light Stimulation status
-            if request.summary and 'Light Stimulation' in request.summary:
-                summary_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
-            
-            # Organoid/Cell Information section
-            if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:
-                summary_rows.append(['', ''])  # Separator
-                summary_rows.append(['ORGANOID/CELL INFO', ''])
-                
-                if request.recording_date:
-                    summary_rows.append(['Recording Date', request.recording_date])
-                
-                if request.organoid_info:
-                    for idx, info in enumerate(request.organoid_info, 1):
-                        cell_type = info.get('cell_type', '')
-                        other_cell_type = info.get('other_cell_type', '')
-                        line_name = info.get('line_name', '')
-                        passage_number = info.get('passage_number')
-                        age_at_recording = info.get('age_at_recording')
-                        transfection = info.get('transfection')
-                        
-                        # Resolve cell type display name
-                        cell_type_display = ''
-                        if cell_type == 'hSpO':
-                            cell_type_display = 'hSpO'
-                        elif cell_type == 'hCO':
-                            cell_type_display = 'hCO'
-                        elif cell_type == 'other' and other_cell_type:
-                            cell_type_display = other_cell_type
-                        elif cell_type and cell_type not in ['hSpO', 'hCO', 'other']:
-                            cell_type_display = cell_type
-                        
-                        label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
-                        
-                        # Build value string: Type - Line - P# - Age
-                        parts = []
-                        if cell_type_display:
-                            parts.append(cell_type_display)
-                        if line_name:
-                            parts.append(line_name)
-                        if passage_number:
-                            parts.append(f"P{passage_number}")
-                        if age_at_recording is not None:
-                            parts.append(f"D{age_at_recording}")
-                        
-                        value = ' - '.join(parts) if parts else '—'
-                        summary_rows.append([label, value])
-                        
-                        # Add transfection info if present
-                        if transfection and transfection.get('technique'):
-                            technique = transfection.get('technique', '')
-                            if technique == 'other':
-                                technique = transfection.get('other_technique', 'Other')
-                            trans_name = transfection.get('name', '')
-                            trans_amount = transfection.get('amount', '')
-                            trans_days = transfection.get('days_since_transfection')
-                            
-                            trans_parts = [technique.capitalize()]
-                            if trans_name:
-                                trans_parts.append(trans_name)
-                            if trans_amount:
-                                trans_parts.append(f"{trans_amount} µL")
-                            if trans_days is not None:
-                                trans_parts.append(f"D{trans_days}")
-                            
-                            summary_rows.append(['  Transfection', ' - '.join(trans_parts)])
-                
-                # Fusion date (shared for all samples)
-                if request.fusion_date or request.days_since_fusion is not None:
-                    fusion_value = request.fusion_date or ''
-                    if request.days_since_fusion is not None:
-                        fusion_value = f"{fusion_value} (D{request.days_since_fusion})" if fusion_value else f"D{request.days_since_fusion}"
-                    summary_rows.append(['Fusion Date', fusion_value])
-                
-                if request.recording_description:
-                    summary_rows.append(['Description', request.recording_description])
-            
-            if summary_rows:
-                # Helper function to wrap long text for PDF table
-                def wrap_text(text, max_chars=50):
-                    """Wrap text to fit in table cell."""
-                    if not text or len(text) <= max_chars:
-                        return text
-                    words = text.split(' ')
-                    lines = []
-                    current_line = ""
-                    for word in words:
-                        if len(current_line) + len(word) + 1 <= max_chars:
-                            current_line = f"{current_line} {word}".strip()
-                        else:
-                            if current_line:
-                                lines.append(current_line)
-                            current_line = word
+        # Summary metrics in a clean two-column layout (Cell magazine style)
+        # Left column: Analysis Summary + Organoid/Cell Info
+        # Right column: Baseline Metrics + Drug Metrics + Light Metrics
+        
+        # Helper function to wrap long text for PDF table
+        def wrap_text(text, max_chars=40):
+            """Wrap text to fit in table cell."""
+            if not text or len(str(text)) <= max_chars:
+                return str(text) if text else ''
+            words = str(text).split(' ')
+            lines = []
+            current_line = ""
+            for word in words:
+                if len(current_line) + len(word) + 1 <= max_chars:
+                    current_line = f"{current_line} {word}".strip()
+                else:
                     if current_line:
                         lines.append(current_line)
-                    return '\n'.join(lines)
-                
-                # Wrap long values in the second column
-                wrapped_rows = []
-                for metric, value in summary_rows:
-                    wrapped_value = wrap_text(str(value)) if value else value
-                    wrapped_rows.append([metric, wrapped_value])
-                
-                table = ax_summary.table(
-                    cellText=wrapped_rows,
-                    loc='center',
-                    cellLoc='left',
-                    colWidths=[0.35, 0.55]
-                )
-                table.auto_set_font_size(False)
-                table.set_fontsize(9)
-                table.scale(1.0, 1.5)
-                
-                # Cell magazine style formatting
-                for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#e5e5e5')
-                    cell.set_text_props(wrap=True)
-                    text = cell.get_text().get_text()
+                    current_line = word
+            if current_line:
+                lines.append(current_line)
+            return '\n'.join(lines)
+        
+        # LEFT COLUMN: Analysis Summary + Organoid/Cell Info
+        ax_left = fig1.add_axes([0.05, 0.12, 0.42, 0.7])
+        ax_left.axis('off')
+        
+        left_rows = []
+        left_rows.append(['ANALYSIS SUMMARY', ''])
+        
+        if request.original_filename:
+            left_rows.append(['Original File', request.original_filename])
+        
+        if request.summary:
+            allowed_keys = ['Total Beats', 'Kept Beats', 'Removed Beats', 'Filter Range']
+            for k, v in request.summary.items():
+                if v is not None and k in allowed_keys:
+                    left_rows.append([k, str(v)])
+        
+        # Perfusion parameters
+        if request.perfusion_params:
+            pp = request.perfusion_params
+            left_rows.append(['Perfusion Start', f"{pp.get('perfusion_start', 0)} min"])
+            left_rows.append(['Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"])
+        
+        # Light Stimulation status
+        if request.summary and 'Light Stimulation' in request.summary:
+            left_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
+        
+        # Organoid/Cell Info section
+        if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:
+            left_rows.append(['', ''])
+            left_rows.append(['ORGANOID/CELL INFO', ''])
+            
+            if request.recording_date:
+                left_rows.append(['Recording Date', request.recording_date])
+            
+            if request.organoid_info:
+                for idx, info in enumerate(request.organoid_info, 1):
+                    cell_type = info.get('cell_type', '')
+                    other_cell_type = info.get('other_cell_type', '')
+                    line_name = info.get('line_name', '')
+                    passage_number = info.get('passage_number')
+                    age_at_recording = info.get('age_at_recording')
+                    transfection = info.get('transfection')
                     
-                    # Section headers (uppercase)
-                    if text in ['ANALYSIS SUMMARY', 'ORGANOID/CELL INFO']:
-                        cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=10)
-                        cell.set_facecolor('#f5f5f5')
-                        cell.set_height(0.05)
-                    elif text == '':
-                        cell.set_facecolor('white')
-                        cell.set_height(0.02)
+                    cell_type_display = ''
+                    if cell_type == 'hSpO':
+                        cell_type_display = 'hSpO'
+                    elif cell_type == 'hCO':
+                        cell_type_display = 'hCO'
+                    elif cell_type == 'other' and other_cell_type:
+                        cell_type_display = other_cell_type
+                    elif cell_type and cell_type not in ['hSpO', 'hCO', 'other']:
+                        cell_type_display = cell_type
+                    
+                    label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
+                    parts = []
+                    if cell_type_display:
+                        parts.append(cell_type_display)
+                    if line_name:
+                        parts.append(line_name)
+                    if passage_number:
+                        parts.append(f"P{passage_number}")
+                    if age_at_recording is not None:
+                        parts.append(f"D{age_at_recording}")
+                    
+                    left_rows.append([label, ' - '.join(parts) if parts else '—'])
+                    
+                    if transfection and transfection.get('technique'):
+                        technique = transfection.get('technique', '')
+                        if technique == 'other':
+                            technique = transfection.get('other_technique', 'Other')
+                        trans_name = transfection.get('name', '')
+                        trans_amount = transfection.get('amount', '')
+                        trans_days = transfection.get('days_since_transfection')
+                        
+                        trans_parts = [technique.capitalize()]
+                        if trans_name:
+                            trans_parts.append(trans_name)
+                        if trans_amount:
+                            trans_parts.append(f"{trans_amount} µL")
+                        if trans_days is not None:
+                            trans_parts.append(f"D{trans_days}")
+                        
+                        left_rows.append(['  └ Transfection', ' - '.join(trans_parts)])
+            
+            if request.fusion_date or request.days_since_fusion is not None:
+                fusion_value = request.fusion_date or ''
+                if request.days_since_fusion is not None:
+                    fusion_value = f"{fusion_value} (D{request.days_since_fusion})" if fusion_value else f"D{request.days_since_fusion}"
+                left_rows.append(['Fusion Date', fusion_value])
+            
+            if request.recording_description:
+                left_rows.append(['Description', wrap_text(request.recording_description, 35)])
+        
+        # Create left table
+        if left_rows:
+            wrapped_left = [[wrap_text(m, 20), wrap_text(v, 35)] for m, v in left_rows]
+            table_left = ax_left.table(
+                cellText=wrapped_left,
+                loc='upper center',
+                cellLoc='left',
+                colWidths=[0.4, 0.6]
+            )
+            table_left.auto_set_font_size(False)
+            table_left.set_fontsize(8)
+            table_left.scale(1.0, 1.4)
+            
+            for (row, col), cell in table_left.get_celld().items():
+                cell.set_edgecolor('#e0e0e0')
+                text = cell.get_text().get_text()
+                if text in ['ANALYSIS SUMMARY', 'ORGANOID/CELL INFO']:
+                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=9)
+                    cell.set_facecolor('#f0f0f0')
+                elif text == '':
+                    cell.set_facecolor('white')
+                    cell.set_height(0.015)
+                else:
+                    cell.set_facecolor('white')
+                    if col == 0:
+                        cell.set_text_props(color='#6b7280', fontsize=8)
+                    else:
+                        cell.set_text_props(color='#1f2937', fontsize=8)
+        
+        # RIGHT COLUMN: Baseline + Drug + Light Metrics
+        ax_right = fig1.add_axes([0.52, 0.12, 0.43, 0.7])
+        ax_right.axis('off')
+        
+        right_rows = []
+        
+        # Baseline Metrics
+        right_rows.append(['BASELINE METRICS', ''])
+        if request.baseline:
+            bf_range = request.baseline.get('baseline_bf_range', '1-2 min')
+            hrv_range = request.baseline.get('baseline_hrv_range', '0-3 min')
+            bf_val = request.baseline.get('baseline_bf')
+            ln_rmssd = request.baseline.get('baseline_ln_rmssd70')
+            sdnn = request.baseline.get('baseline_sdnn')
+            pnn50 = request.baseline.get('baseline_pnn50')
+            
+            right_rows.append([f'Mean BF ({bf_range})', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
+            right_rows.append([f'ln(RMSSD₇₀) ({hrv_range})', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
+            right_rows.append([f'ln(SDNN₇₀) ({hrv_range})', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
+            right_rows.append([f'pNN50₇₀ ({hrv_range})', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+        else:
+            right_rows.append(['Status', 'Not available'])
+        
+        # Drug Metrics
+        right_rows.append(['', ''])
+        right_rows.append(['DRUG METRICS', ''])
+        
+        drug_metrics_available = False
+        if request.drug_readout and request.hrv_windows:
+            drug_bf_minute = request.drug_readout.get('bf_minute')
+            drug_hrv_minute = request.drug_readout.get('hrv_minute')
+            
+            drug_hrv_data = None
+            if drug_hrv_minute is not None:
+                for w in request.hrv_windows:
+                    if w.get('minute') == drug_hrv_minute:
+                        drug_hrv_data = w
+                        break
+            
+            drug_bf = None
+            if drug_bf_minute is not None and request.per_minute_data:
+                for pm in request.per_minute_data:
+                    minute_str = pm.get('minute', '0')
+                    try:
+                        minute_num = int(str(minute_str).split('-')[0])
+                        if minute_num == drug_bf_minute:
+                            drug_bf = pm.get('mean_bf')
+                            break
+                    except:
+                        pass
+            
+            if drug_hrv_data or drug_bf is not None:
+                drug_metrics_available = True
+                drug_bf_range = f"{drug_bf_minute}-{drug_bf_minute+1} min" if drug_bf_minute is not None else '—'
+                drug_hrv_range = f"{drug_hrv_minute}-{drug_hrv_minute+3} min" if drug_hrv_minute is not None else '—'
+                
+                right_rows.append([f'Mean BF ({drug_bf_range})', f"{drug_bf:.1f} bpm" if drug_bf is not None else '—'])
+                if drug_hrv_data:
+                    right_rows.append([f'ln(RMSSD₇₀) ({drug_hrv_range})', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data.get('ln_rmssd70') is not None else '—'])
+                    sdnn_d = drug_hrv_data.get('sdnn')
+                    right_rows.append([f'ln(SDNN₇₀) ({drug_hrv_range})', f"{np.log(sdnn_d):.3f}" if sdnn_d and sdnn_d > 0 else '—'])
+                    right_rows.append([f'pNN50₇₀ ({drug_hrv_range})', f"{drug_hrv_data.get('pnn50', 0):.1f}%" if drug_hrv_data.get('pnn50') is not None else '—'])
+        
+        if not drug_metrics_available:
+            right_rows.append(['Status', 'Disabled'])
+        
+        # Light Metrics
+        right_rows.append(['', ''])
+        right_rows.append(['LIGHT METRICS (READOUT)', ''])
+        
+        light_metrics_available = False
+        if request.light_response or request.light_metrics:
+            light_metrics_available = True
+            
+            # HRA metrics - averages
+            if request.light_response:
+                valid_resp = [m for m in request.light_response if m is not None]
+                if valid_resp:
+                    avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
+                    peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
+                    peak_norm = np.mean([r.get('peak_bf_norm', 0) for r in valid_resp if r.get('peak_bf_norm') is not None])
+                    ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid_resp if r.get('time_to_peak_sec') is not None])
+                    
+                    right_rows.append(['Avg BF (mean)', f"{avg_bf:.1f} bpm"])
+                    right_rows.append(['Peak BF (mean)', f"{peak_bf:.1f} bpm"])
+                    right_rows.append(['Normalized Peak (mean)', f"{peak_norm:.1f}%"])
+                    right_rows.append(['Time to Peak (mean)', f"{ttp:.1f} s"])
+            
+            # HRV metrics - medians
+            if request.light_metrics:
+                valid_hrv = [m for m in request.light_metrics if m is not None]
+                if valid_hrv:
+                    ln_rmssd_vals = [m.get('ln_rmssd70') for m in valid_hrv if m.get('ln_rmssd70') is not None]
+                    ln_sdnn_vals = [m.get('ln_sdnn70') for m in valid_hrv if m.get('ln_sdnn70') is not None]
+                    pnn50_vals = [m.get('pnn50') for m in valid_hrv if m.get('pnn50') is not None]
+                    
+                    right_rows.append(['ln(RMSSD₇₀) (median)', f"{np.median(ln_rmssd_vals):.3f}" if ln_rmssd_vals else '—'])
+                    right_rows.append(['ln(SDNN₇₀) (median)', f"{np.median(ln_sdnn_vals):.3f}" if ln_sdnn_vals else '—'])
+                    right_rows.append(['pNN50₇₀ (median)', f"{np.median(pnn50_vals):.1f}%" if pnn50_vals else '—'])
+        
+        if not light_metrics_available:
+            right_rows.append(['Status', 'Disabled'])
+        
+        # Create right table
+        if right_rows:
+            wrapped_right = [[wrap_text(m, 25), wrap_text(v, 20)] for m, v in right_rows]
+            table_right = ax_right.table(
+                cellText=wrapped_right,
+                loc='upper center',
+                cellLoc='left',
+                colWidths=[0.6, 0.4]
+            )
+            table_right.auto_set_font_size(False)
+            table_right.set_fontsize(8)
+            table_right.scale(1.0, 1.4)
+            
+            # Style right table with color coding
+            section_headers = ['BASELINE METRICS', 'DRUG METRICS', 'LIGHT METRICS (READOUT)']
+            baseline_color = '#FEF3C7'  # Yellow
+            drug_color = '#EDE9FE'  # Purple
+            light_color = '#FEF3C7'  # Amber
+            
+            current_section = None
+            for (row, col), cell in table_right.get_celld().items():
+                cell.set_edgecolor('#e0e0e0')
+                text = cell.get_text().get_text()
+                
+                if text in section_headers:
+                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=9)
+                    cell.set_facecolor('#f0f0f0')
+                    current_section = text
+                elif text == '':
+                    cell.set_facecolor('white')
+                    cell.set_height(0.015)
+                else:
+                    # Apply section-specific colors
+                    if current_section == 'BASELINE METRICS':
+                        cell.set_facecolor(baseline_color)
+                    elif current_section == 'DRUG METRICS':
+                        cell.set_facecolor(drug_color)
+                    elif current_section == 'LIGHT METRICS (READOUT)':
+                        cell.set_facecolor(light_color)
                     else:
                         cell.set_facecolor('white')
-                        # Left column (labels) in gray
-                        if col == 0:
-                            cell.set_text_props(color='#6b7280', fontsize=9)
-                        # Right column (values) in dark
-                        else:
-                            cell.set_text_props(color='#1f2937', fontsize=9)
-                        num_lines = str(text).count('\n') + 1
-                        cell.set_height(0.035 * num_lines)
+                    
+                    if col == 0:
+                        cell.set_text_props(color='#374151', fontsize=8)
+                    else:
+                        cell.set_text_props(color='#1f2937', fontsize=8, fontweight='bold')
 
         # Footer
         fig1.text(0.5, 0.02, 'NeuCarS - Cardiac Electrophysiology Analysis Platform', 
