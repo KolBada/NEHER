@@ -993,14 +993,30 @@ async def export_xlsx(request: ExportRequest):
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_response if r.get('peak_bf') is not None])
                 # Use peak_norm_pct (correct field name)
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid_response if r.get('peak_norm_pct') is not None]
-                peak_bf_norm = np.mean(peak_norm_vals) if peak_norm_vals else 0
-                time_to_peak = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
+                peak_bf_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
+                time_to_peak_avg = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
+                # Time to Peak (1st stim)
+                time_to_peak_1st = valid_response[0].get('time_to_peak_sec') if valid_response else None
+                # Recovery BF, Recovery %, Amplitude, Rate of Change - averages
+                recovery_bf_vals = [r.get('bf_end') for r in valid_response if r.get('bf_end') is not None]
+                recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+                recovery_pct_vals = [r.get('bf_end_pct') for r in valid_response if r.get('bf_end_pct') is not None]
+                recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+                amplitude_vals = [r.get('amplitude') for r in valid_response if r.get('amplitude') is not None]
+                amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                roc_vals = [r.get('rate_of_change') for r in valid_response if r.get('rate_of_change') is not None]
+                rate_of_change = np.mean(roc_vals) if roc_vals else None
                 
                 hra_data = [
                     ('Avg BF (bpm)', f"{avg_bf:.1f}"),
                     ('Peak BF (bpm)', f"{peak_bf:.1f}"),
-                    ('Normalized Peak BF (%)', f"{peak_bf_norm:.1f}" if peak_norm_vals else '—'),
-                    ('Time to Peak (s)', f"{time_to_peak:.1f}"),
+                    ('Normalized Peak (%)', f"{peak_bf_norm:.1f}" if peak_bf_norm is not None else '—'),
+                    ('Time to Peak (s)', f"{time_to_peak_avg:.1f}"),
+                    ('Time to Peak 1st (s)', f"{time_to_peak_1st:.1f}" if time_to_peak_1st is not None else '—'),
+                    ('Recovery BF (bpm)', f"{recovery_bf:.1f}" if recovery_bf is not None else '—'),
+                    ('Recovery (%)', f"{recovery_pct:.1f}" if recovery_pct is not None else '—'),
+                    ('Amplitude (bpm)', f"{amplitude:.1f}" if amplitude is not None else '—'),
+                    ('Rate of Change (1/min)', f"{rate_of_change:.4f}" if rate_of_change is not None else '—'),
                 ]
                 for label, value in hra_data:
                     ws_summary[f'A{current_row}'] = label
