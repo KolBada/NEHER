@@ -467,7 +467,9 @@ export default function FolderComparison({ folder, onBack }) {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Mean Beat Frequency from -2 to -1 min before first light stimulation">Baseline BF</InfoTip>
+                        </th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
                           <InfoTip text="Average Beat Frequency during light stimulation">Avg BF</InfoTip>
                         </th>
