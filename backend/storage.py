@@ -355,13 +355,13 @@ async def check_duplicate_recording(db, folder_id: str, filename: str) -> bool:
 async def get_outdated_recordings(db) -> List[dict]:
     """Get all recordings that have an outdated metrics version or no version."""
     recordings = []
-    # Find recordings with old version or no version field
+    # Find recordings with old version or no version field (limit to 500 for performance)
     async for rec in db.recordings.find({
         "$or": [
             {"metrics_version": {"$lt": METRICS_VERSION}},
             {"metrics_version": {"$exists": False}}
         ]
-    }):
+    }).limit(500):
         recordings.append({
             "id": str(rec["_id"]),
             "folder_id": rec["folder_id"],

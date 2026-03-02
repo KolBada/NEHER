@@ -922,9 +922,9 @@ async def get_folder_comparison(folder_id: str):
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     
-    # Get all recordings with full analysis_state
+    # Get all recordings with full analysis_state (limit to 500 for performance)
     recordings_data = []
-    async for rec in db.recordings.find({"folder_id": folder_id}):
+    async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
         recording = {
             "id": str(rec["_id"]),
             "name": rec["name"],
