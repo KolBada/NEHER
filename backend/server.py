@@ -1522,11 +1522,11 @@ async def export_pdf(request: ExportRequest):
                         if trans_name:
                             trans_parts.append(trans_name)
                         if trans_amount:
-                            trans_parts.append(f"{trans_amount} µL")
+                            trans_parts.append(f"{trans_amount}µL")
                         if trans_days is not None:
                             trans_parts.append(f"D{trans_days}")
                         
-                        left_rows.append(['  └ Transfection', ' - '.join(trans_parts)])
+                        left_rows.append(['  Transf.', ' - '.join(trans_parts)])
             
             if request.fusion_date or request.days_since_fusion is not None:
                 fusion_value = request.fusion_date or ''
