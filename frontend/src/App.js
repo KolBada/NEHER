@@ -1278,6 +1278,13 @@ function App() {
               recordingName={recordingName}
               drugUsed={[...selectedDrugs, ...otherDrugs.map(d => d.name)].filter(Boolean).join(',')}
               perMinuteData={perMinuteData}
+              recordingDate={recordingDate}
+              setRecordingDate={setRecordingDate}
+              organoidInfo={organoidInfo}
+              setOrganoidInfo={setOrganoidInfo}
+              recordingDescription={recordingDescription}
+              setRecordingDescription={setRecordingDescription}
+              originalFilename={activeFile?.filename}
             />
           </TabsContent>
 
