@@ -355,7 +355,7 @@ export default function AnalysisPanel({
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
-                  tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+                  tickFormatter={(v) => v.toFixed(1)}
                   label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
@@ -408,7 +408,7 @@ export default function AnalysisPanel({
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
-                  tickFormatter={(v) => `${Number(v).toFixed(0)}`}
+                  tickFormatter={(v) => v.toFixed(1)}
                   label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
