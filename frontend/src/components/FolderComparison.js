@@ -187,7 +187,7 @@ export default function FolderComparison({ folder, onBack }) {
           </TabsTrigger>
           <TabsTrigger value="light-hra" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
             <Zap className="w-3.5 h-3.5 mr-1.5" />
-            Light HRA
+            Light Heart Rate Adaptation
           </TabsTrigger>
           <TabsTrigger value="light-hrv" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
             <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
@@ -257,7 +257,7 @@ export default function FolderComparison({ folder, onBack }) {
         <TabsContent value="light-hra">
           <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Acceleration (HRA)</CardTitle>
+              <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Adaptation</CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="max-h-[500px]">
@@ -371,7 +371,7 @@ export default function FolderComparison({ folder, onBack }) {
                       <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">hCO Info</th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
                       <th className="text-left py-2 px-1.5 font-medium text-green-400 bg-green-950/30 whitespace-nowrap">Drug Info</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">Light Stim</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">Light Stim Info</th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
                     </tr>
                   </thead>
