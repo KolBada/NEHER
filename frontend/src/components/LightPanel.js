@@ -670,7 +670,7 @@ export default function LightPanel({
                     </div>
                     
                     <span className="text-[10px] font-data text-yellow-400 min-w-[100px] text-center">
-                      {formatTimeMinSec(displayPulses[selectedPulseIdx].start_min)} - {formatTimeMinSec(displayPulses[selectedPulseIdx].end_min)}
+                      {formatTimeConfig(displayPulses[selectedPulseIdx].start_min)} - {formatTimeConfig(displayPulses[selectedPulseIdx].end_min)} min
                     </span>
                     
                     <Button
