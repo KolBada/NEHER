@@ -362,7 +362,7 @@ export default function AnalysisPanel({
                   label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                  labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+                  labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                 />
                 {lightPulses && lightPulses.map((pulse, i) => (
@@ -415,7 +415,7 @@ export default function AnalysisPanel({
                   label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
                 <Tooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                  labelFormatter={(v) => `${Number(v).toFixed(2)} min`}
+                  labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
                 />
                 {lightPulses && lightPulses.map((pulse, i) => (
