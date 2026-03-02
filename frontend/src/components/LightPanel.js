@@ -1176,7 +1176,7 @@ export default function LightPanel({
                   <Table>
                     <TableHeader>
                       <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Pulse</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">
                           <span className="flex items-center gap-1">
                             ln(RMSSD₇₀)
