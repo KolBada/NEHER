@@ -212,6 +212,22 @@ export default function FolderComparison({ folder, onBack }) {
     };
   }, [normalizedLightHRA]);
 
+  // Sort recordings alphabetically by name
+  const sortedRecordings = useMemo(() => {
+    if (!comparisonData?.recordings) return [];
+    return [...comparisonData.recordings].sort((a, b) => a.name.localeCompare(b.name));
+  }, [comparisonData]);
+
+  // Sort normalized spontaneous data alphabetically
+  const sortedNormalizedSpontaneous = useMemo(() => {
+    return [...normalizedSpontaneous].sort((a, b) => a.name.localeCompare(b.name));
+  }, [normalizedSpontaneous]);
+
+  // Sort normalized light HRA data alphabetically
+  const sortedNormalizedLightHRA = useMemo(() => {
+    return [...normalizedLightHRA].sort((a, b) => a.name.localeCompare(b.name));
+  }, [normalizedLightHRA]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -363,7 +379,7 @@ export default function FolderComparison({ folder, onBack }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {recordings?.map((rec, idx) => (
+                    {sortedRecordings?.map((rec, idx) => (
                       <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                         <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                         <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.baseline_bf, 1)}</td>
@@ -378,7 +394,7 @@ export default function FolderComparison({ folder, onBack }) {
                     ))}
                     {/* Average Row */}
                     <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
-                      <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={recordings?.length || 0})</td>
+                      <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
                       <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_bf, 1)}</td>
                       <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_rmssd70, 3)}</td>
                       <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_sdnn70, 3)}</td>
@@ -426,7 +442,7 @@ export default function FolderComparison({ folder, onBack }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {normalizedSpontaneous.map((rec, idx) => (
+                        {sortedNormalizedSpontaneous.map((rec, idx) => (
                           <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
@@ -441,7 +457,7 @@ export default function FolderComparison({ folder, onBack }) {
                         ))}
                         {/* Folder Average Row */}
                         <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
-                          <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={normalizedSpontaneous.length})</td>
+                          <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={sortedNormalizedSpontaneous.length})</td>
                           <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_bf, 1)}</td>
                           <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_rmssd, 1)}</td>
                           <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_sdnn, 1)}</td>
@@ -507,7 +523,7 @@ export default function FolderComparison({ folder, onBack }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {recordings?.map((rec, idx) => (
+                      {sortedRecordings?.map((rec, idx) => (
                         <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                           <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                           <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
@@ -524,7 +540,7 @@ export default function FolderComparison({ folder, onBack }) {
                       ))}
                       {/* Average Row */}
                       <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                        <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={recordings?.length || 0})</td>
+                        <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
                         <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
@@ -570,7 +586,7 @@ export default function FolderComparison({ folder, onBack }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {normalizedLightHRA.map((rec, idx) => (
+                          {sortedNormalizedLightHRA.map((rec, idx) => (
                             <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                               <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                               <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
@@ -581,7 +597,7 @@ export default function FolderComparison({ folder, onBack }) {
                           ))}
                           {/* Folder Average Row */}
                           <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                            <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={normalizedLightHRA.length})</td>
+                            <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={sortedNormalizedLightHRA.length})</td>
                             <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
@@ -612,7 +628,7 @@ export default function FolderComparison({ folder, onBack }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {recordings?.map((rec, idx) => (
+                      {sortedRecordings?.map((rec, idx) => (
                         <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                           <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
                           <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_rmssd70, 3)}</td>
@@ -622,7 +638,7 @@ export default function FolderComparison({ folder, onBack }) {
                       ))}
                       {/* Average Row */}
                       <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                        <td className="py-3 px-3 text-cyan-300 text-xs">Folder Average (n={recordings?.length || 0})</td>
+                        <td className="py-3 px-3 text-cyan-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
                         <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
                         <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
                         <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
@@ -663,7 +679,7 @@ export default function FolderComparison({ folder, onBack }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {recordings?.map((rec, idx) => {
+                    {sortedRecordings?.map((rec, idx) => {
                       // Format hSpO info
                       const hspoInfo = rec.hspo_info;
                       const hspoDisplay = hspoInfo ? (
