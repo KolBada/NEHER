@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home, ZoomIn, Minus } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
