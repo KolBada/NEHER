@@ -171,9 +171,9 @@ export default function FolderComparison({ folder, onBack }) {
           <CardContent className="p-4">
             <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Light Stim</p>
             <p className="text-lg font-semibold text-zinc-100">
-              {recordings?.filter(r => r.light_avg_bf !== null).length || 0}
+              {recordings?.filter(r => r.has_light_stim).length || 0}
             </p>
-            <p className="text-[10px] text-zinc-500">recordings with data</p>
+            <p className="text-[10px] text-zinc-500">recordings enabled</p>
           </CardContent>
         </Card>
       </div>
