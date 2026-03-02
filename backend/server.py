@@ -1382,7 +1382,7 @@ async def export_pdf(request: ExportRequest):
                     summary_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
             
             # Organoid/Cell Information section
-            if request.recording_date or request.organoid_info or request.recording_description:
+            if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:
                 summary_rows.append(['', ''])  # Separator
                 summary_rows.append(['--- Organoid/Cell Info ---', ''])
                 
@@ -1393,7 +1393,7 @@ async def export_pdf(request: ExportRequest):
                     for idx, info in enumerate(request.organoid_info, 1):
                         cell_type = info.get('cell_type', '')
                         age_at_recording = info.get('age_at_recording')
-                        days_since_fusion = info.get('days_since_fusion')
+                        transfection = info.get('transfection')
                         
                         label = f'Sample {idx}' if len(request.organoid_info) > 1 else 'Sample'
                         
@@ -1403,11 +1403,35 @@ async def export_pdf(request: ExportRequest):
                             parts.append(cell_type)
                         if age_at_recording is not None:
                             parts.append(f"Age: D{age_at_recording}")
-                        if days_since_fusion is not None:
-                            parts.append(f"Fusion: D{days_since_fusion}")
                         
                         value = ' - '.join(parts) if parts else '—'
                         summary_rows.append([label, value])
+                        
+                        # Add transfection info if present
+                        if transfection and transfection.get('technique'):
+                            technique = transfection.get('technique', '')
+                            if technique == 'other':
+                                technique = transfection.get('other_technique', 'Other')
+                            trans_name = transfection.get('name', '')
+                            trans_amount = transfection.get('amount', '')
+                            trans_days = transfection.get('days_since_transfection')
+                            
+                            trans_parts = [technique.capitalize()]
+                            if trans_name:
+                                trans_parts.append(trans_name)
+                            if trans_amount:
+                                trans_parts.append(trans_amount)
+                            if trans_days is not None:
+                                trans_parts.append(f"D{trans_days}")
+                            
+                            summary_rows.append(['  Transfection', ' - '.join(trans_parts)])
+                
+                # Fusion date (shared for all samples)
+                if request.fusion_date or request.days_since_fusion is not None:
+                    fusion_value = request.fusion_date or ''
+                    if request.days_since_fusion is not None:
+                        fusion_value = f"{fusion_value} (D{request.days_since_fusion})" if fusion_value else f"D{request.days_since_fusion}"
+                    summary_rows.append(['Fusion Date', fusion_value])
                 
                 if request.recording_description:
                     summary_rows.append(['Description', request.recording_description])
