@@ -1519,36 +1519,37 @@ async def export_pdf(request: ExportRequest):
                 left_rows.append(['Fusion Date', fusion_value])
             
             if request.recording_description:
-                left_rows.append(['Description', wrap_text(request.recording_description, 35)])
+                left_rows.append(['Description', wrap_text(request.recording_description, 25)])
         
         # Create left table with better text fitting
         if left_rows:
-            wrapped_left = [[wrap_text(m, 18), wrap_text(v, 30)] for m, v in left_rows]
+            # Use smaller max chars for wrapping to prevent overflow
+            wrapped_left = [[wrap_text(m, 14), wrap_text(v, 22)] for m, v in left_rows]
             table_left = ax_left.table(
                 cellText=wrapped_left,
                 loc='upper center',
                 cellLoc='left',
-                colWidths=[0.4, 0.6]
+                colWidths=[0.35, 0.65]
             )
             table_left.auto_set_font_size(False)
-            table_left.set_fontsize(7)
-            table_left.scale(1.0, 1.3)
+            table_left.set_fontsize(6.5)
+            table_left.scale(1.0, 1.25)
             
             for (row, col), cell in table_left.get_celld().items():
                 cell.set_edgecolor('#e0e0e0')
                 text = cell.get_text().get_text()
-                if text in ['ANALYSIS SUMMARY', 'ORGANOID/CELL INFO']:
-                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=8)
+                if text in ['ANALYSIS SUMMARY', 'SAMPLE INFO']:
+                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=7)
                     cell.set_facecolor('#f0f0f0')
                 elif text == '':
                     cell.set_facecolor('white')
-                    cell.set_height(0.012)
+                    cell.set_height(0.01)
                 else:
                     cell.set_facecolor('white')
                     if col == 0:
-                        cell.set_text_props(color='#6b7280', fontsize=7)
+                        cell.set_text_props(color='#6b7280', fontsize=6.5)
                     else:
-                        cell.set_text_props(color='#1f2937', fontsize=7)
+                        cell.set_text_props(color='#1f2937', fontsize=6.5)
         
         # RIGHT COLUMN: Baseline + Drug + Light Metrics
         ax_right = fig1.add_axes([0.52, 0.08, 0.43, 0.76])
