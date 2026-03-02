@@ -389,7 +389,7 @@ export default function TraceViewer({
               fontSize: 10,
               color: '#fafafa'
             }}
-            labelFormatter={(v) => `${Number(v).toFixed(3)} min`}
+            labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
             formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
           {/* Threshold line */}
