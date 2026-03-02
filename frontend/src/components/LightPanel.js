@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea, ReferenceLine
+  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, Brush
 } from 'recharts';
 
 // Format time in minutes only (e.g., 0.0, 0.5, 1.0, 2.0)
