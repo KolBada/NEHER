@@ -26,6 +26,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Helper component for inline info tooltips
+function InfoTip({ text, children }) {
+  return (
+    <TooltipProvider>
+      <ShadcnTooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-1 cursor-help whitespace-nowrap">
+            {children}
+            <Info className="w-3 h-3 text-white/70 hover:text-white flex-shrink-0" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white">
+          {text}
+        </TooltipContent>
+      </ShadcnTooltip>
+    </TooltipProvider>
+  );
+}
+
 const CHART_COLORS = {
   bf: '#22d3ee',
   nn: '#a3e635',
