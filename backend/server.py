@@ -1630,15 +1630,30 @@ async def export_pdf(request: ExportRequest):
                 if valid_resp:
                     avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
                     peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
-                    # Use peak_norm_pct (correct field name)
                     peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
                     peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                     ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid_resp if r.get('time_to_peak_sec') is not None])
+                    # Time to Peak (1st stim)
+                    ttp_1st = valid_resp[0].get('time_to_peak_sec') if valid_resp else None
+                    # Recovery BF, Recovery %, Amplitude, Rate of Change
+                    recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
+                    recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+                    recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
+                    recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+                    amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
+                    amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                    roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
+                    rate_of_change = np.mean(roc_vals) if roc_vals else None
                     
-                    right_rows.append(['Avg BF (mean)', f"{avg_bf:.1f} bpm"])
-                    right_rows.append(['Peak BF (mean)', f"{peak_bf:.1f} bpm"])
-                    right_rows.append(['Normalized Peak (mean)', f"{peak_norm:.1f}%" if peak_norm is not None else '—'])
-                    right_rows.append(['Time to Peak (mean)', f"{ttp:.1f} s"])
+                    right_rows.append(['Avg BF', f"{avg_bf:.1f} bpm"])
+                    right_rows.append(['Peak BF', f"{peak_bf:.1f} bpm"])
+                    right_rows.append(['Norm. Peak', f"{peak_norm:.1f}%" if peak_norm is not None else '—'])
+                    right_rows.append(['Time to Peak', f"{ttp:.1f} s"])
+                    right_rows.append(['Time to Peak 1st', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'])
+                    right_rows.append(['Recovery BF', f"{recovery_bf:.1f} bpm" if recovery_bf is not None else '—'])
+                    right_rows.append(['Recovery %', f"{recovery_pct:.1f}%" if recovery_pct is not None else '—'])
+                    right_rows.append(['Amplitude', f"{amplitude:.1f} bpm" if amplitude is not None else '—'])
+                    right_rows.append(['Rate of Change', f"{rate_of_change:.4f}" if rate_of_change is not None else '—'])
             
             # Corrected HRV metrics (detrended) - use final medians
             if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
@@ -1647,25 +1662,25 @@ async def export_pdf(request: ExportRequest):
                 ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
                 pnn50_det = final_det.get('pnn50_detrended')
                 
-                right_rows.append(['ln(RMSSD₇₀) corrected', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
-                right_rows.append(['ln(SDNN₇₀) corrected', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
-                right_rows.append(['pNN50₇₀ corrected', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
+                right_rows.append(['ln(RMSSD₇₀) corr.', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
+                right_rows.append(['ln(SDNN₇₀) corr.', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
+                right_rows.append(['pNN50₇₀ corr.', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
         
         if not light_metrics_available:
             right_rows.append(['Status', 'Disabled'])
         
-        # Create right table
+        # Create right table with adjusted column widths for text fitting
         if right_rows:
-            wrapped_right = [[wrap_text(m, 25), wrap_text(v, 20)] for m, v in right_rows]
+            wrapped_right = [[wrap_text(m, 18), wrap_text(v, 15)] for m, v in right_rows]
             table_right = ax_right.table(
                 cellText=wrapped_right,
                 loc='upper center',
                 cellLoc='left',
-                colWidths=[0.6, 0.4]
+                colWidths=[0.55, 0.45]
             )
             table_right.auto_set_font_size(False)
-            table_right.set_fontsize(8)
-            table_right.scale(1.0, 1.4)
+            table_right.set_fontsize(7)
+            table_right.scale(1.0, 1.3)
             
             # Style right table with color coding
             section_headers = ['BASELINE METRICS', 'DRUG METRICS', 'LIGHT METRICS']
@@ -1679,27 +1694,27 @@ async def export_pdf(request: ExportRequest):
                 text = cell.get_text().get_text()
                 
                 if text in section_headers:
-                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=9)
+                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=8)
                     cell.set_facecolor('#f0f0f0')
                     current_section = text
                 elif text == '':
                     cell.set_facecolor('white')
-                    cell.set_height(0.015)
+                    cell.set_height(0.012)
                 else:
                     # Apply section-specific colors
                     if current_section == 'BASELINE METRICS':
                         cell.set_facecolor(baseline_color)
                     elif current_section == 'DRUG METRICS':
                         cell.set_facecolor(drug_color)
-                    elif current_section == 'LIGHT METRICS (READOUT)':
+                    elif current_section == 'LIGHT METRICS':
                         cell.set_facecolor(light_color)
                     else:
                         cell.set_facecolor('white')
                     
                     if col == 0:
-                        cell.set_text_props(color='#374151', fontsize=8)
+                        cell.set_text_props(color='#374151', fontsize=7)
                     else:
-                        cell.set_text_props(color='#1f2937', fontsize=8, fontweight='bold')
+                        cell.set_text_props(color='#1f2937', fontsize=7, fontweight='bold')
 
         # Footer
         fig1.text(0.5, 0.02, 'NeuCarS - Cardiac Electrophysiology Analysis Platform', 
