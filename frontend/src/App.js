@@ -756,7 +756,8 @@ function App() {
     
     // Restore recording metadata
     setRecordingDate(state.recordingDate || '');
-    setOrganoidInfo(state.organoidInfo || [{ cell_type: '', birth_date: '', fusion_date: '' }]);
+    setOrganoidInfo(state.organoidInfo || [{ cell_type: '', birth_date: '', transfection: null }]);
+    setFusionDate(state.fusionDate || '');
     setRecordingDescription(state.recordingDescription || '');
     
     // Restore file info
