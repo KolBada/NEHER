@@ -1037,7 +1037,7 @@ function App() {
             Back to Home
           </Button>
         </div>
-        <FileUpload onUpload={(files) => { handleUpload(files); setAppView('analysis'); }} loading={uploadLoading} appName="NeuCarS" />
+        <FileUpload onUpload={(files) => { handleUpload(files); setAppView('analysis'); }} loading={uploadLoading} appName="NEHER" />
       </div>
     );
   }
@@ -1062,7 +1062,7 @@ function App() {
             </Button>
             <Activity className="w-5 h-5 text-cyan-400" />
             <h1 className="text-sm font-semibold tracking-tight" style={{ fontFamily: 'Manrope' }}>
-              NeuCarS
+              NEHER
             </h1>
             {savedRecordingId && (
               <Badge variant="outline" className="text-[10px] border-emerald-700/50 text-emerald-400">

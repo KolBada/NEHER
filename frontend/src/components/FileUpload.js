@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
-export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
+export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileProgress, setFileProgress] = useState({});
@@ -165,13 +165,14 @@ export default function FileUpload({ onUpload, loading, appName = 'NeuCarS' }) {
       <Card className="w-full max-w-2xl bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardContent className="p-8">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-semibold tracking-tight text-zinc-100 mb-2"
+            <h1 className="text-4xl font-semibold tracking-tight text-zinc-100 mb-1"
                 style={{ fontFamily: 'Manrope, sans-serif' }}>
               {appName}
             </h1>
             <p className="text-sm text-zinc-500">
               Cardiac Electrophysiology Analysis Platform
             </p>
+            <p className="text-[10px] text-zinc-600 mt-1">developed by Kolia H. Badarello</p>
           </div>
 
           {uploadError && (

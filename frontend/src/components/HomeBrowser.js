@@ -234,10 +234,11 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     return (
       <div className="p-6 max-w-4xl mx-auto" data-testid="home-browser">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            NeuCarS
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            NEHER
           </h1>
           <p className="text-sm text-zinc-500">Cardiac Electrophysiology Analysis Platform</p>
+          <p className="text-[10px] text-zinc-600 mt-1">developed by Kolia H. Badarello</p>
         </div>
 
         {/* New Analysis Card */}
