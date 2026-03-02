@@ -1675,9 +1675,9 @@ async def export_pdf(request: ExportRequest):
                 ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
                 pnn50_det = final_det.get('pnn50_detrended')
                 
-                right_rows.append(['ln(RMSSD₇₀) corr.', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
-                right_rows.append(['ln(SDNN₇₀) corr.', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
-                right_rows.append(['pNN50₇₀ corr.', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
+                right_rows.append(['ln(RMSSD70) corr.', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
+                right_rows.append(['ln(SDNN70) corr.', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
+                right_rows.append(['pNN50-70 corr.', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
         
         if not light_metrics_available:
             right_rows.append(['Status', 'Disabled'])
