@@ -1019,27 +1019,139 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     ws_summary = wb.active
     ws_summary.title = "Folder Summary"
     
-    ws_summary['A1'] = 'Folder Comparison Summary'
-    ws_summary['A1'].font = Font(bold=True, size=14)
-    ws_summary.merge_cells('A1:B1')
+    # Title styling
+    title_fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
+    title_font = Font(bold=True, size=16, color="FFFFFF")
+    section_font = Font(bold=True, size=11, color="374151")
+    label_font = Font(bold=True, size=10)
+    value_font = Font(size=10)
     
-    summary_data = [
-        ('Folder Name', request.folder_name),
-        ('Number of Recordings', summary.get('recording_count', 0)),
-        ('', ''),
-        ('hSpO Age Range', f"{summary.get('hspo_age_range', {}).get('min', '—')} - {summary.get('hspo_age_range', {}).get('max', '—')} days (n={summary.get('hspo_age_range', {}).get('n', 0)})"),
-        ('hCO Age Range', f"{summary.get('hco_age_range', {}).get('min', '—')} - {summary.get('hco_age_range', {}).get('max', '—')} days (n={summary.get('hco_age_range', {}).get('n', 0)})"),
-        ('', ''),
-        ('Generated', datetime.now().strftime('%Y-%m-%d %H:%M')),
+    # Title row
+    ws_summary.merge_cells('A1:D1')
+    ws_summary['A1'] = f'{request.folder_name} - Folder Comparison'
+    ws_summary['A1'].font = title_font
+    ws_summary['A1'].fill = title_fill
+    ws_summary['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws_summary.row_dimensions[1].height = 35
+    
+    # Section: Overview
+    ws_summary['A3'] = 'OVERVIEW'
+    ws_summary['A3'].font = section_font
+    ws_summary.merge_cells('A3:D3')
+    
+    overview_data = [
+        ('Recordings', summary.get('recording_count', 0), '', ''),
+        ('Generated', datetime.now().strftime('%B %d, %Y at %H:%M'), '', ''),
     ]
     
-    for row_idx, (label, value) in enumerate(summary_data, start=3):
+    for row_idx, (label, value, _, _) in enumerate(overview_data, start=4):
         ws_summary[f'A{row_idx}'] = label
         ws_summary[f'B{row_idx}'] = value
-        ws_summary[f'A{row_idx}'].font = Font(bold=True) if label else data_font
-        ws_summary[f'B{row_idx}'].font = data_font
+        ws_summary[f'A{row_idx}'].font = label_font
+        ws_summary[f'B{row_idx}'].font = value_font
+        ws_summary[f'A{row_idx}'].border = thin_border
+        ws_summary[f'B{row_idx}'].border = thin_border
     
-    auto_width(ws_summary)
+    # Section: Age Ranges
+    ws_summary['A7'] = 'AGE RANGES'
+    ws_summary['A7'].font = section_font
+    ws_summary.merge_cells('A7:D7')
+    
+    # Helper for age range formatting
+    def format_age_range(age_dict):
+        if not age_dict or age_dict.get('min') is None:
+            return '—'
+        return f"{age_dict.get('min')} - {age_dict.get('max')} days"
+    
+    age_headers = ['Type', 'Range', 'n']
+    for col_idx, header in enumerate(age_headers, start=1):
+        cell = ws_summary.cell(row=8, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center')
+    
+    age_data = [
+        ('hSpOs', format_age_range(summary.get('hspo_age_range')), summary.get('hspo_age_range', {}).get('n', 0)),
+        ('hCOs', format_age_range(summary.get('hco_age_range')), summary.get('hco_age_range', {}).get('n', 0)),
+        ('Fusion', format_age_range(summary.get('fusion_age_range')), summary.get('fusion_age_range', {}).get('n', 0)),
+    ]
+    
+    for row_idx, (type_name, range_val, n_val) in enumerate(age_data, start=9):
+        ws_summary.cell(row=row_idx, column=1, value=type_name).font = label_font
+        ws_summary.cell(row=row_idx, column=2, value=range_val).font = value_font
+        ws_summary.cell(row=row_idx, column=3, value=n_val).font = value_font
+        for col in range(1, 4):
+            ws_summary.cell(row=row_idx, column=col).border = thin_border
+            ws_summary.cell(row=row_idx, column=col).alignment = Alignment(horizontal='center' if col > 1 else 'left')
+    
+    # Section: Folder Averages (Spontaneous)
+    spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+    hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+    hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    
+    ws_summary['A13'] = 'FOLDER AVERAGES - SPONTANEOUS ACTIVITY'
+    ws_summary['A13'].font = section_font
+    ws_summary.merge_cells('A13:D13')
+    
+    avg_headers = ['Metric', 'Baseline', 'Drug']
+    for col_idx, header in enumerate(avg_headers, start=1):
+        cell = ws_summary.cell(row=14, column=col_idx, value=header)
+        cell.font = header_font
+        cell.border = thin_border
+        if col_idx == 2:
+            cell.fill = header_fill_baseline
+        elif col_idx == 3:
+            cell.fill = header_fill_drug
+        else:
+            cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
+    
+    spont_avg_data = [
+        ('Mean BF (bpm)', format_value(spont_averages.get('baseline_bf'), 1), format_value(spont_averages.get('drug_bf'), 1)),
+        ('ln(RMSSD70)', format_value(spont_averages.get('baseline_ln_rmssd70'), 3), format_value(spont_averages.get('drug_ln_rmssd70'), 3)),
+        ('ln(SDNN70)', format_value(spont_averages.get('baseline_ln_sdnn70'), 3), format_value(spont_averages.get('drug_ln_sdnn70'), 3)),
+        ('pNN50 (%)', format_value(spont_averages.get('baseline_pnn50'), 1), format_value(spont_averages.get('drug_pnn50'), 1)),
+    ]
+    
+    for row_idx, (metric, baseline, drug) in enumerate(spont_avg_data, start=15):
+        ws_summary.cell(row=row_idx, column=1, value=metric).font = label_font
+        ws_summary.cell(row=row_idx, column=2, value=baseline).font = value_font
+        ws_summary.cell(row=row_idx, column=3, value=drug).font = value_font
+        for col in range(1, 4):
+            ws_summary.cell(row=row_idx, column=col).border = thin_border
+            ws_summary.cell(row=row_idx, column=col).alignment = Alignment(horizontal='center' if col > 1 else 'left')
+    
+    # Section: Light Metrics Averages
+    ws_summary['A20'] = 'FOLDER AVERAGES - LIGHT STIMULATION'
+    ws_summary['A20'].font = section_font
+    ws_summary.merge_cells('A20:D20')
+    
+    light_headers = ['Metric', 'Value']
+    for col_idx, header in enumerate(light_headers, start=1):
+        cell = ws_summary.cell(row=21, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill_light
+        cell.border = thin_border
+    
+    light_avg_data = [
+        ('Avg BF (bpm)', format_value(hra_averages.get('light_avg_bf'), 1)),
+        ('Peak BF (bpm)', format_value(hra_averages.get('light_peak_bf'), 1)),
+        ('Normalized Peak (%)', format_value(hra_averages.get('light_peak_norm'), 1)),
+        ('ln(RMSSD70) corr.', format_value(hrv_averages.get('light_hrv_ln_rmssd70'), 3)),
+        ('ln(SDNN70) corr.', format_value(hrv_averages.get('light_hrv_ln_sdnn70'), 3)),
+    ]
+    
+    for row_idx, (metric, val) in enumerate(light_avg_data, start=22):
+        ws_summary.cell(row=row_idx, column=1, value=metric).font = label_font
+        ws_summary.cell(row=row_idx, column=2, value=val).font = value_font
+        for col in range(1, 3):
+            ws_summary.cell(row=row_idx, column=col).border = thin_border
+    
+    # Column widths
+    ws_summary.column_dimensions['A'].width = 30
+    ws_summary.column_dimensions['B'].width = 20
+    ws_summary.column_dimensions['C'].width = 15
+    ws_summary.column_dimensions['D'].width = 15
     
     # Sheet 2: Spontaneous Activity Comparison
     ws_spont = wb.create_sheet("Spontaneous Activity")
