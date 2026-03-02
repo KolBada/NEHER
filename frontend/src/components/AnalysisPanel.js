@@ -732,6 +732,7 @@ export default function AnalysisPanel({
                       unit="bpm"
                       highlight
                       highlightColor="purple"
+                      tooltip="Beat Frequency (bpm)"
                     />
                   )}
                   {hrvReadout?.data && (
@@ -742,6 +743,7 @@ export default function AnalysisPanel({
                         value={hrvReadout.data.ln_rmssd70}
                         highlight
                         highlightColor="purple"
+                        tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
                       />
                       <MetricCard 
                         label="ln(SDNN₇₀)" 
@@ -749,6 +751,7 @@ export default function AnalysisPanel({
                         value={hrvReadout.data.sdnn ? Math.log(hrvReadout.data.sdnn) : null}
                         highlight
                         highlightColor="purple"
+                        tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
                       />
                       <MetricCard 
                         label="pNN50₇₀" 
@@ -757,6 +760,7 @@ export default function AnalysisPanel({
                         unit="%"
                         highlight
                         highlightColor="purple"
+                        tooltip="% of successive NN > 50ms (normalized to 70 bpm)"
                       />
                     </>
                   )}
