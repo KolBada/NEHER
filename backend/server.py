@@ -2035,6 +2035,103 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 elif 5 <= col <= 8:
                     cell.set_facecolor('#EDE9FE')  # Drug purple
         
+        # Calculate position for Normalized section below main table
+        norm_start_y = 1.0 - table_height - 0.15
+        
+        # Add Normalized to Baseline section title
+        ax_spont.text(0.02, norm_start_y, 'Normalized to Baseline — Spontaneous Activity', 
+                     fontsize=10, fontweight='bold', color='#374151', transform=ax_spont.transAxes)
+        
+        # Calculate cohort baseline averages for normalization
+        baseline_bfs = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
+        baseline_ln_rmssds = [r.get('baseline_ln_rmssd70') for r in recordings if r.get('baseline_ln_rmssd70') is not None]
+        baseline_ln_sdnns = [r.get('baseline_ln_sdnn70') for r in recordings if r.get('baseline_ln_sdnn70') is not None]
+        baseline_pnn50s = [r.get('baseline_pnn50') for r in recordings if r.get('baseline_pnn50') is not None]
+        
+        avg_baseline_bf_pdf = sum(baseline_bfs) / len(baseline_bfs) if baseline_bfs else 1
+        avg_baseline_ln_rmssd_pdf = sum(baseline_ln_rmssds) / len(baseline_ln_rmssds) if baseline_ln_rmssds else 1
+        avg_baseline_ln_sdnn_pdf = sum(baseline_ln_sdnns) / len(baseline_ln_sdnns) if baseline_ln_sdnns else 1
+        avg_baseline_pnn50_pdf = sum(baseline_pnn50s) / len(baseline_pnn50s) if baseline_pnn50s else 1
+        
+        def norm_val_pdf(val, avg):
+            if val is None or avg == 0:
+                return None
+            return 100 * val / avg
+        
+        norm_spont_headers = ['Recording', 'Base\nBF%', 'Base\nRMSSD%', 'Base\nSDNN%', 'Base\npNN50%',
+                             'Drug\nBF%', 'Drug\nRMSSD%', 'Drug\nSDNN%', 'Drug\npNN50%']
+        norm_spont_data = [norm_spont_headers]
+        
+        norm_sums_pdf = {'baseline_bf': [], 'baseline_ln_rmssd': [], 'baseline_ln_sdnn': [], 'baseline_pnn50': [],
+                         'drug_bf': [], 'drug_ln_rmssd': [], 'drug_ln_sdnn': [], 'drug_pnn50': []}
+        
+        for rec in recordings:
+            n_baseline_bf = norm_val_pdf(rec.get('baseline_bf'), avg_baseline_bf_pdf)
+            n_baseline_ln_rmssd = norm_val_pdf(rec.get('baseline_ln_rmssd70'), avg_baseline_ln_rmssd_pdf)
+            n_baseline_ln_sdnn = norm_val_pdf(rec.get('baseline_ln_sdnn70'), avg_baseline_ln_sdnn_pdf)
+            n_baseline_pnn50 = norm_val_pdf(rec.get('baseline_pnn50'), avg_baseline_pnn50_pdf)
+            n_drug_bf = norm_val_pdf(rec.get('drug_bf'), avg_baseline_bf_pdf)
+            n_drug_ln_rmssd = norm_val_pdf(rec.get('drug_ln_rmssd70'), avg_baseline_ln_rmssd_pdf)
+            n_drug_ln_sdnn = norm_val_pdf(rec.get('drug_ln_sdnn70'), avg_baseline_ln_sdnn_pdf)
+            n_drug_pnn50 = norm_val_pdf(rec.get('drug_pnn50'), avg_baseline_pnn50_pdf)
+            
+            norm_spont_data.append([
+                rec.get('name', '')[:15],
+                fmt(n_baseline_bf, 1),
+                fmt(n_baseline_ln_rmssd, 1),
+                fmt(n_baseline_ln_sdnn, 1),
+                fmt(n_baseline_pnn50, 1),
+                fmt(n_drug_bf, 1),
+                fmt(n_drug_ln_rmssd, 1),
+                fmt(n_drug_ln_sdnn, 1),
+                fmt(n_drug_pnn50, 1),
+            ])
+            
+            # Collect for averages
+            for key, val in [('baseline_bf', n_baseline_bf), ('baseline_ln_rmssd', n_baseline_ln_rmssd),
+                             ('baseline_ln_sdnn', n_baseline_ln_sdnn), ('baseline_pnn50', n_baseline_pnn50),
+                             ('drug_bf', n_drug_bf), ('drug_ln_rmssd', n_drug_ln_rmssd),
+                             ('drug_ln_sdnn', n_drug_ln_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                if val is not None:
+                    norm_sums_pdf[key].append(val)
+        
+        # Add average row for normalized section
+        norm_spont_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(sum(norm_sums_pdf['baseline_bf']) / len(norm_sums_pdf['baseline_bf']) if norm_sums_pdf['baseline_bf'] else None, 1),
+            fmt(sum(norm_sums_pdf['baseline_ln_rmssd']) / len(norm_sums_pdf['baseline_ln_rmssd']) if norm_sums_pdf['baseline_ln_rmssd'] else None, 1),
+            fmt(sum(norm_sums_pdf['baseline_ln_sdnn']) / len(norm_sums_pdf['baseline_ln_sdnn']) if norm_sums_pdf['baseline_ln_sdnn'] else None, 1),
+            fmt(sum(norm_sums_pdf['baseline_pnn50']) / len(norm_sums_pdf['baseline_pnn50']) if norm_sums_pdf['baseline_pnn50'] else None, 1),
+            fmt(sum(norm_sums_pdf['drug_bf']) / len(norm_sums_pdf['drug_bf']) if norm_sums_pdf['drug_bf'] else None, 1),
+            fmt(sum(norm_sums_pdf['drug_ln_rmssd']) / len(norm_sums_pdf['drug_ln_rmssd']) if norm_sums_pdf['drug_ln_rmssd'] else None, 1),
+            fmt(sum(norm_sums_pdf['drug_ln_sdnn']) / len(norm_sums_pdf['drug_ln_sdnn']) if norm_sums_pdf['drug_ln_sdnn'] else None, 1),
+            fmt(sum(norm_sums_pdf['drug_pnn50']) / len(norm_sums_pdf['drug_pnn50']) if norm_sums_pdf['drug_pnn50'] else None, 1),
+        ])
+        
+        n_norm_rows = len(norm_spont_data)
+        norm_row_height = min(0.06, 0.35 / n_norm_rows)
+        norm_table_height = norm_row_height * n_norm_rows
+        
+        table_norm_spont = ax_spont.table(cellText=norm_spont_data, loc='upper center', cellLoc='center',
+                                          colWidths=[0.15, 0.09, 0.1, 0.1, 0.1, 0.09, 0.1, 0.1, 0.1],
+                                          bbox=[0.02, norm_start_y - norm_table_height - 0.03, 0.96, norm_table_height])
+        table_norm_spont.auto_set_font_size(False)
+        table_norm_spont.set_fontsize(8)
+        
+        for (row, col), cell in table_norm_spont.get_celld().items():
+            cell.set_edgecolor('#d0d0d0')
+            if row == 0:
+                cell.set_facecolor('#374151')
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(norm_spont_data) - 1:
+                cell.set_facecolor('#E5E7EB')
+                cell.set_text_props(fontweight='bold')
+            else:
+                if 1 <= col <= 4:
+                    cell.set_facecolor('#FEF3C7')  # Baseline amber
+                elif 5 <= col <= 8:
+                    cell.set_facecolor('#EDE9FE')  # Drug purple
+        
         pdf.savefig(fig2, bbox_inches='tight')
         plt.close(fig2)
         
