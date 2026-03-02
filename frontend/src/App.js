@@ -771,7 +771,7 @@ function App() {
     
     // Restore recording metadata
     setRecordingDate(state.recordingDate || '');
-    setOrganoidInfo(state.organoidInfo || [{ cell_type: '', birth_date: '', transfection: null }]);
+    setOrganoidInfo(state.organoidInfo || [{ cell_type: '', birth_date: '', passage_number: '', transfection: null }]);
     setFusionDate(state.fusionDate || '');
     setRecordingDescription(state.recordingDescription || '');
     
