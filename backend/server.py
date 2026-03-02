@@ -1582,9 +1582,9 @@ async def export_pdf(request: ExportRequest):
             pnn50 = request.baseline.get('baseline_pnn50')
             
             right_rows.append(['Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
-            right_rows.append(['ln(RMSSD₇₀)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
-            right_rows.append(['ln(SDNN₇₀)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
-            right_rows.append(['pNN50₇₀', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+            right_rows.append(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
+            right_rows.append(['ln(SDNN70)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
+            right_rows.append(['pNN50-70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
         else:
             right_rows.append(['Status', 'Not available'])
         
