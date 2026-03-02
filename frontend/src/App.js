@@ -734,6 +734,11 @@ function App() {
     // Restore session info
     setRecordingName(state.recordingName || recordingData.name);
     
+    // Restore recording metadata
+    setRecordingDate(state.recordingDate || '');
+    setOrganoidInfo(state.organoidInfo || [{ age: '', cell_type: '' }]);
+    setRecordingDescription(state.recordingDescription || '');
+    
     // Restore file info
     if (state.file_info) {
       setFiles([{
