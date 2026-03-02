@@ -972,7 +972,7 @@ async def export_xlsx(request: ExportRequest):
     
     # Light Metrics section
     current_row += 1
-    ws_summary[f'A{current_row}'] = 'Light Metrics (Readout)'
+    ws_summary[f'A{current_row}'] = 'Light Metrics'
     ws_summary[f'A{current_row}'].font = subtitle_font
     current_row += 1
     
@@ -982,7 +982,7 @@ async def export_xlsx(request: ExportRequest):
     current_row += 1
     
     light_metrics_available = False
-    if request.light_response or request.light_metrics:
+    if request.light_response or request.light_metrics_detrended:
         light_metrics_available = True
         
         # HRA metrics (from light_response) - compute averages
@@ -991,13 +991,15 @@ async def export_xlsx(request: ExportRequest):
             if valid_response:
                 avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_response if r.get('avg_bf') is not None])
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_response if r.get('peak_bf') is not None])
-                peak_bf_norm = np.mean([r.get('peak_bf_norm', 0) for r in valid_response if r.get('peak_bf_norm') is not None])
+                # Use peak_norm_pct (correct field name)
+                peak_norm_vals = [r.get('peak_norm_pct') for r in valid_response if r.get('peak_norm_pct') is not None]
+                peak_bf_norm = np.mean(peak_norm_vals) if peak_norm_vals else 0
                 time_to_peak = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
                 
                 hra_data = [
                     ('Avg BF (bpm)', f"{avg_bf:.1f}"),
                     ('Peak BF (bpm)', f"{peak_bf:.1f}"),
-                    ('Normalized Peak BF (%)', f"{peak_bf_norm:.1f}"),
+                    ('Normalized Peak BF (%)', f"{peak_bf_norm:.1f}" if peak_norm_vals else '—'),
                     ('Time to Peak (s)', f"{time_to_peak:.1f}"),
                 ]
                 for label, value in hra_data:
@@ -1011,29 +1013,28 @@ async def export_xlsx(request: ExportRequest):
                     ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
                     current_row += 1
         
-        # HRV metrics (from light_metrics) - compute medians
-        if request.light_metrics:
-            valid_hrv = [m for m in request.light_metrics if m is not None]
-            if valid_hrv:
-                ln_rmssd_vals = [m.get('ln_rmssd70') for m in valid_hrv if m.get('ln_rmssd70') is not None]
-                ln_sdnn_vals = [m.get('ln_sdnn70') for m in valid_hrv if m.get('ln_sdnn70') is not None]
-                pnn50_vals = [m.get('pnn50') for m in valid_hrv if m.get('pnn50') is not None]
-                
-                hrv_data = [
-                    ('ln(RMSSD₇₀)', f"{np.median(ln_rmssd_vals):.3f}" if ln_rmssd_vals else '—'),
-                    ('ln(SDNN₇₀)', f"{np.median(ln_sdnn_vals):.3f}" if ln_sdnn_vals else '—'),
-                    ('pNN50₇₀ (%)', f"{np.median(pnn50_vals):.1f}" if pnn50_vals else '—'),
-                ]
-                for label, value in hrv_data:
-                    ws_summary[f'A{current_row}'] = label
-                    ws_summary[f'B{current_row}'] = value
-                    for col in ['A', 'B']:
-                        ws_summary[f'{col}{current_row}'].font = data_font
-                        ws_summary[f'{col}{current_row}'].border = thin_border
-                    # Amber highlight
-                    ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-                    ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-                    current_row += 1
+        # Corrected HRV metrics (detrended) - use final medians
+        if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
+            final_det = request.light_metrics_detrended.get('final', {})
+            ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
+            ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
+            pnn50_det = final_det.get('pnn50_detrended')
+            
+            hrv_data = [
+                ('ln(RMSSD₇₀) corrected', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'),
+                ('ln(SDNN₇₀) corrected', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'),
+                ('pNN50₇₀ corrected (%)', f"{pnn50_det:.1f}" if pnn50_det is not None else '—'),
+            ]
+            for label, value in hrv_data:
+                ws_summary[f'A{current_row}'] = label
+                ws_summary[f'B{current_row}'] = value
+                for col in ['A', 'B']:
+                    ws_summary[f'{col}{current_row}'].font = data_font
+                    ws_summary[f'{col}{current_row}'].border = thin_border
+                # Amber highlight
+                ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                current_row += 1
     
     if not light_metrics_available:
         ws_summary[f'A{current_row}'] = 'Status'
