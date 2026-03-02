@@ -606,7 +606,10 @@ class FolderComparisonExportRequest(BaseModel):
 
 
 def extract_comparison_metrics(recording: dict) -> dict:
-    """Extract comparison metrics from a recording's analysis_state."""
+    """Extract comparison metrics from a recording's analysis_state.
+    
+    Note: Frontend saves with camelCase keys, so we need to check both cases.
+    """
     state = recording.get('analysis_state', {})
     
     # Basic info
@@ -616,130 +619,186 @@ def extract_comparison_metrics(recording: dict) -> dict:
         'filename': recording.get('filename', ''),
     }
     
-    # Recording metadata
-    result['recording_date'] = state.get('recording_date', '')
-    result['recording_description'] = state.get('recording_description', '')
+    # Recording metadata - check both camelCase and snake_case
+    result['recording_date'] = state.get('recordingDate') or state.get('recording_date', '')
+    result['recording_description'] = state.get('recordingDescription') or state.get('recording_description', '')
+    result['fusion_date'] = state.get('fusionDate') or state.get('fusion_date', '')
     
-    # Organoid/Cell info
-    organoid_info = state.get('organoid_info', [])
+    # Organoid/Cell info - frontend uses camelCase 'organoidInfo'
+    organoid_info = state.get('organoidInfo') or state.get('organoid_info', [])
+    
+    # Initialize organoid-related fields
+    result['hspo_info'] = None
+    result['hco_info'] = None
+    result['other_info'] = None
+    result['hspo_age'] = None
+    result['hco_age'] = None
+    
     if organoid_info:
-        # Get first sample's info
-        first_sample = organoid_info[0] if organoid_info else {}
-        result['cell_type'] = first_sample.get('cell_type', '')
-        result['line_name'] = first_sample.get('line_name', '')
-        result['passage_number'] = first_sample.get('passage_number', '')
-        
-        # Get ages for hSpO and hCO
-        hspo_age = None
-        hco_age = None
         for sample in organoid_info:
             cell_type = sample.get('cell_type', '')
+            line_name = sample.get('line_name', '')
+            passage = sample.get('passage_number', '')
+            
+            # Calculate age from birth_date if available
             age = sample.get('age_at_recording')
-            if cell_type == 'hSpO' and age is not None:
-                hspo_age = age
-            elif cell_type == 'hCO' and age is not None:
-                hco_age = age
-        result['hspo_age'] = hspo_age
-        result['hco_age'] = hco_age
-    else:
-        result['cell_type'] = ''
-        result['line_name'] = ''
-        result['passage_number'] = ''
-        result['hspo_age'] = None
-        result['hco_age'] = None
+            if age is None:
+                birth_date = sample.get('birth_date') or sample.get('diff_date', '')
+                rec_date = state.get('recordingDate') or state.get('recording_date', '')
+                if birth_date and rec_date:
+                    try:
+                        from datetime import datetime
+                        bd = datetime.strptime(birth_date, '%Y-%m-%d')
+                        rd = datetime.strptime(rec_date, '%Y-%m-%d')
+                        age = (rd - bd).days
+                    except:
+                        pass
+            
+            # Check for transduction/transfection
+            transfection = sample.get('transfection', {})
+            has_transfection = bool(transfection and transfection.get('technique'))
+            
+            sample_info = {
+                'line_name': line_name,
+                'passage': passage,
+                'age': age,
+                'has_transduction': has_transfection,
+                'transfection_details': transfection,
+            }
+            
+            if cell_type == 'hSpO':
+                result['hspo_info'] = sample_info
+                result['hspo_age'] = age
+            elif cell_type == 'hCO':
+                result['hco_info'] = sample_info
+                result['hco_age'] = age
+            elif cell_type:
+                other_type = sample.get('other_cell_type', cell_type)
+                sample_info['cell_type'] = other_type
+                result['other_info'] = sample_info
     
-    # Drug info - derive condition
-    selected_drugs = state.get('selected_drugs', [])
-    drug_concentrations = state.get('drug_concentrations', {})
+    # Drug info - frontend uses camelCase
+    selected_drugs = state.get('selectedDrugs') or state.get('selected_drugs', [])
+    drug_settings = state.get('drugSettings') or state.get('drug_settings', {})
+    other_drugs = state.get('otherDrugs') or state.get('other_drugs', '')
+    
+    # Build drug info list
+    result['drug_info'] = []
+    result['has_drug'] = bool(selected_drugs)
+    
     if selected_drugs:
-        drug_names = ', '.join(selected_drugs)
-        concentrations = ', '.join([f"{drug_concentrations.get(d, '')}".strip() for d in selected_drugs if drug_concentrations.get(d)])
-        result['condition'] = f"Drug: {drug_names}"
-        result['drug_names'] = drug_names
-        result['drug_concentrations'] = concentrations
+        for drug in selected_drugs:
+            drug_name = drug
+            if drug == 'other' and other_drugs:
+                drug_name = other_drugs
+            
+            settings = drug_settings.get(drug, {})
+            concentration = settings.get('concentration', '')
+            perfusion_time = settings.get('perfusion_time', settings.get('perfusionTime', ''))
+            
+            result['drug_info'].append({
+                'name': drug_name,
+                'concentration': concentration,
+                'perfusion_time': perfusion_time,
+            })
+        
+        # For backwards compat
+        result['drug_names'] = ', '.join([d['name'] for d in result['drug_info']])
+        result['drug_concentrations'] = ', '.join([str(d['concentration']) for d in result['drug_info'] if d['concentration']])
+        result['condition'] = f"Drug: {result['drug_names']}"
     else:
-        result['condition'] = 'Control'
         result['drug_names'] = ''
         result['drug_concentrations'] = ''
+        result['condition'] = 'Control'
     
-    # Drug equilibration time (from perfusion params)
-    perfusion_params = state.get('perfusion_params', {})
-    result['drug_equilibration_time'] = perfusion_params.get('perfusion_delay', '')
+    # Light stim info - frontend uses camelCase
+    light_enabled = state.get('lightEnabled', False)
+    light_params = state.get('lightParams') or state.get('light_params', {})
+    light_pulses = state.get('lightPulses') or state.get('light_pulses', [])
     
-    # Light stim protocol
-    light_settings = state.get('light_settings', {})
-    stim_duration = light_settings.get('stim_duration_sec', 20)
-    # Get ISI structure from pulse timings if available
-    light_pulses = state.get('light_pulses', [])
+    result['has_light_stim'] = light_enabled and bool(light_pulses)
+    result['stim_duration'] = light_params.get('stim_duration_sec', light_params.get('stimDurationSec', 20)) if light_params else 20
+    
+    # Calculate ISI structure from pulse timings
     if light_pulses and len(light_pulses) > 1:
-        # Calculate intervals between pulses
         intervals = []
-        for i in range(1, len(light_pulses)):
-            interval = light_pulses[i].get('start_min', 0) - light_pulses[i-1].get('start_min', 0)
-            intervals.append(f"{interval:.0f}s" if interval < 1 else f"{interval:.1f}min")
-        result['stim_protocol'] = f"{stim_duration}s stim, ISI: {'-'.join(intervals[:4])}" if intervals else f"{stim_duration}s stim"
+        for i in range(1, min(len(light_pulses), 5)):
+            start_curr = light_pulses[i].get('start_min', 0)
+            start_prev = light_pulses[i-1].get('start_min', 0)
+            interval_sec = (start_curr - start_prev) * 60
+            intervals.append(int(round(interval_sec)))
+        result['isi_structure'] = '-'.join([f"{i}s" for i in intervals])
     else:
-        result['stim_protocol'] = f"{stim_duration}s stim" if light_pulses else ''
+        result['isi_structure'] = ''
     
-    # Spontaneous Activity - Baseline metrics
-    baseline = state.get('baseline', {})
+    # Spontaneous Activity - Baseline metrics from hrvResults
+    hrv_results = state.get('hrvResults') or state.get('hrv_results', {})
+    baseline = hrv_results.get('baseline', {})
+    
     result['baseline_bf'] = baseline.get('baseline_bf')
     result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
-    result['baseline_ln_sdnn70'] = np.log(baseline.get('baseline_sdnn')) if baseline.get('baseline_sdnn') and baseline.get('baseline_sdnn') > 0 else None
+    baseline_sdnn = baseline.get('baseline_sdnn')
+    result['baseline_ln_sdnn70'] = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
     result['baseline_pnn50'] = baseline.get('baseline_pnn50')
     
     # Spontaneous Activity - Drug metrics
-    drug_readout = state.get('drug_readout', {})
-    hrv_windows = state.get('hrv_windows', [])
-    per_minute_data = state.get('per_minute_data', [])
+    drug_readout = state.get('drugReadoutSettings') or state.get('drug_readout', {})
+    hrv_windows = hrv_results.get('windows', [])
+    per_minute_data = state.get('perMinuteData') or state.get('per_minute_data', [])
     
-    if drug_readout:
-        drug_bf_minute = drug_readout.get('bf_minute')
-        drug_hrv_minute = drug_readout.get('hrv_minute')
+    result['drug_bf'] = None
+    result['drug_ln_rmssd70'] = None
+    result['drug_ln_sdnn70'] = None
+    result['drug_pnn50'] = None
+    
+    if drug_readout and (drug_readout.get('enableHrvReadout') or drug_readout.get('enableBfReadout')):
+        drug_bf_minute = drug_readout.get('bfMinute') or drug_readout.get('bf_minute')
+        drug_hrv_minute = drug_readout.get('hrvMinute') or drug_readout.get('hrv_minute')
         
         # Get drug BF from per_minute_data
-        drug_bf = None
         if drug_bf_minute is not None and per_minute_data:
             for pm in per_minute_data:
                 minute_str = pm.get('minute', '0')
                 try:
                     minute_num = int(str(minute_str).split('-')[0])
                     if minute_num == drug_bf_minute:
-                        drug_bf = pm.get('mean_bf')
+                        result['drug_bf'] = pm.get('mean_bf')
                         break
                 except (ValueError, TypeError, AttributeError):
                     pass
-        result['drug_bf'] = drug_bf
         
         # Get drug HRV from hrv_windows
         if drug_hrv_minute is not None and hrv_windows:
             for w in hrv_windows:
                 if w.get('minute') == drug_hrv_minute:
                     result['drug_ln_rmssd70'] = w.get('ln_rmssd70')
-                    result['drug_ln_sdnn70'] = np.log(w.get('sdnn')) if w.get('sdnn') and w.get('sdnn') > 0 else None
+                    sdnn = w.get('sdnn')
+                    result['drug_ln_sdnn70'] = np.log(sdnn) if sdnn and sdnn > 0 else None
                     result['drug_pnn50'] = w.get('pnn50')
                     break
-        else:
-            result['drug_ln_rmssd70'] = None
-            result['drug_ln_sdnn70'] = None
-            result['drug_pnn50'] = None
-    else:
-        result['drug_bf'] = None
-        result['drug_ln_rmssd70'] = None
-        result['drug_ln_sdnn70'] = None
-        result['drug_pnn50'] = None
     
-    # Light HRA metrics
-    light_response = state.get('light_response', [])
+    # Light HRA metrics - frontend uses camelCase
+    light_response = state.get('lightResponse') or state.get('light_response', [])
+    
+    # Initialize light metrics
+    for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
+               'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+               'light_amplitude', 'light_roc']:
+        result[key] = None
+    
     if light_response:
         valid_resp = [r for r in light_response if r is not None]
         if valid_resp:
-            # Avg Baseline BF (pre-light) - this should be from baseline
+            # Avg Baseline BF (pre-light) - from baseline
             result['light_baseline_bf'] = baseline.get('baseline_bf')
             
             # Compute means across all stims
-            result['light_avg_bf'] = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
-            result['light_peak_bf'] = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
+            avg_bf_vals = [r.get('avg_bf') for r in valid_resp if r.get('avg_bf') is not None]
+            result['light_avg_bf'] = np.mean(avg_bf_vals) if avg_bf_vals else None
+            
+            peak_bf_vals = [r.get('peak_bf') for r in valid_resp if r.get('peak_bf') is not None]
+            result['light_peak_bf'] = np.mean(peak_bf_vals) if peak_bf_vals else None
+            
             peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
             result['light_peak_norm'] = np.mean(peak_norm_vals) if peak_norm_vals else None
             
@@ -748,6 +807,34 @@ def extract_comparison_metrics(recording: dict) -> dict:
             # Time to Peak - average
             ttp_vals = [r.get('time_to_peak_sec') for r in valid_resp if r.get('time_to_peak_sec') is not None]
             result['light_ttp_avg'] = np.mean(ttp_vals) if ttp_vals else None
+            
+            # Recovery, Amplitude, Rate of Change
+            recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
+            result['light_recovery_bf'] = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+            
+            recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
+            result['light_recovery_pct'] = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+            
+            amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
+            result['light_amplitude'] = np.mean(amplitude_vals) if amplitude_vals else None
+            
+            roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
+            result['light_roc'] = np.mean(roc_vals) if roc_vals else None
+    
+    # Corrected Light HRV (detrended) - frontend uses camelCase
+    light_hrv_detrended = state.get('lightHrvDetrended') or state.get('light_metrics_detrended', {})
+    
+    result['light_hrv_ln_rmssd70'] = None
+    result['light_hrv_ln_sdnn70'] = None
+    result['light_hrv_pnn50'] = None
+    
+    if light_hrv_detrended and light_hrv_detrended.get('final'):
+        final = light_hrv_detrended['final']
+        result['light_hrv_ln_rmssd70'] = final.get('ln_rmssd70_detrended')
+        result['light_hrv_ln_sdnn70'] = final.get('ln_sdnn70_detrended')
+        result['light_hrv_pnn50'] = final.get('pnn50_detrended')
+    
+    return result
             
             # Recovery, Amplitude, Rate of Change
             recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
