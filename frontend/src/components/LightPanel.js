@@ -1028,10 +1028,22 @@ export default function LightPanel({
                       tooltip="Average time from stimulation start to peak beat frequency (all 5 stims)"
                     />
                     <MetricCard 
+                      label="Recovery BF" 
+                      value={avgHra.bf_end} 
+                      unit="bpm"
+                      tooltip="Beat frequency at end of stimulation window (recovery)"
+                    />
+                    <MetricCard 
+                      label="Recovery %" 
+                      value={avgHra.bf_end_pct} 
+                      unit="%"
+                      tooltip="Recovery BF normalized to baseline: 100 × Recovery BF / Baseline BF"
+                    />
+                    <MetricCard 
                       label="Amplitude" 
                       value={avgHra.amplitude} 
                       unit="bpm"
-                      tooltip="Peak BF − BF at end of stimulation window"
+                      tooltip="Peak BF − Recovery BF"
                     />
                     <MetricCard 
                       label="Rate of Change" 
