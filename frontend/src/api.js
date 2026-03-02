@@ -2,14 +2,73 @@ import axios from 'axios';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Create axios instance with retry logic for uploads
-const uploadWithRetry = async (formData, onUploadProgress, maxRetries = 3) => {
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
+// Chunked upload for large files (>10MB)
+const chunkedUpload = async (file, onProgress) => {
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  
+  // Initialize upload
+  const initResponse = await axios.post(`${API_URL}/upload/init`, {
+    filename: file.name,
+    total_size: file.size,
+    total_chunks: totalChunks
+  });
+  
+  const uploadId = initResponse.data.upload_id;
+  
+  // Upload chunks
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
+    
+    const formData = new FormData();
+    formData.append('file', chunk, `chunk_${chunkIndex}`);
+    
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await axios.post(`${API_URL}/upload/chunk/${uploadId}/${chunkIndex}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 60000, // 1 minute per chunk
+        });
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Report progress
+    if (onProgress) {
+      onProgress({
+        loaded: end,
+        total: file.size,
+        percent: Math.round((end / file.size) * 100)
+      });
+    }
+  }
+  
+  // Complete upload
+  const completeResponse = await axios.post(`${API_URL}/upload/complete`, {
+    upload_id: uploadId
+  }, {
+    timeout: 300000, // 5 minutes for processing
+  });
+  
+  return completeResponse;
+};
+
+// Regular upload with retry for smaller files
+const regularUpload = async (formData, onUploadProgress, maxRetries = 3) => {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await axios.post(`${API_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 600000, // 10 minutes for large files
+        timeout: 300000, // 5 minutes
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
         onUploadProgress: onUploadProgress,
@@ -18,10 +77,10 @@ const uploadWithRetry = async (formData, onUploadProgress, maxRetries = 3) => {
     } catch (error) {
       lastError = error;
       const status = error.response?.status;
-      // Retry on 520, 502, 503, 504 errors (server/proxy issues)
+      // Retry on 520, 502, 503, 504 errors
       if ([520, 502, 503, 504].includes(status) && attempt < maxRetries) {
         console.log(`Upload attempt ${attempt} failed with ${status}, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
         continue;
       }
       throw error;
@@ -30,8 +89,51 @@ const uploadWithRetry = async (formData, onUploadProgress, maxRetries = 3) => {
   throw lastError;
 };
 
+// Smart upload - uses chunked for large files, regular for small files
+const smartUpload = async (files, onUploadProgress) => {
+  // If any file is > 10MB, use chunked upload
+  const largeFiles = files.filter(f => f.size > 10 * 1024 * 1024);
+  
+  if (largeFiles.length > 0) {
+    // Use chunked upload for large files (one at a time)
+    const results = [];
+    for (const file of files) {
+      const response = await chunkedUpload(file, (progress) => {
+        if (onUploadProgress) {
+          onUploadProgress({ loaded: progress.loaded, total: progress.total });
+        }
+      });
+      results.push(response.data);
+    }
+    // Combine results
+    if (results.length === 1) {
+      return { data: results[0] };
+    }
+    // Merge multiple file results
+    return {
+      data: {
+        session_id: results[0].session_id,
+        files: results.flatMap(r => r.files)
+      }
+    };
+  } else {
+    // Use regular upload for small files
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    return regularUpload(formData, onUploadProgress);
+  }
+};
+
 const api = {
-  upload: (formData, onUploadProgress) => uploadWithRetry(formData, onUploadProgress),
+  upload: (formData, onUploadProgress) => {
+    // Check if formData contains files
+    const files = formData.getAll('files');
+    if (files && files.length > 0) {
+      return smartUpload(files, onUploadProgress);
+    }
+    // Fallback to regular upload
+    return regularUpload(formData, onUploadProgress);
+  },
 
   detectBeats: (data) => axios.post(`${API_URL}/detect-beats`, data),
 

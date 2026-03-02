@@ -29,8 +29,21 @@ api_router = APIRouter(prefix="/api")
 # In-memory session store
 sessions = {}
 
+# Chunked upload storage
+chunk_uploads = {}
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+# --- Chunked Upload Models ---
+class ChunkInitRequest(BaseModel):
+    filename: str
+    total_size: int
+    total_chunks: int
+
+class ChunkCompleteRequest(BaseModel):
+    upload_id: str
 
 
 # --- Pydantic Models ---
@@ -117,7 +130,176 @@ class ExportRequest(BaseModel):
 # --- Endpoints ---
 @api_router.get("/")
 async def root():
-    return {"message": "NeuCarS API"}
+    return {"message": "NEHER API"}
+
+
+# --- Chunked Upload Endpoints (for large files) ---
+@api_router.post("/upload/init")
+async def init_chunked_upload(request: ChunkInitRequest):
+    """Initialize a chunked upload session"""
+    upload_id = str(uuid.uuid4())
+    
+    # Create temp file for this upload
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, f"upload_{upload_id}.tmp")
+    
+    chunk_uploads[upload_id] = {
+        'filename': request.filename,
+        'total_size': request.total_size,
+        'total_chunks': request.total_chunks,
+        'received_chunks': set(),
+        'temp_path': temp_path,
+        'created_at': uuid.uuid1().time
+    }
+    
+    # Pre-create the temp file
+    with open(temp_path, 'wb') as f:
+        pass
+    
+    logging.info(f"Initialized chunked upload {upload_id} for {request.filename} ({request.total_size} bytes, {request.total_chunks} chunks)")
+    
+    return {'upload_id': upload_id}
+
+
+@api_router.post("/upload/chunk/{upload_id}/{chunk_index}")
+async def upload_chunk(upload_id: str, chunk_index: int, file: UploadFile = File(...)):
+    """Upload a single chunk"""
+    if upload_id not in chunk_uploads:
+        raise HTTPException(404, "Upload session not found")
+    
+    upload_info = chunk_uploads[upload_id]
+    
+    if chunk_index < 0 or chunk_index >= upload_info['total_chunks']:
+        raise HTTPException(400, f"Invalid chunk index: {chunk_index}")
+    
+    # Read chunk data
+    chunk_data = await file.read()
+    
+    # Calculate offset and write to temp file
+    chunk_size = 5 * 1024 * 1024  # 5MB chunks
+    offset = chunk_index * chunk_size
+    
+    with open(upload_info['temp_path'], 'r+b') as f:
+        f.seek(offset)
+        f.write(chunk_data)
+    
+    upload_info['received_chunks'].add(chunk_index)
+    
+    logging.info(f"Received chunk {chunk_index + 1}/{upload_info['total_chunks']} for upload {upload_id}")
+    
+    return {
+        'chunk_index': chunk_index,
+        'received': len(upload_info['received_chunks']),
+        'total': upload_info['total_chunks']
+    }
+
+
+@api_router.post("/upload/complete")
+async def complete_chunked_upload(request: ChunkCompleteRequest):
+    """Complete the chunked upload and process the file"""
+    import pyabf
+    import gc
+    
+    upload_id = request.upload_id
+    
+    if upload_id not in chunk_uploads:
+        raise HTTPException(404, "Upload session not found")
+    
+    upload_info = chunk_uploads[upload_id]
+    
+    # Verify all chunks received
+    if len(upload_info['received_chunks']) != upload_info['total_chunks']:
+        missing = set(range(upload_info['total_chunks'])) - upload_info['received_chunks']
+        raise HTTPException(400, f"Missing chunks: {sorted(missing)}")
+    
+    temp_path = upload_info['temp_path']
+    filename = upload_info['filename']
+    
+    try:
+        # Process the assembled file
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = {}
+        file_id = str(uuid.uuid4())
+        
+        try:
+            abf = pyabf.ABF(temp_path)
+        except Exception as parse_err:
+            logging.error(f"Failed to parse ABF file '{filename}': {parse_err}")
+            raise HTTPException(400, f"Failed to parse ABF file '{filename}': {str(parse_err)}")
+        
+        abf.setSweep(0, channel=0)
+        trace = abf.sweepY.copy().astype(np.float64)
+        times = abf.sweepX.copy().astype(np.float64)
+        sample_rate = abf.dataRate
+        
+        # Handle multi-sweep
+        if abf.sweepCount > 1:
+            all_traces = [trace]
+            all_times = [times]
+            offset = times[-1] + 1.0 / sample_rate
+            for sw in range(1, abf.sweepCount):
+                abf.setSweep(sw, channel=0)
+                all_traces.append(abf.sweepY.copy().astype(np.float64))
+                sw_times = abf.sweepX.copy().astype(np.float64) + offset
+                all_times.append(sw_times)
+                offset = sw_times[-1] + 1.0 / sample_rate
+            trace = np.concatenate(all_traces)
+            times = np.concatenate(all_times)
+            del all_traces, all_times
+            gc.collect()
+        
+        sessions[session_id][file_id] = {
+            'filename': filename,
+            'trace': trace,
+            'times': times,
+            'sample_rate': sample_rate,
+        }
+        
+        # Decimate for response
+        dec_times, dec_voltages = analysis.decimate_trace(times, trace)
+        beat_indices = analysis.detect_beats(trace, sample_rate)
+        beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]
+        beat_voltages = [float(trace[i]) for i in beat_indices if i < len(trace)]
+        
+        signal_stats = {
+            'min': float(np.min(trace)),
+            'max': float(np.max(trace)),
+            'mean': float(np.mean(trace)),
+            'std': float(np.std(trace))
+        }
+        
+        result = {
+            'session_id': session_id,
+            'files': [{
+                'file_id': file_id,
+                'filename': filename,
+                'sample_rate': sample_rate,
+                'duration_sec': float(len(trace) / sample_rate),
+                'n_samples': len(trace),
+                'n_channels': abf.channelCount,
+                'n_sweeps': abf.sweepCount,
+                'trace_times': dec_times,
+                'trace_voltages': dec_voltages,
+                'beats': [{'time_sec': t, 'voltage': v} for t, v in zip(beat_times_sec, beat_voltages)],
+                'signal_stats': signal_stats,
+                'n_beats_detected': len(beat_indices)
+            }]
+        }
+        
+        logging.info(f"Successfully processed chunked upload '{filename}': {len(trace)} samples, {len(beat_indices)} beats")
+        
+        return result
+        
+    finally:
+        # Cleanup
+        if os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+        if upload_id in chunk_uploads:
+            del chunk_uploads[upload_id]
+        gc.collect()
 
 
 @api_router.post("/upload")
