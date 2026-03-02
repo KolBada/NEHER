@@ -1627,9 +1627,11 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         
         # Page 2: Spontaneous Activity Table
         fig2 = plt.figure(figsize=(11, 8.5))
-        fig2.suptitle('Spontaneous Activity Comparison', fontsize=14, fontweight='bold', y=0.98)
         
-        ax_spont = fig2.add_axes([0.05, 0.15, 0.9, 0.75])
+        # Add title at top with padding
+        fig2.text(0.5, 0.95, 'Spontaneous Activity Comparison', fontsize=14, fontweight='bold', ha='center')
+        
+        ax_spont = fig2.add_axes([0.03, 0.08, 0.94, 0.82])
         ax_spont.axis('off')
         
         def fmt(val, dec=2):
@@ -1643,14 +1645,14 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 return f"{val:.3f}"
             return f"{val:.{dec}f}"
         
-        spont_headers = ['Recording', 'Baseline\nBF', 'Baseline\nln(RMSSD)', 'Baseline\nln(SDNN)', 'Baseline\npNN50', 
-                        'Drug\nBF', 'Drug\nln(RMSSD)', 'Drug\nln(SDNN)', 'Drug\npNN50']
+        spont_headers = ['Recording', 'Base\nBF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
+                        'Drug\nBF', 'Drug\nRMSSD', 'Drug\nSDNN', 'Drug\npNN50']
         spont_data = [spont_headers]
         
         spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
         for rec in recordings:
             spont_data.append([
-                rec.get('name', '')[:20],
+                rec.get('name', '')[:15],
                 fmt(rec.get('baseline_bf'), 1),
                 fmt(rec.get('baseline_ln_rmssd70'), 3),
                 fmt(rec.get('baseline_ln_sdnn70'), 3),
@@ -1674,22 +1676,25 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
             fmt(spont_averages.get('drug_pnn50'), 1),
         ])
         
+        # Calculate row height based on number of rows
+        n_rows = len(spont_data)
+        row_height = min(0.08, 0.7 / n_rows)
+        table_height = row_height * n_rows
+        
         table_spont = ax_spont.table(cellText=spont_data, loc='upper center', cellLoc='center',
-                                     colWidths=[0.16, 0.09, 0.11, 0.11, 0.09, 0.09, 0.11, 0.11, 0.09])
+                                     colWidths=[0.15, 0.09, 0.1, 0.1, 0.1, 0.09, 0.1, 0.1, 0.1],
+                                     bbox=[0.02, 1.0 - table_height - 0.05, 0.96, table_height])
         table_spont.auto_set_font_size(False)
-        table_spont.set_fontsize(7)
-        table_spont.scale(1.0, 1.25)
+        table_spont.set_fontsize(8)
         
         for (row, col), cell in table_spont.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
-            cell.set_height(0.06)
             if row == 0:
                 cell.set_facecolor('#374151')
-                cell.set_text_props(color='white', fontweight='bold', fontsize=6)
-                cell.set_height(0.08)  # Taller header for wrapped text
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
             elif row == len(spont_data) - 1:
                 cell.set_facecolor('#E5E7EB')
-                cell.set_text_props(fontweight='bold', fontsize=7)
+                cell.set_text_props(fontweight='bold')
             else:
                 if 1 <= col <= 4:
                     cell.set_facecolor('#FEF3C7')  # Baseline amber
