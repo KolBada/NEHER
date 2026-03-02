@@ -58,6 +58,34 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [moveRecordingOpen, setMoveRecordingOpen] = useState(false);
   const [recordingToMove, setRecordingToMove] = useState(null);
   const [moveTargetFolder, setMoveTargetFolder] = useState('');
+  const [updateCheckDone, setUpdateCheckDone] = useState(false);
+
+  // Auto-update outdated recordings on mount
+  useEffect(() => {
+    const checkAndUpdateRecordings = async () => {
+      if (updateCheckDone) return;
+      try {
+        const { data } = await api.batchUpdateRecordings();
+        if (data.updated_count > 0) {
+          // Show notification for each updated recording
+          const recordingNames = data.recordings.map(r => r.name).join(', ');
+          toast.success(`Updated ${data.updated_count} recording(s): ${recordingNames}`, {
+            duration: 5000,
+            description: 'Metrics were automatically recomputed with the latest algorithms.'
+          });
+          // Refresh folders to update any counts
+          loadFolders();
+        }
+      } catch (err) {
+        // Silently fail - this is a background task
+        console.log('Metrics update check completed');
+      } finally {
+        setUpdateCheckDone(true);
+      }
+    };
+    
+    checkAndUpdateRecordings();
+  }, [updateCheckDone]);
 
   // Load folders on mount
   useEffect(() => {
