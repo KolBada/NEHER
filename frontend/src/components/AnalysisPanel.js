@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Brush, ReferenceArea
 } from 'recharts';
-import { Loader2, Info, RotateCcw, ZoomIn, Minus } from 'lucide-react';
+import { Loader2, Info, RotateCcw, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
