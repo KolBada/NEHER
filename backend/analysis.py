@@ -629,6 +629,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'peak_norm_pct': safe_mean('peak_norm_pct'),
             'time_to_peak_sec': safe_mean('time_to_peak_sec'),
             'bf_end': safe_mean('bf_end'),
+            'bf_end_pct': safe_mean('bf_end_pct'),
             'amplitude': safe_mean('amplitude'),
             'rate_of_change': safe_mean('rate_of_change'),
         }
