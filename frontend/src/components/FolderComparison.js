@@ -484,7 +484,7 @@ export default function FolderComparison({ folder, onBack }) {
                           <InfoTip text="Time To Peak (average)">TTP Avg</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
-                          <InfoTip text="Last beat frequency before the drop">Rec. BF</InfoTip>
+                          <InfoTip text="Beat Frequency at the end of the stimulation period, before the drop">Rec. BF</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
                           <InfoTip text="Recovery %: 100 × Recovery/Baseline">Rec. %</InfoTip>
