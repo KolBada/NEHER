@@ -515,7 +515,10 @@ async def batch_update_recordings():
             # Check and recompute HRV results (Spontaneous Activity)
             if state.get("hrvResults"):
                 try:
-                    hrv_windows = analysis.compute_rolling_hrv(beat_times_min, bf_filtered)
+                    # Compute nn_70 from beat frequency
+                    nn_values = analysis.bf_to_nn(bf_filtered)
+                    nn_70 = analysis.normalize_nn_70_windowing(beat_times_min, nn_values)
+                    hrv_windows = analysis.rolling_3min_hrv(beat_times_min, nn_70, bf_filtered)
                     baseline = None
                     if hrv_windows:
                         baseline = analysis.compute_baseline_metrics(
