@@ -349,3 +349,47 @@ async def check_duplicate_recording(db, folder_id: str, filename: str) -> bool:
         "filename": filename
     })
     return existing is not None
+
+
+
+async def get_outdated_recordings(db) -> List[dict]:
+    """Get all recordings that have an outdated metrics version or no version."""
+    recordings = []
+    # Find recordings with old version or no version field
+    async for rec in db.recordings.find({
+        "$or": [
+            {"metrics_version": {"$lt": METRICS_VERSION}},
+            {"metrics_version": {"$exists": False}}
+        ]
+    }):
+        recordings.append({
+            "id": str(rec["_id"]),
+            "folder_id": rec["folder_id"],
+            "name": rec["name"],
+            "filename": rec["filename"],
+            "analysis_state": rec["analysis_state"],
+            "metrics_version": rec.get("metrics_version", 0),
+        })
+    return recordings
+
+
+async def update_recording_metrics_version(db, recording_id: str, analysis_state: dict) -> bool:
+    """Update a recording's analysis state and set current metrics version."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        result = await db.recordings.update_one(
+            {"_id": ObjectId(recording_id)},
+            {"$set": {
+                "analysis_state": analysis_state,
+                "metrics_version": METRICS_VERSION,
+                "updated_at": now,
+                # Update summary info
+                "n_beats": analysis_state.get("metrics", {}).get("n_filtered", 0),
+                "duration_sec": analysis_state.get("file_info", {}).get("duration_sec", 0),
+                "has_light_stim": bool(analysis_state.get("light_pulses")),
+                "has_drug_analysis": bool(analysis_state.get("selected_drugs")),
+            }}
+        )
+        return result.modified_count > 0
+    except Exception:
+        return False
