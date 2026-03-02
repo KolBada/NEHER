@@ -1151,33 +1151,67 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     ws_meta = wb.create_sheet("Recording Metadata")
     
     meta_headers = [
-        'Recording', 'Filename', 'Recording Date', 'Cell Type', 'Line Name',
-        'Condition', 'Drug Name(s)', 'Drug Conc.', 'Drug Equil. Time',
-        'Stim Protocol', 'hSpO Age (days)', 'hCO Age (days)'
+        'Recording', 'Filename', 'Date', 
+        'hSpO Line', 'hSpO P#', 'hSpO Age', 'hSpO Transd.',
+        'hCO Line', 'hCO P#', 'hCO Age',
+        'Fusion Date', 'Condition',
+        'Drug(s)', 'Concentration(s)', 'Perfusion Time(s)',
+        'Stim Duration', 'ISI Structure', 'Notes'
     ]
     
     for col_idx, header in enumerate(meta_headers, start=1):
         cell = ws_meta.cell(row=1, column=col_idx, value=header)
         cell.font = header_font
-        cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
         cell.border = thin_border
         cell.alignment = Alignment(horizontal='center', wrap_text=True)
+        # Color code headers
+        if 4 <= col_idx <= 7:  # hSpO columns
+            cell.fill = header_fill_baseline  # Amber
+        elif 8 <= col_idx <= 10:  # hCO columns
+            cell.fill = header_fill_drug  # Purple
+        elif 13 <= col_idx <= 15:  # Drug columns
+            cell.fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")  # Green
+        elif 16 <= col_idx <= 17:  # Light columns
+            cell.fill = header_fill_light  # Cyan
+        else:
+            cell.fill = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
     
     for row_idx, rec in enumerate(recordings, start=2):
         ws_meta.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
         ws_meta.cell(row=row_idx, column=2, value=rec.get('filename', '')).font = data_font
         ws_meta.cell(row=row_idx, column=3, value=rec.get('recording_date', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=4, value=rec.get('cell_type', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=5, value=rec.get('line_name', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=6, value=rec.get('condition', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=7, value=rec.get('drug_names', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=8, value=rec.get('drug_concentrations', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=9, value=format_value(rec.get('drug_equilibration_time'), 0) + ' min' if rec.get('drug_equilibration_time') else '').font = data_font
-        ws_meta.cell(row=row_idx, column=10, value=rec.get('stim_protocol', '')).font = data_font
-        ws_meta.cell(row=row_idx, column=11, value=format_value(rec.get('hspo_age'), 0) if rec.get('hspo_age') else '').font = data_font
-        ws_meta.cell(row=row_idx, column=12, value=format_value(rec.get('hco_age'), 0) if rec.get('hco_age') else '').font = data_font
         
-        for col in range(1, 13):
+        # hSpO info
+        hspo = rec.get('hspo_info') or {}
+        ws_meta.cell(row=row_idx, column=4, value=hspo.get('line_name', '') if hspo else '').font = data_font
+        ws_meta.cell(row=row_idx, column=5, value=hspo.get('passage', '') if hspo else '').font = data_font
+        ws_meta.cell(row=row_idx, column=6, value=format_value(hspo.get('age'), 0) if hspo and hspo.get('age') else '').font = data_font
+        ws_meta.cell(row=row_idx, column=7, value='Yes' if hspo and hspo.get('has_transduction') else '').font = data_font
+        
+        # hCO info
+        hco = rec.get('hco_info') or {}
+        ws_meta.cell(row=row_idx, column=8, value=hco.get('line_name', '') if hco else '').font = data_font
+        ws_meta.cell(row=row_idx, column=9, value=hco.get('passage', '') if hco else '').font = data_font
+        ws_meta.cell(row=row_idx, column=10, value=format_value(hco.get('age'), 0) if hco and hco.get('age') else '').font = data_font
+        
+        ws_meta.cell(row=row_idx, column=11, value=rec.get('fusion_date', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=12, value=rec.get('condition', '')).font = data_font
+        
+        # Drug info
+        drug_info = rec.get('drug_info', [])
+        drug_names = ', '.join([d.get('name', '') for d in drug_info]) if drug_info else ''
+        drug_concs = ', '.join([str(d.get('concentration', '')) for d in drug_info if d.get('concentration')]) if drug_info else ''
+        drug_times = ', '.join([str(d.get('perfusion_time', '')) for d in drug_info if d.get('perfusion_time')]) if drug_info else ''
+        ws_meta.cell(row=row_idx, column=13, value=drug_names).font = data_font
+        ws_meta.cell(row=row_idx, column=14, value=drug_concs).font = data_font
+        ws_meta.cell(row=row_idx, column=15, value=drug_times).font = data_font
+        
+        # Light stim info
+        ws_meta.cell(row=row_idx, column=16, value=f"{rec.get('stim_duration', '')}s" if rec.get('has_light_stim') else '').font = data_font
+        ws_meta.cell(row=row_idx, column=17, value=rec.get('isi_structure', '')).font = data_font
+        ws_meta.cell(row=row_idx, column=18, value=rec.get('recording_description', '')).font = data_font
+        
+        for col in range(1, 19):
             ws_meta.cell(row=row_idx, column=col).border = thin_border
     
     auto_width(ws_meta)
