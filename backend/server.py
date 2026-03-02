@@ -1627,9 +1627,9 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         
         # Page 2: Spontaneous Activity Table
         fig2 = plt.figure(figsize=(11, 8.5))
-        fig2.suptitle('Spontaneous Activity Comparison', fontsize=12, fontweight='bold', y=0.96)
+        fig2.suptitle('Spontaneous Activity Comparison', fontsize=14, fontweight='bold', y=0.98)
         
-        ax_spont = fig2.add_axes([0.05, 0.1, 0.9, 0.8])
+        ax_spont = fig2.add_axes([0.05, 0.15, 0.9, 0.75])
         ax_spont.axis('off')
         
         def fmt(val, dec=2):
