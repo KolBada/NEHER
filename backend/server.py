@@ -108,7 +108,7 @@ class ExportRequest(BaseModel):
     original_filename: Optional[str] = None
     # Recording metadata
     recording_date: Optional[str] = None  # Date of recording
-    organoid_info: Optional[List[dict]] = None  # List of {age: str, cell_type: str}
+    organoid_info: Optional[List[dict]] = None  # List of {cell_type: str, birth_date: str, fusion_date: str, age_at_recording: int, days_since_fusion: int}
     recording_description: Optional[str] = None  # Description/notes
 
 
