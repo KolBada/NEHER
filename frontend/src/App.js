@@ -844,6 +844,11 @@ function App() {
       filename: activeFile?.filename,
       recordingName,
       
+      // Recording metadata
+      recordingDate,
+      organoidInfo,
+      recordingDescription,
+      
       // Trace data (decimated for storage)
       trace_data: traceData,
       
@@ -884,7 +889,8 @@ function App() {
   }, [
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
-    drugReadoutSettings, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse
+    drugReadoutSettings, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
+    recordingDate, organoidInfo, recordingDescription
   ]);
 
   // Handle save complete
