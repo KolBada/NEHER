@@ -23,6 +23,16 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - [x] **Save Recording Requirements**: Now only requires recording date, no PDF export prerequisite
 - [x] **Export Tab Simplified**: Now contains only export functionality (CSV, XLSX, PDF buttons)
 
+### Export Cleanup (Mar 2, 2026)
+- [x] **Excel Export**: Removed separate "Normalized Spontaneous" and "Normalized Light HRA" sheets (kept inline versions only)
+- [x] **PDF Export**: Removed separate Page 5 "Normalized to Baseline" (kept inline versions only)
+
+### Tooltip Corrections (Mar 2, 2026)
+- [x] **Spontaneous Activity Baseline BF**: "Mean Beat Frequency during minute 1-2 of recording (without drug or stimuli)"
+- [x] **Light Stimulus Baseline BF**: "Mean Beat Frequency from -2 to -1 min before first light stimulation"
+- [x] **Recovery BF**: "Beat Frequency at the end of the stimulation period, before the drop"
+- [x] **Rate of Change (RoC)**: "Slope of BF during stimulation, normalized by mean BF"
+
 ### Tooltip Enhancements (Mar 2, 2026)
 - [x] **More Explicit Tooltip Text** for key metrics in both single-recording and comparison views:
   - Baseline BF: "Mean Beat Frequency from -2 to -1 min before first light stimulation"
