@@ -546,7 +546,7 @@ export default function LightPanel({
                 )}
                 
                 <div ref={chartContainerRef}>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={225}>
                     <LineChart 
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
@@ -558,6 +558,7 @@ export default function LightPanel({
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                         tickFormatter={xAxisTickFormatter}
                         interval="preserveStartEnd"
+                        label={{ value: 'min', fill: '#52525b', fontSize: 9, position: 'insideBottomRight', offset: -5 }}
                       />
                       <YAxis 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
@@ -595,6 +596,7 @@ export default function LightPanel({
                         dot={false} 
                         isAnimationActive={false} 
                       />
+                      <Brush dataKey="time" height={20} stroke="#3f3f46" fill="#0c0c0e" tickFormatter={(v) => v.toFixed(1)} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
