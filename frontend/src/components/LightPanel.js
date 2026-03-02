@@ -566,7 +566,7 @@ export default function LightPanel({
                       />
                       <RechartsTooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                        labelFormatter={(v) => formatTimeMinSec(v)}
+                        labelFormatter={(v) => formatTimeMin(v)}
                         formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                       />
                       {/* Highlight pulse regions */}
