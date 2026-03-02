@@ -1753,12 +1753,12 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ])
         
         n_hra_rows = len(hra_data)
-        hra_row_height = min(0.08, 0.35 / n_hra_rows)
+        hra_row_height = min(0.06, 0.32 / n_hra_rows)
         hra_table_height = hra_row_height * n_hra_rows
         
         table_hra = ax_hra.table(cellText=hra_data, loc='upper center', cellLoc='center',
                                  colWidths=[0.12, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08],
-                                 bbox=[0.02, 1.0 - hra_table_height - 0.02, 0.96, hra_table_height])
+                                 bbox=[0.02, 1.0 - hra_table_height - 0.08, 0.96, hra_table_height])
         table_hra.auto_set_font_size(False)
         table_hra.set_fontsize(7)
         
