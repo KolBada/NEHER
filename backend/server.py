@@ -865,6 +865,185 @@ async def export_xlsx(request: ExportRequest):
                 ws_summary[f'{col}{current_row}'].border = thin_border
             current_row += 1
     
+    # Baseline Metrics section
+    current_row += 1
+    ws_summary[f'A{current_row}'] = 'Baseline Metrics'
+    ws_summary[f'A{current_row}'].font = subtitle_font
+    current_row += 1
+    
+    ws_summary[f'A{current_row}'] = 'Metric'
+    ws_summary[f'B{current_row}'] = 'Value'
+    style_header(ws_summary, current_row)
+    current_row += 1
+    
+    if request.baseline:
+        baseline_data = [
+            ('Mean BF (bpm)', f"{request.baseline.get('baseline_bf', 0):.1f}" if request.baseline.get('baseline_bf') is not None else '—', request.baseline.get('baseline_bf_range', '1-2 min')),
+            ('ln(RMSSD₇₀)', f"{request.baseline.get('baseline_ln_rmssd70', 0):.3f}" if request.baseline.get('baseline_ln_rmssd70') is not None else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
+            ('ln(SDNN₇₀)', f"{np.log(request.baseline.get('baseline_sdnn', 1)):.3f}" if request.baseline.get('baseline_sdnn') is not None and request.baseline.get('baseline_sdnn') > 0 else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
+            ('pNN50₇₀ (%)', f"{request.baseline.get('baseline_pnn50', 0):.1f}" if request.baseline.get('baseline_pnn50') is not None else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
+        ]
+        for label, value, time_range in baseline_data:
+            ws_summary[f'A{current_row}'] = f"{label} ({time_range})"
+            ws_summary[f'B{current_row}'] = value
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+            # Yellow highlight for baseline
+            ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            current_row += 1
+    else:
+        ws_summary[f'A{current_row}'] = 'Not available'
+        ws_summary[f'B{current_row}'] = '—'
+        for col in ['A', 'B']:
+            ws_summary[f'{col}{current_row}'].font = data_font
+            ws_summary[f'{col}{current_row}'].border = thin_border
+        current_row += 1
+    
+    # Drug Metrics section
+    current_row += 1
+    ws_summary[f'A{current_row}'] = 'Drug Metrics'
+    ws_summary[f'A{current_row}'].font = subtitle_font
+    current_row += 1
+    
+    ws_summary[f'A{current_row}'] = 'Metric'
+    ws_summary[f'B{current_row}'] = 'Value'
+    style_header(ws_summary, current_row, fill=header_fill_purple)
+    current_row += 1
+    
+    # Drug metrics - get from HRV windows if drug_readout is available
+    drug_metrics_available = False
+    if request.drug_readout and request.hrv_windows:
+        drug_bf_minute = request.drug_readout.get('bf_minute')
+        drug_hrv_minute = request.drug_readout.get('hrv_minute')
+        
+        # Find HRV values for drug readout minute
+        drug_hrv_data = None
+        if drug_hrv_minute is not None:
+            for w in request.hrv_windows:
+                if w.get('minute') == drug_hrv_minute:
+                    drug_hrv_data = w
+                    break
+        
+        # Find BF value for drug readout minute
+        drug_bf = None
+        if drug_bf_minute is not None and request.per_minute_data:
+            for pm in request.per_minute_data:
+                minute_str = pm.get('minute', '0')
+                try:
+                    minute_num = int(minute_str.split('-')[0]) if '-' in str(minute_str) else int(minute_str)
+                    if minute_num == drug_bf_minute:
+                        drug_bf = pm.get('mean_bf')
+                        break
+                except:
+                    pass
+        
+        if drug_hrv_data or drug_bf is not None:
+            drug_metrics_available = True
+            drug_bf_range = f"{drug_bf_minute}-{drug_bf_minute+1} min" if drug_bf_minute is not None else '—'
+            drug_hrv_range = f"{drug_hrv_minute}-{drug_hrv_minute+3} min" if drug_hrv_minute is not None else '—'
+            
+            drug_data = [
+                ('Mean BF (bpm)', f"{drug_bf:.1f}" if drug_bf is not None else '—', drug_bf_range),
+                ('ln(RMSSD₇₀)', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data and drug_hrv_data.get('ln_rmssd70') is not None else '—', drug_hrv_range),
+                ('ln(SDNN₇₀)', f"{np.log(drug_hrv_data.get('sdnn', 1)):.3f}" if drug_hrv_data and drug_hrv_data.get('sdnn') and drug_hrv_data.get('sdnn') > 0 else '—', drug_hrv_range),
+                ('pNN50₇₀ (%)', f"{drug_hrv_data.get('pnn50', 0):.1f}" if drug_hrv_data and drug_hrv_data.get('pnn50') is not None else '—', drug_hrv_range),
+            ]
+            for label, value, time_range in drug_data:
+                ws_summary[f'A{current_row}'] = f"{label} ({time_range})"
+                ws_summary[f'B{current_row}'] = value
+                for col in ['A', 'B']:
+                    ws_summary[f'{col}{current_row}'].font = data_font
+                    ws_summary[f'{col}{current_row}'].border = thin_border
+                # Purple highlight for drug
+                ws_summary[f'A{current_row}'].fill = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+                ws_summary[f'B{current_row}'].fill = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+                current_row += 1
+    
+    if not drug_metrics_available:
+        ws_summary[f'A{current_row}'] = 'Status'
+        ws_summary[f'B{current_row}'] = 'Disabled'
+        for col in ['A', 'B']:
+            ws_summary[f'{col}{current_row}'].font = data_font
+            ws_summary[f'{col}{current_row}'].border = thin_border
+            ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+        current_row += 1
+    
+    # Light Metrics section
+    current_row += 1
+    ws_summary[f'A{current_row}'] = 'Light Metrics (Readout)'
+    ws_summary[f'A{current_row}'].font = subtitle_font
+    current_row += 1
+    
+    ws_summary[f'A{current_row}'] = 'Metric'
+    ws_summary[f'B{current_row}'] = 'Value'
+    style_header(ws_summary, current_row, fill=header_fill_amber)
+    current_row += 1
+    
+    light_metrics_available = False
+    if request.light_response or request.light_metrics:
+        light_metrics_available = True
+        
+        # HRA metrics (from light_response) - compute averages
+        if request.light_response:
+            valid_response = [m for m in request.light_response if m is not None]
+            if valid_response:
+                avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_response if r.get('avg_bf') is not None])
+                peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_response if r.get('peak_bf') is not None])
+                peak_bf_norm = np.mean([r.get('peak_bf_norm', 0) for r in valid_response if r.get('peak_bf_norm') is not None])
+                time_to_peak = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
+                
+                hra_data = [
+                    ('Avg BF (bpm)', f"{avg_bf:.1f}"),
+                    ('Peak BF (bpm)', f"{peak_bf:.1f}"),
+                    ('Normalized Peak BF (%)', f"{peak_bf_norm:.1f}"),
+                    ('Time to Peak (s)', f"{time_to_peak:.1f}"),
+                ]
+                for label, value in hra_data:
+                    ws_summary[f'A{current_row}'] = label
+                    ws_summary[f'B{current_row}'] = value
+                    for col in ['A', 'B']:
+                        ws_summary[f'{col}{current_row}'].font = data_font
+                        ws_summary[f'{col}{current_row}'].border = thin_border
+                    # Amber highlight for light metrics
+                    ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                    ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                    current_row += 1
+        
+        # HRV metrics (from light_metrics) - compute medians
+        if request.light_metrics:
+            valid_hrv = [m for m in request.light_metrics if m is not None]
+            if valid_hrv:
+                ln_rmssd_vals = [m.get('ln_rmssd70') for m in valid_hrv if m.get('ln_rmssd70') is not None]
+                ln_sdnn_vals = [m.get('ln_sdnn70') for m in valid_hrv if m.get('ln_sdnn70') is not None]
+                pnn50_vals = [m.get('pnn50') for m in valid_hrv if m.get('pnn50') is not None]
+                
+                hrv_data = [
+                    ('ln(RMSSD₇₀)', f"{np.median(ln_rmssd_vals):.3f}" if ln_rmssd_vals else '—'),
+                    ('ln(SDNN₇₀)', f"{np.median(ln_sdnn_vals):.3f}" if ln_sdnn_vals else '—'),
+                    ('pNN50₇₀ (%)', f"{np.median(pnn50_vals):.1f}" if pnn50_vals else '—'),
+                ]
+                for label, value in hrv_data:
+                    ws_summary[f'A{current_row}'] = label
+                    ws_summary[f'B{current_row}'] = value
+                    for col in ['A', 'B']:
+                        ws_summary[f'{col}{current_row}'].font = data_font
+                        ws_summary[f'{col}{current_row}'].border = thin_border
+                    # Amber highlight
+                    ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                    ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                    current_row += 1
+    
+    if not light_metrics_available:
+        ws_summary[f'A{current_row}'] = 'Status'
+        ws_summary[f'B{current_row}'] = 'Disabled'
+        for col in ['A', 'B']:
+            ws_summary[f'{col}{current_row}'].font = data_font
+            ws_summary[f'{col}{current_row}'].border = thin_border
+            ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+        current_row += 1
+    
     auto_width(ws_summary)
 
     # Per-beat sheet (only kept beats)
