@@ -476,7 +476,7 @@ export default function LightPanel({
   // Median light-induced HRV
   const medianHrv = lightHrv?.final;
 
-  // Average HRA (was light response)
+  // Average Heart Rate Adaptation (was light response)
   const avgHra = lightResponse?.mean_metrics;
 
   const isLightEnabled = lightEnabled !== false;
