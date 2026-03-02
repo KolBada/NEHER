@@ -18,12 +18,16 @@ export default function ExportPanel({
   organoidInfo, setOrganoidInfo,
   recordingDescription, setRecordingDescription,
   originalFilename,
-  fusionDate, setFusionDate
+  fusionDate, setFusionDate,
+  // Drug readout for metrics availability
+  drugReadout
 }) {
   const hasData = !!metrics;
   const hasHrv = !!hrvResults?.windows?.length;
   const hasLight = !!lightHrv || !!lightResponse;
   const hasPerMinute = !!perMinuteData?.length;
+  const hasBaseline = !!hrvResults?.baseline;
+  const hasDrugMetrics = !!(drugReadout?.drug_bf || drugReadout?.drug_hrv);
   
   // Track which samples have transfection expanded
   const [expandedTransfection, setExpandedTransfection] = useState({});
