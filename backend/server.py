@@ -1697,12 +1697,15 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         pdf.savefig(fig2, bbox_inches='tight')
         plt.close(fig2)
         
-        # Page 3: Light Heart Rate Adaptation Table
+        # Page 3: Light Stimulus (Combined HRA and Corrected HRV)
         fig3 = plt.figure(figsize=(11, 8.5))
-        fig3.suptitle('Light-Induced Heart Rate Adaptation Comparison', fontsize=12, fontweight='bold', y=0.96)
+        fig3.suptitle('Light Stimulus Comparison', fontsize=12, fontweight='bold', y=0.97)
         
-        ax_hra = fig3.add_axes([0.05, 0.1, 0.9, 0.8])
+        # HRA Section
+        ax_hra = fig3.add_axes([0.03, 0.48, 0.94, 0.45])
         ax_hra.axis('off')
+        ax_hra.text(0.5, 1.0, 'Light-Induced Heart Rate Adaptation (HRA)', fontsize=10, fontweight='bold', 
+                   color='#374151', ha='center', transform=ax_hra.transAxes, va='top')
         
         hra_headers = ['Recording', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Norm\nPeak', 'TTP\n1st', 'TTP\nAvg', 
                       'Rec\nBF', 'Rec\n%', 'Amp', 'RoC']
@@ -1742,7 +1745,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                                  colWidths=[0.14, 0.07, 0.07, 0.07, 0.08, 0.07, 0.07, 0.07, 0.07, 0.07, 0.08])
         table_hra.auto_set_font_size(False)
         table_hra.set_fontsize(7)
-        table_hra.scale(1.0, 1.3)
+        table_hra.scale(1.0, 1.2)
         
         for (row, col), cell in table_hra.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
@@ -1753,15 +1756,11 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_facecolor('#E5E7EB')
                 cell.set_text_props(fontweight='bold', fontsize=7)
         
-        pdf.savefig(fig3, bbox_inches='tight')
-        plt.close(fig3)
-        
-        # Page 4: Corrected Light HRV Table
-        fig4 = plt.figure(figsize=(11, 8.5))
-        fig4.suptitle('Corrected Light-Induced HRV Comparison (Detrended)', fontsize=12, fontweight='bold', y=0.96)
-        
-        ax_hrv = fig4.add_axes([0.15, 0.2, 0.7, 0.6])
+        # Corrected HRV Section
+        ax_hrv = fig3.add_axes([0.15, 0.05, 0.7, 0.38])
         ax_hrv.axis('off')
+        ax_hrv.text(0.5, 1.0, 'Corrected Light-Induced Heart Rate Variability (HRV)', fontsize=10, fontweight='bold', 
+                   color='#374151', ha='center', transform=ax_hrv.transAxes, va='top')
         
         hrv_headers = ['Recording', 'ln(RMSSD70) corr.', 'ln(SDNN70) corr.', 'pNN50 corr. (%)']
         hrv_data = [hrv_headers]
@@ -1785,8 +1784,8 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         table_hrv = ax_hrv.table(cellText=hrv_data, loc='upper center', cellLoc='center',
                                  colWidths=[0.35, 0.2, 0.2, 0.2])
         table_hrv.auto_set_font_size(False)
-        table_hrv.set_fontsize(9)
-        table_hrv.scale(1.0, 1.5)
+        table_hrv.set_fontsize(8)
+        table_hrv.scale(1.0, 1.3)
         
         for (row, col), cell in table_hrv.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
@@ -1797,14 +1796,14 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 cell.set_facecolor('#E5E7EB')
                 cell.set_text_props(fontweight='bold')
         
-        pdf.savefig(fig4, bbox_inches='tight')
-        plt.close(fig4)
+        pdf.savefig(fig3, bbox_inches='tight')
+        plt.close(fig3)
         
-        # Page 5: Recording Metadata - Updated with Drug Info and Light Stim Info columns
-        fig5 = plt.figure(figsize=(11, 8.5))
-        fig5.suptitle('Recording Metadata', fontsize=12, fontweight='bold', y=0.96)
+        # Page 4: Recording Metadata - Updated with Drug Info and Light Stim Info columns
+        fig4 = plt.figure(figsize=(11, 8.5))
+        fig4.suptitle('Recording Metadata', fontsize=12, fontweight='bold', y=0.96)
         
-        ax_meta = fig5.add_axes([0.02, 0.1, 0.96, 0.8])
+        ax_meta = fig4.add_axes([0.02, 0.1, 0.96, 0.8])
         ax_meta.axis('off')
         
         meta_headers = ['Recording', 'Date', 'hSpO\nAge', 'hCO\nAge', 'Fusion\nAge', 'Drug Info', 'Light Stim\nInfo', 'Notes']
