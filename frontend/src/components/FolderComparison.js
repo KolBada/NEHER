@@ -377,16 +377,16 @@ export default function FolderComparison({ folder, onBack }) {
                       </tr>
                     ))}
                     {/* Average Row */}
-                    <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                      <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={recordings?.length || 0})</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_bf, 1)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_rmssd70, 3)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_sdnn70, 3)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_pnn50, 1)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_bf, 1)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_ln_rmssd70, 3)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_ln_sdnn70, 3)}</td>
-                      <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_pnn50, 1)}</td>
+                    <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
+                      <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={recordings?.length || 0})</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_bf, 1)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_rmssd70, 3)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_sdnn70, 3)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_pnn50, 1)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_bf, 1)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_ln_rmssd70, 3)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_ln_sdnn70, 3)}</td>
+                      <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.drug_pnn50, 1)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -440,16 +440,16 @@ export default function FolderComparison({ folder, onBack }) {
                           </tr>
                         ))}
                         {/* Folder Average Row */}
-                        <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                          <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={normalizedSpontaneous.length})</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_bf, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_rmssd, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_sdnn, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_pnn50, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_bf, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_ln_rmssd, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_ln_sdnn, 1)}</td>
-                          <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_pnn50, 1)}</td>
+                        <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
+                          <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={normalizedSpontaneous.length})</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_bf, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_rmssd, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_ln_sdnn, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_baseline_pnn50, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_bf, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_ln_rmssd, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_ln_sdnn, 1)}</td>
+                          <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(normalizedSpontAverages?.norm_drug_pnn50, 1)}</td>
                         </tr>
                       </tbody>
                     </table>
