@@ -190,6 +190,48 @@ export default function AnalysisPanel({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  // Handle brush change for navigation
+  const handleBfBrushChange = useCallback((brushArea) => {
+    if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
+      const startTime = filteredBfData[brushArea.startIndex]?.time;
+      const endTime = filteredBfData[brushArea.endIndex]?.time;
+      if (startTime !== undefined && endTime !== undefined) {
+        setZoomDomain([startTime, endTime]);
+      }
+    }
+  }, [filteredBfData]);
+
+  const handleNnBrushChange = useCallback((brushArea) => {
+    if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
+      const startTime = filteredNnData[brushArea.startIndex]?.time;
+      const endTime = filteredNnData[brushArea.endIndex]?.time;
+      if (startTime !== undefined && endTime !== undefined) {
+        setZoomDomain([startTime, endTime]);
+      }
+    }
+  }, [filteredNnData]);
+
+  // Calculate brush indices from zoom domain
+  const bfBrushIndices = useMemo(() => {
+    if (!filteredBfData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: filteredBfData.length - 1 };
+    let startIdx = filteredBfData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = filteredBfData.findIndex(d => d.time >= zoomDomain[1]);
+    if (startIdx === -1) startIdx = 0;
+    if (endIdx === -1) endIdx = filteredBfData.length - 1;
+    return { start: Math.max(0, startIdx), end: Math.min(filteredBfData.length - 1, endIdx) };
+  }, [filteredBfData, zoomDomain]);
+
+  const nnBrushIndices = useMemo(() => {
+    if (!filteredNnData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: filteredNnData.length - 1 };
+    let startIdx = filteredNnData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = filteredNnData.findIndex(d => d.time >= zoomDomain[1]);
+    if (startIdx === -1) startIdx = 0;
+    if (endIdx === -1) endIdx = filteredNnData.length - 1;
+    return { start: Math.max(0, startIdx), end: Math.min(filteredNnData.length - 1, endIdx) };
+  }, [filteredNnData, zoomDomain]);
+
   const filteredBfData = useMemo(() => {
     if (!metrics) return [];
     return metrics.filtered_beat_times_min.map((t, i) => ({
