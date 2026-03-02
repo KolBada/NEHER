@@ -1521,9 +1521,9 @@ async def export_pdf(request: ExportRequest):
             if request.recording_description:
                 left_rows.append(['Description', wrap_text(request.recording_description, 35)])
         
-        # Create left table
+        # Create left table with better text fitting
         if left_rows:
-            wrapped_left = [[wrap_text(m, 20), wrap_text(v, 35)] for m, v in left_rows]
+            wrapped_left = [[wrap_text(m, 18), wrap_text(v, 30)] for m, v in left_rows]
             table_left = ax_left.table(
                 cellText=wrapped_left,
                 loc='upper center',
@@ -1531,32 +1531,32 @@ async def export_pdf(request: ExportRequest):
                 colWidths=[0.4, 0.6]
             )
             table_left.auto_set_font_size(False)
-            table_left.set_fontsize(8)
-            table_left.scale(1.0, 1.4)
+            table_left.set_fontsize(7)
+            table_left.scale(1.0, 1.3)
             
             for (row, col), cell in table_left.get_celld().items():
                 cell.set_edgecolor('#e0e0e0')
                 text = cell.get_text().get_text()
                 if text in ['ANALYSIS SUMMARY', 'ORGANOID/CELL INFO']:
-                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=9)
+                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=8)
                     cell.set_facecolor('#f0f0f0')
                 elif text == '':
                     cell.set_facecolor('white')
-                    cell.set_height(0.015)
+                    cell.set_height(0.012)
                 else:
                     cell.set_facecolor('white')
                     if col == 0:
-                        cell.set_text_props(color='#6b7280', fontsize=8)
+                        cell.set_text_props(color='#6b7280', fontsize=7)
                     else:
-                        cell.set_text_props(color='#1f2937', fontsize=8)
+                        cell.set_text_props(color='#1f2937', fontsize=7)
         
         # RIGHT COLUMN: Baseline + Drug + Light Metrics
-        ax_right = fig1.add_axes([0.52, 0.12, 0.43, 0.7])
+        ax_right = fig1.add_axes([0.52, 0.08, 0.43, 0.76])
         ax_right.axis('off')
         
         right_rows = []
         
-        # Baseline Metrics
+        # Baseline Metrics - shortened labels
         right_rows.append(['BASELINE METRICS', ''])
         if request.baseline:
             bf_range = request.baseline.get('baseline_bf_range', '1-2 min')
@@ -1566,10 +1566,10 @@ async def export_pdf(request: ExportRequest):
             sdnn = request.baseline.get('baseline_sdnn')
             pnn50 = request.baseline.get('baseline_pnn50')
             
-            right_rows.append([f'Mean BF ({bf_range})', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
-            right_rows.append([f'ln(RMSSD₇₀) ({hrv_range})', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
-            right_rows.append([f'ln(SDNN₇₀) ({hrv_range})', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
-            right_rows.append([f'pNN50₇₀ ({hrv_range})', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+            right_rows.append([f'Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
+            right_rows.append([f'ln(RMSSD₇₀)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
+            right_rows.append([f'ln(SDNN₇₀)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
+            right_rows.append([f'pNN50₇₀', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
         else:
             right_rows.append(['Status', 'Not available'])
         
