@@ -990,7 +990,7 @@ export default function LightPanel({
               <CardContent>
                 {/* Mean HRA metrics - readout (average of 5 stims) */}
                 {avgHra && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2 mb-4">
                     <MetricCard 
                       label="Baseline BF" 
                       value={avgHra.baseline_bf} 
