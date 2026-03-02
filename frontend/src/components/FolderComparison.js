@@ -209,13 +209,13 @@ export default function FolderComparison({ folder, onBack }) {
                     <tr className="border-b border-zinc-800">
                       <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                       <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF</th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(RMSSD)</th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(SDNN)</th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline pNN50</th>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(RMSSD<sub>70</sub>)</th>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(SDNN<sub>70</sub>)</th>
+                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline pNN50<sub>70</sub></th>
                       <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug BF</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(RMSSD)</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(SDNN)</th>
-                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug pNN50</th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(RMSSD<sub>70</sub>)</th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(SDNN<sub>70</sub>)</th>
+                      <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug pNN50<sub>70</sub></th>
                     </tr>
                   </thead>
                   <tbody>
