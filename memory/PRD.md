@@ -259,6 +259,15 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Runs automatically when app loads (on HomeBrowser mount)
   - Shows toast notification listing updated recordings
   - API endpoint: `POST /api/recordings/batch-update`
+- [x] **Recording Metadata & Export Enhancements (Mar 2026):**
+  - PDF export title now uses recording name
+  - Added original ABF filename to parameter sections (PDF & Excel)
+  - New "Organoid/Cell Information" section in Export tab:
+    - Recording Date field
+    - Sample Information (Cell/Organoid Type + Age) - supports multiple samples
+    - Description/Notes textarea
+  - Metadata exported to PDF and Excel summary sheets
+  - Metadata saved with recording state for persistence
 
 ### P1 - In Progress
 - [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
