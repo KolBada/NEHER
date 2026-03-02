@@ -306,6 +306,60 @@ export default function LightPanel({
     }));
   }, [metrics]);
 
+  // Time bounds for zoom
+  const timeBounds = useMemo(() => {
+    if (!bfChartData.length) return { min: 0, max: 10 };
+    return {
+      min: Math.min(...bfChartData.map(d => d.time)),
+      max: Math.max(...bfChartData.map(d => d.time))
+    };
+  }, [bfChartData]);
+
+  // Zoom handlers
+  const handleResetZoom = useCallback(() => setZoomDomain(null), []);
+  const handleZoomIn = useCallback(() => {
+    const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+    const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+    const newRange = (currentMax - currentMin) * 0.7;
+    const center = (currentMin + currentMax) / 2;
+    setZoomDomain([Math.max(timeBounds.min, center - newRange/2), Math.min(timeBounds.max, center + newRange/2)]);
+  }, [zoomDomain, timeBounds]);
+  const handleZoomOut = useCallback(() => {
+    if (!zoomDomain) return;
+    const newRange = Math.min(timeBounds.max - timeBounds.min, (zoomDomain[1] - zoomDomain[0]) * 1.5);
+    const center = (zoomDomain[0] + zoomDomain[1]) / 2;
+    let newMin = center - newRange / 2;
+    let newMax = center + newRange / 2;
+    if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = newMin + newRange; }
+    if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = newMax - newRange; }
+    if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) setZoomDomain(null);
+    else setZoomDomain([newMin, newMax]);
+  }, [zoomDomain, timeBounds]);
+
+  // Handle brush change for navigation
+  const handleBrushChange = useCallback((brushArea) => {
+    if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
+      const startTime = bfChartData[brushArea.startIndex]?.time;
+      const endTime = bfChartData[brushArea.endIndex]?.time;
+      if (startTime !== undefined && endTime !== undefined) {
+        setZoomDomain([startTime, endTime]);
+      }
+    }
+  }, [bfChartData]);
+
+  // Calculate brush indices from zoom domain
+  const brushIndices = useMemo(() => {
+    if (!bfChartData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: bfChartData.length - 1 };
+    let startIdx = bfChartData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = bfChartData.findIndex(d => d.time >= zoomDomain[1]);
+    if (startIdx === -1) startIdx = 0;
+    if (endIdx === -1) endIdx = bfChartData.length - 1;
+    return { start: Math.max(0, startIdx), end: Math.min(bfChartData.length - 1, endIdx) };
+  }, [bfChartData, zoomDomain]);
+
+  const isZoomed = zoomDomain !== null;
+
   // Get beat times array for beat-by-beat navigation
   const beatTimesMin = useMemo(() => {
     if (!metrics) return [];
