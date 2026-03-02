@@ -1799,12 +1799,12 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         ])
         
         n_hrv_rows = len(hrv_data)
-        hrv_row_height = min(0.08, 0.30 / n_hrv_rows)
+        hrv_row_height = min(0.06, 0.28 / n_hrv_rows)
         hrv_table_height = hrv_row_height * n_hrv_rows
         
         table_hrv = ax_hrv.table(cellText=hrv_data, loc='upper center', cellLoc='center',
                                  colWidths=[0.30, 0.22, 0.22, 0.22],
-                                 bbox=[0.02, 1.0 - hrv_table_height - 0.08, 0.96, hrv_table_height])
+                                 bbox=[0.02, 1.0 - hrv_table_height - 0.12, 0.96, hrv_table_height])
         table_hrv.auto_set_font_size(False)
         table_hrv.set_fontsize(8)
         
