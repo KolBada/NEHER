@@ -190,6 +190,23 @@ export default function AnalysisPanel({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  // Data for BF and NN charts - must be defined before brush handlers
+  const filteredBfData = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.filtered_beat_times_min.map((t, i) => ({
+      time: t,
+      bf: metrics.filtered_bf_bpm[i],
+    }));
+  }, [metrics]);
+
+  const filteredNnData = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.filtered_beat_times_min.map((t, i) => ({
+      time: t,
+      nn: metrics.filtered_nn_ms[i],
+    }));
+  }, [metrics]);
+
   // Handle brush change for navigation
   const handleBfBrushChange = useCallback((brushArea) => {
     if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
