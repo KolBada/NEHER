@@ -211,9 +211,44 @@ export default function FolderComparison({ folder, onBack }) {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
-          <div>
-            <h2 className="text-lg font-medium text-zinc-100">{folder.name} - Comparison</h2>
-            <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h2 className="text-lg font-medium text-zinc-100">{folder.name} - Comparison</h2>
+              <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
+            </div>
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded hover:bg-zinc-800 transition-colors" data-testid="comparison-info-btn">
+                    <Info className="w-4 h-4 text-zinc-500 hover:text-zinc-300" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="max-w-md bg-zinc-900 border-zinc-700 p-3">
+                  <div className="text-xs space-y-2">
+                    <p className="font-semibold text-zinc-200 mb-2">Abbreviations & Metrics</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-zinc-400">
+                      <div><span className="text-amber-400">hSpOs</span> — human Spinal Organoids</div>
+                      <div><span className="text-purple-400">hCOs</span> — human Cardiac Organoids</div>
+                      <div><span className="text-zinc-300">BF</span> — Beat Frequency (bpm)</div>
+                      <div><span className="text-zinc-300">ISI</span> — Inter-Stimuli Interval</div>
+                      <div><span className="text-zinc-300">HRA</span> — Heart Rate Adaptation</div>
+                      <div><span className="text-zinc-300">HRV</span> — Heart Rate Variability</div>
+                      <div><span className="text-zinc-300">RMSSD</span> — Root Mean Square of Successive Differences</div>
+                      <div><span className="text-zinc-300">SDNN</span> — Std. Dev. of NN intervals</div>
+                      <div><span className="text-zinc-300">pNN50</span> — % of successive NN &gt; 50ms</div>
+                      <div><span className="text-zinc-300">TTP</span> — Time To Peak</div>
+                      <div><span className="text-zinc-300">Rec.</span> — Recovery</div>
+                      <div><span className="text-zinc-300">Amp.</span> — Amplitude</div>
+                      <div><span className="text-zinc-300">RoC</span> — Rate of Change</div>
+                      <div><span className="text-zinc-300">Peak %</span> — Normalized Peak (100 × Peak/Baseline)</div>
+                    </div>
+                    <p className="text-zinc-500 mt-2 pt-2 border-t border-zinc-700">
+                      <span className="text-zinc-400">₇₀</span> subscript indicates normalization to 70 bpm reference
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         
