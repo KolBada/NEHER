@@ -232,22 +232,6 @@ export default function AnalysisPanel({
     return { start: Math.max(0, startIdx), end: Math.min(filteredNnData.length - 1, endIdx) };
   }, [filteredNnData, zoomDomain]);
 
-  const filteredBfData = useMemo(() => {
-    if (!metrics) return [];
-    return metrics.filtered_beat_times_min.map((t, i) => ({
-      time: t,
-      bf: metrics.filtered_bf_bpm[i],
-    }));
-  }, [metrics]);
-
-  const filteredNnData = useMemo(() => {
-    if (!metrics) return [];
-    return metrics.filtered_beat_times_min.map((t, i) => ({
-      time: t,
-      nn: metrics.filtered_nn_ms[i],
-    }));
-  }, [metrics]);
-
   const hrvChartData = useMemo(() => {
     if (!hrvResults || !hrvResults.windows) return [];
     // Add ln_sdnn for the chart
