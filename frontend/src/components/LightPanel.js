@@ -1057,6 +1057,7 @@ export default function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF End</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF End %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Rate of Change</TableHead>
                       </TableRow>
