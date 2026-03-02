@@ -1389,7 +1389,7 @@ export default function LightPanel({
                     </ScrollArea>
 
                     {/* Expandable Visualization Panel */}
-                    {expandedStim !== null && lightHrvDetrended.per_pulse[expandedStim]?.viz && (
+                    {expandedStim !== null && lightHrvDetrended.per_pulse?.[expandedStim]?.viz && (
                       <div className="mt-4 p-3 bg-zinc-900/50 rounded-sm border border-emerald-800/50">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-[10px] text-emerald-400 font-medium uppercase tracking-wider">
@@ -1410,7 +1410,7 @@ export default function LightPanel({
 
                         {/* Visualization Charts */}
                         <DetrendingVisualization 
-                          vizData={lightHrvDetrended.per_pulse[expandedStim].viz}
+                          vizData={lightHrvDetrended.per_pulse?.[expandedStim]?.viz}
                           showOverlay={showOverlay}
                           stimIdx={expandedStim}
                         />
