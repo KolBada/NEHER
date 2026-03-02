@@ -1423,8 +1423,62 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
         ws_light.cell(row=hra_avg_row, column=col).fill = avg_fill
         ws_light.cell(row=hra_avg_row, column=col).border = thin_border
     
-    # Spacer row
-    hrv_start_row = hra_avg_row + 2
+    # Add Normalized to Baseline - Light HRA section below the main HRA table
+    norm_hra_start_row = hra_avg_row + 3
+    
+    ws_light.merge_cells(f'A{norm_hra_start_row}:E{norm_hra_start_row}')
+    ws_light.cell(row=norm_hra_start_row, column=1, value='Normalized to Baseline — Light-Induced Heart Rate Adaptation (HRA)').font = Font(bold=True, size=11, color="FFFFFF")
+    ws_light.cell(row=norm_hra_start_row, column=1).fill = header_fill_light
+    ws_light.cell(row=norm_hra_start_row, column=1).alignment = Alignment(horizontal='center')
+    
+    norm_light_headers = ['Recording', 'Baseline BF (%)', 'Avg BF (%)', 'Peak BF (%)', 'Recovery BF (%)']
+    
+    for col_idx, header in enumerate(norm_light_headers, start=1):
+        cell = ws_light.cell(row=norm_hra_start_row + 1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill_light
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+    
+    # Data rows with normalized values (using avg_baseline_bf calculated earlier in Spontaneous sheet)
+    light_norm_sums = {'baseline_bf': [], 'avg_bf': [], 'peak_bf': [], 'recovery_bf': []}
+    
+    for row_idx, rec in enumerate(recordings, start=norm_hra_start_row + 2):
+        ws_light.cell(row=row_idx, column=1, value=rec.get('name', '')).font = data_font
+        
+        n_light_baseline_bf = norm_val(rec.get('light_baseline_bf'), avg_baseline_bf)
+        n_light_avg_bf = norm_val(rec.get('light_avg_bf'), avg_baseline_bf)
+        n_light_peak_bf = norm_val(rec.get('light_peak_bf'), avg_baseline_bf)
+        n_light_recovery_bf = norm_val(rec.get('light_recovery_bf'), avg_baseline_bf)
+        
+        ws_light.cell(row=row_idx, column=2, value=format_value(n_light_baseline_bf, 1)).font = data_font
+        ws_light.cell(row=row_idx, column=3, value=format_value(n_light_avg_bf, 1)).font = data_font
+        ws_light.cell(row=row_idx, column=4, value=format_value(n_light_peak_bf, 1)).font = data_font
+        ws_light.cell(row=row_idx, column=5, value=format_value(n_light_recovery_bf, 1)).font = data_font
+        
+        # Collect for averages
+        for key, val in [('baseline_bf', n_light_baseline_bf), ('avg_bf', n_light_avg_bf),
+                         ('peak_bf', n_light_peak_bf), ('recovery_bf', n_light_recovery_bf)]:
+            if val is not None:
+                light_norm_sums[key].append(val)
+        
+        for col in range(1, 6):
+            ws_light.cell(row=row_idx, column=col).border = thin_border
+    
+    # Folder Average row for normalized Light HRA
+    light_norm_avg_row = norm_hra_start_row + 2 + len(recordings)
+    ws_light.cell(row=light_norm_avg_row, column=1, value=f"Folder Average (n={len(recordings)})").font = Font(bold=True, size=9)
+    
+    for col_idx, key in enumerate(['baseline_bf', 'avg_bf', 'peak_bf', 'recovery_bf'], start=2):
+        avg_val_light = sum(light_norm_sums[key]) / len(light_norm_sums[key]) if light_norm_sums[key] else None
+        ws_light.cell(row=light_norm_avg_row, column=col_idx, value=format_value(avg_val_light, 1)).font = Font(bold=True, size=9)
+    
+    for col in range(1, 6):
+        ws_light.cell(row=light_norm_avg_row, column=col).fill = avg_fill
+        ws_light.cell(row=light_norm_avg_row, column=col).border = thin_border
+    
+    # Spacer row - adjust for Corrected HRV section
+    hrv_start_row = light_norm_avg_row + 3
     
     # Corrected HRV Section Title
     ws_light.merge_cells(f'A{hrv_start_row}:D{hrv_start_row}')
