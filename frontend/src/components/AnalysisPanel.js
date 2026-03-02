@@ -427,6 +427,7 @@ export default function AnalysisPanel({
                   />
                 ))}
                 <Line type="monotone" dataKey="nn" stroke={CHART_COLORS.nn} strokeWidth={1} dot={false} isAnimationActive={false} />
+                <Brush dataKey="time" height={20} stroke="#3f3f46" fill="#0c0c0e" tickFormatter={(v) => v.toFixed(1)} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
