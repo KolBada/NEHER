@@ -174,14 +174,45 @@ export default function ExportPanel({
                     )}
                   </div>
                   
-                  {/* Organoid/Cell Type and Passage Number */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2 space-y-1">
+                  {/* Organoid/Cell Type */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
                       <Label className="text-[10px] text-zinc-500">Organoid/Cell Type</Label>
-                      <Input
-                        placeholder="e.g., Human iPSC-CM Organoid"
+                      <Select
                         value={info.cell_type || ''}
-                        onChange={(e) => handleOrganoidChange(idx, 'cell_type', e.target.value)}
+                        onValueChange={(value) => handleOrganoidChange(idx, 'cell_type', value)}
+                      >
+                        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hSpO">Human Spinal Cord Organoid (hSpO)</SelectItem>
+                          <SelectItem value="hCO">Human Cardiac Organoid (hCO)</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {info.cell_type === 'other' && (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-zinc-500">Specify Type</Label>
+                        <Input
+                          placeholder="e.g., Human iPSC-CM"
+                          value={info.other_cell_type || ''}
+                          onChange={(e) => handleOrganoidChange(idx, 'other_cell_type', e.target.value)}
+                          className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Line Name and Passage Number */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-zinc-500">Line Name</Label>
+                      <Input
+                        placeholder="e.g., CPVT, WT, F11"
+                        value={info.line_name || ''}
+                        onChange={(e) => handleOrganoidChange(idx, 'line_name', e.target.value)}
                         className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
                       />
                     </div>
