@@ -379,7 +379,7 @@ export default function ExportPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-xs text-zinc-500">
-            Export analysis results including per-beat data, HRV windows, per-minute metrics, and light stimulation data.
+            Export analysis results including per-beat data, per-minute metrics, baseline metrics, drug metrics, and light stimulation data.
           </p>
 
           {/* Available data summary */}
