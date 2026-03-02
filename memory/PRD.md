@@ -377,7 +377,8 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 - `/app/frontend/src/components/SaveRecording.js` - Save recording interface
 
 ## Test Reports
-- `/app/test_reports/iteration_12.json` - Latest (100% pass - 81/81 tests including 13 new export tests)
+- `/app/test_reports/iteration_13.json` - Latest (100% pass - 9/9 tests - expandable normalization sections)
+- `/app/test_reports/iteration_12.json` - Previous (100% pass - 81/81 tests including 13 new export tests)
 - `/app/test_reports/iteration_11.json` - Previous (100% pass - 68/68 tests)
 - `/app/test_reports/iteration_10.json` - Previous
 - `/app/test_reports/iteration_9.json` - Previous (100% pass)
