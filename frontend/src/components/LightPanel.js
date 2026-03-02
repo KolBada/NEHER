@@ -1156,7 +1156,7 @@ export default function LightPanel({
                       label="Recovery BF" 
                       value={avgHra.bf_end} 
                       unit="bpm"
-                      tooltip="Beat frequency at end of stimulation window (recovery)"
+                      tooltip="Last beat frequency before the drop"
                     />
                     <MetricCard 
                       label="Recovery %" 
