@@ -451,7 +451,19 @@ export default function AnalysisPanel({
                   {metrics.n_kept} intervals
                 </Badge>
               </div>
-              <span className="text-[9px] text-zinc-600">Ctrl+Scroll to zoom</span>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
+                  <ZoomIn className="w-3 h-3 text-zinc-500" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!zoomDomain} title="Zoom Out">
+                  <Minus className="w-3 h-3 text-zinc-500" />
+                </Button>
+                {zoomDomain && (
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                    <RotateCcw className="w-3 h-3 mr-1" />Reset
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
@@ -478,7 +490,16 @@ export default function AnalysisPanel({
                   />
                 ))}
                 <Line type="monotone" dataKey="nn" stroke={CHART_COLORS.nn} strokeWidth={1} dot={false} isAnimationActive={false} />
-                <Brush dataKey="time" height={20} stroke="#3f3f46" fill="#0c0c0e" tickFormatter={(v) => v.toFixed(1)} />
+                <Brush 
+                  dataKey="time" 
+                  height={20} 
+                  stroke="#3f3f46" 
+                  fill="#0c0c0e" 
+                  tickFormatter={(v) => v.toFixed(1)}
+                  startIndex={nnBrushIndices.start}
+                  endIndex={nnBrushIndices.end}
+                  onChange={handleNnBrushChange}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
