@@ -355,7 +355,7 @@ export default function FolderComparison({ folder, onBack }) {
               <CardTitle className="text-sm font-medium text-zinc-300">Spontaneous Activity Comparison</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="max-h-[500px]">
+              <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800">
@@ -406,7 +406,7 @@ export default function FolderComparison({ folder, onBack }) {
                     </tr>
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
               
               {/* Expandable Normalized Section - Inside Card */}
               <div className="mt-4 pt-3 border-t border-zinc-800/50">
@@ -423,10 +423,10 @@ export default function FolderComparison({ folder, onBack }) {
                 
                 <div 
                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    spontNormExpanded ? 'max-h-[500px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    spontNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                   }`}
                 >
-                  <ScrollArea className="max-h-[400px]">
+                  <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-zinc-800">
@@ -469,7 +469,7 @@ export default function FolderComparison({ folder, onBack }) {
                         </tr>
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -485,7 +485,7 @@ export default function FolderComparison({ folder, onBack }) {
                 <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Adaptation (HRA)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="max-h-[350px]">
+                <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800">
@@ -554,7 +554,7 @@ export default function FolderComparison({ folder, onBack }) {
                       </tr>
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
                 
                 {/* Expandable Normalized Section - Inside Card */}
                 <div className="mt-4 pt-3 border-t border-zinc-800/50">
@@ -571,10 +571,10 @@ export default function FolderComparison({ folder, onBack }) {
                   
                   <div 
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      lightNormExpanded ? 'max-h-[400px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                      lightNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    <ScrollArea className="max-h-[350px]">
+                    <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-zinc-800">
@@ -605,7 +605,7 @@ export default function FolderComparison({ folder, onBack }) {
                           </tr>
                         </tbody>
                       </table>
-                    </ScrollArea>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -617,7 +617,7 @@ export default function FolderComparison({ folder, onBack }) {
                 <CardTitle className="text-sm font-medium text-zinc-300">Corrected Light-Induced Heart Rate Variability (HRV)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="max-h-[300px]">
+                <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800">
@@ -645,7 +645,7 @@ export default function FolderComparison({ folder, onBack }) {
                       </tr>
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -658,7 +658,7 @@ export default function FolderComparison({ folder, onBack }) {
               <CardTitle className="text-sm font-medium text-zinc-300">Recording Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="max-h-[600px]">
+              <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800">
@@ -744,7 +744,7 @@ export default function FolderComparison({ folder, onBack }) {
                     })}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
