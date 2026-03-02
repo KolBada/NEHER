@@ -1707,15 +1707,15 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         # Page 3: Light Stimulus (Combined HRA and Corrected HRV)
         fig3 = plt.figure(figsize=(11, 8.5))
         
-        # Main title
-        fig3.text(0.5, 0.96, 'Light Stimulus Comparison', fontsize=14, fontweight='bold', ha='center')
+        # Main title at very top
+        fig3.text(0.5, 0.97, 'Light Stimulus Comparison', fontsize=14, fontweight='bold', ha='center')
         
-        # HRA Section
-        ax_hra = fig3.add_axes([0.03, 0.50, 0.94, 0.42])
+        # HRA Section - upper half
+        ax_hra = fig3.add_axes([0.03, 0.52, 0.94, 0.40])
         ax_hra.axis('off')
         
-        # HRA subtitle positioned above table
-        fig3.text(0.5, 0.92, 'Light-Induced Heart Rate Adaptation (HRA)', fontsize=11, fontweight='bold', 
+        # HRA subtitle positioned clearly above table
+        fig3.text(0.5, 0.90, 'Light-Induced Heart Rate Adaptation (HRA)', fontsize=11, fontweight='bold', 
                  color='#374151', ha='center')
         
         hra_headers = ['Recording', 'Base BF', 'Avg BF', 'Peak BF', 'Norm%', 'TTP 1st', 'TTP Avg', 
