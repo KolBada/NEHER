@@ -176,7 +176,7 @@ async def upload_chunk(upload_id: str, chunk_index: int, file: UploadFile = File
     chunk_data = await file.read()
     
     # Calculate offset and write to temp file
-    chunk_size = 5 * 1024 * 1024  # 5MB chunks
+    chunk_size = 1 * 1024 * 1024  # 1MB chunks to match frontend
     offset = chunk_index * chunk_size
     
     # Use 'ab' mode for appending, but seek to correct position

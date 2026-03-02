@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks to stay under proxy limits
 
 // Chunked upload for large files (>10MB)
 const chunkedUpload = async (file, onProgress) => {
@@ -89,39 +89,35 @@ const regularUpload = async (formData, onUploadProgress, maxRetries = 3) => {
   throw lastError;
 };
 
-// Smart upload - uses chunked for large files, regular for small files
+// Smart upload - ALWAYS use chunked upload to avoid proxy limits
 const smartUpload = async (files, onUploadProgress) => {
-  // If any file is > 10MB, use chunked upload
-  const largeFiles = files.filter(f => f.size > 10 * 1024 * 1024);
+  // Always use chunked upload to avoid 520 errors from proxy body size limits
+  const results = [];
+  let totalSize = files.reduce((sum, f) => sum + f.size, 0);
+  let uploadedSize = 0;
   
-  if (largeFiles.length > 0) {
-    // Use chunked upload for large files (one at a time)
-    const results = [];
-    for (const file of files) {
-      const response = await chunkedUpload(file, (progress) => {
-        if (onUploadProgress) {
-          onUploadProgress({ loaded: progress.loaded, total: progress.total });
-        }
-      });
-      results.push(response.data);
-    }
-    // Combine results
-    if (results.length === 1) {
-      return { data: results[0] };
-    }
-    // Merge multiple file results
-    return {
-      data: {
-        session_id: results[0].session_id,
-        files: results.flatMap(r => r.files)
+  for (const file of files) {
+    const response = await chunkedUpload(file, (progress) => {
+      if (onUploadProgress) {
+        const currentTotal = uploadedSize + progress.loaded;
+        onUploadProgress({ loaded: currentTotal, total: totalSize });
       }
-    };
-  } else {
-    // Use regular upload for small files
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    return regularUpload(formData, onUploadProgress);
+    });
+    uploadedSize += file.size;
+    results.push(response.data);
   }
+  
+  // Combine results
+  if (results.length === 1) {
+    return { data: results[0] };
+  }
+  // Merge multiple file results
+  return {
+    data: {
+      session_id: results[0].session_id,
+      files: results.flatMap(r => r.files)
+    }
+  };
 };
 
 const api = {
