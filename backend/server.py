@@ -1554,7 +1554,7 @@ async def export_pdf(request: ExportRequest):
             for (row, col), cell in table_left.get_celld().items():
                 cell.set_edgecolor('#e0e0e0')
                 text = cell.get_text().get_text()
-                if text in ['ANALYSIS SUMMARY', 'SAMPLE INFO']:
+                if text in ['ANALYSIS', 'SAMPLE INFO']:
                     cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=7)
                     cell.set_facecolor('#f0f0f0')
                 elif text == '':
