@@ -482,6 +482,63 @@ export default function FolderComparison({ folder, onBack }) {
               </CardContent>
             </Card>
 
+            {/* Expandable Normalized Light HRA Section */}
+            <div className="mt-3">
+              <button
+                onClick={() => setLightNormExpanded(!lightNormExpanded)}
+                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-2 px-1"
+                data-testid="expand-light-norm"
+              >
+                <ChevronRight 
+                  className={`w-4 h-4 transition-transform duration-200 ${lightNormExpanded ? 'rotate-90' : ''}`}
+                />
+                <span className="font-medium">Normalized to Baseline — Light-Induced Heart Rate Adaptation (HRA)</span>
+              </button>
+              
+              <div 
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  lightNormExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <Card className="bg-zinc-900/20 border-zinc-800/50 rounded-sm mt-2">
+                  <CardContent className="pt-4">
+                    <ScrollArea className="max-h-[500px]">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-zinc-800">
+                            <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Avg BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Peak BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Recovery BF (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {normalizedLightHRA.map((rec, idx) => (
+                            <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                              <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
+                            </tr>
+                          ))}
+                          {/* Folder Average Row */}
+                          <tr className="bg-zinc-800/50 font-semibold">
+                            <td className="py-2 px-2 text-zinc-200">Folder Average (n={normalizedLightHRA.length})</td>
+                            <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-200">{formatValue(normalizedLightHRAAverages?.norm_recovery_bf, 1)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
             {/* Corrected HRV Table */}
             <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
