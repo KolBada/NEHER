@@ -30,13 +30,23 @@ export default function ExportPanel({
   };
 
   const addOrganoidEntry = () => {
-    setOrganoidInfo([...organoidInfo, { age: '', cell_type: '' }]);
+    setOrganoidInfo([...organoidInfo, { cell_type: '', birth_date: '', fusion_date: '' }]);
   };
 
   const removeOrganoidEntry = (index) => {
     if (organoidInfo.length > 1) {
       setOrganoidInfo(organoidInfo.filter((_, i) => i !== index));
     }
+  };
+
+  // Calculate age in days between two dates
+  const calculateDays = (fromDate, toDate) => {
+    if (!fromDate || !toDate) return null;
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    const diffTime = to - from;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 ? diffDays : null;
   };
 
   return (
