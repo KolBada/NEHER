@@ -468,13 +468,27 @@ export default function FolderComparison({ folder, onBack }) {
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Avg BF</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak BF</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak %</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP 1st</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP Avg</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. BF</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. %</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Amp.</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">RoC</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Normalized Peak: 100 × Peak/Baseline">Peak %</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Time To Peak (1st stim)">TTP 1st</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Time To Peak (average)">TTP Avg</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Recovery Beat Frequency">Rec. BF</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Recovery %: 100 × Recovery/Baseline">Rec. %</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Amplitude: Peak - Baseline">Amp.</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                          <InfoTip text="Rate of Change">RoC</InfoTip>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
