@@ -190,6 +190,9 @@ function App() {
 
   // Recording metadata
   const [recordingName, setRecordingName] = useState('');
+  const [recordingDate, setRecordingDate] = useState('');
+  const [organoidInfo, setOrganoidInfo] = useState([{ age: '', cell_type: '' }]);
+  const [recordingDescription, setRecordingDescription] = useState('');
   
   // Drug configuration - each drug has its own settings
   const [selectedDrugs, setSelectedDrugs] = useState([]);
