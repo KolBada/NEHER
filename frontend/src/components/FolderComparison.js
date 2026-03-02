@@ -478,7 +478,7 @@ export default function FolderComparison({ folder, onBack }) {
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Avg BF</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak BF</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Norm. Peak</th>
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Peak %</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP 1st</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">TTP Avg</th>
                         <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Rec. BF</th>
