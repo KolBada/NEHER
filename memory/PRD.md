@@ -10,6 +10,13 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented (Mar 2026)
 
+### File Upload Improvements (Mar 2, 2026)
+- [x] **Large File Support**: Updated upload to handle files up to 200MB reliably
+- [x] **Progress Tracking**: Added reading progress for files > 50MB
+- [x] **Error Handling**: Better error display for failed uploads
+- [x] **Increased Timeout**: API timeout extended to 10 minutes for large files
+- [x] **UI Indicator**: Upload page now shows "Supports files up to 200MB"
+
 ### UI Reorganization (Mar 2, 2026)
 - [x] **Tab Order Changed**: Trace → Spontaneous Activity → Light Stimulus → Save Recording → Export
 - [x] **Organoid/Cell Information Moved**: From Export tab to Save Recording tab (before the save boxes)
