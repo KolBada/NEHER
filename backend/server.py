@@ -1823,48 +1823,63 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
         # Page 4: Recording Metadata
         fig4 = plt.figure(figsize=(11, 8.5))
         
-        # Main title
-        fig4.text(0.5, 0.96, 'Recording Metadata', fontsize=14, fontweight='bold', ha='center')
+        # Main title with more space
+        fig4.text(0.5, 0.95, 'Recording Metadata', fontsize=14, fontweight='bold', ha='center')
         
-        ax_meta = fig4.add_axes([0.02, 0.08, 0.96, 0.84])
+        ax_meta = fig4.add_axes([0.02, 0.05, 0.96, 0.86])
         ax_meta.axis('off')
         
         meta_headers = ['Recording', 'Date', 'hSpO', 'hCO', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
         meta_data = [meta_headers]
         
-        # Helper to truncate text
-        def trunc(text, max_len):
+        # Helper to wrap text with newlines instead of truncating
+        def wrap_text(text, max_chars_per_line):
             if not text:
                 return '—'
             text = str(text)
-            if len(text) > max_len:
-                return text[:max_len-2] + '..'
-            return text
+            if len(text) <= max_chars_per_line:
+                return text
+            # Split into multiple lines
+            words = text.split()
+            lines = []
+            current_line = ""
+            for word in words:
+                if len(current_line) + len(word) + 1 <= max_chars_per_line:
+                    current_line = current_line + " " + word if current_line else word
+                else:
+                    if current_line:
+                        lines.append(current_line)
+                    current_line = word[:max_chars_per_line]  # Handle very long words
+            if current_line:
+                lines.append(current_line)
+            return '\n'.join(lines[:3])  # Max 3 lines
         
         for rec in recordings:
-            # Format drug info - keep it short
+            # Format drug info with wrapping
             if rec.get('has_drug') and rec.get('drug_info'):
                 drug_parts = []
                 for d in rec.get('drug_info', []):
-                    drug_str = d.get('name', '')[:10]
+                    drug_str = d.get('name', '')
+                    if d.get('concentration'):
+                        drug_str += f" ({d.get('concentration')})"
                     drug_parts.append(drug_str)
-                drug_display = ', '.join(drug_parts)[:18] if drug_parts else '—'
+                drug_display = '\n'.join(drug_parts) if drug_parts else '—'
             else:
                 drug_display = '—'
             
-            # Format light stim info - very short
+            # Format light stim info with full ISI
             if rec.get('has_light_stim'):
                 isi = rec.get('isi_structure', '')
-                light_display = f"{rec.get('stim_duration', '')}s {isi[:15]}"
+                light_display = f"{rec.get('stim_duration', '')}s stim\nISI: {isi}"
             else:
                 light_display = '—'
             
-            # Truncate notes/description
+            # Wrap notes/description
             notes = rec.get('recording_description', '')
-            notes_display = trunc(notes, 20) if notes else '—'
+            notes_display = wrap_text(notes, 25) if notes else '—'
             
             meta_data.append([
-                trunc(rec.get('name', ''), 14),
+                rec.get('name', ''),
                 rec.get('recording_date', '')[:10] if rec.get('recording_date') else '—',
                 str(rec.get('hspo_age', '')) if rec.get('hspo_age') else '—',
                 str(rec.get('hco_age', '')) if rec.get('hco_age') else '—',
@@ -1874,18 +1889,29 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                 notes_display,
             ])
         
+        # Calculate row heights - need more space for wrapped text
         n_meta_rows = len(meta_data)
-        meta_row_height = min(0.07, 0.75 / n_meta_rows)
-        meta_table_height = meta_row_height * n_meta_rows
+        # Check if any cell has multi-line content
+        max_lines = 1
+        for row in meta_data:
+            for cell in row:
+                lines = str(cell).count('\n') + 1
+                max_lines = max(max_lines, lines)
+        
+        base_row_height = 0.04
+        row_height = base_row_height * max(1, min(max_lines, 3))
+        meta_table_height = min(0.85, row_height * n_meta_rows)
         
         table_meta = ax_meta.table(cellText=meta_data, loc='upper center', cellLoc='center',
-                                   colWidths=[0.12, 0.10, 0.06, 0.06, 0.06, 0.18, 0.20, 0.18],
-                                   bbox=[0.01, 1.0 - meta_table_height - 0.05, 0.98, meta_table_height])
+                                   colWidths=[0.13, 0.09, 0.06, 0.06, 0.06, 0.15, 0.18, 0.22],
+                                   bbox=[0.01, 1.0 - meta_table_height - 0.02, 0.98, meta_table_height])
         table_meta.auto_set_font_size(False)
         table_meta.set_fontsize(7)
         
         for (row, col), cell in table_meta.get_celld().items():
             cell.set_edgecolor('#d0d0d0')
+            # Set cell alignment for wrapped text
+            cell.set_text_props(verticalalignment='center')
             if row == 0:
                 if col == 2:  # hSpO Age
                     cell.set_facecolor('#F59E0B')  # Amber
@@ -1897,7 +1923,7 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
                     cell.set_facecolor('#06B6D4')  # Cyan
                 else:
                     cell.set_facecolor('#374151')
-                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7, verticalalignment='center')
         
         pdf.savefig(fig4, bbox_inches='tight')
         plt.close(fig4)
