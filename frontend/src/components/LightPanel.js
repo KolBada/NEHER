@@ -360,6 +360,45 @@ export default function LightPanel({
 
   const isZoomed = zoomDomain !== null;
 
+  // Handle wheel zoom (trackpad pinch)
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container || !bfChartData.length) return;
+    
+    const handleWheel = (e) => {
+      if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 50) return;
+      e.preventDefault();
+      
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const chartWidth = rect.width - 60;
+      const mouseRatio = Math.max(0, Math.min(1, (mouseX - 10) / chartWidth));
+      
+      const currentMin = zoomDomain ? zoomDomain[0] : timeBounds.min;
+      const currentMax = zoomDomain ? zoomDomain[1] : timeBounds.max;
+      const currentRange = currentMax - currentMin;
+      
+      const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+      const newRange = Math.max(0.1, Math.min(timeBounds.max - timeBounds.min, currentRange * zoomFactor));
+      
+      const mouseTime = currentMin + mouseRatio * currentRange;
+      let newMin = mouseTime - mouseRatio * newRange;
+      let newMax = mouseTime + (1 - mouseRatio) * newRange;
+      
+      if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = Math.min(timeBounds.max, newMin + newRange); }
+      if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = Math.max(timeBounds.min, newMax - newRange); }
+      
+      if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
+        setZoomDomain(null);
+      } else {
+        setZoomDomain([newMin, newMax]);
+      }
+    };
+    
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [bfChartData, zoomDomain, timeBounds]);
+
   // Get beat times array for beat-by-beat navigation
   const beatTimesMin = useMemo(() => {
     if (!metrics) return [];
