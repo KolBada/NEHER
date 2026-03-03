@@ -221,9 +221,16 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const handleSectionDragEnd = () => {
+    setDraggedSection(null);
+  };
+
   const handleSectionDrop = async (e, targetSection) => {
     e.preventDefault();
-    if (!draggedSection || draggedSection.id === targetSection.id) return;
+    if (!draggedSection || draggedSection.id === targetSection.id) {
+      setDraggedSection(null);
+      return;
+    }
     
     // Reorder sections
     const newOrder = sections.filter(s => s.id !== draggedSection.id);
@@ -547,7 +554,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Sections */}
             {sections.map((section) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -558,7 +565,8 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                   onDragStart={(e) => handleSectionDragStart(e, section)}
                   onDragOver={handleSectionDragOver}
                   onDrop={(e) => handleSectionDrop(e, section)}
-                  className={`${draggedSection?.id === section.id ? 'opacity-50' : ''}`}
+                  onDragEnd={handleSectionDragEnd}
+                  className={`transition-opacity ${draggedSection?.id === section.id ? 'opacity-50' : 'opacity-100'}`}
                 >
                   {/* Section Header */}
                   <div className="flex items-center gap-2 mb-2 group">
