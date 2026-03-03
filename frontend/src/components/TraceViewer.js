@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine, Scatter
 } from 'recharts';
 import { MousePointerClick, ZoomIn, Trash2, Plus, RotateCcw, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,17 @@ export default function TraceViewer({
     }));
   }, [traceData, invert]);
 
-  // Chart data with beat markers - separate computation so base data doesn't change on beat add/remove
+  // Beat data for scatter plot - only contains beat points
+  const beatData = useMemo(() => {
+    if (!beats || beats.length === 0) return [];
+    return beats.map((beat, idx) => ({
+      time: beat.timeSec / 60.0,
+      voltage: invert ? -beat.voltage : beat.voltage,
+      beatIdx: idx,
+    }));
+  }, [beats, invert]);
+
+  // Chart data with beat markers - kept for backward compatibility with click handling
   const chartData = useMemo(() => {
     if (!baseChartData.length) return [];
     
@@ -308,23 +318,28 @@ export default function TraceViewer({
   const isZoomed = zoomDomain !== null;
   const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
 
-  const CustomDot = (props) => {
+  // Custom shape for beat markers in Scatter plot
+  const BeatMarker = (props) => {
     const { cx, cy, payload } = props;
-    if (payload && payload.isBeat && cx !== undefined && cy !== undefined) {
-      const isSelected = payload.beatIdx === selectedBeatIdx;
-      return (
-        <circle
-          cx={cx} cy={cy} r={isSelected ? 6 : 4}
-          fill={isSelected ? '#ef4444' : '#a3e635'}
-          stroke={isSelected ? '#fca5a5' : '#65a30d'}
-          strokeWidth={isSelected ? 2 : 1}
-          style={{ cursor: editMode ? 'pointer' : 'default' }}
-          onClick={(e) => handleBeatClick(payload.beatIdx, e)}
-          onMouseDown={(e) => e.stopPropagation()}
-        />
-      );
-    }
-    return null;
+    if (!cx || !cy || !payload) return null;
+    
+    const beatIdx = payload.beatIdx;
+    const isSelected = beatIdx === selectedBeatIdx;
+    
+    return (
+      <circle
+        cx={cx} cy={cy} r={isSelected ? 6 : 4}
+        fill={isSelected ? '#ef4444' : '#a3e635'}
+        stroke={isSelected ? '#fca5a5' : '#65a30d'}
+        strokeWidth={isSelected ? 2 : 1}
+        style={{ cursor: editMode ? 'pointer' : 'default' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleBeatClick(beatIdx, e);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+      />
+    );
   };
 
   // Convert light pulses to minutes for display
@@ -436,7 +451,7 @@ export default function TraceViewer({
 
       <ResponsiveContainer width="100%" height={455}>
         <ComposedChart
-          data={chartData}
+          data={baseChartData}
           onClick={handleChartClick}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
@@ -508,12 +523,21 @@ export default function TraceViewer({
             dataKey="voltage"
             stroke="#22d3ee"
             strokeWidth={1}
-            dot={<CustomDot />}
+            dot={false}
             isAnimationActive={false}
-            activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : false}
+            activeDot={false}
+          />
+          {/* Beat markers as separate scatter plot - doesn't affect brush */}
+          <Scatter
+            data={beatData}
+            dataKey="voltage"
+            shape={<BeatMarker />}
+            isAnimationActive={false}
           />
           {/* Timeline brush/slider - always shows full recording */}
+          {/* Key based on trace data length to prevent reset on beat changes */}
           <Brush
+            key={`brush-${baseChartData.length}`}
             dataKey="time"
             height={25}
             stroke="#3f3f46"
@@ -522,6 +546,7 @@ export default function TraceViewer({
             startIndex={brushIndices.start}
             endIndex={brushIndices.end}
             onChange={handleBrushChange}
+            travellerWidth={10}
           />
         </ComposedChart>
       </ResponsiveContainer>
