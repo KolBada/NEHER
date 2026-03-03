@@ -708,7 +708,7 @@ export default function FolderComparison({ folder, onBack }) {
                             <div key={i} className="mb-1">
                               <div className="font-medium">{drug.name}</div>
                               {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
-                              {drug.perfusion_time && <div className="text-zinc-500">Perf: {drug.perfusion_time}min</div>}
+                              {drug.bf_readout_time && <div className="text-zinc-500">Perf. Time: {drug.bf_readout_time}min</div>}
                             </div>
                           ))}
                         </div>

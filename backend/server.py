@@ -943,6 +943,17 @@ def extract_comparison_metrics(recording: dict) -> dict:
     selected_drugs = state.get('selectedDrugs') or state.get('selected_drugs', [])
     drug_settings = state.get('drugSettings') or state.get('drug_settings', {})
     other_drugs_list = state.get('otherDrugs') or state.get('other_drugs', [])
+    drug_readout_settings = state.get('drugReadoutSettings') or state.get('drug_readout_settings', {})
+    
+    # DRUG_CONFIG equivalent for BF readout times
+    DRUG_BF_READOUTS = {
+        'tetrodotoxin': 12,
+        'isoproterenol': None,  # manual peak
+        'acetylcholine': 3,
+        'propranolol': 12,
+        'nepicastat': 42,
+        'ruxolitinib': 15,
+    }
     
     # Build drug info list
     result['drug_info'] = []
@@ -953,22 +964,30 @@ def extract_comparison_metrics(recording: dict) -> dict:
             drug_name = drug
             settings = drug_settings.get(drug, {})
             concentration = settings.get('concentration', '')
-            perfusion_time = settings.get('perfusion_time', settings.get('perfusionTime', ''))
+            
+            # Get BF readout time (perfusion time for BF)
+            bf_readout = DRUG_BF_READOUTS.get(drug.lower(), None)
+            # Check if there's a custom override in drugReadoutSettings
+            custom_bf = drug_readout_settings.get('bfReadoutMinute')
+            if custom_bf:
+                bf_readout = custom_bf
             
             result['drug_info'].append({
                 'name': drug_name,
                 'concentration': concentration,
-                'perfusion_time': perfusion_time,
+                'bf_readout_time': bf_readout,
             })
     
     # Add other drugs (custom drugs added by user)
     if other_drugs_list and isinstance(other_drugs_list, list):
         for drug in other_drugs_list:
             if isinstance(drug, dict) and drug.get('name'):
+                # For custom drugs, use their perfusionTime as bf_readout_time
+                perf_time = drug.get('perfusionTime', drug.get('perfusion_time', ''))
                 result['drug_info'].append({
                     'name': drug.get('name', ''),
                     'concentration': drug.get('concentration', ''),
-                    'perfusion_time': drug.get('perfusionTime', drug.get('perfusion_time', '')),
+                    'bf_readout_time': perf_time if perf_time else None,
                 })
     
     if result['drug_info']:
