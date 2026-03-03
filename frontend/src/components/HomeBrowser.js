@@ -212,18 +212,14 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   };
 
   const handleSectionDragStart = (e, section) => {
-    e.dataTransfer.setData('text/plain', section.id);
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'section', id: section.id }));
     e.dataTransfer.effectAllowed = 'move';
-    // Use setTimeout to set state after the drag image is captured
-    setTimeout(() => setDraggedSection(section), 0);
+    setDraggedSection(section);
   };
 
-  const handleSectionDragOver = (e, targetSection) => {
+  const handleSectionDragOver = (e) => {
     e.preventDefault();
-    e.stopPropagation();
-    if (draggedSection && draggedSection.id !== targetSection.id) {
-      e.dataTransfer.dropEffect = 'move';
-    }
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleSectionDragEnd = () => {
@@ -232,33 +228,38 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
 
   const handleSectionDrop = async (e, targetSection) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    const draggedId = e.dataTransfer.getData('text/plain');
-    if (!draggedId || draggedId === targetSection.id) {
-      setDraggedSection(null);
-      return;
-    }
-    
-    const draggedSec = sections.find(s => s.id === draggedId);
-    if (!draggedSec) {
-      setDraggedSection(null);
-      return;
-    }
-    
-    // Reorder sections
-    const newOrder = sections.filter(s => s.id !== draggedId);
-    const targetIndex = newOrder.findIndex(s => s.id === targetSection.id);
-    newOrder.splice(targetIndex, 0, draggedSec);
-    
-    setSections(newOrder.map((s, i) => ({...s, order: i})));
-    setDraggedSection(null);
     
     try {
-      await api.reorderSections(newOrder.map(s => s.id));
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (data.type !== 'section' || data.id === targetSection.id) {
+        setDraggedSection(null);
+        return;
+      }
+      
+      const draggedSec = sections.find(s => s.id === data.id);
+      if (!draggedSec) {
+        setDraggedSection(null);
+        return;
+      }
+      
+      // Calculate new order
+      const currentIndex = sections.findIndex(s => s.id === data.id);
+      const targetIndex = sections.findIndex(s => s.id === targetSection.id);
+      
+      const newSections = [...sections];
+      newSections.splice(currentIndex, 1);
+      newSections.splice(targetIndex, 0, draggedSec);
+      
+      // Update state immediately for responsiveness
+      setSections(newSections.map((s, i) => ({...s, order: i})));
+      setDraggedSection(null);
+      
+      // Persist to backend
+      await api.reorderSections(newSections.map(s => s.id));
       toast.success('Sections reordered');
     } catch (err) {
-      toast.error('Failed to reorder sections');
+      console.error('Drop error:', err);
+      setDraggedSection(null);
       loadSections();
     }
   };
@@ -573,19 +574,22 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             {/* Sections */}
             {sections.map((section) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
+              const isDragOver = draggedSection && draggedSection.id !== section.id;
               return (
                 <div 
                   key={section.id}
-                  draggable
-                  onDragStart={(e) => handleSectionDragStart(e, section)}
-                  onDragOver={(e) => handleSectionDragOver(e, section)}
-                  onDrop={(e) => handleSectionDrop(e, section)}
-                  onDragEnd={handleSectionDragEnd}
-                  className={`transition-opacity duration-200 ${draggedSection?.id === section.id ? 'opacity-40' : 'opacity-100'}`}
+                  className={`transition-all duration-200 ${draggedSection?.id === section.id ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}
                 >
-                  {/* Section Header */}
-                  <div className="flex items-center gap-2 mb-2 group">
-                    <GripVertical className="w-4 h-4 text-zinc-600 cursor-grab opacity-0 group-hover:opacity-100" />
+                  {/* Section Header - Draggable and Drop Target */}
+                  <div 
+                    draggable
+                    onDragStart={(e) => handleSectionDragStart(e, section)}
+                    onDragOver={handleSectionDragOver}
+                    onDrop={(e) => handleSectionDrop(e, section)}
+                    onDragEnd={handleSectionDragEnd}
+                    className={`flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors ${isDragOver ? 'bg-cyan-950/30 ring-1 ring-cyan-500/50' : ''}`}
+                  >
+                    <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
                     <button
                       onClick={() => handleToggleSection(section)}
                       className="flex items-center gap-2 flex-1 text-left"
