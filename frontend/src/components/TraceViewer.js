@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine, Scatter
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
 } from 'recharts';
 import { MousePointerClick, ZoomIn, Trash2, Plus, RotateCcw, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,34 +32,35 @@ export default function TraceViewer({
     };
   }, [traceData]);
 
-  // Trace data only - stable, doesn't change when beats change
-  // This is what the Brush uses, so it won't reset on beat add/remove
-  const traceOnlyData = useMemo(() => {
-    if (!traceData || !traceData.times) return [];
-    return traceData.times.map((t, i) => ({
-      time: t / 60.0,
-      voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
-    }));
-  }, [traceData, invert]);
-
-  // Beat data for scatter overlay - separate from trace data
-  const beatScatterData = useMemo(() => {
-    if (!beats || beats.length === 0) return [];
-    return beats.map((beat, idx) => ({
-      time: beat.timeSec / 60.0,
-      voltage: invert ? -beat.voltage : beat.voltage,
-      beatIdx: idx,
-    }));
-  }, [beats, invert]);
-
-  // Combined chart data for click handling (used to find nearest point)
   const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
-    return traceData.times.map((t, i) => ({
+    const data = traceData.times.map((t, i) => ({
       time: t / 60.0,
       voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
+      isBeat: false,
+      beatIdx: null,
     }));
-  }, [traceData, invert]);
+
+    if (beats) {
+      beats.forEach((beat, beatIdx) => {
+        const beatMin = beat.timeSec / 60.0;
+        let lo = 0, hi = data.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (data[mid].time < beatMin) lo = mid + 1;
+          else hi = mid;
+        }
+        if (lo > 0 && Math.abs(data[lo - 1].time - beatMin) < Math.abs(data[lo].time - beatMin)) {
+          lo = lo - 1;
+        }
+        if (lo < data.length) {
+          data[lo].isBeat = true;
+          data[lo].beatIdx = beatIdx;
+        }
+      });
+    }
+    return data;
+  }, [traceData, beats, invert]);
 
   // Filtered chart data based on zoom
   const visibleData = useMemo(() => {
@@ -251,27 +252,27 @@ export default function TraceViewer({
   // Handle brush change (timeline slider) - for navigation after zoom
   const handleBrushChange = useCallback((brushArea) => {
     if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
-      const startTime = traceOnlyData[brushArea.startIndex]?.time;
-      const endTime = traceOnlyData[brushArea.endIndex]?.time;
+      const startTime = chartData[brushArea.startIndex]?.time;
+      const endTime = chartData[brushArea.endIndex]?.time;
       if (startTime !== undefined && endTime !== undefined) {
         setZoomDomain([startTime, endTime]);
       }
     }
-  }, [traceOnlyData]);
+  }, [chartData]);
 
   // Calculate brush indices from current zoom domain
   const brushIndices = useMemo(() => {
-    if (!traceOnlyData.length) return { start: 0, end: 0 };
-    if (!zoomDomain) return { start: 0, end: traceOnlyData.length - 1 };
+    if (!chartData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: chartData.length - 1 };
     
-    let startIdx = traceOnlyData.findIndex(d => d.time >= zoomDomain[0]);
-    let endIdx = traceOnlyData.findIndex(d => d.time >= zoomDomain[1]);
+    let startIdx = chartData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = chartData.findIndex(d => d.time >= zoomDomain[1]);
     
     if (startIdx === -1) startIdx = 0;
-    if (endIdx === -1) endIdx = traceOnlyData.length - 1;
+    if (endIdx === -1) endIdx = chartData.length - 1;
     
-    return { start: Math.max(0, startIdx), end: Math.min(traceOnlyData.length - 1, endIdx) };
-  }, [traceOnlyData, zoomDomain]);
+    return { start: Math.max(0, startIdx), end: Math.min(chartData.length - 1, endIdx) };
+  }, [chartData, zoomDomain]);
 
   // Reset zoom when trace data changes
   useEffect(() => {
@@ -295,26 +296,23 @@ export default function TraceViewer({
   const isZoomed = zoomDomain !== null;
   const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
 
-  // Beat marker shape for Scatter plot
-  const BeatDot = (props) => {
+  const CustomDot = (props) => {
     const { cx, cy, payload } = props;
-    if (!cx || !cy || !payload) return null;
-    
-    const isSelected = payload.beatIdx === selectedBeatIdx;
-    return (
-      <circle
-        cx={cx} cy={cy} r={isSelected ? 6 : 4}
-        fill={isSelected ? '#ef4444' : '#a3e635'}
-        stroke={isSelected ? '#fca5a5' : '#65a30d'}
-        strokeWidth={isSelected ? 2 : 1}
-        style={{ cursor: editMode ? 'pointer' : 'default' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleBeatClick(payload.beatIdx, e);
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
-    );
+    if (payload && payload.isBeat && cx !== undefined && cy !== undefined) {
+      const isSelected = payload.beatIdx === selectedBeatIdx;
+      return (
+        <circle
+          cx={cx} cy={cy} r={isSelected ? 6 : 4}
+          fill={isSelected ? '#ef4444' : '#a3e635'}
+          stroke={isSelected ? '#fca5a5' : '#65a30d'}
+          strokeWidth={isSelected ? 2 : 1}
+          style={{ cursor: editMode ? 'pointer' : 'default' }}
+          onClick={(e) => handleBeatClick(payload.beatIdx, e)}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+      );
+    }
+    return null;
   };
 
   // Convert light pulses to minutes for display
@@ -426,7 +424,7 @@ export default function TraceViewer({
 
       <ResponsiveContainer width="100%" height={455}>
         <ComposedChart
-          data={traceOnlyData}
+          data={chartData}
           onClick={handleChartClick}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
@@ -498,18 +496,11 @@ export default function TraceViewer({
             dataKey="voltage"
             stroke="#22d3ee"
             strokeWidth={1}
-            dot={false}
+            dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={editMode ? false : { r: 4, fill: '#22d3ee', stroke: '#fff', strokeWidth: 1 }}
+            activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : { r: 4, fill: '#22d3ee', stroke: '#fff', strokeWidth: 1 }}
           />
-          {/* Beat markers as separate Scatter - doesn't cause brush reset */}
-          <Scatter
-            data={beatScatterData}
-            dataKey="voltage"
-            shape={<BeatDot />}
-            isAnimationActive={false}
-          />
-          {/* Timeline brush/slider - uses traceOnlyData which is stable */}
+          {/* Timeline brush/slider - always shows full recording */}
           <Brush
             dataKey="time"
             height={25}
