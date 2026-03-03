@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine, Scatter
+  Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
 } from 'recharts';
 import { MousePointerClick, ZoomIn, Trash2, Plus, RotateCcw, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ export default function TraceViewer({
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
   const containerRef = useRef(null);
-  const chartRef = useRef(null);
   
   // Zoom state - time domain
   const [zoomDomain, setZoomDomain] = useState(null);
@@ -33,32 +32,11 @@ export default function TraceViewer({
     };
   }, [traceData]);
 
-  // Base chart data without beats - only recalculated when trace/invert changes
-  const baseChartData = useMemo(() => {
+  const chartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
-    return traceData.times.map((t, i) => ({
+    const data = traceData.times.map((t, i) => ({
       time: t / 60.0,
       voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
-    }));
-  }, [traceData, invert]);
-
-  // Beat data for scatter plot - only contains beat points
-  const beatData = useMemo(() => {
-    if (!beats || beats.length === 0) return [];
-    return beats.map((beat, idx) => ({
-      time: beat.timeSec / 60.0,
-      voltage: invert ? -beat.voltage : beat.voltage,
-      beatIdx: idx,
-    }));
-  }, [beats, invert]);
-
-  // Chart data with beat markers - kept for backward compatibility with click handling
-  const chartData = useMemo(() => {
-    if (!baseChartData.length) return [];
-    
-    // Create a shallow copy with beat info added
-    const data = baseChartData.map(d => ({
-      ...d,
       isBeat: false,
       beatIdx: null,
     }));
@@ -82,7 +60,7 @@ export default function TraceViewer({
       });
     }
     return data;
-  }, [baseChartData, beats]);
+  }, [traceData, beats, invert]);
 
   // Filtered chart data based on zoom
   const visibleData = useMemo(() => {
@@ -274,27 +252,27 @@ export default function TraceViewer({
   // Handle brush change (timeline slider) - for navigation after zoom
   const handleBrushChange = useCallback((brushArea) => {
     if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
-      const startTime = baseChartData[brushArea.startIndex]?.time;
-      const endTime = baseChartData[brushArea.endIndex]?.time;
+      const startTime = chartData[brushArea.startIndex]?.time;
+      const endTime = chartData[brushArea.endIndex]?.time;
       if (startTime !== undefined && endTime !== undefined) {
         setZoomDomain([startTime, endTime]);
       }
     }
-  }, [baseChartData]);
+  }, [chartData]);
 
-  // Calculate brush indices from current zoom domain - use baseChartData for stability
+  // Calculate brush indices from current zoom domain
   const brushIndices = useMemo(() => {
-    if (!baseChartData.length) return { start: 0, end: 0 };
-    if (!zoomDomain) return { start: 0, end: baseChartData.length - 1 };
+    if (!chartData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: chartData.length - 1 };
     
-    let startIdx = baseChartData.findIndex(d => d.time >= zoomDomain[0]);
-    let endIdx = baseChartData.findIndex(d => d.time >= zoomDomain[1]);
+    let startIdx = chartData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = chartData.findIndex(d => d.time >= zoomDomain[1]);
     
     if (startIdx === -1) startIdx = 0;
-    if (endIdx === -1) endIdx = baseChartData.length - 1;
+    if (endIdx === -1) endIdx = chartData.length - 1;
     
-    return { start: Math.max(0, startIdx), end: Math.min(baseChartData.length - 1, endIdx) };
-  }, [baseChartData, zoomDomain]);
+    return { start: Math.max(0, startIdx), end: Math.min(chartData.length - 1, endIdx) };
+  }, [chartData, zoomDomain]);
 
   // Reset zoom when trace data changes
   useEffect(() => {
@@ -318,28 +296,23 @@ export default function TraceViewer({
   const isZoomed = zoomDomain !== null;
   const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
 
-  // Custom shape for beat markers in Scatter plot
-  const BeatMarker = (props) => {
+  const CustomDot = (props) => {
     const { cx, cy, payload } = props;
-    if (!cx || !cy || !payload) return null;
-    
-    const beatIdx = payload.beatIdx;
-    const isSelected = beatIdx === selectedBeatIdx;
-    
-    return (
-      <circle
-        cx={cx} cy={cy} r={isSelected ? 6 : 4}
-        fill={isSelected ? '#ef4444' : '#a3e635'}
-        stroke={isSelected ? '#fca5a5' : '#65a30d'}
-        strokeWidth={isSelected ? 2 : 1}
-        style={{ cursor: editMode ? 'pointer' : 'default' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleBeatClick(beatIdx, e);
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
-    );
+    if (payload && payload.isBeat && cx !== undefined && cy !== undefined) {
+      const isSelected = payload.beatIdx === selectedBeatIdx;
+      return (
+        <circle
+          cx={cx} cy={cy} r={isSelected ? 6 : 4}
+          fill={isSelected ? '#ef4444' : '#a3e635'}
+          stroke={isSelected ? '#fca5a5' : '#65a30d'}
+          strokeWidth={isSelected ? 2 : 1}
+          style={{ cursor: editMode ? 'pointer' : 'default' }}
+          onClick={(e) => handleBeatClick(payload.beatIdx, e)}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+      );
+    }
+    return null;
   };
 
   // Convert light pulses to minutes for display
@@ -451,7 +424,7 @@ export default function TraceViewer({
 
       <ResponsiveContainer width="100%" height={455}>
         <ComposedChart
-          data={baseChartData}
+          data={chartData}
           onClick={handleChartClick}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
@@ -523,21 +496,12 @@ export default function TraceViewer({
             dataKey="voltage"
             stroke="#22d3ee"
             strokeWidth={1}
-            dot={false}
+            dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={false}
-          />
-          {/* Beat markers as separate scatter plot - doesn't affect brush */}
-          <Scatter
-            data={beatData}
-            dataKey="voltage"
-            shape={<BeatMarker />}
-            isAnimationActive={false}
+            activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : { r: 4, fill: '#22d3ee', stroke: '#fff', strokeWidth: 1 }}
           />
           {/* Timeline brush/slider - always shows full recording */}
-          {/* Key based on trace data length to prevent reset on beat changes */}
           <Brush
-            key={`brush-${baseChartData.length}`}
             dataKey="time"
             height={25}
             stroke="#3f3f46"
@@ -546,7 +510,6 @@ export default function TraceViewer({
             startIndex={brushIndices.start}
             endIndex={brushIndices.end}
             onChange={handleBrushChange}
-            travellerWidth={10}
           />
         </ComposedChart>
       </ResponsiveContainer>
