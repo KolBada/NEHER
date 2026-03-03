@@ -62,8 +62,8 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [recordingToMove, setRecordingToMove] = useState(null);
   const [moveTargetFolder, setMoveTargetFolder] = useState('');
   const [updateCheckDone, setUpdateCheckDone] = useState(false);
-  const [folderSortBy, setFolderSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
-  const [recordingSortBy, setRecordingSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
+  const [folderSortBy, setFolderSortBy] = useState('alpha'); // 'modified', 'alpha', 'created'
+  const [recordingSortBy, setRecordingSortBy] = useState('alpha'); // 'modified', 'alpha', 'created'
   const [comparisonKey, setComparisonKey] = useState(Date.now());
 
   // Section states
@@ -212,13 +212,18 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   };
 
   const handleSectionDragStart = (e, section) => {
-    setDraggedSection(section);
+    e.dataTransfer.setData('text/plain', section.id);
     e.dataTransfer.effectAllowed = 'move';
+    // Use setTimeout to set state after the drag image is captured
+    setTimeout(() => setDraggedSection(section), 0);
   };
 
-  const handleSectionDragOver = (e) => {
+  const handleSectionDragOver = (e, targetSection) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.stopPropagation();
+    if (draggedSection && draggedSection.id !== targetSection.id) {
+      e.dataTransfer.dropEffect = 'move';
+    }
   };
 
   const handleSectionDragEnd = () => {
@@ -227,21 +232,31 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
 
   const handleSectionDrop = async (e, targetSection) => {
     e.preventDefault();
-    if (!draggedSection || draggedSection.id === targetSection.id) {
+    e.stopPropagation();
+    
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (!draggedId || draggedId === targetSection.id) {
+      setDraggedSection(null);
+      return;
+    }
+    
+    const draggedSec = sections.find(s => s.id === draggedId);
+    if (!draggedSec) {
       setDraggedSection(null);
       return;
     }
     
     // Reorder sections
-    const newOrder = sections.filter(s => s.id !== draggedSection.id);
+    const newOrder = sections.filter(s => s.id !== draggedId);
     const targetIndex = newOrder.findIndex(s => s.id === targetSection.id);
-    newOrder.splice(targetIndex, 0, draggedSection);
+    newOrder.splice(targetIndex, 0, draggedSec);
     
     setSections(newOrder.map((s, i) => ({...s, order: i})));
     setDraggedSection(null);
     
     try {
       await api.reorderSections(newOrder.map(s => s.id));
+      toast.success('Sections reordered');
     } catch (err) {
       toast.error('Failed to reorder sections');
       loadSections();
@@ -554,7 +569,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Sections */}
             {sections.map((section) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -563,10 +578,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                   key={section.id}
                   draggable
                   onDragStart={(e) => handleSectionDragStart(e, section)}
-                  onDragOver={handleSectionDragOver}
+                  onDragOver={(e) => handleSectionDragOver(e, section)}
                   onDrop={(e) => handleSectionDrop(e, section)}
                   onDragEnd={handleSectionDragEnd}
-                  className={`transition-opacity ${draggedSection?.id === section.id ? 'opacity-50' : 'opacity-100'}`}
+                  className={`transition-opacity duration-200 ${draggedSection?.id === section.id ? 'opacity-40' : 'opacity-100'}`}
                 >
                   {/* Section Header */}
                   <div className="flex items-center gap-2 mb-2 group">
@@ -614,7 +629,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                   
                   {/* Section Folders */}
                   {section.expanded && (
-                    <div className="grid gap-2 pl-6">
+                    <div className="grid gap-2 pl-6 pb-4">
                       {sectionFolders.length === 0 ? (
                         <p className="text-xs text-zinc-600 py-2">No folders in this section</p>
                       ) : (
