@@ -249,20 +249,21 @@ async def get_recording(db, recording_id: str) -> Optional[dict]:
 async def update_recording(db, recording_id: str, name: Optional[str] = None, analysis_state: Optional[dict] = None, update_version: bool = True) -> Optional[dict]:
     """Update a recording's name and/or analysis_state."""
     try:
+        print(f"[DEBUG storage] Attempting to find recording: {recording_id}")
         # First check if the recording exists
         existing = await db.recordings.find_one({"_id": ObjectId(recording_id)})
         if not existing:
+            print(f"[DEBUG storage] Recording not found in DB: {recording_id}")
             return None
         
+        print(f"[DEBUG storage] Found recording: {existing.get('name')}")
         now = datetime.now(timezone.utc).isoformat()
         update_fields = {"updated_at": now}
         
-        if name is not None:
-            update_fields["name"] = name
-            # Also update recordingName inside analysis_state if it exists
-            update_fields["analysis_state.recordingName"] = name
-        
         if analysis_state is not None:
+            # If we have a new analysis_state, update the name inside it first
+            if name is not None:
+                analysis_state['recordingName'] = name
             update_fields["analysis_state"] = analysis_state
             # Update summary info
             update_fields["n_beats"] = analysis_state.get("metrics", {}).get("n_filtered", 0)
@@ -272,6 +273,13 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
             # Update metrics version
             if update_version:
                 update_fields["metrics_version"] = METRICS_VERSION
+        elif name is not None:
+            # Only updating name, no analysis_state - use dot notation
+            update_fields["name"] = name
+            update_fields["analysis_state.recordingName"] = name
+        
+        if name is not None:
+            update_fields["name"] = name
         
         await db.recordings.update_one(
             {"_id": ObjectId(recording_id)},
@@ -284,9 +292,13 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
             {"$set": {"updated_at": now}}
         )
         
-        return await get_recording(db, recording_id)
+        result = await get_recording(db, recording_id)
+        print(f"[DEBUG storage] Update completed, returning: {result is not None}")
+        return result
     except Exception as e:
         print(f"Error updating recording: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

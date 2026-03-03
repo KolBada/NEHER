@@ -705,9 +705,14 @@ async def get_recording_endpoint(recording_id: str):
 @api_router.put("/recordings/{recording_id}")
 async def update_recording_endpoint(recording_id: str, request: storage.RecordingUpdate):
     """Update a recording's name and/or analysis state."""
+    print(f"[DEBUG] Updating recording with ID: {recording_id}")
+    print(f"[DEBUG] Request name: {request.name}")
+    print(f"[DEBUG] Has analysis_state: {request.analysis_state is not None}")
     recording = await storage.update_recording(db, recording_id, request.name, request.analysis_state)
     if not recording:
+        print(f"[DEBUG] Recording not found or update failed for ID: {recording_id}")
         raise HTTPException(404, "Recording not found")
+    print(f"[DEBUG] Recording updated successfully: {recording.get('name')}")
     return recording
 
 
