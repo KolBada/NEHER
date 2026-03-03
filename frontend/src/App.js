@@ -914,6 +914,9 @@ function App() {
       setDrugReadoutSettings(state.drugReadoutSettings);
     }
     
+    // Restore baseline enabled (default to true for backward compatibility)
+    setBaselineEnabled(state.baselineEnabled !== false);
+    
     // Restore light stim
     setLightEnabled(state.lightEnabled !== false);
     if (state.lightParams) {
@@ -991,6 +994,9 @@ function App() {
       // Drug readout settings (Spontaneous Activity)
       drugReadoutSettings,
       
+      // Baseline enabled
+      baselineEnabled,
+      
       // Light stim
       lightEnabled,
       lightParams,
@@ -1002,7 +1008,7 @@ function App() {
   }, [
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
-    drugReadoutSettings, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
+    drugReadoutSettings, baselineEnabled, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
     recordingDate, organoidInfo, fusionDate, recordingDescription
   ]);
 

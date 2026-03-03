@@ -1088,11 +1088,22 @@ def extract_comparison_metrics(recording: dict) -> dict:
     hrv_results = state.get('hrvResults') or state.get('hrv_results', {})
     baseline = hrv_results.get('baseline', {})
     
-    result['baseline_bf'] = baseline.get('baseline_bf')
-    result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
-    baseline_sdnn = baseline.get('baseline_sdnn')
-    result['baseline_ln_sdnn70'] = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
-    result['baseline_pnn50'] = baseline.get('baseline_pnn50')
+    # Check if baseline is enabled (default True for backward compatibility)
+    baseline_enabled = state.get('baselineEnabled', True)
+    
+    if baseline_enabled:
+        result['baseline_bf'] = baseline.get('baseline_bf')
+        result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
+        baseline_sdnn = baseline.get('baseline_sdnn')
+        result['baseline_ln_sdnn70'] = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
+        result['baseline_pnn50'] = baseline.get('baseline_pnn50')
+    else:
+        result['baseline_bf'] = None
+        result['baseline_ln_rmssd70'] = None
+        result['baseline_ln_sdnn70'] = None
+        result['baseline_pnn50'] = None
+    
+    result['baseline_enabled'] = baseline_enabled
     
     # Spontaneous Activity - Drug metrics
     drug_readout = state.get('drugReadoutSettings') or state.get('drug_readout', {})
