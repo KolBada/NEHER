@@ -75,8 +75,12 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [sectionToRename, setSectionToRename] = useState(null);
   const [deleteSectionOpen, setDeleteSectionOpen] = useState(false);
   const [sectionToDelete, setSectionToDelete] = useState(null);
+  const [deleteSectionConfirmed, setDeleteSectionConfirmed] = useState(false);
   const [draggedSection, setDraggedSection] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null); // Index where we'll insert (0 = before first, 1 = after first, etc.)
+  
+  // Delete confirmation states
+  const [deleteFolderConfirmed, setDeleteFolderConfirmed] = useState(false);
   
   // Folder color picker
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -899,7 +903,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
         </Dialog>
 
         {/* Delete Section Dialog */}
-        <Dialog open={deleteSectionOpen} onOpenChange={setDeleteSectionOpen}>
+        <Dialog open={deleteSectionOpen} onOpenChange={(open) => {
+          setDeleteSectionOpen(open);
+          if (!open) setDeleteSectionConfirmed(false);
+        }}>
           <DialogContent className="bg-zinc-900 border-zinc-800">
             <DialogHeader>
               <DialogTitle className="text-zinc-100">Delete Section</DialogTitle>
@@ -907,11 +914,30 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                 Are you sure you want to delete "{sectionToDelete?.name}"? Folders in this section will be moved to Unsorted.
               </DialogDescription>
             </DialogHeader>
+            {/* Show checkbox confirmation if section has folders */}
+            {sectionToDelete && folders.filter(f => f.section_id === sectionToDelete.id).length > 0 && (
+              <div className="flex items-start gap-3 p-3 bg-amber-950/30 border border-amber-800/50 rounded-sm">
+                <input
+                  type="checkbox"
+                  id="confirm-section-delete"
+                  checked={deleteSectionConfirmed}
+                  onChange={(e) => setDeleteSectionConfirmed(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                />
+                <label htmlFor="confirm-section-delete" className="text-sm text-amber-200">
+                  I understand that this section contains <strong>{folders.filter(f => f.section_id === sectionToDelete.id).length} folder(s)</strong> that will be moved to Unsorted.
+                </label>
+              </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteSectionOpen(false)} className="border-zinc-700">
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteSection}>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteSection}
+                disabled={sectionToDelete && folders.filter(f => f.section_id === sectionToDelete.id).length > 0 && !deleteSectionConfirmed}
+              >
                 Delete
               </Button>
             </DialogFooter>
@@ -992,7 +1018,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
         </Dialog>
 
         {/* Delete Folder Dialog */}
-        <Dialog open={deleteFolderOpen} onOpenChange={setDeleteFolderOpen}>
+        <Dialog open={deleteFolderOpen} onOpenChange={(open) => {
+          setDeleteFolderOpen(open);
+          if (!open) setDeleteFolderConfirmed(false);
+        }}>
           <DialogContent className="bg-zinc-900 border-zinc-800">
             <DialogHeader>
               <DialogTitle className="text-zinc-100">Delete Folder</DialogTitle>
@@ -1000,11 +1029,30 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                 Are you sure you want to delete "{folderToDelete?.name}"? This will also delete all recordings in this folder. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
+            {/* Show checkbox confirmation if folder has recordings */}
+            {folderToDelete && folderToDelete.recording_count > 0 && (
+              <div className="flex items-start gap-3 p-3 bg-red-950/30 border border-red-800/50 rounded-sm">
+                <input
+                  type="checkbox"
+                  id="confirm-folder-delete"
+                  checked={deleteFolderConfirmed}
+                  onChange={(e) => setDeleteFolderConfirmed(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                />
+                <label htmlFor="confirm-folder-delete" className="text-sm text-red-200">
+                  I understand that <strong>{folderToDelete.recording_count} recording(s)</strong> will be permanently deleted.
+                </label>
+              </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteFolderOpen(false)} className="border-zinc-700">
                 Cancel
               </Button>
-              <Button onClick={handleDeleteFolder} variant="destructive">
+              <Button 
+                onClick={handleDeleteFolder} 
+                variant="destructive"
+                disabled={folderToDelete && folderToDelete.recording_count > 0 && !deleteFolderConfirmed}
+              >
                 Delete
               </Button>
             </DialogFooter>
