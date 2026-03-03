@@ -100,7 +100,10 @@ export default function DetectionPanel({
                   <Info className="w-3 h-3 text-amber-600 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700 text-white">
-                  <p>Minimum voltage level for beat detection. Only peaks above this line will be detected as beats.</p>
+                  <p>{params.invert 
+                    ? 'Voltage level for beat detection. Only peaks BELOW this value will be detected as beats.' 
+                    : 'Voltage level for beat detection. Only peaks ABOVE this value will be detected as beats.'}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </div>
