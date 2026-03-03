@@ -930,19 +930,7 @@ def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, l
         # Step 4: Compute residual (detrended signal)
         nn_residual = nn_70_stim - trend
         
-        # Step 5: Check if LOESS produced a degenerate result (all residuals near zero)
-        residual_range = np.max(nn_residual) - np.min(nn_residual) if len(nn_residual) > 0 else 0
-        original_range = np.max(nn_70_stim) - np.min(nn_70_stim) if len(nn_70_stim) > 0 else 1
-        
-        # If LOESS over-fitted (removed >95% of variance), fall back to linear detrending
-        if residual_range < 0.05 * original_range and original_range > 10:
-            # Use linear detrending as fallback
-            if len(t_rel_normalized) > 1:
-                slope, intercept = np.polyfit(t_rel_normalized, nn_70_stim, 1)
-                trend = slope * t_rel_normalized + intercept
-                nn_residual = nn_70_stim - trend
-        
-        # Step 6: Calculate HRV metrics from detrended signal
+        # Step 5: Calculate HRV metrics from detrended signal
         valid_residual = nn_residual[~np.isnan(nn_residual)]
         
         if len(valid_residual) < 3:
@@ -959,25 +947,21 @@ def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, l
         # pNN50 on residuals
         pnn50_detrended = float(100.0 * np.sum(np.abs(diffs) > 50.0) / len(diffs)) if len(diffs) > 0 else 0.0
         
-        # Log transforms with minimum threshold to avoid extreme negative values
-        # Minimum reasonable RMSSD is ~1ms (ln(1) = 0), below this is likely artifact
-        MIN_RMSSD_THRESHOLD = 1.0  # 1ms minimum
-        MIN_SDNN_THRESHOLD = 1.0   # 1ms minimum
+        # Log transforms - if value is very small (< 1ms), it means variability is due to trend, not HRV
+        # This is a valid finding. We'll still compute ln but display it appropriately.
+        # For very small values, ln will be negative (e.g., ln(0.1) = -2.3)
+        # We set a floor at 0.001 ms to avoid -inf
+        MIN_FOR_LOG = 0.001
         
-        if rmssd_detrended >= MIN_RMSSD_THRESHOLD:
+        if rmssd_detrended > MIN_FOR_LOG:
             ln_rmssd_detrended = float(np.log(rmssd_detrended))
-        elif rmssd_detrended > 0:
-            # Use threshold value to avoid extreme negatives
-            ln_rmssd_detrended = float(np.log(MIN_RMSSD_THRESHOLD))
         else:
-            ln_rmssd_detrended = None
+            ln_rmssd_detrended = float(np.log(MIN_FOR_LOG))  # -6.9 floor
         
-        if sdnn_detrended >= MIN_SDNN_THRESHOLD:
+        if sdnn_detrended > MIN_FOR_LOG:
             ln_sdnn_detrended = float(np.log(sdnn_detrended))
-        elif sdnn_detrended > 0:
-            ln_sdnn_detrended = float(np.log(MIN_SDNN_THRESHOLD))
         else:
-            ln_sdnn_detrended = None
+            ln_sdnn_detrended = float(np.log(MIN_FOR_LOG))
         
         # Store visualization data for frontend (convert to lists for JSON serialization)
         per_pulse.append({
@@ -998,29 +982,24 @@ def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, l
             }
         })
     
-    # Step 7: Median across pulses for final detrended HRV metrics
+    # Step 6: Median across pulses for final detrended HRV metrics
     valid = [p for p in per_pulse if p is not None]
     if valid:
         rmssd_median = float(np.median([p['rmssd70_detrended'] for p in valid]))
         sdnn_median = float(np.median([p['sdnn_detrended'] for p in valid]))
         
-        # Apply same threshold for log in final aggregation
-        MIN_RMSSD_THRESHOLD = 1.0
-        MIN_SDNN_THRESHOLD = 1.0
+        # Apply same log floor in final aggregation
+        MIN_FOR_LOG = 0.001
         
-        if rmssd_median >= MIN_RMSSD_THRESHOLD:
+        if rmssd_median > MIN_FOR_LOG:
             ln_rmssd_final = float(np.log(rmssd_median))
-        elif rmssd_median > 0:
-            ln_rmssd_final = float(np.log(MIN_RMSSD_THRESHOLD))
         else:
-            ln_rmssd_final = None
+            ln_rmssd_final = float(np.log(MIN_FOR_LOG))
         
-        if sdnn_median >= MIN_SDNN_THRESHOLD:
+        if sdnn_median > MIN_FOR_LOG:
             ln_sdnn_final = float(np.log(sdnn_median))
-        elif sdnn_median > 0:
-            ln_sdnn_final = float(np.log(MIN_SDNN_THRESHOLD))
         else:
-            ln_sdnn_final = None
+            ln_sdnn_final = float(np.log(MIN_FOR_LOG))
         
         final = {
             'rmssd70_detrended': rmssd_median,
