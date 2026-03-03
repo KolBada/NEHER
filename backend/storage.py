@@ -249,6 +249,11 @@ async def get_recording(db, recording_id: str) -> Optional[dict]:
 async def update_recording(db, recording_id: str, name: Optional[str] = None, analysis_state: Optional[dict] = None, update_version: bool = True) -> Optional[dict]:
     """Update a recording's name and/or analysis_state."""
     try:
+        # First check if the recording exists
+        existing = await db.recordings.find_one({"_id": ObjectId(recording_id)})
+        if not existing:
+            return None
+        
         now = datetime.now(timezone.utc).isoformat()
         update_fields = {"updated_at": now}
         
@@ -268,24 +273,20 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
             if update_version:
                 update_fields["metrics_version"] = METRICS_VERSION
         
-        result = await db.recordings.update_one(
+        await db.recordings.update_one(
             {"_id": ObjectId(recording_id)},
             {"$set": update_fields}
         )
         
-        if result.modified_count == 0:
-            return None
-        
         # Also update folder's updated_at
-        rec = await db.recordings.find_one({"_id": ObjectId(recording_id)})
-        if rec:
-            await db.folders.update_one(
-                {"_id": ObjectId(rec["folder_id"])},
-                {"$set": {"updated_at": now}}
-            )
+        await db.folders.update_one(
+            {"_id": ObjectId(existing["folder_id"])},
+            {"$set": {"updated_at": now}}
+        )
         
         return await get_recording(db, recording_id)
-    except Exception:
+    except Exception as e:
+        print(f"Error updating recording: {e}")
         return None
 
 
