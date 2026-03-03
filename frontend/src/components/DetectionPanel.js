@@ -37,9 +37,25 @@ export default function DetectionPanel({
           <Switch
             data-testid="invert-switch"
             checked={params.invert}
-            onCheckedChange={(v) => onChange({ ...params, invert: v })}
-            disabled={isValidated}
+            onCheckedChange={(v) => onChange({ ...params, invert: v, bidirectional: false })}
+            disabled={isValidated || params.bidirectional}
           />
+        </div>
+
+        {/* Bidirectional - detect peaks both above and below threshold */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-zinc-400">Bidirectional</Label>
+            <Switch
+              data-testid="bidirectional-switch"
+              checked={params.bidirectional}
+              onCheckedChange={(v) => onChange({ ...params, bidirectional: v, invert: false })}
+              disabled={isValidated}
+            />
+          </div>
+          <p className="text-[9px] text-zinc-500 italic">
+            Detect beats both above AND below threshold
+          </p>
         </div>
 
         <Separator className="bg-zinc-800" />
@@ -97,7 +113,9 @@ export default function DetectionPanel({
             className="accent-amber-500"
           />
           <p className="text-[9px] text-amber-600 italic">
-            Shown as dashed amber line on trace
+            {params.bidirectional 
+              ? 'Catches peaks above threshold OR below -threshold'
+              : 'Shown as dashed amber line on trace'}
           </p>
         </div>
 

@@ -56,6 +56,7 @@ class DetectBeatsRequest(BaseModel):
     min_distance: Optional[float] = None
     prominence: Optional[float] = None
     invert: bool = False
+    bidirectional: bool = False  # Detect peaks both above AND below threshold
 
 
 class ComputeMetricsRequest(BaseModel):
@@ -470,7 +471,8 @@ async def detect_beats_endpoint(request: DetectBeatsRequest):
         threshold=request.threshold,
         min_distance=min_dist,
         prominence=request.prominence,
-        invert=request.invert
+        invert=request.invert,
+        bidirectional=request.bidirectional
     )
 
     beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]

@@ -269,7 +269,7 @@ function App() {
   const [traceData, setTraceData] = useState(null);
   const [beats, setBeats] = useState([]);
   const [detectionParams, setDetectionParams] = useState({
-    threshold: null, minDistance: 0.3, prominence: null, invert: false
+    threshold: null, minDistance: 0.3, prominence: null, invert: false, bidirectional: false
   });
   const [filterParams, setFilterParams] = useState({
     lowerPct: 50, upperPct: 200
@@ -383,6 +383,7 @@ function App() {
         min_distance: detectionParams.minDistance,
         prominence: detectionParams.prominence,
         invert: detectionParams.invert,
+        bidirectional: detectionParams.bidirectional,
       });
       setBeats(data.beats.map(b => ({ timeSec: b.time_sec, voltage: b.voltage })));
       setIsValidated(false);

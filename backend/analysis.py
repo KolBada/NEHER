@@ -108,8 +108,13 @@ def decimate_trace(times, voltages, target_points=5000):
     return dec_times, dec_voltages
 
 
-def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False, use_filter=True):
-    """Detect beats using scipy peak detection with optional bandpass filtering."""
+def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False, use_filter=True, bidirectional=False):
+    """Detect beats using scipy peak detection with optional bandpass filtering.
+    
+    Args:
+        bidirectional: If True, detect peaks both above AND below the threshold.
+                      This is useful for signals where beats can go in either direction.
+    """
     signal_raw = np.array(trace, dtype=np.float64)
 
     # Apply bandpass filter for cleaner peak detection
@@ -122,16 +127,10 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
     else:
         signal_filt = signal_raw.copy()
 
-    if invert:
-        signal_filt = -signal_filt
-
     if min_distance is None:
         min_distance = int(0.3 * sample_rate)  # 300ms min (cardiac ~200-1000ms intervals)
 
     kwargs = {'distance': max(1, int(min_distance))}
-    
-    # Don't use height on filtered signal - it doesn't match what user sees
-    # Instead, we'll filter by threshold on raw signal after detection
 
     if prominence is not None:
         kwargs['prominence'] = prominence
@@ -142,19 +141,58 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
         sig_range = q975 - q025
         kwargs['prominence'] = sig_range * 0.3
 
-    peaks, _ = find_peaks(signal_filt, **kwargs)
-    
-    # Filter peaks by threshold on RAW signal (what user sees)
-    # When inverted: user sees -raw, threshold line at -threshold
-    # Peaks above line means: -raw >= -threshold => raw <= threshold
-    if threshold is not None and len(peaks) > 0:
-        raw_peak_values = signal_raw[peaks]
+    if bidirectional:
+        # Detect peaks in both directions
+        # Find positive peaks (local maxima)
+        peaks_pos, _ = find_peaks(signal_filt, **kwargs)
+        # Find negative peaks (local minima) by inverting signal
+        peaks_neg, _ = find_peaks(-signal_filt, **kwargs)
+        
+        # Combine and sort
+        all_peaks = np.sort(np.concatenate([peaks_pos, peaks_neg]))
+        
+        # Remove duplicates that are too close (within min_distance)
+        if len(all_peaks) > 1:
+            keep = [True]
+            for i in range(1, len(all_peaks)):
+                if all_peaks[i] - all_peaks[i-1] >= kwargs['distance']:
+                    keep.append(True)
+                else:
+                    # Keep the one with larger absolute value (more prominent)
+                    if abs(signal_raw[all_peaks[i]]) > abs(signal_raw[all_peaks[i-1]]):
+                        keep[-1] = False
+                        keep.append(True)
+                    else:
+                        keep.append(False)
+            all_peaks = all_peaks[keep]
+        
+        peaks = all_peaks
+        
+        # Filter by threshold - keep peaks whose absolute distance from 0 exceeds threshold
+        # This means: keep peaks that are either >= threshold OR <= -threshold
+        if threshold is not None and len(peaks) > 0:
+            raw_peak_values = signal_raw[peaks]
+            # For bidirectional, threshold acts as a minimum amplitude (distance from 0)
+            # Keep peaks above threshold OR below -threshold
+            peaks = peaks[(raw_peak_values >= threshold) | (raw_peak_values <= -threshold)]
+    else:
+        # Original behavior: detect only in one direction
         if invert:
-            # Inverted view: peaks "above" threshold line means raw values BELOW threshold
-            peaks = peaks[raw_peak_values <= threshold]
-        else:
-            # Normal view: peaks above threshold line means raw values ABOVE threshold
-            peaks = peaks[raw_peak_values >= threshold]
+            signal_filt = -signal_filt
+
+        peaks, _ = find_peaks(signal_filt, **kwargs)
+        
+        # Filter peaks by threshold on RAW signal (what user sees)
+        # When inverted: user sees -raw, threshold line at -threshold
+        # Peaks above line means: -raw >= -threshold => raw <= threshold
+        if threshold is not None and len(peaks) > 0:
+            raw_peak_values = signal_raw[peaks]
+            if invert:
+                # Inverted view: peaks "above" threshold line means raw values BELOW threshold
+                peaks = peaks[raw_peak_values <= threshold]
+            else:
+                # Normal view: peaks above threshold line means raw values ABOVE threshold
+                peaks = peaks[raw_peak_values >= threshold]
     
     return peaks.tolist()
 
