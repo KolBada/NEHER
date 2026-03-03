@@ -76,6 +76,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [deleteSectionOpen, setDeleteSectionOpen] = useState(false);
   const [sectionToDelete, setSectionToDelete] = useState(null);
   const [draggedSection, setDraggedSection] = useState(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState(null); // Index where we'll insert (0 = before first, 1 = after first, etc.)
   
   // Folder color picker
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -217,42 +218,64 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     setDraggedSection(section);
   };
 
-  const handleSectionDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
   const handleSectionDragEnd = () => {
     setDraggedSection(null);
+    setDropTargetIndex(null);
   };
 
-  const handleSectionDrop = async (e, targetSection) => {
+  // Handle drag over on drop zones (areas between sections)
+  const handleDropZoneDragOver = (e, insertIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetIndex(insertIndex);
+  };
+
+  const handleDropZoneDragLeave = (e) => {
+    // Only clear if leaving to an element that's not a child
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDropTargetIndex(null);
+    }
+  };
+
+  // Handle drop on a drop zone - insertIndex is where the dragged section should go
+  const handleDropZoneDrop = async (e, insertIndex) => {
     e.preventDefault();
     
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.type !== 'section' || data.id === targetSection.id) {
+      if (data.type !== 'section') {
         setDraggedSection(null);
+        setDropTargetIndex(null);
         return;
       }
       
-      const draggedSec = sections.find(s => s.id === data.id);
-      if (!draggedSec) {
-        setDraggedSection(null);
-        return;
-      }
-      
-      // Calculate new order
       const currentIndex = sections.findIndex(s => s.id === data.id);
-      const targetIndex = sections.findIndex(s => s.id === targetSection.id);
+      if (currentIndex === -1) {
+        setDraggedSection(null);
+        setDropTargetIndex(null);
+        return;
+      }
       
-      const newSections = [...sections];
-      newSections.splice(currentIndex, 1);
-      newSections.splice(targetIndex, 0, draggedSec);
+      // If dropping in the same position or the position right after (no change), skip
+      if (insertIndex === currentIndex || insertIndex === currentIndex + 1) {
+        setDraggedSection(null);
+        setDropTargetIndex(null);
+        return;
+      }
+      
+      // Build new order
+      const draggedSec = sections[currentIndex];
+      const newSections = sections.filter(s => s.id !== data.id);
+      
+      // Adjust insert index if we removed an item before the target position
+      const adjustedIndex = insertIndex > currentIndex ? insertIndex - 1 : insertIndex;
+      newSections.splice(adjustedIndex, 0, draggedSec);
       
       // Update state immediately for responsiveness
       setSections(newSections.map((s, i) => ({...s, order: i})));
       setDraggedSection(null);
+      setDropTargetIndex(null);
       
       // Persist to backend
       await api.reorderSections(newSections.map(s => s.id));
@@ -260,6 +283,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     } catch (err) {
       console.error('Drop error:', err);
       setDraggedSection(null);
+      setDropTargetIndex(null);
       loadSections();
     }
   };
@@ -570,132 +594,162 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {/* Sections */}
-            {sections.map((section) => {
+          <div className="space-y-2">
+            {/* Sections with drop zones */}
+            {sections.map((section, index) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
-              const isDragOver = draggedSection && draggedSection.id !== section.id;
+              const isDragging = draggedSection !== null;
+              const isBeingDragged = draggedSection?.id === section.id;
+              
               return (
-                <div 
-                  key={section.id}
-                  className={`transition-all duration-200 ${draggedSection?.id === section.id ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}
-                >
-                  {/* Section Header - Draggable and Drop Target */}
+                <div key={section.id}>
+                  {/* Drop zone BEFORE this section (only show when dragging) */}
+                  {isDragging && !isBeingDragged && (
+                    <div 
+                      onDragOver={(e) => handleDropZoneDragOver(e, index)}
+                      onDragLeave={handleDropZoneDragLeave}
+                      onDrop={(e) => handleDropZoneDrop(e, index)}
+                      className={`transition-all duration-150 mx-2 rounded ${
+                        dropTargetIndex === index 
+                          ? 'h-12 bg-cyan-500/40 border-2 border-dashed border-cyan-400' 
+                          : 'h-8 bg-zinc-700/30 border border-dashed border-zinc-600 hover:bg-zinc-600/40'
+                      }`}
+                    />
+                  )}
+                  
+                  {/* Section content */}
                   <div 
-                    draggable
-                    onDragStart={(e) => handleSectionDragStart(e, section)}
-                    onDragOver={handleSectionDragOver}
-                    onDrop={(e) => handleSectionDrop(e, section)}
-                    onDragEnd={handleSectionDragEnd}
-                    className={`flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors ${isDragOver ? 'bg-cyan-950/30 ring-1 ring-cyan-500/50' : ''}`}
+                    className={`transition-all duration-200 ${isBeingDragged ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}
                   >
-                    <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
-                    <button
-                      onClick={() => handleToggleSection(section)}
-                      className="flex items-center gap-2 flex-1 text-left"
+                    {/* Section Header - Draggable */}
+                    <div 
+                      draggable
+                      onDragStart={(e) => handleSectionDragStart(e, section)}
+                      onDragEnd={handleSectionDragEnd}
+                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors hover:bg-zinc-800/30"
                     >
-                      <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} />
-                      <span className="text-sm font-medium text-zinc-300">{section.name}</span>
-                      <div className="flex-1 h-px bg-zinc-800 ml-2" />
-                    </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
-                          <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
-                        <DropdownMenuItem 
-                          className="text-xs"
-                          onClick={() => {
-                            setSectionToRename(section);
-                            setRenameSectionName(section.name);
-                            setRenameSectionOpen(true);
-                          }}
-                        >
-                          <Pencil className="w-3.5 h-3.5 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-zinc-800" />
-                        <DropdownMenuItem 
-                          className="text-xs text-red-400 focus:text-red-400"
-                          onClick={() => {
-                            setSectionToDelete(section);
-                            setDeleteSectionOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                      <button
+                        onClick={() => handleToggleSection(section)}
+                        className="flex items-center gap-2 flex-1 text-left"
+                      >
+                        <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} />
+                        <span className="text-sm font-medium text-zinc-300">{section.name}</span>
+                        <div className="flex-1 h-px bg-zinc-800 ml-2" />
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                          <DropdownMenuItem 
+                            className="text-xs"
+                            onClick={() => {
+                              setSectionToRename(section);
+                              setRenameSectionName(section.name);
+                              setRenameSectionOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-zinc-800" />
+                          <DropdownMenuItem 
+                            className="text-xs text-red-400 focus:text-red-400"
+                            onClick={() => {
+                              setSectionToDelete(section);
+                              setDeleteSectionOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    {/* Section Folders */}
+                    {section.expanded && (
+                      <div className="grid gap-2 pl-6 pb-4">
+                        {sectionFolders.length === 0 ? (
+                          <p className="text-xs text-zinc-600 py-2">No folders in this section</p>
+                        ) : (
+                          sectionFolders.map((folder) => (
+                            <Card 
+                              key={folder.id}
+                              className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
+                              data-testid={`folder-${folder.id}`}
+                            >
+                              <CardContent className="p-3 flex items-center gap-3" onClick={() => loadRecordings(folder.id)}>
+                                <div className={`w-8 h-8 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
+                                  <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
+                                  <p className="text-xs text-zinc-500">{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                                      <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                                    <DropdownMenuItem 
+                                      className="text-xs"
+                                      onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
+                                    >
+                                      <Palette className="w-3.5 h-3.5 mr-2" />
+                                      Change Color
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      className="text-xs"
+                                      onClick={(e) => { e.stopPropagation(); setFolderToRename(folder); setRenameFolderName(folder.name); setRenameFolderOpen(true); }}
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 mr-2" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-zinc-800" />
+                                    <DropdownMenuItem 
+                                      className="text-xs"
+                                      onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, ""); }}
+                                    >
+                                      <X className="w-3.5 h-3.5 mr-2" />
+                                      Remove from Section
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-zinc-800" />
+                                    <DropdownMenuItem 
+                                      className="text-xs text-red-400 focus:text-red-400"
+                                      onClick={(e) => { e.stopPropagation(); setFolderToDelete(folder); setDeleteFolderOpen(true); }}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <ChevronRight className="w-4 h-4 text-zinc-600" />
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Section Folders */}
-                  {section.expanded && (
-                    <div className="grid gap-2 pl-6 pb-4">
-                      {sectionFolders.length === 0 ? (
-                        <p className="text-xs text-zinc-600 py-2">No folders in this section</p>
-                      ) : (
-                        sectionFolders.map((folder) => (
-                          <Card 
-                            key={folder.id}
-                            className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
-                            data-testid={`folder-${folder.id}`}
-                          >
-                            <CardContent className="p-3 flex items-center gap-3" onClick={() => loadRecordings(folder.id)}>
-                              <div className={`w-8 h-8 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
-                                <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
-                                <p className="text-xs text-zinc-500">{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
-                              </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
-                                    <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
-                                  <DropdownMenuItem 
-                                    className="text-xs"
-                                    onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
-                                  >
-                                    <Palette className="w-3.5 h-3.5 mr-2" />
-                                    Change Color
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-xs"
-                                    onClick={(e) => { e.stopPropagation(); setFolderToRename(folder); setRenameFolderName(folder.name); setRenameFolderOpen(true); }}
-                                  >
-                                    <Pencil className="w-3.5 h-3.5 mr-2" />
-                                    Rename
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator className="bg-zinc-800" />
-                                  <DropdownMenuItem 
-                                    className="text-xs"
-                                    onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, ""); }}
-                                  >
-                                    <X className="w-3.5 h-3.5 mr-2" />
-                                    Remove from Section
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator className="bg-zinc-800" />
-                                  <DropdownMenuItem 
-                                    className="text-xs text-red-400 focus:text-red-400"
-                                    onClick={(e) => { e.stopPropagation(); setFolderToDelete(folder); setDeleteFolderOpen(true); }}
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <ChevronRight className="w-4 h-4 text-zinc-600" />
-                            </CardContent>
-                          </Card>
-                        ))
-                      )}
-                    </div>
+                  {/* Drop zone AFTER the LAST section (only show on last item) */}
+                  {isDragging && !isBeingDragged && index === sections.length - 1 && (
+                    <div 
+                      onDragOver={(e) => handleDropZoneDragOver(e, sections.length)}
+                      onDragLeave={handleDropZoneDragLeave}
+                      onDrop={(e) => handleDropZoneDrop(e, sections.length)}
+                      className={`transition-all duration-150 mt-2 mx-2 rounded ${
+                        dropTargetIndex === sections.length 
+                          ? 'h-12 bg-cyan-500/40 border-2 border-dashed border-cyan-400' 
+                          : 'h-8 bg-zinc-700/30 border border-dashed border-zinc-600 hover:bg-zinc-600/40'
+                      }`}
+                    />
                   )}
                 </div>
               );
