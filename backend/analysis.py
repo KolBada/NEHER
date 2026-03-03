@@ -111,9 +111,6 @@ def decimate_trace(times, voltages, target_points=5000):
 def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False, use_filter=True):
     """Detect beats using scipy peak detection with optional bandpass filtering."""
     signal_raw = np.array(trace, dtype=np.float64)
-    
-    # Keep raw signal for threshold comparison (matches what user sees)
-    signal_for_threshold = -signal_raw if invert else signal_raw
 
     # Apply bandpass filter for cleaner peak detection
     if use_filter and sample_rate > 200:
@@ -147,10 +144,17 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
 
     peaks, _ = find_peaks(signal_filt, **kwargs)
     
-    # Now filter peaks by threshold on RAW signal (what user sees)
+    # Filter peaks by threshold on RAW signal (what user sees)
+    # When inverted: user sees -raw, threshold line at -threshold
+    # Peaks above line means: -raw >= -threshold => raw <= threshold
     if threshold is not None and len(peaks) > 0:
-        raw_peak_values = signal_for_threshold[peaks]
-        peaks = peaks[raw_peak_values >= threshold]
+        raw_peak_values = signal_raw[peaks]
+        if invert:
+            # Inverted view: peaks "above" threshold line means raw values BELOW threshold
+            peaks = peaks[raw_peak_values <= threshold]
+        else:
+            # Normal view: peaks above threshold line means raw values ABOVE threshold
+            peaks = peaks[raw_peak_values >= threshold]
     
     return peaks.tolist()
 
