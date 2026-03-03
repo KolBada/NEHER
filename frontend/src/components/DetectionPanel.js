@@ -46,23 +46,21 @@ export default function DetectionPanel({
               data-testid="threshold-positive-btn"
               variant={!params.invert ? "default" : "outline"}
               size="sm"
-              className={`w-24 h-12 text-xs flex flex-col items-center justify-center leading-tight ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-24 h-8 text-xs ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
               onClick={() => onChange({ ...params, invert: false })}
               disabled={isValidated}
             >
-              <span>Positive</span>
-              <span className="text-[10px] opacity-80">(Above)</span>
+              Positive
             </Button>
             <Button
               data-testid="threshold-negative-btn"
               variant={params.invert ? "default" : "outline"}
               size="sm"
-              className={`w-24 h-12 text-xs flex flex-col items-center justify-center leading-tight ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-24 h-8 text-xs ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
               onClick={() => onChange({ ...params, invert: true })}
               disabled={isValidated}
             >
-              <span>Negative</span>
-              <span className="text-[10px] opacity-80">(Below)</span>
+              Negative
             </Button>
           </div>
           <p className="text-[9px] text-zinc-500 italic text-center">
