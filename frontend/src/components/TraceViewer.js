@@ -443,6 +443,7 @@ export default function TraceViewer({
             tickFormatter={(v) => v.toFixed(1)}
             width={50}
             label={{ value: 'mV', angle: -90, fill: '#52525b', fontSize: 10, position: 'insideLeft' }}
+            reversed={invert}
           />
           <Tooltip
             contentStyle={{
