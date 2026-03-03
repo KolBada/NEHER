@@ -609,10 +609,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                       onDragOver={(e) => handleDropZoneDragOver(e, index)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, index)}
-                      className={`transition-all duration-150 mx-2 rounded ${
+                      className={`h-3 -my-1 mx-2 rounded transition-all ${
                         dropTargetIndex === index 
-                          ? 'h-12 bg-cyan-500/40 border-2 border-dashed border-cyan-400' 
-                          : 'h-8 bg-zinc-700/30 border border-dashed border-zinc-600 hover:bg-zinc-600/40'
+                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
+                          : 'hover:bg-zinc-700/30'
                       }`}
                     />
                   )}
@@ -744,10 +744,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                       onDragOver={(e) => handleDropZoneDragOver(e, sections.length)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, sections.length)}
-                      className={`transition-all duration-150 mt-2 mx-2 rounded ${
+                      className={`h-3 mt-2 mx-2 rounded transition-all ${
                         dropTargetIndex === sections.length 
-                          ? 'h-12 bg-cyan-500/40 border-2 border-dashed border-cyan-400' 
-                          : 'h-8 bg-zinc-700/30 border border-dashed border-zinc-600 hover:bg-zinc-600/40'
+                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
+                          : 'hover:bg-zinc-700/30'
                       }`}
                     />
                   )}
