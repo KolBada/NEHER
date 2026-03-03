@@ -289,11 +289,22 @@ async def complete_chunked_upload(request: ChunkCompleteRequest, db=Depends(get_
         beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]
         beat_voltages = [float(trace[i]) for i in beat_indices if i < len(trace)]
         
+        # Compute filtered signal stats (threshold is applied to filtered signal)
+        try:
+            trace_filtered = analysis.bandpass_filter(trace, sample_rate, lowcut=0.5, 
+                                                      highcut=min(500.0, sample_rate * 0.45))
+        except Exception:
+            trace_filtered = trace
+        
         signal_stats = {
-            'min': float(np.min(trace)),
-            'max': float(np.max(trace)),
-            'mean': float(np.mean(trace)),
-            'std': float(np.std(trace))
+            'min': float(np.min(trace_filtered)),
+            'max': float(np.max(trace_filtered)),
+            'mean': float(np.mean(trace_filtered)),
+            'std': float(np.std(trace_filtered)),
+            # Also include raw stats for reference
+            'raw_min': float(np.min(trace)),
+            'raw_max': float(np.max(trace)),
+            'raw_mean': float(np.mean(trace)),
         }
         
         result = {
@@ -410,11 +421,22 @@ async def upload_files(files: List[UploadFile] = File(...)):
             beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]
             beat_voltages = [float(trace[i]) for i in beat_indices if i < len(trace)]
 
+            # Compute filtered signal stats (threshold is applied to filtered signal)
+            try:
+                trace_filtered = analysis.bandpass_filter(trace, sample_rate, lowcut=0.5, 
+                                                          highcut=min(500.0, sample_rate * 0.45))
+            except Exception:
+                trace_filtered = trace
+            
             signal_stats = {
-                'min': float(np.min(trace)),
-                'max': float(np.max(trace)),
-                'mean': float(np.mean(trace)),
-                'std': float(np.std(trace))
+                'min': float(np.min(trace_filtered)),
+                'max': float(np.max(trace_filtered)),
+                'mean': float(np.mean(trace_filtered)),
+                'std': float(np.std(trace_filtered)),
+                # Also include raw stats for reference
+                'raw_min': float(np.min(trace)),
+                'raw_max': float(np.max(trace)),
+                'raw_mean': float(np.mean(trace)),
             }
 
             result_files.append({
