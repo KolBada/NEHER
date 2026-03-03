@@ -18,16 +18,42 @@ METRICS_VERSION = 2  # Increment when metrics calculations are modified
 
 class FolderCreate(BaseModel):
     name: str
+    color: Optional[str] = "amber"  # Default folder color
+    section_id: Optional[str] = None
 
 
 class FolderUpdate(BaseModel):
-    name: str
+    name: Optional[str] = None
+    color: Optional[str] = None
+    section_id: Optional[str] = None
 
 
 class FolderResponse(BaseModel):
     id: str
     name: str
+    color: Optional[str] = "amber"
+    section_id: Optional[str] = None
     recording_count: int
+    created_at: str
+    updated_at: str
+
+
+# Section models
+class SectionCreate(BaseModel):
+    name: str
+
+
+class SectionUpdate(BaseModel):
+    name: Optional[str] = None
+    order: Optional[int] = None
+    expanded: Optional[bool] = None
+
+
+class SectionResponse(BaseModel):
+    id: str
+    name: str
+    order: int
+    expanded: bool
     created_at: str
     updated_at: str
 
@@ -108,6 +134,8 @@ async def get_folders(db) -> List[dict]:
         folders.append({
             "id": folder_id_str,
             "name": folder["name"],
+            "color": folder.get("color", "amber"),
+            "section_id": folder.get("section_id"),
             "recording_count": count,
             "created_at": folder["created_at"],
             "updated_at": folder["updated_at"],
@@ -125,6 +153,8 @@ async def get_folder(db, folder_id: str) -> Optional[dict]:
         return {
             "id": str(folder["_id"]),
             "name": folder["name"],
+            "color": folder.get("color", "amber"),
+            "section_id": folder.get("section_id"),
             "recording_count": count,
             "created_at": folder["created_at"],
             "updated_at": folder["updated_at"],
@@ -133,15 +163,27 @@ async def get_folder(db, folder_id: str) -> Optional[dict]:
         return None
 
 
-async def update_folder(db, folder_id: str, name: str) -> Optional[dict]:
-    """Update a folder's name."""
+async def update_folder(db, folder_id: str, name: str = None, color: str = None, section_id: str = None) -> Optional[dict]:
+    """Update a folder's name, color, or section."""
     try:
         now = datetime.now(timezone.utc).isoformat()
+        update_fields = {"updated_at": now}
+        if name is not None:
+            update_fields["name"] = name
+        if color is not None:
+            update_fields["color"] = color
+        if section_id is not None:
+            update_fields["section_id"] = section_id if section_id != "" else None
+        
         result = await db.folders.update_one(
             {"_id": ObjectId(folder_id)},
-            {"$set": {"name": name, "updated_at": now}}
+            {"$set": update_fields}
         )
         if result.modified_count == 0:
+            # Check if folder exists but no changes
+            folder = await db.folders.find_one({"_id": ObjectId(folder_id)})
+            if folder:
+                return await get_folder(db, folder_id)
             return None
         return await get_folder(db, folder_id)
     except Exception:
@@ -409,5 +451,108 @@ async def update_recording_metrics_version(db, recording_id: str, analysis_state
             }}
         )
         return result.modified_count > 0
+    except Exception:
+        return False
+
+
+
+# ==============================================================================
+# Section Operations
+# ==============================================================================
+
+async def get_sections(db) -> List[dict]:
+    """Get all sections ordered by 'order' field."""
+    sections = []
+    async for section in db.sections.find().sort("order", 1):
+        sections.append({
+            "id": str(section["_id"]),
+            "name": section["name"],
+            "order": section.get("order", 0),
+            "expanded": section.get("expanded", True),
+            "created_at": section["created_at"],
+            "updated_at": section["updated_at"],
+        })
+    return sections
+
+
+async def create_section(db, name: str) -> dict:
+    """Create a new section."""
+    now = datetime.now(timezone.utc).isoformat()
+    # Get max order
+    max_order_doc = await db.sections.find_one(sort=[("order", -1)])
+    max_order = max_order_doc["order"] if max_order_doc else -1
+    
+    section = {
+        "name": name,
+        "order": max_order + 1,
+        "expanded": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+    result = await db.sections.insert_one(section)
+    return {
+        "id": str(result.inserted_id),
+        "name": name,
+        "order": max_order + 1,
+        "expanded": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+async def update_section(db, section_id: str, name: str = None, order: int = None, expanded: bool = None) -> Optional[dict]:
+    """Update a section."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        update_fields = {"updated_at": now}
+        if name is not None:
+            update_fields["name"] = name
+        if order is not None:
+            update_fields["order"] = order
+        if expanded is not None:
+            update_fields["expanded"] = expanded
+        
+        await db.sections.update_one(
+            {"_id": ObjectId(section_id)},
+            {"$set": update_fields}
+        )
+        section = await db.sections.find_one({"_id": ObjectId(section_id)})
+        if not section:
+            return None
+        return {
+            "id": str(section["_id"]),
+            "name": section["name"],
+            "order": section.get("order", 0),
+            "expanded": section.get("expanded", True),
+            "created_at": section["created_at"],
+            "updated_at": section["updated_at"],
+        }
+    except Exception:
+        return None
+
+
+async def delete_section(db, section_id: str) -> bool:
+    """Delete a section and unassign folders from it."""
+    try:
+        # Unassign all folders from this section
+        await db.folders.update_many(
+            {"section_id": section_id},
+            {"$set": {"section_id": None}}
+        )
+        result = await db.sections.delete_one({"_id": ObjectId(section_id)})
+        return result.deleted_count > 0
+    except Exception:
+        return False
+
+
+async def reorder_sections(db, section_ids: List[str]) -> bool:
+    """Reorder sections based on the provided list of IDs."""
+    try:
+        for i, section_id in enumerate(section_ids):
+            await db.sections.update_one(
+                {"_id": ObjectId(section_id)},
+                {"$set": {"order": i}}
+            )
+        return True
     except Exception:
         return False

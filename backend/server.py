@@ -651,8 +651,8 @@ async def get_folder_endpoint(folder_id: str):
 
 @api_router.put("/folders/{folder_id}")
 async def update_folder_endpoint(folder_id: str, request: storage.FolderUpdate):
-    """Update a folder's name."""
-    folder = await storage.update_folder(db, folder_id, request.name)
+    """Update a folder's name, color, or section."""
+    folder = await storage.update_folder(db, folder_id, request.name, request.color, request.section_id)
     if not folder:
         raise HTTPException(404, "Folder not found")
     return folder
@@ -664,6 +664,51 @@ async def delete_folder_endpoint(folder_id: str):
     success = await storage.delete_folder(db, folder_id)
     if not success:
         raise HTTPException(404, "Folder not found")
+    return {"success": True}
+
+
+# ==============================================================================
+# Section Endpoints
+# ==============================================================================
+
+@api_router.get("/sections")
+async def get_sections_endpoint():
+    """Get all sections."""
+    sections = await storage.get_sections(db)
+    return {"sections": sections}
+
+
+@api_router.post("/sections")
+async def create_section_endpoint(request: storage.SectionCreate):
+    """Create a new section."""
+    section = await storage.create_section(db, request.name)
+    return section
+
+
+@api_router.put("/sections/{section_id}")
+async def update_section_endpoint(section_id: str, request: storage.SectionUpdate):
+    """Update a section."""
+    section = await storage.update_section(db, section_id, request.name, request.order, request.expanded)
+    if not section:
+        raise HTTPException(404, "Section not found")
+    return section
+
+
+@api_router.delete("/sections/{section_id}")
+async def delete_section_endpoint(section_id: str):
+    """Delete a section."""
+    success = await storage.delete_section(db, section_id)
+    if not success:
+        raise HTTPException(404, "Section not found")
+    return {"success": True}
+
+
+@api_router.post("/sections/reorder")
+async def reorder_sections_endpoint(section_ids: List[str]):
+    """Reorder sections."""
+    success = await storage.reorder_sections(db, section_ids)
+    if not success:
+        raise HTTPException(500, "Failed to reorder sections")
     return {"success": True}
 
 

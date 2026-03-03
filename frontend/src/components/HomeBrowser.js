@@ -3,7 +3,7 @@ import {
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
   ChevronRight, Loader2, Plus, X, Check, BarChart3, ArrowUpDown,
-  SortAsc, Calendar
+  SortAsc, Calendar, GripVertical, Layers, ChevronDown, Palette
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -65,6 +66,52 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [recordingSortBy, setRecordingSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
   const [comparisonKey, setComparisonKey] = useState(Date.now());
 
+  // Section states
+  const [sections, setSections] = useState([]);
+  const [createSectionOpen, setCreateSectionOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [renameSectionOpen, setRenameSectionOpen] = useState(false);
+  const [renameSectionName, setRenameSectionName] = useState('');
+  const [sectionToRename, setSectionToRename] = useState(null);
+  const [deleteSectionOpen, setDeleteSectionOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState(null);
+  const [draggedSection, setDraggedSection] = useState(null);
+  
+  // Folder color picker
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [folderToColor, setFolderToColor] = useState(null);
+
+  // Folder colors available
+  const FOLDER_COLORS = [
+    { name: 'amber', class: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { name: 'red', class: 'text-red-500', bg: 'bg-red-500/10' },
+    { name: 'orange', class: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { name: 'yellow', class: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { name: 'lime', class: 'text-lime-500', bg: 'bg-lime-500/10' },
+    { name: 'green', class: 'text-green-500', bg: 'bg-green-500/10' },
+    { name: 'emerald', class: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { name: 'teal', class: 'text-teal-500', bg: 'bg-teal-500/10' },
+    { name: 'cyan', class: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    { name: 'sky', class: 'text-sky-500', bg: 'bg-sky-500/10' },
+    { name: 'blue', class: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { name: 'indigo', class: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { name: 'violet', class: 'text-violet-500', bg: 'bg-violet-500/10' },
+    { name: 'purple', class: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { name: 'fuchsia', class: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
+    { name: 'pink', class: 'text-pink-500', bg: 'bg-pink-500/10' },
+    { name: 'rose', class: 'text-rose-500', bg: 'bg-rose-500/10' },
+  ];
+
+  const getFolderColorClass = (colorName) => {
+    const color = FOLDER_COLORS.find(c => c.name === colorName) || FOLDER_COLORS[0];
+    return color.class;
+  };
+
+  const getFolderBgClass = (colorName) => {
+    const color = FOLDER_COLORS.find(c => c.name === colorName) || FOLDER_COLORS[0];
+    return color.bg;
+  };
+
   // Auto-update outdated recordings on mount
   useEffect(() => {
     const checkAndUpdateRecordings = async () => {
@@ -90,6 +137,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   // Load folders on mount
   useEffect(() => {
     loadFolders();
+    loadSections();
   }, []);
 
   const loadFolders = async () => {
@@ -101,6 +149,120 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
       toast.error('Failed to load folders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSections = async () => {
+    try {
+      const { data } = await api.getSections();
+      setSections(data.sections || []);
+    } catch (err) {
+      console.error('Failed to load sections');
+    }
+  };
+
+  // Section handlers
+  const handleCreateSection = async () => {
+    if (!newSectionName.trim()) return;
+    try {
+      await api.createSection(newSectionName.trim());
+      toast.success('Section created');
+      setNewSectionName('');
+      setCreateSectionOpen(false);
+      loadSections();
+    } catch (err) {
+      toast.error('Failed to create section');
+    }
+  };
+
+  const handleRenameSection = async () => {
+    if (!sectionToRename || !renameSectionName.trim()) return;
+    try {
+      await api.updateSection(sectionToRename.id, { name: renameSectionName.trim() });
+      toast.success('Section renamed');
+      setRenameSectionOpen(false);
+      setSectionToRename(null);
+      loadSections();
+    } catch (err) {
+      toast.error('Failed to rename section');
+    }
+  };
+
+  const handleDeleteSection = async () => {
+    if (!sectionToDelete) return;
+    try {
+      await api.deleteSection(sectionToDelete.id);
+      toast.success('Section deleted');
+      setDeleteSectionOpen(false);
+      setSectionToDelete(null);
+      loadSections();
+      loadFolders(); // Refresh folders as they may have been unassigned
+    } catch (err) {
+      toast.error('Failed to delete section');
+    }
+  };
+
+  const handleToggleSection = async (section) => {
+    try {
+      await api.updateSection(section.id, { expanded: !section.expanded });
+      setSections(sections.map(s => s.id === section.id ? {...s, expanded: !s.expanded} : s));
+    } catch (err) {
+      console.error('Failed to toggle section');
+    }
+  };
+
+  const handleSectionDragStart = (e, section) => {
+    setDraggedSection(section);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSectionDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleSectionDrop = async (e, targetSection) => {
+    e.preventDefault();
+    if (!draggedSection || draggedSection.id === targetSection.id) return;
+    
+    // Reorder sections
+    const newOrder = sections.filter(s => s.id !== draggedSection.id);
+    const targetIndex = newOrder.findIndex(s => s.id === targetSection.id);
+    newOrder.splice(targetIndex, 0, draggedSection);
+    
+    setSections(newOrder.map((s, i) => ({...s, order: i})));
+    setDraggedSection(null);
+    
+    try {
+      await api.reorderSections(newOrder.map(s => s.id));
+    } catch (err) {
+      toast.error('Failed to reorder sections');
+      loadSections();
+    }
+  };
+
+  // Folder color handler
+  const handleChangeFolderColor = async (color) => {
+    if (!folderToColor) return;
+    try {
+      await api.updateFolder(folderToColor.id, { color });
+      toast.success('Folder color updated');
+      setColorPickerOpen(false);
+      setFolderToColor(null);
+      loadFolders();
+    } catch (err) {
+      toast.error('Failed to update folder color');
+    }
+  };
+
+  // Assign folder to section
+  const handleAssignFolderToSection = async (folder, sectionId) => {
+    try {
+      await api.updateFolder(folder.id, { section_id: sectionId || "" });
+      toast.success(sectionId ? 'Folder moved to section' : 'Folder removed from section');
+      loadFolders();
+    } catch (err) {
+      toast.error('Failed to move folder');
     }
   };
 
@@ -134,7 +296,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const handleRenameFolder = async () => {
     if (!renameFolderName.trim() || !folderToRename) return;
     try {
-      await api.updateFolder(folderToRename.id, renameFolderName.trim());
+      await api.updateFolder(folderToRename.id, { name: renameFolderName.trim() });
       toast.success('Folder renamed');
       setRenameFolderOpen(false);
       setRenameFolderName('');
@@ -353,6 +515,16 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
               variant="outline"
               size="sm"
               className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+              onClick={() => setCreateSectionOpen(true)}
+              data-testid="create-section-btn"
+            >
+              <Layers className="w-3.5 h-3.5 mr-1.5" />
+              New Section
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
               onClick={() => setCreateFolderOpen(true)}
               data-testid="create-folder-btn"
             >
@@ -366,7 +538,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
           </div>
-        ) : folders.length === 0 ? (
+        ) : folders.length === 0 && sections.length === 0 ? (
           <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
             <CardContent className="p-8 text-center">
               <Folder className="w-10 h-10 mx-auto mb-3 text-zinc-600" />
@@ -375,16 +547,151 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3">
-            {sortedFolders.map((folder) => (
+          <div className="space-y-4">
+            {/* Sections */}
+            {sections.map((section) => {
+              const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
+              return (
+                <div 
+                  key={section.id}
+                  draggable
+                  onDragStart={(e) => handleSectionDragStart(e, section)}
+                  onDragOver={handleSectionDragOver}
+                  onDrop={(e) => handleSectionDrop(e, section)}
+                  className={`${draggedSection?.id === section.id ? 'opacity-50' : ''}`}
+                >
+                  {/* Section Header */}
+                  <div className="flex items-center gap-2 mb-2 group">
+                    <GripVertical className="w-4 h-4 text-zinc-600 cursor-grab opacity-0 group-hover:opacity-100" />
+                    <button
+                      onClick={() => handleToggleSection(section)}
+                      className="flex items-center gap-2 flex-1 text-left"
+                    >
+                      <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} />
+                      <span className="text-sm font-medium text-zinc-300">{section.name}</span>
+                      <div className="flex-1 h-px bg-zinc-800 ml-2" />
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                          <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                        <DropdownMenuItem 
+                          className="text-xs"
+                          onClick={() => {
+                            setSectionToRename(section);
+                            setRenameSectionName(section.name);
+                            setRenameSectionOpen(true);
+                          }}
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-zinc-800" />
+                        <DropdownMenuItem 
+                          className="text-xs text-red-400 focus:text-red-400"
+                          onClick={() => {
+                            setSectionToDelete(section);
+                            setDeleteSectionOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  {/* Section Folders */}
+                  {section.expanded && (
+                    <div className="grid gap-2 pl-6">
+                      {sectionFolders.length === 0 ? (
+                        <p className="text-xs text-zinc-600 py-2">No folders in this section</p>
+                      ) : (
+                        sectionFolders.map((folder) => (
+                          <Card 
+                            key={folder.id}
+                            className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
+                            data-testid={`folder-${folder.id}`}
+                          >
+                            <CardContent className="p-3 flex items-center gap-3" onClick={() => loadRecordings(folder.id)}>
+                              <div className={`w-8 h-8 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
+                                <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
+                                <p className="text-xs text-zinc-500">{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                                    <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                                  <DropdownMenuItem 
+                                    className="text-xs"
+                                    onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
+                                  >
+                                    <Palette className="w-3.5 h-3.5 mr-2" />
+                                    Change Color
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-xs"
+                                    onClick={(e) => { e.stopPropagation(); setFolderToRename(folder); setRenameFolderName(folder.name); setRenameFolderOpen(true); }}
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 mr-2" />
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-zinc-800" />
+                                  <DropdownMenuItem 
+                                    className="text-xs"
+                                    onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, ""); }}
+                                  >
+                                    <X className="w-3.5 h-3.5 mr-2" />
+                                    Remove from Section
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-zinc-800" />
+                                  <DropdownMenuItem 
+                                    className="text-xs text-red-400 focus:text-red-400"
+                                    onClick={(e) => { e.stopPropagation(); setFolderToDelete(folder); setDeleteFolderOpen(true); }}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <ChevronRight className="w-4 h-4 text-zinc-600" />
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Unsectioned Folders */}
+            {sortedFolders.filter(f => !f.section_id).length > 0 && (
+              <div className="grid gap-2">
+                {sections.length > 0 && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-zinc-500">Unsorted</span>
+                    <div className="flex-1 h-px bg-zinc-800" />
+                  </div>
+                )}
+                {sortedFolders.filter(f => !f.section_id).map((folder) => (
               <Card 
                 key={folder.id}
                 className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
                 data-testid={`folder-${folder.id}`}
               >
                 <CardContent className="p-4 flex items-center gap-4" onClick={() => loadRecordings(folder.id)}>
-                  <div className="w-10 h-10 rounded-sm bg-amber-900/30 flex items-center justify-center">
-                    <FolderOpen className="w-5 h-5 text-amber-500" />
+                  <div className={`w-10 h-10 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
+                    <FolderOpen className={`w-5 h-5 ${getFolderColorClass(folder.color)}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
@@ -401,6 +708,13 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                     <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
                       <DropdownMenuItem 
                         className="text-xs"
+                        onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
+                      >
+                        <Palette className="w-3.5 h-3.5 mr-2" />
+                        Change Color
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
                           setFolderToRename(folder);
@@ -411,6 +725,22 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                         <Pencil className="w-3.5 h-3.5 mr-2" />
                         Rename
                       </DropdownMenuItem>
+                      {sections.length > 0 && (
+                        <>
+                          <DropdownMenuSeparator className="bg-zinc-800" />
+                          <DropdownMenuLabel className="text-xs text-zinc-500">Move to Section</DropdownMenuLabel>
+                          {sections.map(s => (
+                            <DropdownMenuItem 
+                              key={s.id}
+                              className="text-xs"
+                              onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, s.id); }}
+                            >
+                              <Layers className="w-3.5 h-3.5 mr-2" />
+                              {s.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      )}
                       <DropdownMenuSeparator className="bg-zinc-800" />
                       <DropdownMenuItem 
                         className="text-xs text-red-400 focus:text-red-400"
@@ -429,8 +759,103 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
                 </CardContent>
               </Card>
             ))}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Create Section Dialog */}
+        <Dialog open={createSectionOpen} onOpenChange={setCreateSectionOpen}>
+          <DialogContent className="bg-zinc-900 border-zinc-800">
+            <DialogHeader>
+              <DialogTitle className="text-zinc-100">Create New Section</DialogTitle>
+              <DialogDescription className="text-zinc-500">
+                Sections help organize your folders into groups
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              placeholder="Section name"
+              className="bg-zinc-950 border-zinc-800"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateSection()}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateSectionOpen(false)} className="border-zinc-700">
+                Cancel
+              </Button>
+              <Button onClick={handleCreateSection} className="bg-cyan-600 hover:bg-cyan-700">
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rename Section Dialog */}
+        <Dialog open={renameSectionOpen} onOpenChange={setRenameSectionOpen}>
+          <DialogContent className="bg-zinc-900 border-zinc-800">
+            <DialogHeader>
+              <DialogTitle className="text-zinc-100">Rename Section</DialogTitle>
+            </DialogHeader>
+            <Input
+              value={renameSectionName}
+              onChange={(e) => setRenameSectionName(e.target.value)}
+              placeholder="Section name"
+              className="bg-zinc-950 border-zinc-800"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleRenameSection()}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRenameSectionOpen(false)} className="border-zinc-700">
+                Cancel
+              </Button>
+              <Button onClick={handleRenameSection} className="bg-cyan-600 hover:bg-cyan-700">
+                Rename
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Section Dialog */}
+        <Dialog open={deleteSectionOpen} onOpenChange={setDeleteSectionOpen}>
+          <DialogContent className="bg-zinc-900 border-zinc-800">
+            <DialogHeader>
+              <DialogTitle className="text-zinc-100">Delete Section</DialogTitle>
+              <DialogDescription className="text-zinc-500">
+                Are you sure you want to delete "{sectionToDelete?.name}"? Folders in this section will be moved to Unsorted.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteSectionOpen(false)} className="border-zinc-700">
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteSection}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Folder Color Picker Dialog */}
+        <Dialog open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
+          <DialogContent className="bg-zinc-900 border-zinc-800">
+            <DialogHeader>
+              <DialogTitle className="text-zinc-100">Choose Folder Color</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-6 gap-2 py-2">
+              {FOLDER_COLORS.map((color) => (
+                <button
+                  key={color.name}
+                  onClick={() => handleChangeFolderColor(color.name)}
+                  className={`w-10 h-10 rounded-sm ${color.bg} flex items-center justify-center hover:ring-2 ring-white/20 transition-all ${folderToColor?.color === color.name ? 'ring-2 ring-white/50' : ''}`}
+                >
+                  <Folder className={`w-5 h-5 ${color.class}`} />
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Create Folder Dialog */}
         <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>

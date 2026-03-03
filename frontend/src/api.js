@@ -172,8 +172,15 @@ const api = {
   getFolders: () => axios.get(`${API_URL}/folders`),
   createFolder: (name) => axios.post(`${API_URL}/folders`, { name }),
   getFolder: (folderId) => axios.get(`${API_URL}/folders/${folderId}`),
-  updateFolder: (folderId, name) => axios.put(`${API_URL}/folders/${folderId}`, { name }),
+  updateFolder: (folderId, data) => axios.put(`${API_URL}/folders/${folderId}`, data),
   deleteFolder: (folderId) => axios.delete(`${API_URL}/folders/${folderId}`),
+  
+  // Storage API - Sections
+  getSections: () => axios.get(`${API_URL}/sections`),
+  createSection: (name) => axios.post(`${API_URL}/sections`, { name }),
+  updateSection: (sectionId, data) => axios.put(`${API_URL}/sections/${sectionId}`, data),
+  deleteSection: (sectionId) => axios.delete(`${API_URL}/sections/${sectionId}`),
+  reorderSections: (sectionIds) => axios.post(`${API_URL}/sections/reorder`, sectionIds),
   
   // Storage API - Recordings
   getRecordingsInFolder: (folderId) => axios.get(`${API_URL}/folders/${folderId}/recordings`),
