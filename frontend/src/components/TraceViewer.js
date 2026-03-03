@@ -465,7 +465,7 @@ export default function TraceViewer({
               strokeWidth={2}
               strokeDasharray="5 5"
               label={{
-                value: `Threshold: ${threshold.toFixed(2)} mV`,
+                value: `Threshold: ${(invert ? -threshold : threshold).toFixed(2)} mV`,
                 position: 'right',
                 fill: '#f59e0b',
                 fontSize: 9,
