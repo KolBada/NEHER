@@ -942,18 +942,15 @@ def extract_comparison_metrics(recording: dict) -> dict:
     # Drug info - frontend uses camelCase
     selected_drugs = state.get('selectedDrugs') or state.get('selected_drugs', [])
     drug_settings = state.get('drugSettings') or state.get('drug_settings', {})
-    other_drugs = state.get('otherDrugs') or state.get('other_drugs', '')
+    other_drugs_list = state.get('otherDrugs') or state.get('other_drugs', [])
     
     # Build drug info list
     result['drug_info'] = []
-    result['has_drug'] = bool(selected_drugs)
+    result['has_drug'] = bool(selected_drugs) or bool(other_drugs_list)
     
     if selected_drugs:
         for drug in selected_drugs:
             drug_name = drug
-            if drug == 'other' and other_drugs:
-                drug_name = other_drugs
-            
             settings = drug_settings.get(drug, {})
             concentration = settings.get('concentration', '')
             perfusion_time = settings.get('perfusion_time', settings.get('perfusionTime', ''))
@@ -963,7 +960,18 @@ def extract_comparison_metrics(recording: dict) -> dict:
                 'concentration': concentration,
                 'perfusion_time': perfusion_time,
             })
-        
+    
+    # Add other drugs (custom drugs added by user)
+    if other_drugs_list and isinstance(other_drugs_list, list):
+        for drug in other_drugs_list:
+            if isinstance(drug, dict) and drug.get('name'):
+                result['drug_info'].append({
+                    'name': drug.get('name', ''),
+                    'concentration': drug.get('concentration', ''),
+                    'perfusion_time': drug.get('perfusionTime', drug.get('perfusion_time', '')),
+                })
+    
+    if result['drug_info']:
         # For backwards compat
         result['drug_names'] = ', '.join([d['name'] for d in result['drug_info']])
         result['drug_concentrations'] = ', '.join([str(d['concentration']) for d in result['drug_info'] if d['concentration']])

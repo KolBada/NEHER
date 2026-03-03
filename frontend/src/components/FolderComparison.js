@@ -707,8 +707,8 @@ export default function FolderComparison({ folder, onBack }) {
                           {rec.drug_info.map((drug, i) => (
                             <div key={i} className="mb-1">
                               <div className="font-medium">{drug.name}</div>
-                              {drug.concentration && <div className="text-zinc-500">{drug.concentration}</div>}
-                              {drug.perfusion_time && <div className="text-zinc-500">{drug.perfusion_time} min</div>}
+                              {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
+                              {drug.perfusion_time && <div className="text-zinc-500">Perf: {drug.perfusion_time}min</div>}
                             </div>
                           ))}
                         </div>

@@ -32,11 +32,12 @@ import {
 
 // Drug configurations with default readout times
 const DRUG_CONFIG = {
+  tetrodotoxin: { name: 'Tetrodotoxin', defaultConc: '1', bfReadout: 12, hrvReadout: 10 },
+  isoproterenol: { name: 'Isoproterenol', defaultConc: '1', bfReadout: null, hrvReadout: null, manualPeak: true },
+  acetylcholine: { name: 'Acetylcholine', defaultConc: '1', bfReadout: 3, hrvReadout: 2 },
   propranolol: { name: 'Propranolol', defaultConc: '5', bfReadout: 12, hrvReadout: 10 },
   nepicastat: { name: 'Nepicastat', defaultConc: '30', bfReadout: 42, hrvReadout: 40 },
-  tetrodotoxin: { name: 'Tetrodotoxin', defaultConc: '1', bfReadout: 12, hrvReadout: 10 },
-  acetylcholine: { name: 'Acetylcholine', defaultConc: '1', bfReadout: 3, hrvReadout: 2 },
-  isoproterenol: { name: 'Isoproterenol', defaultConc: '1', bfReadout: null, hrvReadout: null, manualPeak: true },
+  ruxolitinib: { name: 'Ruxolitinib', defaultConc: '2', bfReadout: 15, hrvReadout: 15 },
 };
 
 // Format time as min:sec
@@ -1215,14 +1216,14 @@ function App() {
                   <Input
                     value={drug.name}
                     onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
-                    className="h-5 w-24 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    className="h-6 w-24 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                     placeholder="Drug name"
                   />
                   <div className="flex items-center gap-1">
                     <Input
                       value={drug.concentration}
                       onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
-                      className="h-5 w-12 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                     />
                     <span className="text-[9px] text-zinc-500">µM</span>
                   </div>
@@ -1232,16 +1233,18 @@ function App() {
                     <span className="text-[9px] text-zinc-500">Start:</span>
                     <Input
                       type="number"
+                      step="0.5"
                       value={drug.perfusionStart}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                      className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                     />
                     <span className="text-[9px] text-zinc-500">min, Delay:</span>
                     <Input
                       type="number"
+                      step="0.5"
                       value={drug.perfusionTime}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                      className="h-5 w-10 text-[9px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                     />
                     <span className="text-[9px] text-zinc-500">min</span>
                   </div>
