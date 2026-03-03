@@ -284,6 +284,9 @@ function App() {
   const [hrvResults, setHrvResults] = useState(null);
   const [perMinuteData, setPerMinuteData] = useState(null);
   
+  // Baseline/Spontaneous Activity enabled
+  const [baselineEnabled, setBaselineEnabled] = useState(true);
+  
   // Drug readout settings (for Spontaneous Activity)
   const [drugReadoutSettings, setDrugReadoutSettings] = useState({
     hrvReadoutMinute: '',
@@ -1335,6 +1338,8 @@ function App() {
               hrvResults={hrvResults}
               perMinuteData={perMinuteData}
               onComputeHRV={handleComputeHRV}
+              baselineEnabled={baselineEnabled}
+              onBaselineEnabledChange={setBaselineEnabled}
               analysisLoading={analysisLoading}
               filterSettings={filterParams}
               hasDrug={hasDrug}

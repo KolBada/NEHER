@@ -123,7 +123,8 @@ export default function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
   drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses,
-  drugReadoutSettings, onDrugReadoutSettingsChange
+  drugReadoutSettings, onDrugReadoutSettingsChange,
+  baselineEnabled, onBaselineEnabledChange
 }) {
   // Use drugReadoutSettings from props, with local fallbacks for backwards compatibility
   const hrvReadoutMinute = drugReadoutSettings?.hrvReadoutMinute ?? '';
@@ -562,8 +563,16 @@ export default function AnalysisPanel({
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className="space-y-2 p-3 bg-cyan-950/20 rounded-sm border border-cyan-800/50">
-              <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-bold">Baseline Readout</p>
+            <div className={`space-y-2 p-3 rounded-sm border ${baselineEnabled ? 'bg-cyan-950/20 border-cyan-800/50' : 'bg-zinc-900/50 border-zinc-800/50 opacity-60'}`}>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="enable-baseline"
+                  checked={baselineEnabled}
+                  onCheckedChange={onBaselineEnabledChange}
+                  className="h-3 w-3"
+                />
+                <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-bold">Baseline Readout</p>
+              </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-[9px] text-zinc-400">HRV:</Label>
@@ -572,9 +581,10 @@ export default function AnalysisPanel({
                     value={baselineHrvMinute}
                     onChange={(e) => setBaselineHrvMinute(parseInt(e.target.value) || 0)}
                     className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    disabled={!baselineEnabled}
                   />
                   <span className="text-[9px] text-zinc-500">min</span>
-                  <Badge variant="outline" className="text-[8px] border-cyan-700 text-cyan-400">
+                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700 text-cyan-400' : 'border-zinc-700 text-zinc-500'}`}>
                     uses {baselineHrvMinute}-{baselineHrvMinute + 3}min window
                   </Badge>
                 </div>
@@ -587,9 +597,10 @@ export default function AnalysisPanel({
                     value={baselineBfMinute}
                     onChange={(e) => setBaselineBfMinute(parseInt(e.target.value) || 1)}
                     className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    disabled={!baselineEnabled}
                   />
                   <span className="text-[9px] text-zinc-500">min</span>
-                  <Badge variant="outline" className="text-[8px] border-cyan-700 text-cyan-400">
+                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700 text-cyan-400' : 'border-zinc-700 text-zinc-500'}`}>
                     uses {baselineBfMinute}-{baselineBfMinute + 1}min
                   </Badge>
                 </div>
@@ -670,7 +681,7 @@ export default function AnalysisPanel({
           {/* Results display - Baseline and Drug Readout side by side, same prominence */}
           <div className="space-y-4">
             {/* Baseline - prominent */}
-            {baseline && (
+            {baselineEnabled && baseline && (
               <div className="space-y-2">
                 <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-500">
                   Baseline Metrics
