@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw, Check, RotateCcw, Filter } from 'lucide-react';
+import { Loader2, RefreshCw, Check, RotateCcw, Filter, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,12 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function DetectionPanel({
   params, onChange, signalStats,
@@ -67,7 +73,19 @@ export default function DetectionPanel({
         {/* Threshold - More prominent with direct input */}
         <div className="space-y-2 p-2 bg-amber-950/20 border border-amber-900/50 rounded-sm">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-amber-400 font-semibold">Threshold (mV)</Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-amber-400 font-semibold">Threshold (mV)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3 h-3 text-amber-600 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700">
+                    <p>Minimum voltage level for beat detection. Only peaks above this line will be detected as beats.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <div className="flex items-center gap-2">
               <Input
                 data-testid="threshold-input"
@@ -104,7 +122,19 @@ export default function DetectionPanel({
         {/* Prominence */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-zinc-400">Prominence</Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-zinc-400">Prominence</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3 h-3 text-zinc-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700">
+                    <p>Minimum height difference between a peak and its surrounding signal. Higher values = only detect more prominent/distinct beats.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <span className="text-[10px] font-data text-zinc-300">
               {prominence !== null ? prominence.toFixed(3) : 'auto'}
             </span>
