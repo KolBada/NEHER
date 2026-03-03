@@ -36,7 +36,7 @@ export default function TraceViewer({
     if (!traceData || !traceData.times) return [];
     const data = traceData.times.map((t, i) => ({
       time: t / 60.0,
-      voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
+      voltage: traceData.voltages[i],
       isBeat: false,
       beatIdx: null,
     }));
@@ -60,7 +60,7 @@ export default function TraceViewer({
       });
     }
     return data;
-  }, [traceData, beats, invert]);
+  }, [traceData, beats]);
 
   // Filtered chart data based on zoom
   const visibleData = useMemo(() => {
