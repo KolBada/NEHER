@@ -443,7 +443,6 @@ export default function TraceViewer({
             tickFormatter={(v) => v.toFixed(1)}
             width={50}
             label={{ value: 'mV', angle: -90, fill: '#52525b', fontSize: 10, position: 'insideLeft' }}
-            reversed={invert}
           />
           <Tooltip
             contentStyle={{
@@ -460,12 +459,12 @@ export default function TraceViewer({
           {/* Threshold line */}
           {threshold !== null && (
             <ReferenceLine
-              y={invert ? -threshold : threshold}
+              y={threshold}
               stroke="#f59e0b"
               strokeWidth={2}
               strokeDasharray="5 5"
               label={{
-                value: `Threshold: ${(invert ? -threshold : threshold).toFixed(2)} mV`,
+                value: `Threshold: ${threshold.toFixed(2)} mV`,
                 position: 'right',
                 fill: '#f59e0b',
                 fontSize: 9,
