@@ -80,7 +80,7 @@ export default function DetectionPanel({
                 <TooltipTrigger asChild>
                   <Info className="w-3 h-3 text-amber-600 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700">
+                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700 text-white">
                   <p>Minimum voltage level for beat detection. Only peaks above this line will be detected as beats.</p>
                 </TooltipContent>
               </Tooltip>
@@ -127,7 +127,7 @@ export default function DetectionPanel({
                 <TooltipTrigger asChild>
                   <Info className="w-3 h-3 text-zinc-500 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700">
+                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700 text-white">
                   <p>Minimum height difference between a peak and its surrounding signal. Higher values = only detect more prominent/distinct beats.</p>
                 </TooltipContent>
               </Tooltip>
