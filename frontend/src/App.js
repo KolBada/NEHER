@@ -1317,6 +1317,7 @@ function App() {
                   threshold={detectionParams.threshold}
                   onThresholdChange={(v) => setDetectionParams(p => ({ ...p, threshold: v }))}
                   signalStats={signalStats}
+                  invert={detectionParams.invert}
                 />
                 {/* BF chart shown after validation */}
                 {isValidated && metrics && (

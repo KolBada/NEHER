@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 export default function TraceViewer({
   traceData, beats, onAddBeat, onRemoveBeat,
   lightPulses, isValidated,
-  threshold, onThresholdChange, signalStats
+  threshold, onThresholdChange, signalStats,
+  invert = false
 }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
@@ -35,7 +36,7 @@ export default function TraceViewer({
     if (!traceData || !traceData.times) return [];
     const data = traceData.times.map((t, i) => ({
       time: t / 60.0,
-      voltage: traceData.voltages[i],
+      voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
       isBeat: false,
       beatIdx: null,
     }));
@@ -59,7 +60,7 @@ export default function TraceViewer({
       });
     }
     return data;
-  }, [traceData, beats]);
+  }, [traceData, beats, invert]);
 
   // Filtered chart data based on zoom
   const visibleData = useMemo(() => {
@@ -419,7 +420,7 @@ export default function TraceViewer({
           {/* Threshold line */}
           {threshold !== null && (
             <ReferenceLine
-              y={threshold}
+              y={invert ? -threshold : threshold}
               stroke="#f59e0b"
               strokeWidth={2}
               strokeDasharray="5 5"
