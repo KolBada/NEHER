@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Brush, ReferenceArea
+  Tooltip as RechartsTooltip, ResponsiveContainer, Brush, ReferenceArea
 } from 'recharts';
 import { Loader2, Info, RotateCcw, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
   Popover, PopoverContent, PopoverTrigger
 } from '@/components/ui/popover';
 import {
-  Tooltip as ShadcnTooltip,
+  Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
@@ -30,7 +30,7 @@ import {
 function InfoTip({ text, children }) {
   return (
     <TooltipProvider>
-      <ShadcnTooltip delayDuration={100}>
+      <Tooltip delayDuration={100}>
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 cursor-help whitespace-nowrap">
             {children}
@@ -40,7 +40,7 @@ function InfoTip({ text, children }) {
         <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white">
           {text}
         </TooltipContent>
-      </ShadcnTooltip>
+      </Tooltip>
     </TooltipProvider>
   );
 }
@@ -386,7 +386,7 @@ export default function AnalysisPanel({
               <div className="flex items-center gap-2">
                 Beat Frequency (Filtered) - bpm vs min
                 <TooltipProvider delayDuration={100}>
-                  <ShadcnTooltip>
+                  <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex">
                         <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
@@ -395,7 +395,7 @@ export default function AnalysisPanel({
                     <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                       <p>Beat frequency (BF) = 60000 / NN interval. Filtered using artifact rejection to remove outliers.</p>
                     </TooltipContent>
-                  </ShadcnTooltip>
+                  </Tooltip>
                 </TooltipProvider>
                 <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
                   {metrics.n_kept} beats
@@ -427,7 +427,7 @@ export default function AnalysisPanel({
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
@@ -461,7 +461,7 @@ export default function AnalysisPanel({
               <div className="flex items-center gap-2">
                 NN Intervals (Filtered) - ms vs min
                 <TooltipProvider delayDuration={100}>
-                  <ShadcnTooltip>
+                  <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex">
                         <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
@@ -470,7 +470,7 @@ export default function AnalysisPanel({
                     <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
                       <p>NN intervals = time between successive beats in milliseconds. Used for HRV calculations.</p>
                     </TooltipContent>
-                  </ShadcnTooltip>
+                  </Tooltip>
                 </TooltipProvider>
                 <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
                   {metrics.n_kept} intervals
@@ -502,7 +502,7 @@ export default function AnalysisPanel({
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
@@ -537,7 +537,7 @@ export default function AnalysisPanel({
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             HRV Analysis (Sliding 3-min Windows, Normalized to 70 bpm)
             <TooltipProvider delayDuration={100}>
-              <ShadcnTooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="inline-flex">
                     <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
@@ -555,7 +555,7 @@ export default function AnalysisPanel({
                     The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
                   </p>
                 </TooltipContent>
-              </ShadcnTooltip>
+              </Tooltip>
             </TooltipProvider>
           </CardTitle>
         </CardHeader>
@@ -797,7 +797,7 @@ export default function AnalysisPanel({
                       <XAxis dataKey="minute" tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
                         label={{ value: 'min', fill: '#52525b', fontSize: 8, position: 'insideBottomRight', offset: -5 }} />
                       <YAxis tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} width={40} />
-                      <Tooltip
+                      <RechartsTooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
                       />
                       <Line type="monotone" dataKey={key} stroke={color} strokeWidth={1.5} dot={{ r: 1.5 }} isAnimationActive={false} />
@@ -816,7 +816,7 @@ export default function AnalysisPanel({
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             Per-Minute Metrics
             <TooltipProvider delayDuration={100}>
-              <ShadcnTooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="inline-flex">
                     <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
@@ -827,7 +827,7 @@ export default function AnalysisPanel({
                   <p className="text-zinc-200 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
                   <p className="text-zinc-200"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
                 </TooltipContent>
-              </ShadcnTooltip>
+              </Tooltip>
             </TooltipProvider>
           </CardTitle>
         </CardHeader>
