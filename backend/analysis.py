@@ -947,21 +947,22 @@ def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, l
         # pNN50 on residuals
         pnn50_detrended = float(100.0 * np.sum(np.abs(diffs) > 50.0) / len(diffs)) if len(diffs) > 0 else 0.0
         
-        # Log transforms - if value is very small (< 1ms), it means variability is due to trend, not HRV
-        # This is a valid finding. We'll still compute ln but display it appropriately.
-        # For very small values, ln will be negative (e.g., ln(0.1) = -2.3)
-        # We set a floor at 0.001 ms to avoid -inf
-        MIN_FOR_LOG = 0.001
+        # Log transforms - ensure positive values only
+        # ln(RMSSD) must be positive, so RMSSD must be > e^0 = 1
+        # If RMSSD < 1ms after detrending, it means variability is due to trend
+        # We floor at a small positive value for display purposes
+        MIN_POSITIVE_LN = 0.001  # Minimum ln value to display
         
-        if rmssd_detrended > MIN_FOR_LOG:
+        if rmssd_detrended > 1.0:
             ln_rmssd_detrended = float(np.log(rmssd_detrended))
         else:
-            ln_rmssd_detrended = float(np.log(MIN_FOR_LOG))  # -6.9 floor
+            # RMSSD <= 1ms means very low HRV after detrending
+            ln_rmssd_detrended = MIN_POSITIVE_LN
         
-        if sdnn_detrended > MIN_FOR_LOG:
+        if sdnn_detrended > 1.0:
             ln_sdnn_detrended = float(np.log(sdnn_detrended))
         else:
-            ln_sdnn_detrended = float(np.log(MIN_FOR_LOG))
+            ln_sdnn_detrended = MIN_POSITIVE_LN
         
         # Store visualization data for frontend (convert to lists for JSON serialization)
         per_pulse.append({
@@ -988,18 +989,18 @@ def compute_light_hrv_detrended(beat_times_min_list, bf_filtered_list, pulses, l
         rmssd_median = float(np.median([p['rmssd70_detrended'] for p in valid]))
         sdnn_median = float(np.median([p['sdnn_detrended'] for p in valid]))
         
-        # Apply same log floor in final aggregation
-        MIN_FOR_LOG = 0.001
+        # Ensure positive ln values only
+        MIN_POSITIVE_LN = 0.001
         
-        if rmssd_median > MIN_FOR_LOG:
+        if rmssd_median > 1.0:
             ln_rmssd_final = float(np.log(rmssd_median))
         else:
-            ln_rmssd_final = float(np.log(MIN_FOR_LOG))
+            ln_rmssd_final = MIN_POSITIVE_LN
         
-        if sdnn_median > MIN_FOR_LOG:
+        if sdnn_median > 1.0:
             ln_sdnn_final = float(np.log(sdnn_median))
         else:
-            ln_sdnn_final = float(np.log(MIN_FOR_LOG))
+            ln_sdnn_final = MIN_POSITIVE_LN
         
         final = {
             'rmssd70_detrended': rmssd_median,
