@@ -110,17 +110,20 @@ def decimate_trace(times, voltages, target_points=5000):
 
 def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominence=None, invert=False, use_filter=True):
     """Detect beats using scipy peak detection with optional bandpass filtering."""
-    signal = np.array(trace, dtype=np.float64)
+    signal_raw = np.array(trace, dtype=np.float64)
+    
+    # Keep raw signal for threshold comparison (matches what user sees)
+    signal_for_threshold = -signal_raw if invert else signal_raw
 
-    # Apply bandpass filter for cleaner detection
+    # Apply bandpass filter for cleaner peak detection
     if use_filter and sample_rate > 200:
         try:
-            signal_filt = bandpass_filter(signal, sample_rate, lowcut=0.5,
+            signal_filt = bandpass_filter(signal_raw, sample_rate, lowcut=0.5,
                                          highcut=min(500.0, sample_rate * 0.45))
         except Exception:
-            signal_filt = signal.copy()
+            signal_filt = signal_raw.copy()
     else:
-        signal_filt = signal.copy()
+        signal_filt = signal_raw.copy()
 
     if invert:
         signal_filt = -signal_filt
@@ -129,9 +132,9 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
         min_distance = int(0.3 * sample_rate)  # 300ms min (cardiac ~200-1000ms intervals)
 
     kwargs = {'distance': max(1, int(min_distance))}
-
-    if threshold is not None:
-        kwargs['height'] = threshold
+    
+    # Don't use height on filtered signal - it doesn't match what user sees
+    # Instead, we'll filter by threshold on raw signal after detection
 
     if prominence is not None:
         kwargs['prominence'] = prominence
@@ -143,6 +146,12 @@ def detect_beats(trace, sample_rate, threshold=None, min_distance=None, prominen
         kwargs['prominence'] = sig_range * 0.3
 
     peaks, _ = find_peaks(signal_filt, **kwargs)
+    
+    # Now filter peaks by threshold on RAW signal (what user sees)
+    if threshold is not None and len(peaks) > 0:
+        raw_peak_values = signal_for_threshold[peaks]
+        peaks = peaks[raw_peak_values >= threshold]
+    
     return peaks.tolist()
 
 
