@@ -254,6 +254,8 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
         
         if name is not None:
             update_fields["name"] = name
+            # Also update recordingName inside analysis_state if it exists
+            update_fields["analysis_state.recordingName"] = name
         
         if analysis_state is not None:
             update_fields["analysis_state"] = analysis_state
