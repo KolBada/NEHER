@@ -1390,7 +1390,7 @@ function App() {
           <TabsContent value="save">
             <div className="max-w-lg mx-auto">
               <SaveRecording
-                analysisState={buildAnalysisState()}
+                getAnalysisState={buildAnalysisState}
                 onSaveComplete={handleSaveComplete}
                 existingRecordingId={savedRecordingId}
                 existingFolderId={savedFolderId}

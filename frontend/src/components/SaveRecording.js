@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import api from '../api';
 
 export default function SaveRecording({ 
-  analysisState, 
+  getAnalysisState, 
   onSaveComplete, 
   existingRecordingId = null,
   existingFolderId = null,
@@ -27,6 +27,9 @@ export default function SaveRecording({
   recordingDescription,
   setRecordingDescription
 }) {
+  // Get current analysis state
+  const analysisState = getAnalysisState ? getAnalysisState() : {};
+  
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -136,9 +139,12 @@ export default function SaveRecording({
         return;
       }
 
+      // Get fresh analysis state at save time
+      const currentAnalysisState = getAnalysisState ? getAnalysisState() : analysisState;
+      
       // Prepare analysis state for saving
       const stateToSave = {
-        ...analysisState,
+        ...currentAnalysisState,
         recordingName,
         savedAt: new Date().toISOString(),
       };
@@ -155,7 +161,7 @@ export default function SaveRecording({
         await api.createRecording({
           folder_id: folderId,
           name: recordingName,
-          filename: analysisState?.filename || 'unknown.abf',
+          filename: currentAnalysisState?.filename || 'unknown.abf',
           analysis_state: stateToSave,
         });
         toast.success('Recording saved');

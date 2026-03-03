@@ -63,6 +63,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   const [updateCheckDone, setUpdateCheckDone] = useState(false);
   const [folderSortBy, setFolderSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
   const [recordingSortBy, setRecordingSortBy] = useState('modified'); // 'modified', 'alpha', 'created'
+  const [comparisonKey, setComparisonKey] = useState(Date.now());
 
   // Auto-update outdated recordings on mount
   useEffect(() => {
@@ -511,6 +512,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
   if (view === 'comparison' && selectedFolder) {
     return (
       <FolderComparison 
+        key={comparisonKey}
         folder={selectedFolder}
         onBack={() => {
           setView('folder');
@@ -594,7 +596,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
               variant="outline"
               size="sm"
               className="h-8 text-xs border-cyan-700/50 hover:border-cyan-600 hover:bg-cyan-950/30 text-cyan-400"
-              onClick={() => setView('comparison')}
+              onClick={() => {
+                setComparisonKey(Date.now());
+                setView('comparison');
+              }}
               data-testid="comparison-btn"
             >
               <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
