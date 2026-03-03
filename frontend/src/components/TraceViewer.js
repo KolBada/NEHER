@@ -33,11 +33,22 @@ export default function TraceViewer({
     };
   }, [traceData]);
 
-  const chartData = useMemo(() => {
+  // Base chart data without beats - only recalculated when trace/invert changes
+  const baseChartData = useMemo(() => {
     if (!traceData || !traceData.times) return [];
-    const data = traceData.times.map((t, i) => ({
+    return traceData.times.map((t, i) => ({
       time: t / 60.0,
       voltage: invert ? -traceData.voltages[i] : traceData.voltages[i],
+    }));
+  }, [traceData, invert]);
+
+  // Chart data with beat markers - separate computation so base data doesn't change on beat add/remove
+  const chartData = useMemo(() => {
+    if (!baseChartData.length) return [];
+    
+    // Create a shallow copy with beat info added
+    const data = baseChartData.map(d => ({
+      ...d,
       isBeat: false,
       beatIdx: null,
     }));
@@ -61,7 +72,7 @@ export default function TraceViewer({
       });
     }
     return data;
-  }, [traceData, beats, invert]);
+  }, [baseChartData, beats]);
 
   // Filtered chart data based on zoom
   const visibleData = useMemo(() => {
@@ -253,27 +264,27 @@ export default function TraceViewer({
   // Handle brush change (timeline slider) - for navigation after zoom
   const handleBrushChange = useCallback((brushArea) => {
     if (brushArea && brushArea.startIndex !== undefined && brushArea.endIndex !== undefined) {
-      const startTime = chartData[brushArea.startIndex]?.time;
-      const endTime = chartData[brushArea.endIndex]?.time;
+      const startTime = baseChartData[brushArea.startIndex]?.time;
+      const endTime = baseChartData[brushArea.endIndex]?.time;
       if (startTime !== undefined && endTime !== undefined) {
         setZoomDomain([startTime, endTime]);
       }
     }
-  }, [chartData]);
+  }, [baseChartData]);
 
-  // Calculate brush indices from current zoom domain
+  // Calculate brush indices from current zoom domain - use baseChartData for stability
   const brushIndices = useMemo(() => {
-    if (!chartData.length) return { start: 0, end: 0 };
-    if (!zoomDomain) return { start: 0, end: chartData.length - 1 };
+    if (!baseChartData.length) return { start: 0, end: 0 };
+    if (!zoomDomain) return { start: 0, end: baseChartData.length - 1 };
     
-    let startIdx = chartData.findIndex(d => d.time >= zoomDomain[0]);
-    let endIdx = chartData.findIndex(d => d.time >= zoomDomain[1]);
+    let startIdx = baseChartData.findIndex(d => d.time >= zoomDomain[0]);
+    let endIdx = baseChartData.findIndex(d => d.time >= zoomDomain[1]);
     
     if (startIdx === -1) startIdx = 0;
-    if (endIdx === -1) endIdx = chartData.length - 1;
+    if (endIdx === -1) endIdx = baseChartData.length - 1;
     
-    return { start: Math.max(0, startIdx), end: Math.min(chartData.length - 1, endIdx) };
-  }, [chartData, zoomDomain]);
+    return { start: Math.max(0, startIdx), end: Math.min(baseChartData.length - 1, endIdx) };
+  }, [baseChartData, zoomDomain]);
 
   // Reset zoom when trace data changes
   useEffect(() => {
