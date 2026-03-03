@@ -16,6 +16,7 @@ export default function TraceViewer({
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
   const containerRef = useRef(null);
+  const chartRef = useRef(null);
   
   // Zoom state - time domain
   const [zoomDomain, setZoomDomain] = useState(null);
@@ -71,12 +72,51 @@ export default function TraceViewer({
   // Handle click on chart area for adding beats
   const handleChartClick = useCallback((e) => {
     if (!editMode || isValidated) return;
-    if (!e || !e.activePayload || e.activePayload.length === 0) return;
+    
+    // Recharts onClick provides activePayload when clicking near data points
+    // Get time/voltage from activePayload if available
+    let timeMin, voltage;
+    
+    if (e && e.activePayload && e.activePayload.length > 0) {
+      const point = e.activePayload[0].payload;
+      timeMin = point.time;
+      voltage = point.voltage;
+    } else if (e && e.activeLabel !== undefined && chartData.length > 0) {
+      // Try using activeLabel (the x-axis value) when clicking near the line
+      timeMin = e.activeLabel;
+      // Find nearest data point to get voltage
+      const nearestIdx = chartData.findIndex(d => Math.abs(d.time - timeMin) < 0.001);
+      if (nearestIdx >= 0) {
+        voltage = chartData[nearestIdx].voltage;
+      } else {
+        // Estimate voltage from interpolation
+        const domain = zoomDomain || [timeBounds.min, timeBounds.max];
+        const visiblePoints = chartData.filter(d => d.time >= domain[0] && d.time <= domain[1]);
+        if (visiblePoints.length > 0) {
+          // Find two closest points for interpolation
+          let lo = 0, hi = visiblePoints.length - 1;
+          while (lo < hi - 1) {
+            const mid = Math.floor((lo + hi) / 2);
+            if (visiblePoints[mid].time < timeMin) lo = mid;
+            else hi = mid;
+          }
+          if (hi < visiblePoints.length && lo >= 0) {
+            const t1 = visiblePoints[lo].time, v1 = visiblePoints[lo].voltage;
+            const t2 = visiblePoints[hi].time, v2 = visiblePoints[hi].voltage;
+            const ratio = (timeMin - t1) / (t2 - t1 || 1);
+            voltage = v1 + ratio * (v2 - v1);
+          } else {
+            voltage = visiblePoints[lo]?.voltage || 0;
+          }
+        } else {
+          return; // Can't determine position
+        }
+      }
+    } else {
+      return; // Can't determine click position
+    }
 
-    const point = e.activePayload[0].payload;
-    const timeMin = point.time;
     const timeSec = timeMin * 60.0;
-    const voltage = point.voltage;
 
     // Check if clicking near an existing beat
     const visibleRange = zoomDomain 
@@ -97,7 +137,7 @@ export default function TraceViewer({
     if (onAddBeat) {
       onAddBeat(timeSec, voltage);
     }
-  }, [editMode, isValidated, beats, timeBounds, zoomDomain, onAddBeat]);
+  }, [editMode, isValidated, beats, timeBounds, zoomDomain, onAddBeat, chartData]);
 
   // Handle beat marker click for removal
   const handleBeatClick = useCallback((beatIdx, e) => {
