@@ -40,13 +40,13 @@ export default function DetectionPanel({
       <CardContent className="space-y-5">
         {/* Threshold Direction - Positive or Negative */}
         <div className="space-y-2">
-          <Label className="text-xs text-zinc-400">Threshold Direction</Label>
-          <div className="flex gap-2">
+          <Label className="text-xs text-zinc-400 text-center block">Threshold Direction</Label>
+          <div className="flex gap-2 justify-center">
             <Button
               data-testid="threshold-positive-btn"
               variant={!params.invert ? "default" : "outline"}
               size="sm"
-              className={`flex-1 h-7 text-xs ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-32 h-7 text-xs ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
               onClick={() => onChange({ ...params, invert: false })}
               disabled={isValidated}
             >
@@ -56,14 +56,14 @@ export default function DetectionPanel({
               data-testid="threshold-negative-btn"
               variant={params.invert ? "default" : "outline"}
               size="sm"
-              className={`flex-1 h-7 text-xs ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-32 h-7 text-xs ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
               onClick={() => onChange({ ...params, invert: true })}
               disabled={isValidated}
             >
               Negative (Below)
             </Button>
           </div>
-          <p className="text-[9px] text-zinc-500 italic">
+          <p className="text-[9px] text-zinc-500 italic text-center">
             {params.invert ? 'Detect peaks below the threshold' : 'Detect peaks above the threshold'}
           </p>
         </div>
