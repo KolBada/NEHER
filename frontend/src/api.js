@@ -143,10 +143,8 @@ const api = {
     beat_times_min: data.beat_times_min,
     bf_filtered: data.bf_filtered,
     readout_minute: data.readout_minute,
-    baseline_hrv_start: data.baseline_hrv_start ?? 0,
-    baseline_hrv_end: data.baseline_hrv_end ?? 3,
-    baseline_bf_start: data.baseline_bf_start ?? 1,
-    baseline_bf_end: data.baseline_bf_end ?? 2,
+    baseline_hrv_minute: data.baseline_hrv_minute ?? 0,
+    baseline_bf_minute: data.baseline_bf_minute ?? 1,
   }),
 
   lightDetect: (data) => axios.post(`${API_URL}/light-detect`, data),

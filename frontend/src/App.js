@@ -527,15 +527,10 @@ function App() {
       });
       setMetrics(data);
       setIsValidated(true);
-
-      // Also compute per-minute metrics
-      try {
-        const pmResp = await api.perMinuteMetrics({
-          beat_times_min: data.filtered_beat_times_min,
-          bf_filtered: data.filtered_bf_bpm,
-        });
-        setPerMinuteData(pmResp.data.rows);
-      } catch (e) { /* non-critical */ }
+      
+      // Clear previous HRV/BF results - user must click "Compute BF & HRV" to recalculate
+      setHrvResults(null);
+      setPerMinuteData(null);
 
       toast.success(`Validated \u2014 ${data.n_kept} beats kept, ${data.n_removed} filtered`);
     } catch (err) {
@@ -567,6 +562,7 @@ function App() {
     setAnalysisLoading(true);
     setIsModified(true);  // Mark as modified when computing HRV
     try {
+      // Compute HRV analysis with baseline
       const { data } = await api.hrvAnalysis({
         beat_times_min: metrics.filtered_beat_times_min,
         bf_filtered: metrics.filtered_bf_bpm,
@@ -575,9 +571,19 @@ function App() {
         baseline_bf_minute: baselineBfMinute,
       });
       setHrvResults(data);
-      toast.success(`HRV computed — ${data.windows.length} windows`);
+      
+      // Also compute per-minute BF metrics
+      try {
+        const pmResp = await api.perMinuteMetrics({
+          beat_times_min: metrics.filtered_beat_times_min,
+          bf_filtered: metrics.filtered_bf_bpm,
+        });
+        setPerMinuteData(pmResp.data.rows);
+      } catch (e) { /* non-critical */ }
+      
+      toast.success(`BF & HRV computed — ${data.windows.length} windows`);
     } catch (err) {
-      toast.error('HRV failed: ' + (err.response?.data?.detail || err.message));
+      toast.error('BF & HRV failed: ' + (err.response?.data?.detail || err.message));
     } finally {
       setAnalysisLoading(false);
     }
