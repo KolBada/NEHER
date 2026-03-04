@@ -1217,54 +1217,58 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
     baseline_bf = float(np.median(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 0 else float(np.median(bf_valid))
     baseline_std = float(np.std(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 2 else 5.0
     
-    # Smooth BF for better pattern detection
+    # Smooth BF for pattern detection (peaks, troughs)
     kernel = min(7, max(3, len(bf_valid) // 50))
     bf_smooth = np.convolve(bf_valid, np.ones(kernel) / kernel, mode='same')
     
-    # Compute first derivative (rate of change)
-    bf_diff = np.diff(bf_smooth)
-    bf_diff = np.append(bf_diff, 0)
+    # Compute derivatives on RAW data for accurate jump/drop detection
+    bf_diff_raw = np.diff(bf_valid)
+    bf_diff_raw = np.append(bf_diff_raw, 0)
     
-    # Compute second derivative (acceleration / trend change detection)
-    bf_diff2 = np.diff(bf_diff)
+    # Compute derivatives on smoothed data for trend analysis
+    bf_diff_smooth = np.diff(bf_smooth)
+    bf_diff_smooth = np.append(bf_diff_smooth, 0)
+    
+    # Second derivative for detecting trend changes (on smoothed)
+    bf_diff2 = np.diff(bf_diff_smooth)
     bf_diff2 = np.append(bf_diff2, 0)
     
     # Identify key points in the entire signal
-    # 1. Local peaks in BF (local maxima)
+    # 1. Local peaks in BF (local maxima) - use smoothed for stability
     is_peak = np.zeros(len(bf_smooth), dtype=bool)
     for i in range(1, len(bf_smooth) - 1):
         if bf_smooth[i] > bf_smooth[i-1] and bf_smooth[i] >= bf_smooth[i+1]:
             is_peak[i] = True
     
-    # 2. Local troughs in BF (local minima)
+    # 2. Local troughs in BF (local minima) - use smoothed for stability
     is_trough = np.zeros(len(bf_smooth), dtype=bool)
     for i in range(1, len(bf_smooth) - 1):
         if bf_smooth[i] < bf_smooth[i-1] and bf_smooth[i] <= bf_smooth[i+1]:
             is_trough[i] = True
     
-    # 3. Inflection points (where second derivative changes sign = critical trend change)
+    # 3. Inflection points (where second derivative changes sign)
     is_inflection = np.zeros(len(bf_smooth), dtype=bool)
     for i in range(1, len(bf_diff2) - 1):
-        # Sign change in second derivative
         if (bf_diff2[i-1] > 0 and bf_diff2[i] <= 0) or (bf_diff2[i-1] < 0 and bf_diff2[i] >= 0):
             is_inflection[i] = True
     
-    # 4. Sharp jumps (large positive derivative)
-    jump_threshold = baseline_std * 0.5
-    is_jump = bf_diff > jump_threshold
+    # 4. Sharp jumps - use RAW data for accurate detection
+    # A jump is when BF increases significantly in one beat
+    jump_threshold = max(baseline_std * 1.5, 5.0)  # At least 5 BPM or 1.5 std
+    is_jump = bf_diff_raw > jump_threshold
     
-    # 5. Sharp drops (large negative derivative)
-    drop_threshold = -baseline_std * 0.5
-    is_drop = bf_diff < drop_threshold
+    # 5. Sharp drops - use RAW data for accurate detection
+    drop_threshold = -max(baseline_std * 1.5, 5.0)
+    is_drop = bf_diff_raw < drop_threshold
     
     def find_start_point(expected_start_sec):
         """
         Find the best START point within ±search_window around expected time.
         
-        Priority for START detection:
-        1. Sharp jump (steep rise in BF) - indicates stimulation onset
-        2. Critical upward trend change (inflection from flat/down to up)
-        3. Beginning of a peak (BF starting to rise toward a local max)
+        Priority for START detection (stimulation onset):
+        1. Sharp jump - the point WHERE BF actually increases sharply (highest priority)
+        2. Critical trend change - inflection point where derivative becomes positive
+        3. Peak onset - significant elevation above baseline
         """
         window_start_min = (expected_start_sec - search_window_sec) / 60.0
         window_end_min = (expected_start_sec + search_window_sec) / 60.0
@@ -1283,33 +1287,33 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
             score = 0
             reason = []
             
-            # HIGH PRIORITY: Sharp jump (strong positive derivative)
+            # HIGHEST PRIORITY: The actual sharp jump point (RAW data)
             if is_jump[idx]:
-                jump_magnitude = bf_diff[idx] / (baseline_std + 1e-6)
-                score += jump_magnitude * 5.0
+                jump_magnitude = bf_diff_raw[idx] / (baseline_std + 1e-6)
+                score += jump_magnitude * 10.0  # Very high weight
                 reason.append('jump')
+                
+                # Extra bonus if this is the strongest jump in the window
+                window_jumps = bf_diff_raw[window_indices]
+                if bf_diff_raw[idx] == np.max(window_jumps) and bf_diff_raw[idx] > jump_threshold:
+                    score += 8.0
+                    reason.append('max_jump')
             
-            # HIGH PRIORITY: Critical trend change (inflection point going upward)
-            if is_inflection[idx] and bf_diff[idx] > 0:
-                score += 4.0
+            # HIGH PRIORITY: Point where BF first rises significantly above baseline
+            if bf_valid[idx] > baseline_bf + baseline_std * 1.5:
+                if idx > 0 and bf_valid[idx-1] < baseline_bf + baseline_std * 0.5:
+                    score += 6.0
+                    reason.append('elevation_start')
+            
+            # MEDIUM PRIORITY: Critical trend change (inflection going upward)
+            if is_inflection[idx] and bf_diff_smooth[idx] > 0:
+                score += 2.0
                 reason.append('trend_change')
-            
-            # MEDIUM PRIORITY: Point just before a peak (BF rising toward local max)
-            # Look ahead to see if there's a peak coming
-            lookahead = min(idx + 15, len(bf_smooth))
-            if np.any(is_peak[idx:lookahead]) and bf_diff[idx] > 0:
-                score += 3.0
-                reason.append('pre_peak')
-            
-            # MEDIUM PRIORITY: Trough followed by rise (valley before climb)
-            if is_trough[idx] and idx < len(bf_diff) - 1 and bf_diff[idx+1] > 0:
-                score += 2.5
-                reason.append('trough_rise')
             
             # LOW PRIORITY: Proximity to expected time
             time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_start_sec)
             proximity = max(0, (search_window_sec - time_diff_sec) / search_window_sec)
-            score += proximity * 1.0
+            score += proximity * 0.3
             
             if score > best_score:
                 best_score = score
@@ -1324,10 +1328,10 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
         """
         Find the best END point within ±search_window around expected time.
         
-        Priority for END detection:
-        1. Sharp drop (steep fall in BF) - indicates stimulation offset
-        2. Critical downward trend change (inflection from up to down/flat)
-        3. Peak itself (local maximum, after which BF will drop)
+        Priority for END detection (stimulation offset):
+        1. Sharp drop - the point WHERE BF actually decreases sharply (highest priority)
+        2. Return to baseline - point where BF drops back to baseline level
+        3. Critical trend change - inflection point going downward
         """
         window_start_min = (expected_end_sec - search_window_sec) / 60.0
         window_end_min = (expected_end_sec + search_window_sec) / 60.0
@@ -1346,42 +1350,38 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
             score = 0
             reason = []
             
-            # HIGH PRIORITY: Sharp drop (strong negative derivative)
+            # HIGHEST PRIORITY: The actual sharp drop point (RAW data)
             if is_drop[idx]:
-                drop_magnitude = abs(bf_diff[idx]) / (baseline_std + 1e-6)
-                score += drop_magnitude * 5.0
+                drop_magnitude = abs(bf_diff_raw[idx]) / (baseline_std + 1e-6)
+                score += drop_magnitude * 10.0  # Very high weight
                 reason.append('drop')
+                
+                # Extra bonus if this is the strongest drop in the window
+                window_drops = bf_diff_raw[window_indices]
+                if bf_diff_raw[idx] == np.min(window_drops) and bf_diff_raw[idx] < drop_threshold:
+                    score += 8.0
+                    reason.append('max_drop')
             
-            # HIGH PRIORITY: Critical trend change (inflection point going downward)
-            if is_inflection[idx] and bf_diff[idx] < 0:
-                score += 4.0
-                reason.append('trend_change')
+            # HIGH PRIORITY: Point where BF drops back to near baseline
+            if bf_valid[idx] < baseline_bf + baseline_std * 0.5:
+                if idx > 0 and bf_valid[idx-1] > baseline_bf + baseline_std * 1.0:
+                    score += 6.0
+                    reason.append('return_baseline')
             
-            # HIGH PRIORITY: Peak (local maximum - the top before dropping)
-            if is_peak[idx]:
-                # Higher score if it's significantly above baseline
-                if bf_smooth[idx] > baseline_bf + baseline_std:
-                    score += 4.5
-                    reason.append('peak')
-                else:
-                    score += 2.0
-                    reason.append('peak_low')
+            # MEDIUM PRIORITY: Peak followed by drop
+            if is_peak[idx] and bf_smooth[idx] > baseline_bf + baseline_std:
+                score += 2.5
+                reason.append('peak')
             
-            # MEDIUM PRIORITY: Point just after peak (beginning of descent)
-            lookback = max(0, idx - 10)
-            if np.any(is_peak[lookback:idx]) and bf_diff[idx] < 0:
-                score += 3.0
-                reason.append('post_peak')
-            
-            # MEDIUM PRIORITY: Trough (bottom of drop - end of the fall)
-            if is_trough[idx]:
+            # MEDIUM PRIORITY: Critical trend change (inflection going downward)
+            if is_inflection[idx] and bf_diff_smooth[idx] < 0:
                 score += 2.0
-                reason.append('trough')
+                reason.append('trend_change')
             
             # LOW PRIORITY: Proximity to expected time
             time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_end_sec)
             proximity = max(0, (search_window_sec - time_diff_sec) / search_window_sec)
-            score += proximity * 1.0
+            score += proximity * 0.3
             
             if score > best_score:
                 best_score = score
