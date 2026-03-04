@@ -242,8 +242,6 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               stroke="#52525b"
               fill="#0c0c0e"
               tickFormatter={(v) => v.toFixed(1)}
-              startIndex={brushIndices.start}
-              endIndex={brushIndices.end}
               onChange={handleBrushChange}
               travellerWidth={8}
             />
