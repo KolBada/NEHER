@@ -642,31 +642,28 @@ function LightPanel({
   return (
     <div className="space-y-4" data-testid="light-panel">
       {/* Enable/Disable Light Stim */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
-              <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-[10px] text-zinc-500">
-                {isLightEnabled ? 'Enabled' : 'Disabled'}
-              </Label>
-              <Switch
-                data-testid="light-enabled-switch"
-                checked={isLightEnabled}
-                onCheckedChange={onLightEnabledChange}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {!isLightEnabled ? (
-        <div className="flex items-center justify-center h-32 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-sm">
-          Light stimulation analysis is disabled. Enable it above to continue.
-        </div>
+        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-zinc-600" />
+                <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-[10px] text-zinc-500">Disabled</Label>
+                <Switch
+                  data-testid="light-enabled-switch"
+                  checked={isLightEnabled}
+                  onCheckedChange={onLightEnabledChange}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-center h-20 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-sm">
+              Light stimulation analysis is disabled. Enable it above to continue.
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* BF Chart with Pulse Regions */}
@@ -943,12 +940,22 @@ function LightPanel({
             </Card>
           )}
 
-          {/* Configuration */}
+          {/* Light Stimulation Analysis */}
           <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ fontFamily: 'Manrope' }}>
-                <Zap className="w-4 h-4 text-yellow-400" />
-                Light Stimulation Configuration
+              <CardTitle className="text-sm font-medium flex items-center justify-between" style={{ fontFamily: 'Manrope' }}>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                  Light Stimulation Analysis
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-zinc-500">Enabled</Label>
+                  <Switch
+                    data-testid="light-enabled-switch-main"
+                    checked={isLightEnabled}
+                    onCheckedChange={onLightEnabledChange}
+                  />
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>

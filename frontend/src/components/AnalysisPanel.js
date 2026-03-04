@@ -525,11 +525,11 @@ function AnalysisPanel({
         </Card>
       </div>
 
-      {/* HRV Analysis with Readout Controls */}
+      {/* Spontaneous Activity Analysis with Readout Controls */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-            HRV Analysis (Sliding 3-min Windows, Normalized to 70 bpm)
+            Spontaneous Activity Analysis (BF & HRV)
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -538,10 +538,12 @@ function AnalysisPanel({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
-                  <p className="font-medium mb-2 text-zinc-100">Why baseline differs from per-minute values?</p>
+                  <p className="font-medium mb-2 text-zinc-100">BF & HRV Metrics</p>
                   <p className="text-zinc-200 mb-2">
-                    <strong>Baseline:</strong> Computed directly over the specified time range (e.g., 0-3 min) using all beats in that range.
+                    <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
                   </p>
+                  <p className="text-zinc-200 mb-2">
+                    <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
                   <p className="text-zinc-200 mb-2">
                     <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
                   </p>
@@ -691,7 +693,7 @@ function AnalysisPanel({
               disabled={analysisLoading}
             >
               {analysisLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-              Compute HRV
+              Compute BF & HRV
             </Button>
           </div>
 
