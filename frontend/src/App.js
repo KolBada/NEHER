@@ -10,7 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home, Minus } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home, Minus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -1142,29 +1145,66 @@ function App() {
               <Beaker className="w-3 h-3 text-zinc-500" />
               <Label className="text-[10px] text-zinc-500">Drugs:</Label>
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {Object.entries(DRUG_CONFIG).map(([key, config]) => (
-                <div key={key} className="flex items-center gap-1">
-                  <Checkbox
-                    id={`drug-${key}`}
-                    checked={selectedDrugs.includes(key)}
-                    onCheckedChange={() => toggleDrug(key)}
-                    className="h-3 w-3"
-                  />
-                  <Label htmlFor={`drug-${key}`} className="text-[9px] text-zinc-400 cursor-pointer">
+            <div className="flex flex-wrap gap-2">
+              {/* Drug selection dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[9px] border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-2"
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Add Drug
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
+                  {Object.entries(DRUG_CONFIG).map(([key, config]) => (
+                    <DropdownMenuItem
+                      key={key}
+                      className={`text-xs cursor-pointer ${selectedDrugs.includes(key) ? 'text-cyan-400' : 'text-zinc-300'}`}
+                      onClick={() => toggleDrug(key)}
+                    >
+                      {selectedDrugs.includes(key) && <Check className="w-3 h-3 mr-2" />}
+                      {!selectedDrugs.includes(key) && <span className="w-3 mr-2" />}
+                      {config.name}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuItem
+                    className="text-xs text-zinc-400 cursor-pointer"
+                    onClick={addOtherDrug}
+                  >
+                    <Plus className="w-3 h-3 mr-2" /> Other (custom)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Show selected drugs as badges */}
+              {selectedDrugs.map(drugKey => {
+                const config = DRUG_CONFIG[drugKey];
+                return (
+                  <Badge 
+                    key={drugKey} 
+                    variant="outline" 
+                    className="text-[9px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50"
+                    onClick={() => toggleDrug(drugKey)}
+                  >
                     {config.name}
-                  </Label>
-                </div>
+                    <X className="w-2.5 h-2.5 ml-1" />
+                  </Badge>
+                );
+              })}
+              {otherDrugs.map(drug => (
+                <Badge 
+                  key={drug.id} 
+                  variant="outline" 
+                  className="text-[9px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50"
+                  onClick={() => removeOtherDrug(drug.id)}
+                >
+                  {drug.name || 'Other'}
+                  <X className="w-2.5 h-2.5 ml-1" />
+                </Badge>
               ))}
-              {/* Add Other drug button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 text-[9px] text-zinc-500 hover:text-zinc-300 px-1"
-                onClick={addOtherDrug}
-              >
-                <Plus className="w-3 h-3 mr-0.5" /> Other
-              </Button>
             </div>
           </div>
         </div>
