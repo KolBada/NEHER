@@ -97,7 +97,7 @@ function SmallMetricCard({ label, value, unit }) {
   );
 }
 
-// Info popover for HRV metrics explanation
+// Info popover for HRV metrics explanation - now uses Tooltip (hover) instead of Popover (click)
 function HrvInfoPopover({ metric }) {
   const info = {
     'SDNN': 'Standard deviation of NN intervals. Computed over a 3-minute sliding window, normalized to 70 bpm.',
@@ -106,17 +106,19 @@ function HrvInfoPopover({ metric }) {
   };
   
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
-          <Info className="w-3 h-3" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3">
-        <p className="font-medium mb-1 text-zinc-100">{metric}</p>
-        <p className="text-zinc-300">{info[metric] || 'HRV metric computed over 3-minute window, normalized to 70 bpm.'}</p>
-      </PopoverContent>
-    </Popover>
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" className="inline-flex h-4 w-4 p-0 text-zinc-500 hover:text-zinc-300">
+            <Info className="w-3 h-3" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white">
+          <p className="font-medium mb-1">{metric}</p>
+          <p>{info[metric] || 'HRV metric computed over 3-minute window, normalized to 70 bpm.'}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -530,17 +532,17 @@ function AnalysisPanel({
                       <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
-                    <p className="font-medium mb-2 text-zinc-100">BF & HRV Metrics</p>
-                    <p className="text-zinc-200 mb-2">
+                  <TooltipContent side="right" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                    <p className="font-medium mb-2">BF & HRV Metrics</p>
+                    <p className="mb-2">
                       <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
                     </p>
-                    <p className="text-zinc-200 mb-2">
+                    <p className="mb-2">
                       <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
-                    <p className="text-zinc-200 mb-2">
+                    <p className="mb-2">
                       <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
                     </p>
-                    <p className="text-zinc-200">
+                    <p>
                       The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
                     </p>
                   </TooltipContent>
@@ -714,7 +716,7 @@ function AnalysisPanel({
                             <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs text-[10px] bg-zinc-900 border-zinc-700 z-50 text-zinc-100 p-2">
+                        <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
                           <p className="mb-1"><strong>Perf. Start:</strong> Time point at which drug perfusion begins (relative to recording start)</p>
                           <p className="mb-1"><strong>Perf. Delay:</strong> Transit time for drug to reach the target tissue from the perfusion system</p>
                           <p><strong>Perf. Time:</strong> Duration required for drug effect to manifest after tissue exposure</p>
@@ -844,8 +846,8 @@ function AnalysisPanel({
                       <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="w-72 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
-                    <p className="text-zinc-200">Time evolution of HRV metrics computed over 3-minute sliding windows, normalized to 70 bpm.</p>
+                  <TooltipContent side="right" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                    <p>Time evolution of HRV metrics computed over 3-minute sliding windows, normalized to 70 bpm.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
