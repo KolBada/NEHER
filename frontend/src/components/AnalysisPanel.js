@@ -624,6 +624,7 @@ function AnalysisPanel({
                 <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
                   Input = Baseline Readout Start Time
                 </p>
+                <div className="h-[10px]"></div>
               </div>
             </div>
 
