@@ -54,7 +54,7 @@ function formatTimeMin(minutes) {
 }
 
 // Inline BF chart component for the Trace tab
-function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true, selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG }) {
+function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange, isValidated = true, selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG }) {
   const containerRef = useRef(null);
   
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
@@ -278,8 +278,8 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
                 ifOverflow="extendDomain" 
               />
             ))}
-            {/* Highlight light pulses */}
-            {lightPulses && lightPulses.map((pulse, i) => (
+            {/* Highlight light pulses - only when light stim is enabled */}
+            {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
               <ReferenceArea
                 key={`pulse-${i}`}
                 x1={pulse.start_min}
@@ -1447,14 +1447,22 @@ function App() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Show selected drugs as small badges - purple color */}
-              {selectedDrugs.map(drugKey => {
+              {/* Show selected drugs as small badges - colors match trace visualization */}
+              {selectedDrugs.map((drugKey, idx) => {
                 const config = DRUG_CONFIG[drugKey];
+                // Match colors with trace visualization
+                const colorStyles = [
+                  'border-purple-500 bg-purple-950/30 text-purple-400 hover:bg-purple-950/50',
+                  'border-purple-400 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50',
+                  'border-violet-600 bg-violet-950/30 text-violet-400 hover:bg-violet-950/50',
+                  'border-violet-500 bg-violet-900/30 text-violet-300 hover:bg-violet-900/50',
+                ];
+                const colorClass = colorStyles[idx % colorStyles.length];
                 return (
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className="h-6 text-[10px] border-purple-800 bg-purple-950/30 text-purple-400 cursor-pointer hover:bg-purple-950/50 px-2"
+                    className={`h-6 text-[10px] cursor-pointer px-2 ${colorClass}`}
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
@@ -1462,17 +1470,27 @@ function App() {
                   </Badge>
                 );
               })}
-              {otherDrugs.map(drug => (
-                <Badge 
-                  key={drug.id} 
-                  variant="outline" 
-                  className="h-6 text-[10px] border-purple-800 bg-purple-950/30 text-purple-400 cursor-pointer hover:bg-purple-950/50 px-2"
-                  onClick={() => removeOtherDrug(drug.id)}
-                >
-                  {drug.name || 'Other'}
-                  <X className="w-2.5 h-2.5 ml-1" />
-                </Badge>
-              ))}
+              {otherDrugs.map((drug, idx) => {
+                const colorIdx = selectedDrugs.length + idx;
+                const colorStyles = [
+                  'border-purple-500 bg-purple-950/30 text-purple-400 hover:bg-purple-950/50',
+                  'border-purple-400 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50',
+                  'border-violet-600 bg-violet-950/30 text-violet-400 hover:bg-violet-950/50',
+                  'border-violet-500 bg-violet-900/30 text-violet-300 hover:bg-violet-900/50',
+                ];
+                const colorClass = colorStyles[colorIdx % colorStyles.length];
+                return (
+                  <Badge 
+                    key={drug.id} 
+                    variant="outline" 
+                    className={`h-6 text-[10px] cursor-pointer px-2 ${colorClass}`}
+                    onClick={() => removeOtherDrug(drug.id)}
+                  >
+                    {drug.name || 'Other'}
+                    <X className="w-2.5 h-2.5 ml-1" />
+                  </Badge>
+                );
+              })}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1683,6 +1701,7 @@ function App() {
                   onAddBeat={handleAddBeat}
                   onRemoveBeat={handleRemoveBeat}
                   lightPulses={lightPulses}
+                  lightEnabled={lightEnabled}
                   isValidated={isValidated}
                   threshold={detectionParams.threshold}
                   onThresholdChange={(v) => { setIsModified(true); setDetectionParams(p => ({ ...p, threshold: v })); }}
@@ -1700,7 +1719,8 @@ function App() {
                   <div className="mt-4">
                     <BFChart 
                       metrics={metrics} 
-                      lightPulses={lightPulses} 
+                      lightPulses={lightPulses}
+                      lightEnabled={lightEnabled}
                       zoomDomain={traceZoomDomain}
                       onZoomChange={setTraceZoomDomain}
                       isValidated={isValidated}

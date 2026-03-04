@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 
 function TraceViewer({
   traceData, beats, onAddBeat, onRemoveBeat,
-  lightPulses, isValidated,
+  lightPulses, lightEnabled, isValidated,
   threshold, onThresholdChange, signalStats,
   invert = false,
   zoomDomain: externalZoomDomain,
@@ -516,7 +516,8 @@ function TraceViewer({
               ifOverflow="extendDomain" 
             />
           ))}
-          {pulsesMin && pulsesMin.map((pulse, i) => (
+          {/* Light stim highlights - only when light stim is enabled */}
+          {lightEnabled && pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
               x1={pulse.start_min_disp}
