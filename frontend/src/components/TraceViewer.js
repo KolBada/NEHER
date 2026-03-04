@@ -307,10 +307,10 @@ function TraceViewer({
 
   // Build array of all drugs with their settings and colors
   const DRUG_PURPLE_COLORS = [
-    { fill: '#a855f7' },   // Purple 500
-    { fill: '#c084fc' },   // Purple 400 (lighter)
-    { fill: '#7c3aed' },   // Violet 600 (darker)
-    { fill: '#8b5cf6' },   // Violet 500
+    { fill: '#a855f7', border: 'border-purple-500', text: 'text-purple-400' },   // Purple 500
+    { fill: '#c084fc', border: 'border-purple-400', text: 'text-purple-300' },   // Purple 400 (lighter)
+    { fill: '#7c3aed', border: 'border-violet-600', text: 'text-violet-400' },   // Violet 600 (darker)
+    { fill: '#8b5cf6', border: 'border-violet-500', text: 'text-violet-300' },   // Violet 500
   ];
   
   const allDrugsForViz = [];
@@ -318,8 +318,10 @@ function TraceViewer({
   if (selectedDrugs?.length > 0) {
     selectedDrugs.forEach((drugKey, idx) => {
       const settings = drugSettings?.[drugKey] || {};
+      const config = DRUG_CONFIG?.[drugKey] || {};
       allDrugsForViz.push({
         key: drugKey,
+        label: config.label || drugKey,
         perfStart: settings.perfusionStart ?? 3,
         perfDelay: settings.perfusionTime ?? 3,
         perfEnd: settings.perfusionEnd ?? null,
@@ -333,6 +335,7 @@ function TraceViewer({
       const colorIdx = (selectedDrugs?.length || 0) + idx;
       allDrugsForViz.push({
         key: drug.id || `other-${idx}`,
+        label: drug.name || `Drug ${idx + 1}`,
         perfStart: drug.perfusionStart ?? 3,
         perfDelay: drug.perfusionTime ?? 3,
         perfEnd: drug.perfusionEnd ?? null,
@@ -419,9 +422,26 @@ function TraceViewer({
               </Button>
             </>
           )}
-          <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
+          {/* Beats badge - silver */}
+          <Badge variant="outline" className="font-data text-[10px] border-zinc-500 text-zinc-400">
             {beats ? beats.length : 0} beats
           </Badge>
+          {/* Stims badge - amber - only when light enabled */}
+          {lightEnabled && lightPulses && lightPulses.length > 0 && (
+            <Badge variant="outline" className="font-data text-[10px] border-amber-700 text-amber-400">
+              {lightPulses.length} stims
+            </Badge>
+          )}
+          {/* Drug badges - purple - one per drug */}
+          {allDrugsForViz.map((drug) => (
+            <Badge 
+              key={drug.key}
+              variant="outline" 
+              className={`font-data text-[10px] ${drug.color.border} ${drug.color.text}`}
+            >
+              {drug.label || drug.key} perfusion
+            </Badge>
+          ))}
           {selectedBeatIdx !== null && (
             <Button
               data-testid="remove-beat-btn"
@@ -516,7 +536,7 @@ function TraceViewer({
               ifOverflow="extendDomain" 
             />
           ))}
-          {/* Light stim highlights - only when light stim is enabled */}
+          {/* Light stim highlights - only when light stim is enabled (no labels) */}
           {lightEnabled && pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
@@ -527,13 +547,6 @@ function TraceViewer({
               stroke="#facc15"
               strokeOpacity={0.6}
               strokeWidth={1}
-              label={{
-                value: `Stim ${i + 1}`,
-                position: 'insideTop',
-                fill: '#facc15',
-                fontSize: 8,
-                fontFamily: 'JetBrains Mono',
-              }}
             />
           ))}
           <Line

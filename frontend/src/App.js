@@ -72,10 +72,10 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
 
   // Build array of all drugs with their settings and colors
   const DRUG_PURPLE_COLORS = [
-    { fill: '#a855f7' },   // Purple 500
-    { fill: '#c084fc' },   // Purple 400 (lighter)
-    { fill: '#7c3aed' },   // Violet 600 (darker)
-    { fill: '#8b5cf6' },   // Violet 500
+    { fill: '#a855f7', border: 'border-purple-500', text: 'text-purple-400' },   // Purple 500
+    { fill: '#c084fc', border: 'border-purple-400', text: 'text-purple-300' },   // Purple 400 (lighter)
+    { fill: '#7c3aed', border: 'border-violet-600', text: 'text-violet-400' },   // Violet 600 (darker)
+    { fill: '#8b5cf6', border: 'border-violet-500', text: 'text-violet-300' },   // Violet 500
   ];
   
   const allDrugsForViz = useMemo(() => {
@@ -83,8 +83,10 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
     if (selectedDrugs?.length > 0) {
       selectedDrugs.forEach((drugKey, idx) => {
         const settings = drugSettings?.[drugKey] || {};
+        const config = DRUG_CONFIG?.[drugKey] || {};
         drugs.push({
           key: drugKey,
+          label: config.label || drugKey,
           perfStart: settings.perfusionStart ?? 3,
           perfDelay: settings.perfusionTime ?? 3,
           perfEnd: settings.perfusionEnd ?? null, // null means no end (extends to recording end)
@@ -97,6 +99,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
         const colorIdx = (selectedDrugs?.length || 0) + idx;
         drugs.push({
           key: drug.id || `other-${idx}`,
+          label: drug.name || `Drug ${idx + 1}`,
           perfStart: drug.perfusionStart ?? 3,
           perfDelay: drug.perfusionTime ?? 3,
           perfEnd: drug.perfusionEnd ?? null, // null means no end
@@ -105,7 +108,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
       });
     }
     return drugs;
-  }, [selectedDrugs, drugSettings, otherDrugs]);
+  }, [selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG]);
 
   const drugPresent = allDrugsForViz.length > 0;
   const recordingEndMin = timeBounds.max;
@@ -234,6 +237,26 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
           {!isValidated && (
             <span className="text-[9px] text-amber-500/70 italic">(previous detection)</span>
           )}
+          {/* Beats badge - emerald */}
+          <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
+            {metrics.n_kept || data.length} beats
+          </Badge>
+          {/* Stims badge - amber - only when light enabled */}
+          {lightEnabled && lightPulses && lightPulses.length > 0 && (
+            <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+              {lightPulses.length} stims
+            </Badge>
+          )}
+          {/* Drug badges - purple - one per drug */}
+          {allDrugsForViz.map((drug) => (
+            <Badge 
+              key={drug.key}
+              variant="outline" 
+              className={`font-data text-[9px] ${drug.color.border} ${drug.color.text}`}
+            >
+              {drug.label} perfusion
+            </Badge>
+          ))}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomIn} title="Zoom In">

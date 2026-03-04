@@ -318,10 +318,10 @@ function LightPanel({
 
   // Build array of all drugs with their settings and colors
   const DRUG_PURPLE_COLORS = [
-    { fill: '#a855f7' },   // Purple 500
-    { fill: '#c084fc' },   // Purple 400 (lighter)
-    { fill: '#7c3aed' },   // Violet 600 (darker)
-    { fill: '#8b5cf6' },   // Violet 500
+    { fill: '#a855f7', border: 'border-purple-500', text: 'text-purple-400' },   // Purple 500
+    { fill: '#c084fc', border: 'border-purple-400', text: 'text-purple-300' },   // Purple 400 (lighter)
+    { fill: '#7c3aed', border: 'border-violet-600', text: 'text-violet-400' },   // Violet 600 (darker)
+    { fill: '#8b5cf6', border: 'border-violet-500', text: 'text-violet-300' },   // Violet 500
   ];
   
   const allDrugsForViz = useMemo(() => {
@@ -329,8 +329,10 @@ function LightPanel({
     if (selectedDrugs?.length > 0) {
       selectedDrugs.forEach((drugKey, idx) => {
         const settings = drugSettings?.[drugKey] || {};
+        const config = DRUG_CONFIG?.[drugKey] || {};
         drugs.push({
           key: drugKey,
+          label: config.label || drugKey,
           perfStart: settings.perfusionStart ?? 3,
           perfDelay: settings.perfusionTime ?? 3,
           perfEnd: settings.perfusionEnd ?? null,
@@ -343,6 +345,7 @@ function LightPanel({
         const colorIdx = (selectedDrugs?.length || 0) + idx;
         drugs.push({
           key: drug.id || `other-${idx}`,
+          label: drug.name || `Drug ${idx + 1}`,
           perfStart: drug.perfusionStart ?? 3,
           perfDelay: drug.perfusionTime ?? 3,
           perfEnd: drug.perfusionEnd ?? null,
@@ -351,7 +354,7 @@ function LightPanel({
       });
     }
     return drugs;
-  }, [selectedDrugs, drugSettings, otherDrugs]);
+  }, [selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG]);
 
   const drugPresent = allDrugsForViz.length > 0;
   const recordingEndMin = timeBounds.max;
@@ -690,11 +693,25 @@ function LightPanel({
             <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 Beat Frequency (Filtered) - bpm vs min
+                {/* Beats badge - emerald */}
+                <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
+                  {bfChartData.length} beats
+                </Badge>
                 {isLightEnabled && displayPulses && (
-                  <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
-                    {displayPulses.length} stims detected
+                  <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+                    {displayPulses.length} stims
                   </Badge>
                 )}
+                {/* Drug badges - purple - one per drug */}
+                {allDrugsForViz.map((drug) => (
+                  <Badge 
+                    key={drug.key}
+                    variant="outline" 
+                    className={`font-data text-[9px] ${drug.color.border} ${drug.color.text}`}
+                  >
+                    {drug.label} perfusion
+                  </Badge>
+                ))}
                 {isLightEnabled && pulsesModified && (
                   <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
                     Modified
