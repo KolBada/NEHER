@@ -35,7 +35,7 @@ function InfoTip({ text, children }) {
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 cursor-help whitespace-nowrap">
             {children}
-            <Info className="w-3 h-3 text-white/70 hover:text-white flex-shrink-0" />
+            <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 flex-shrink-0" />
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white">
@@ -371,7 +371,7 @@ function AnalysisPanel({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex">
-                        <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                        <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -447,7 +447,7 @@ function AnalysisPanel({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex">
-                        <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                        <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -527,7 +527,7 @@ function AnalysisPanel({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button type="button" className="inline-flex">
-                      <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                      <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">

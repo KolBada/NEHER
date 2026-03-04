@@ -48,7 +48,7 @@ function MetricCard({ label, value, unit, tooltip }) {
             <ShadcnTooltip>
               <TooltipTrigger asChild>
                 <button type="button" className="inline-flex">
-                  <Info className="w-3 h-3 text-white/70 hover:text-white cursor-help" />
+                  <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-white">
@@ -770,7 +770,7 @@ function LightPanel({
                         <ShadcnTooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="inline-flex">
-                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -805,7 +805,7 @@ function LightPanel({
                         <ShadcnTooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="inline-flex">
-                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -842,7 +842,7 @@ function LightPanel({
                         <ShadcnTooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="inline-flex">
-                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1149,7 +1149,7 @@ function LightPanel({
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1309,7 +1309,7 @@ function LightPanel({
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1362,7 +1362,7 @@ function LightPanel({
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
                                   <button type="button" className="inline-flex">
-                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1380,7 +1380,7 @@ function LightPanel({
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
                                   <button type="button" className="inline-flex">
-                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1398,7 +1398,7 @@ function LightPanel({
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
                                   <button type="button" className="inline-flex">
-                                    <Info className="w-2.5 h-2.5 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
@@ -1442,7 +1442,7 @@ function LightPanel({
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-sm text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
