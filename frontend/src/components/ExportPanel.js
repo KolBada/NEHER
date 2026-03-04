@@ -70,33 +70,33 @@ export default function ExportPanel({
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Available Data</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className={`p-2 rounded-sm border ${hasData ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div className={`p-2 rounded-sm border ${hasData ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Per-Beat</p>
-                <p className={`text-xs font-data ${hasData ? 'text-green-400' : 'text-zinc-600'}`}>
+                <p className={`text-xs font-data ${hasData ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   {hasData ? `${metrics.n_total} beats` : 'No data'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Per-Minute</p>
-                <p className={`text-xs font-data ${hasPerMinute ? 'text-green-400' : 'text-zinc-600'}`}>
+                <p className={`text-xs font-data ${hasPerMinute ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   {hasPerMinute ? `${perMinuteData.length} rows` : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasBaseline ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div className={`p-2 rounded-sm border ${hasBaseline ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Baseline Metrics</p>
-                <p className={`text-xs font-data ${hasBaseline ? 'text-green-400' : 'text-zinc-600'}`}>
+                <p className={`text-xs font-data ${hasBaseline ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   {hasBaseline ? 'Available' : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasDrugMetrics ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div className={`p-2 rounded-sm border ${hasDrugMetrics ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Drug Metrics</p>
-                <p className={`text-xs font-data ${hasDrugMetrics ? 'text-green-400' : 'text-zinc-600'}`}>
+                <p className={`text-xs font-data ${hasDrugMetrics ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   {hasDrugMetrics ? 'Available' : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasLight ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
+              <div className={`p-2 rounded-sm border ${hasLight ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Light Metrics</p>
-                <p className={`text-xs font-data ${hasLight ? 'text-green-400' : 'text-zinc-600'}`}>
+                <p className={`text-xs font-data ${hasLight ? 'text-emerald-400' : 'text-zinc-600'}`}>
                   {hasLight ? 'Available' : 'Not available'}
                 </p>
               </div>
@@ -120,7 +120,7 @@ export default function ExportPanel({
               </div>
               <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                   <span className="text-xs font-medium text-zinc-300">Excel (XLSX)</span>
                 </div>
                 <p className="text-[10px] text-zinc-500">
@@ -200,7 +200,7 @@ export default function ExportPanel({
                   </div>
                   <div className="flex justify-between">
                     <span>Kept (after filter)</span>
-                    <span className="text-green-400">{metrics.n_kept}</span>
+                    <span className="text-emerald-400">{metrics.n_kept}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Removed (artifacts)</span>

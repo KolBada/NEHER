@@ -365,7 +365,7 @@ export default function AnalysisPanel({
         <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
           {metrics.n_total} total beats
         </Badge>
-        <Badge variant="outline" className="font-data text-[10px] border-green-800 text-green-400">
+        <Badge variant="outline" className="font-data text-[10px] border-emerald-800 text-emerald-400">
           {metrics.n_kept} kept
         </Badge>
         <Badge variant="outline" className="font-data text-[10px] border-red-800 text-red-400">
@@ -951,7 +951,7 @@ export default function AnalysisPanel({
                           <Badge
                             variant="outline"
                             className={`text-[8px] font-data px-1.5 py-0 ${
-                              row.kept ? 'border-green-800 text-green-400' : 'border-red-800 text-red-400'
+                              row.kept ? 'border-emerald-800 text-emerald-400' : 'border-red-800 text-red-400'
                             }`}
                           >
                             {row.kept ? 'kept' : 'filtered'}
