@@ -561,6 +561,9 @@ function AnalysisPanel({
           </CardContent>
         </Card>
 
+        {/* Divider line */}
+        <div className="h-px bg-zinc-700 mx-4" />
+
         {/* Controls */}
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-t-none border-t-0">
           <CardContent className="pt-4">
