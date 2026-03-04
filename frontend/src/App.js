@@ -1154,7 +1154,11 @@ function App() {
                 <DropdownMenuTrigger asChild>
                   <Badge 
                     variant="outline" 
-                    className="h-6 text-[10px] border-zinc-700 text-zinc-400 px-2 cursor-pointer hover:bg-zinc-800/50"
+                    className={`h-6 text-[10px] px-2 cursor-pointer hover:bg-zinc-800/50 ${
+                      selectedDrugs.length + otherDrugs.length > 0 
+                        ? 'border-purple-800 text-purple-400' 
+                        : 'border-zinc-700 text-zinc-400'
+                    }`}
                   >
                     <FlaskConical className="w-3 h-3 mr-1" /> 
                     {selectedDrugs.length + otherDrugs.length > 0 
