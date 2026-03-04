@@ -236,6 +236,17 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               />
             ))}
             <Line type="monotone" dataKey="bf" stroke="#10b981" strokeWidth={1} dot={false} isAnimationActive={false} />
+            <Brush
+              dataKey="time"
+              height={20}
+              stroke="#52525b"
+              fill="#0c0c0e"
+              tickFormatter={(v) => v.toFixed(1)}
+              startIndex={brushIndices.start}
+              endIndex={brushIndices.end}
+              onChange={handleBrushChange}
+              travellerWidth={8}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
