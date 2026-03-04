@@ -87,6 +87,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
           key: drugKey,
           perfStart: settings.perfusionStart ?? 3,
           perfDelay: settings.perfusionTime ?? 3,
+          perfEnd: settings.perfusionEnd ?? null, // null means no end (extends to recording end)
           color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
         });
       });
@@ -98,6 +99,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
           key: drug.id || `other-${idx}`,
           perfStart: drug.perfusionStart ?? 3,
           perfDelay: drug.perfusionTime ?? 3,
+          perfEnd: drug.perfusionEnd ?? null, // null means no end
           color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
         });
       });
@@ -269,7 +271,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               <ReferenceArea 
                 key={`bf-drug-${drug.key}`}
                 x1={drug.perfStart + drug.perfDelay} 
-                x2={recordingEndMin + 1} 
+                x2={drug.perfEnd !== null ? drug.perfEnd : recordingEndMin + 1} 
                 fill={drug.color.fill} 
                 fillOpacity={0.15 + (idx * 0.05)} 
                 stroke="none" 
@@ -1550,6 +1552,16 @@ function App() {
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
                         className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
                       />
+                      <span className="text-[9px] text-zinc-500">min, End:</span>
+                      <Input
+                        data-testid={`drug-${drugKey}-perfusion-end`}
+                        type="number"
+                        step="0.5"
+                        value={settings.perfusionEnd ?? ''}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
+                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                        placeholder="—"
+                      />
                       <span className="text-[9px] text-zinc-500">min</span>
                     </div>
                     <Badge variant="outline" className="text-[8px] border-zinc-700 text-zinc-500">
@@ -1594,6 +1606,15 @@ function App() {
                       value={drug.perfusionTime}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
                       className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                    />
+                    <span className="text-[9px] text-zinc-500">min, End:</span>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={drug.perfusionEnd ?? ''}
+                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
+                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                      placeholder="—"
                     />
                     <span className="text-[9px] text-zinc-500">min</span>
                   </div>

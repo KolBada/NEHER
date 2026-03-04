@@ -333,6 +333,7 @@ function LightPanel({
           key: drugKey,
           perfStart: settings.perfusionStart ?? 3,
           perfDelay: settings.perfusionTime ?? 3,
+          perfEnd: settings.perfusionEnd ?? null,
           color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
         });
       });
@@ -344,6 +345,7 @@ function LightPanel({
           key: drug.id || `other-${idx}`,
           perfStart: drug.perfusionStart ?? 3,
           perfDelay: drug.perfusionTime ?? 3,
+          perfEnd: drug.perfusionEnd ?? null,
           color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
         });
       });
@@ -757,7 +759,7 @@ function LightPanel({
                         <ReferenceArea 
                           key={`light-bf-drug-${drug.key}`}
                           x1={drug.perfStart + drug.perfDelay} 
-                          x2={recordingEndMin + 1} 
+                          x2={drug.perfEnd !== null ? drug.perfEnd : recordingEndMin + 1} 
                           fill={drug.color.fill} 
                           fillOpacity={0.15 + (idx * 0.05)} 
                           stroke="none" 
