@@ -54,7 +54,7 @@ function formatTimeMin(minutes) {
 }
 
 // Inline BF chart component for the Trace tab
-function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true, selectedDrugs, drugSettings }) {
+function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true, selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG }) {
   const containerRef = useRef(null);
   
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
@@ -70,10 +70,42 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
     };
   }, [data]);
 
-  // Drug phase region calculation
-  const drugPresent = selectedDrugs?.length > 0;
-  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
-  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  // Build array of all drugs with their settings and colors
+  const DRUG_PURPLE_COLORS = [
+    { fill: '#a855f7' },   // Purple 500
+    { fill: '#c084fc' },   // Purple 400 (lighter)
+    { fill: '#7c3aed' },   // Violet 600 (darker)
+    { fill: '#8b5cf6' },   // Violet 500
+  ];
+  
+  const allDrugsForViz = useMemo(() => {
+    const drugs = [];
+    if (selectedDrugs?.length > 0) {
+      selectedDrugs.forEach((drugKey, idx) => {
+        const settings = drugSettings?.[drugKey] || {};
+        drugs.push({
+          key: drugKey,
+          perfStart: settings.perfusionStart ?? 3,
+          perfDelay: settings.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    if (otherDrugs?.length > 0) {
+      otherDrugs.forEach((drug, idx) => {
+        const colorIdx = (selectedDrugs?.length || 0) + idx;
+        drugs.push({
+          key: drug.id || `other-${idx}`,
+          perfStart: drug.perfusionStart ?? 3,
+          perfDelay: drug.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    return drugs;
+  }, [selectedDrugs, drugSettings, otherDrugs]);
+
+  const drugPresent = allDrugsForViz.length > 0;
   const recordingEndMin = timeBounds.max;
   
   // Filtered data based on zoom
@@ -232,17 +264,18 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
               labelFormatter={(v) => `${formatTimeMin(v)} min`}
               formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
-            {/* Drug effect region (purple) - only when drug is present */}
-            {drugPresent && (
+            {/* Drug effect regions (purple) - one per drug with different colors */}
+            {allDrugsForViz.map((drug, idx) => (
               <ReferenceArea 
-                x1={perfStart + perfDelay} 
+                key={`bf-drug-${drug.key}`}
+                x1={drug.perfStart + drug.perfDelay} 
                 x2={recordingEndMin + 1} 
-                fill="#a855f7" 
-                fillOpacity={0.2} 
+                fill={drug.color.fill} 
+                fillOpacity={0.15 + (idx * 0.05)} 
                 stroke="none" 
                 ifOverflow="extendDomain" 
               />
-            )}
+            ))}
             {/* Highlight light pulses */}
             {lightPulses && lightPulses.map((pulse, i) => (
               <ReferenceArea
@@ -1638,6 +1671,8 @@ function App() {
                   onZoomChange={setTraceZoomDomain}
                   selectedDrugs={selectedDrugs}
                   drugSettings={drugSettings}
+                  otherDrugs={otherDrugs}
+                  DRUG_CONFIG={DRUG_CONFIG}
                 />
                 {/* BF chart shown when metrics exist (kept visible during re-editing as reference) */}
                 {metrics && (
@@ -1650,6 +1685,8 @@ function App() {
                       isValidated={isValidated}
                       selectedDrugs={selectedDrugs}
                       drugSettings={drugSettings}
+                      otherDrugs={otherDrugs}
+                      DRUG_CONFIG={DRUG_CONFIG}
                     />
                   </div>
                 )}
@@ -1705,6 +1742,8 @@ function App() {
               onLoessFracChange={handleLoessFracChange}
               selectedDrugs={selectedDrugs}
               drugSettings={drugSettings}
+              otherDrugs={otherDrugs}
+              DRUG_CONFIG={DRUG_CONFIG}
             />
           </TabsContent>
 

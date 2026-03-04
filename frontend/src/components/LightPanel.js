@@ -248,7 +248,7 @@ function LightPanel({
   onComputeLightHRV, onComputeLightHRVDetrended, onComputeLightResponse,
   loading, metrics, lightEnabled, onLightEnabledChange,
   loessFrac, onLoessFracChange,
-  selectedDrugs, drugSettings
+  selectedDrugs, drugSettings, otherDrugs, DRUG_CONFIG
 }) {
   const [localParams, setLocalParams] = useState(lightParams || {
     startTime: 180,
@@ -316,10 +316,42 @@ function LightPanel({
     };
   }, [bfChartData]);
 
-  // Drug phase region calculation
-  const drugPresent = selectedDrugs?.length > 0;
-  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
-  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  // Build array of all drugs with their settings and colors
+  const DRUG_PURPLE_COLORS = [
+    { fill: '#a855f7' },   // Purple 500
+    { fill: '#c084fc' },   // Purple 400 (lighter)
+    { fill: '#7c3aed' },   // Violet 600 (darker)
+    { fill: '#8b5cf6' },   // Violet 500
+  ];
+  
+  const allDrugsForViz = useMemo(() => {
+    const drugs = [];
+    if (selectedDrugs?.length > 0) {
+      selectedDrugs.forEach((drugKey, idx) => {
+        const settings = drugSettings?.[drugKey] || {};
+        drugs.push({
+          key: drugKey,
+          perfStart: settings.perfusionStart ?? 3,
+          perfDelay: settings.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    if (otherDrugs?.length > 0) {
+      otherDrugs.forEach((drug, idx) => {
+        const colorIdx = (selectedDrugs?.length || 0) + idx;
+        drugs.push({
+          key: drug.id || `other-${idx}`,
+          perfStart: drug.perfusionStart ?? 3,
+          perfDelay: drug.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    return drugs;
+  }, [selectedDrugs, drugSettings, otherDrugs]);
+
+  const drugPresent = allDrugsForViz.length > 0;
   const recordingEndMin = timeBounds.max;
 
   // Zoom handlers
@@ -720,17 +752,18 @@ function LightPanel({
                         labelFormatter={(v) => formatTimeMin(v)}
                         formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                       />
-                      {/* Drug effect region (purple) - only when drug is present */}
-                      {drugPresent && (
+                      {/* Drug effect regions (purple) - one per drug with different colors */}
+                      {allDrugsForViz.map((drug, idx) => (
                         <ReferenceArea 
-                          x1={perfStart + perfDelay} 
+                          key={`light-bf-drug-${drug.key}`}
+                          x1={drug.perfStart + drug.perfDelay} 
                           x2={recordingEndMin + 1} 
-                          fill="#a855f7" 
-                          fillOpacity={0.2} 
+                          fill={drug.color.fill} 
+                          fillOpacity={0.15 + (idx * 0.05)} 
                           stroke="none" 
                           ifOverflow="extendDomain" 
                         />
-                      )}
+                      ))}
                       {/* Highlight pulse regions - only when light stim is enabled */}
                       {isLightEnabled && displayPulses && displayPulses.map((pulse, i) => (
                         <ReferenceArea

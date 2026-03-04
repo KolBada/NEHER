@@ -15,7 +15,9 @@ function TraceViewer({
   zoomDomain: externalZoomDomain,
   onZoomChange: externalOnZoomChange,
   selectedDrugs,
-  drugSettings
+  drugSettings,
+  otherDrugs,
+  DRUG_CONFIG
 }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
@@ -303,10 +305,41 @@ function TraceViewer({
   const isZoomed = zoomDomain !== null;
   const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
 
-  // Drug phase region calculation
-  const drugPresent = selectedDrugs?.length > 0;
-  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
-  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  // Build array of all drugs with their settings and colors
+  const DRUG_PURPLE_COLORS = [
+    { fill: '#a855f7' },   // Purple 500
+    { fill: '#c084fc' },   // Purple 400 (lighter)
+    { fill: '#7c3aed' },   // Violet 600 (darker)
+    { fill: '#8b5cf6' },   // Violet 500
+  ];
+  
+  const allDrugsForViz = [];
+  // Add selected drugs from DRUG_CONFIG
+  if (selectedDrugs?.length > 0) {
+    selectedDrugs.forEach((drugKey, idx) => {
+      const settings = drugSettings?.[drugKey] || {};
+      allDrugsForViz.push({
+        key: drugKey,
+        perfStart: settings.perfusionStart ?? 3,
+        perfDelay: settings.perfusionTime ?? 3,
+        color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
+      });
+    });
+  }
+  // Add other (custom) drugs
+  if (otherDrugs?.length > 0) {
+    otherDrugs.forEach((drug, idx) => {
+      const colorIdx = (selectedDrugs?.length || 0) + idx;
+      allDrugsForViz.push({
+        key: drug.id || `other-${idx}`,
+        perfStart: drug.perfusionStart ?? 3,
+        perfDelay: drug.perfusionTime ?? 3,
+        color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
+      });
+    });
+  }
+  
+  const drugPresent = allDrugsForViz.length > 0;
   const recordingEndMin = timeBounds.max;
 
   const CustomDot = (props) => {
@@ -469,17 +502,18 @@ function TraceViewer({
             labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
             formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
-          {/* Drug effect region (purple) - only when drug is present */}
-          {drugPresent && (
+          {/* Drug effect regions (purple) - one per drug with different colors */}
+          {allDrugsForViz.map((drug, idx) => (
             <ReferenceArea 
-              x1={perfStart + perfDelay} 
+              key={`trace-drug-${drug.key}`}
+              x1={drug.perfStart + drug.perfDelay} 
               x2={recordingEndMin + 1} 
-              fill="#a855f7" 
-              fillOpacity={0.2} 
+              fill={drug.color.fill} 
+              fillOpacity={0.15 + (idx * 0.05)} 
               stroke="none" 
               ifOverflow="extendDomain" 
             />
-          )}
+          ))}
           {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}

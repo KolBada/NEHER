@@ -350,6 +350,48 @@ function AnalysisPanel({
     };
   }, [perMinuteData, bfReadoutMinute, enableBfReadout, selectedDrugs, drugSettings]);
 
+  // Build array of all drugs with their settings and colors - MUST be before early return
+  const DRUG_PURPLE_COLORS = [
+    { fill: '#a855f7', border: 'border-purple-500', text: 'text-purple-400' },   // Purple 500
+    { fill: '#c084fc', border: 'border-purple-400', text: 'text-purple-300' },   // Purple 400 (lighter)
+    { fill: '#7c3aed', border: 'border-violet-600', text: 'text-violet-400' },   // Violet 600 (darker)
+    { fill: '#8b5cf6', border: 'border-violet-500', text: 'text-violet-300' },   // Violet 500
+  ];
+  
+  const allDrugsForViz = useMemo(() => {
+    const drugs = [];
+    // Add selected drugs from DRUG_CONFIG
+    if (selectedDrugs?.length > 0) {
+      selectedDrugs.forEach((drugKey, idx) => {
+        const settings = drugSettings?.[drugKey] || {};
+        const config = DRUG_CONFIG?.[drugKey] || {};
+        drugs.push({
+          key: drugKey,
+          label: config.label || drugKey,
+          perfStart: settings.perfusionStart ?? 3,
+          perfDelay: settings.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[idx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    // Add other (custom) drugs
+    if (otherDrugs?.length > 0) {
+      otherDrugs.forEach((drug, idx) => {
+        const colorIdx = (selectedDrugs?.length || 0) + idx;
+        drugs.push({
+          key: drug.id || `other-${idx}`,
+          label: drug.name || `Drug ${idx + 1}`,
+          perfStart: drug.perfusionStart ?? 3,
+          perfDelay: drug.perfusionTime ?? 3,
+          color: DRUG_PURPLE_COLORS[colorIdx % DRUG_PURPLE_COLORS.length],
+        });
+      });
+    }
+    return drugs;
+  }, [selectedDrugs, drugSettings, DRUG_CONFIG, otherDrugs]);
+
+  const drugPresent = allDrugsForViz.length > 0;
+
   if (!metrics) return (
     <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">
       Validate beats first to see analysis results
@@ -359,7 +401,7 @@ function AnalysisPanel({
   const baseline = hrvResults?.baseline;
   const filterInfo = metrics?.filter_settings || filterSettings;
 
-  // Calculate drug phase boundaries for visualization
+  // Calculate drug phase boundaries for visualization - support multiple drugs
   // Use multiple sources for recording end time to handle saved recordings
   const recordingEndMin = filteredBfData.length > 0 
     ? Math.max(...filteredBfData.map(d => d.time))
@@ -368,10 +410,6 @@ function AnalysisPanel({
         : (metrics?.beat_times_min?.length > 0 
             ? Math.max(...metrics.beat_times_min) 
             : 10));
-  
-  const drugPresent = selectedDrugs?.length > 0;
-  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
-  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0; // perfusionTime is actually the delay
 
   return (
     <div className="space-y-4" data-testid="analysis-panel">
@@ -404,12 +442,16 @@ function AnalysisPanel({
                     {lightPulses.length} stims
                   </Badge>
                 )}
-                {/* Drug badge - purple */}
-                {selectedDrugs?.length > 0 && (
-                  <Badge variant="outline" className="font-data text-[9px] border-purple-700 text-purple-400">
-                    {DRUG_CONFIG?.[selectedDrugs[0]]?.label || selectedDrugs[0]} perfusion
+                {/* Drug badges - one per drug with different purples */}
+                {allDrugsForViz.map((drug) => (
+                  <Badge 
+                    key={drug.key}
+                    variant="outline" 
+                    className={`font-data text-[9px] ${drug.color.border} ${drug.color.text}`}
+                  >
+                    {drug.label} perfusion
                   </Badge>
-                )}
+                ))}
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
@@ -442,10 +484,18 @@ function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                 />
-                {/* Drug effect region (purple) - only when drug is present */}
-                {drugPresent && (
-                  <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
-                )}
+                {/* Drug effect regions (purple) - one per drug with different colors */}
+                {allDrugsForViz.map((drug, idx) => (
+                  <ReferenceArea 
+                    key={`bf-drug-${drug.key}`}
+                    x1={drug.perfStart + drug.perfDelay} 
+                    x2={recordingEndMin + 1} 
+                    fill={drug.color.fill} 
+                    fillOpacity={0.15 + (idx * 0.05)} 
+                    stroke="none" 
+                    ifOverflow="extendDomain" 
+                  />
+                ))}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`bf-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
@@ -496,12 +546,16 @@ function AnalysisPanel({
                     {lightPulses.length} stims
                   </Badge>
                 )}
-                {/* Drug badge - purple */}
-                {selectedDrugs?.length > 0 && (
-                  <Badge variant="outline" className="font-data text-[9px] border-purple-700 text-purple-400">
-                    {DRUG_CONFIG?.[selectedDrugs[0]]?.label || selectedDrugs[0]} perfusion
+                {/* Drug badges - one per drug with different purples */}
+                {allDrugsForViz.map((drug) => (
+                  <Badge 
+                    key={drug.key}
+                    variant="outline" 
+                    className={`font-data text-[9px] ${drug.color.border} ${drug.color.text}`}
+                  >
+                    {drug.label} perfusion
                   </Badge>
-                )}
+                ))}
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
@@ -534,10 +588,18 @@ function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
                 />
-                {/* Drug effect region (purple) - only when drug is present */}
-                {drugPresent && (
-                  <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
-                )}
+                {/* Drug effect regions (purple) - one per drug with different colors */}
+                {allDrugsForViz.map((drug, idx) => (
+                  <ReferenceArea 
+                    key={`nn-drug-${drug.key}`}
+                    x1={drug.perfStart + drug.perfDelay} 
+                    x2={recordingEndMin + 1} 
+                    fill={drug.color.fill} 
+                    fillOpacity={0.15 + (idx * 0.05)} 
+                    stroke="none" 
+                    ifOverflow="extendDomain" 
+                  />
+                ))}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`nn-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
@@ -918,10 +980,18 @@ function AnalysisPanel({
                       <RechartsTooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
                       />
-                      {/* Drug effect region (purple) */}
-                      {drugPresent && (
-                        <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
-                      )}
+                      {/* Drug effect regions (purple) - one per drug */}
+                      {allDrugsForViz.map((drug, idx) => (
+                        <ReferenceArea 
+                          key={`hrv-evo-${drug.key}`}
+                          x1={drug.perfStart + drug.perfDelay} 
+                          x2={recordingEndMin + 1} 
+                          fill={drug.color.fill} 
+                          fillOpacity={0.15 + (idx * 0.05)} 
+                          stroke="none" 
+                          ifOverflow="extendDomain" 
+                        />
+                      ))}
                       <Line type="monotone" dataKey={key} stroke={color} strokeWidth={1.5} dot={{ r: 1.5 }} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
