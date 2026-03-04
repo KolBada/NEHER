@@ -678,7 +678,7 @@ function LightPanel({
                     Beat Frequency - bpm vs time
                     {displayPulses && (
                       <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
-                        {displayPulses.length} pulses detected
+                        {displayPulses.length} stims detected
                       </Badge>
                     )}
                     {pulsesModified && (
@@ -793,6 +793,18 @@ function LightPanel({
                     {/* Start adjustment by beat */}
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] text-zinc-500">Start:</span>
+                      <TooltipProvider delayDuration={100}>
+                        <ShadcnTooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                            Move start point by ±1 beat
+                          </TooltipContent>
+                        </ShadcnTooltip>
+                      </TooltipProvider>
                       <Button
                         variant="outline"
                         size="sm"
@@ -816,6 +828,18 @@ function LightPanel({
                     {/* End adjustment by beat */}
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] text-zinc-500">End:</span>
+                      <TooltipProvider delayDuration={100}>
+                        <ShadcnTooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                            Move end point by ±1 beat
+                          </TooltipContent>
+                        </ShadcnTooltip>
+                      </TooltipProvider>
                       <Button
                         variant="outline"
                         size="sm"
@@ -841,6 +865,18 @@ function LightPanel({
                     {/* Click-to-edit on chart */}
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] text-zinc-500">Click:</span>
+                      <TooltipProvider delayDuration={100}>
+                        <ShadcnTooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                            Select Start or End, then click on the chart to set the position
+                          </TooltipContent>
+                        </ShadcnTooltip>
+                      </TooltipProvider>
                       <Button
                         variant={editMode === 'start' ? 'default' : 'outline'}
                         size="sm"
@@ -988,7 +1024,19 @@ function LightPanel({
                     checked={localParams.autoDetect}
                     onCheckedChange={(v) => updateParam('autoDetect', v)}
                   />
-                  <Label className="text-[10px] text-zinc-400">Use AI pulse detection</Label>
+                  <Label className="text-[10px] text-zinc-400">AI light stim detector</Label>
+                  <TooltipProvider delayDuration={100}>
+                    <ShadcnTooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="inline-flex">
+                          <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100 max-w-[250px]">
+                        When ON, uses AI to detect stim boundaries by analyzing BF patterns (peaks, drops, trend changes). When OFF, uses only the manual settings.
+                      </TooltipContent>
+                    </ShadcnTooltip>
+                  </TooltipProvider>
                 </div>
               </div>
 
@@ -1004,7 +1052,7 @@ function LightPanel({
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
-                  Detect Pulses
+                  Detect Light Stimulus
                 </Button>
                 {displayPulses && (
                   <>
@@ -1037,9 +1085,9 @@ function LightPanel({
             <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Detected Pulses
+                  Detected Light Stims
                   <Badge variant="outline" className="font-data text-[10px] border-yellow-700 text-yellow-400">
-                    {displayPulses.length} pulses
+                    {displayPulses.length} stims
                   </Badge>
                   {displayPulses.length >= 2 && (
                     <span className="text-[10px] font-data text-zinc-500">
@@ -1070,67 +1118,6 @@ function LightPanel({
                       </p>
                     </div>
                   ))}
-                </div>
-
-                {/* Manual edit table */}
-                <Separator className="bg-zinc-800 my-3" />
-                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-2">
-                  Manual Stim Boundaries
-                  <TooltipProvider delayDuration={100}>
-                    <ShadcnTooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
-                        Edit the start and end times directly. Changes apply after clicking "Apply Changes".
-                      </TooltipContent>
-                    </ShadcnTooltip>
-                  </TooltipProvider>
-                </p>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7 w-16">Stim</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Start (min)</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">End (min)</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Duration (s)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {displayPulses.map((p, i) => (
-                        <TableRow 
-                          key={i} 
-                          className={`border-zinc-800/50 ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
-                        >
-                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
-                          <TableCell className="py-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={p.start_min.toFixed(2)}
-                              onChange={(e) => handleManualPulseEdit(i, 'start_min', parseFloat(e.target.value))}
-                              className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                            />
-                          </TableCell>
-                          <TableCell className="py-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={p.end_min.toFixed(2)}
-                              onChange={(e) => handleManualPulseEdit(i, 'end_min', parseFloat(e.target.value))}
-                              className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm"
-                            />
-                          </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">
-                            {((p.end_min - p.start_min) * 60).toFixed(1)}s
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
 
                 {/* Apply/Reset buttons */}
