@@ -712,7 +712,7 @@ function AnalysisPanel({
                   )}
                 </div>
                 <p className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                  Time = Perf.Time + Perf.Start + Perf.Delay
+                  Input = Perf. Time (after drug start)
                 </p>
               </div>
             </div>
@@ -731,7 +731,7 @@ function AnalysisPanel({
           </div>
 
           {/* Results display - Baseline and Drug Readout side by side, same prominence */}
-          <div className="space-y-4">
+          <div className="space-y-6 mt-4">
             {/* Baseline - prominent */}
             {baselineEnabled && baseline && (
               <div className="space-y-2">
@@ -790,7 +790,7 @@ function AnalysisPanel({
                   {bfReadout?.data && (
                     <MetricCard 
                       label="Mean BF" 
-                      sublabel={`@${bfReadout.actualMinute}-${bfReadout.actualMinute+1}min`}
+                      sublabel={`@${bfReadout.actualMinute}-${bfReadout.actualMinute + 1}min`}
                       value={bfReadout.data.avg_bf} 
                       unit="bpm"
                       highlight
@@ -802,7 +802,7 @@ function AnalysisPanel({
                     <>
                       <MetricCard 
                         label="ln(RMSSD₇₀)" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute+3}min`}
+                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
                         value={hrvReadout.data.ln_rmssd70}
                         highlight
                         highlightColor="purple"
@@ -810,7 +810,7 @@ function AnalysisPanel({
                       />
                       <MetricCard 
                         label="ln(SDNN₇₀)" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute+3}min`}
+                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
                         value={hrvReadout.data.sdnn ? Math.log(hrvReadout.data.sdnn) : null}
                         highlight
                         highlightColor="purple"
@@ -818,7 +818,7 @@ function AnalysisPanel({
                       />
                       <MetricCard 
                         label="pNN50₇₀" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute+3}min`}
+                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
                         value={hrvReadout.data.pnn50} 
                         unit="%"
                         highlight
