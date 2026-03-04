@@ -1079,7 +1079,7 @@ function App() {
               NEHER
             </h1>
             {savedRecordingId && (
-              <Badge variant="outline" className="text-[10px] border-emerald-700/50 text-emerald-400">
+              <Badge variant="outline" className="h-6 text-[10px] border-emerald-700/50 text-emerald-400 px-2">
                 Saved
               </Badge>
             )}
@@ -1088,7 +1088,7 @@ function App() {
                 value={String(activeFileIdx)}
                 onValueChange={(v) => handleFileSwitch(parseInt(v))}
               >
-                <SelectTrigger data-testid="file-selector" className="h-7 w-48 text-xs font-data bg-zinc-900 border-zinc-800 rounded-sm">
+                <SelectTrigger data-testid="file-selector" className="h-6 w-48 text-[10px] font-data bg-zinc-900 border-zinc-800 rounded-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1104,56 +1104,35 @@ function App() {
               </Select>
             )}
             {activeFile && (
-              <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-500">
+              <Badge variant="outline" className="h-6 font-data text-[10px] border-zinc-700 text-zinc-400 px-2">
                 {activeFile.filename} &middot; {activeFile.duration_sec.toFixed(1)}s &middot; {activeFile.sample_rate}Hz
               </Badge>
             )}
-          </div>
-          <Button
-            data-testid="reset-btn"
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
-            onClick={handleGoHome}
-          >
-            <RotateCcw className="w-3 h-3" /> New Session
-          </Button>
-        </div>
-      </header>
-
-      {/* Recording Metadata Bar */}
-      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-1.5">
-        <div className="flex items-center gap-6 flex-wrap">
-          {/* Recording name */}
-          <div className="flex items-center gap-2">
-            <Save className="w-3.5 h-3.5 text-zinc-400" />
-            <Label className="text-xs text-zinc-400 font-medium">Recording:</Label>
+            
+            {/* Recording name - inline editable */}
             <Input
               data-testid="recording-name-input"
               value={recordingName}
               onChange={(e) => setRecordingName(e.target.value)}
-              className="h-7 w-44 text-xs font-data bg-zinc-900 border-zinc-700 rounded-sm"
-              placeholder="Enter name..."
+              className="h-6 w-56 text-[10px] font-data bg-transparent border-none text-zinc-300 px-2 focus:bg-zinc-800/50 focus:ring-1 focus:ring-zinc-700"
+              placeholder="Recording name..."
             />
-          </div>
-          
-          <Separator orientation="vertical" className="h-7 bg-zinc-700" />
-          
-          {/* Drug selection */}
-          <div className="flex items-center gap-2">
-            <FlaskConical className="w-3.5 h-3.5 text-zinc-400" />
-            <Label className="text-xs text-zinc-400 font-medium">Drugs:</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Drug selection dropdown */}
+            
+            {/* Drug selection */}
+            <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[10px] border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-2"
+                  <Badge 
+                    variant="outline" 
+                    className="h-6 text-[10px] border-zinc-700 text-zinc-400 px-2 cursor-pointer hover:bg-zinc-800/50"
                   >
-                    <Plus className="w-3 h-3 mr-1" /> Add Drug
-                  </Button>
+                    <FlaskConical className="w-3 h-3 mr-1" /> 
+                    {selectedDrugs.length + otherDrugs.length > 0 
+                      ? `${selectedDrugs.length + otherDrugs.length} Drug${selectedDrugs.length + otherDrugs.length > 1 ? 's' : ''}`
+                      : 'Add Drug'
+                    }
+                    <Plus className="w-3 h-3 ml-1" />
+                  </Badge>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
                   {Object.entries(DRUG_CONFIG).map(([key, config]) => (
@@ -1177,14 +1156,14 @@ function App() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Show selected drugs as badges */}
+              {/* Show selected drugs as small badges */}
               {selectedDrugs.map(drugKey => {
                 const config = DRUG_CONFIG[drugKey];
                 return (
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className="text-[10px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 h-6 px-2"
+                    className="h-6 text-[10px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 px-2"
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
@@ -1196,7 +1175,7 @@ function App() {
                 <Badge 
                   key={drug.id} 
                   variant="outline" 
-                  className="text-[10px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 h-6 px-2"
+                  className="h-6 text-[10px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 px-2"
                   onClick={() => removeOtherDrug(drug.id)}
                 >
                   {drug.name || 'Other'}
@@ -1205,11 +1184,22 @@ function App() {
               ))}
             </div>
           </div>
+          <Button
+            data-testid="reset-btn"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
+            onClick={handleGoHome}
+          >
+            <RotateCcw className="w-3 h-3" /> New Session
+          </Button>
         </div>
-        
-        {/* Per-drug settings */}
-        {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-          <ScrollArea className="mt-2 max-h-[150px]">
+      </header>
+
+      {/* Per-drug settings bar - only shown when drugs are selected */}
+      {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
+        <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-1.5">
+          <ScrollArea className="max-h-[150px]">
             <div className="space-y-2">
               {/* Predefined drugs with settings */}
               {selectedDrugs.map(drugKey => {
@@ -1308,8 +1298,8 @@ function App() {
               ))}
             </div>
           </ScrollArea>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Main content */}
       <main className="p-4 md:p-6">
