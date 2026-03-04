@@ -69,7 +69,7 @@ export default function ExportPanel({
           {/* Available data summary */}
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Available Data</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className={`p-2 rounded-sm border ${hasData ? 'border-green-800 bg-green-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-[10px] font-data text-zinc-400">Per-Beat</p>
                 <p className={`text-xs font-data ${hasData ? 'text-green-400' : 'text-zinc-600'}`}>
