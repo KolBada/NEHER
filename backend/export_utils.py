@@ -72,8 +72,8 @@ def create_nature_pdf(request):
         title = request.recording_name or request.filename or 'Recording Analysis'
         fig1.text(0.5, 0.96, title, ha='center', va='top', fontsize=16, fontweight='bold', color='#18181b')
         fig1.text(0.5, 0.935, 'Electrophysiology Analysis Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
-        fig1.text(0.5, 0.91, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
-        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.89, 0.89], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
+        fig1.text(0.5, 0.905, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.88, 0.88], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
         
         left_x = 0.08
         right_x = 0.52
@@ -95,8 +95,13 @@ def create_nature_pdf(request):
             fig.text(x + 0.2, y, str(value), fontsize=7.5, fontweight='bold', color='#18181b')
             return y - line_height
         
+        def draw_separator(fig, x, y, width=0.38):
+            """Draw a horizontal separator line"""
+            fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
+            return y - 0.01
+        
         # LEFT COLUMN
-        y = draw_header(fig1, left_x, 0.87, 'RECORDING INFO', '#18181b')
+        y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
@@ -114,7 +119,11 @@ def create_nature_pdf(request):
         if request.organoid_info:
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
-            for org in request.organoid_info:
+            for idx, org in enumerate(request.organoid_info):
+                # Add separator between samples (not before the first one)
+                if idx > 0:
+                    y = draw_separator(fig1, left_x, y + 0.005)
+                
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
                     y = draw_row(fig1, left_x, y, 'Cell Type:', cell_type or '—')
@@ -128,6 +137,10 @@ def create_nature_pdf(request):
                         y = draw_row(fig1, left_x, y, 'Transfection:', trans.get('name'))
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
+            
+            # Add separator before Days Since Fusion
+            if request.days_since_fusion is not None:
+                y = draw_separator(fig1, left_x, y + 0.005)
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
@@ -155,7 +168,7 @@ def create_nature_pdf(request):
                 y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
         
         # RIGHT COLUMN - READOUTS
-        y_right = 0.89
+        y_right = 0.855
         
         # BASELINE READOUT
         if request.baseline_enabled and request.baseline:
@@ -179,40 +192,84 @@ def create_nature_pdf(request):
             drug_bf = None
             drug_hrv_data = None
             
+            # Get drug readout minutes - check both drug_readout and drug_readout_settings
+            drug_bf_minute = None
+            drug_hrv_minute = None
+            
+            # First try to get from drug_readout (calculated values)
             if request.drug_readout:
                 drug_bf_minute = request.drug_readout.get('bf_minute')
                 drug_hrv_minute = request.drug_readout.get('hrv_minute')
+            
+            # Override with user settings if available (these are stored as strings sometimes)
+            if request.drug_readout_settings:
+                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
                 
-                # Find BF at drug readout minute
-                if drug_bf_minute is not None and request.per_minute_data:
-                    for pm in request.per_minute_data:
-                        try:
-                            minute_str = str(pm.get('minute', ''))
-                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(minute_str)
-                            if minute_num == drug_bf_minute:
-                                drug_bf = pm.get('mean_bf')
-                                break
-                        except (ValueError, TypeError):
-                            pass
+                # Get perfusion params for calculation
+                perf_start = 0
+                perf_delay = 0
+                if request.all_drugs and len(request.all_drugs) > 0:
+                    drug = request.all_drugs[0]
+                    perf_start = drug.get('start', 0) or 0
+                    perf_delay = drug.get('delay', 0) or 0
                 
-                # Find HRV at drug readout minute - handle both integer and string minute formats
-                if drug_hrv_minute is not None and request.hrv_windows:
-                    for w in request.hrv_windows:
-                        try:
-                            w_minute = w.get('minute')
-                            # Handle different minute formats
-                            if isinstance(w_minute, int):
-                                w_minute_num = w_minute
-                            elif isinstance(w_minute, str):
-                                w_minute_num = int(w_minute.split('-')[0]) if '-' in w_minute else int(w_minute)
-                            else:
-                                w_minute_num = int(w_minute) if w_minute is not None else None
-                            
-                            if w_minute_num == drug_hrv_minute:
-                                drug_hrv_data = w
-                                break
-                        except (ValueError, TypeError):
-                            pass
+                # If user has enabled BF readout and provided a minute
+                if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                    try:
+                        drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
+                    except (ValueError, TypeError):
+                        pass
+                
+                # If user has enabled HRV readout and provided a minute
+                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                    try:
+                        drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Convert to int for comparison
+            try:
+                drug_bf_minute = int(drug_bf_minute) if drug_bf_minute is not None else None
+            except (ValueError, TypeError):
+                drug_bf_minute = None
+                
+            try:
+                drug_hrv_minute = int(drug_hrv_minute) if drug_hrv_minute is not None else None
+            except (ValueError, TypeError):
+                drug_hrv_minute = None
+            
+            # Find BF at drug readout minute
+            if drug_bf_minute is not None and request.per_minute_data:
+                for pm in request.per_minute_data:
+                    try:
+                        minute_str = str(pm.get('minute', ''))
+                        minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                        if minute_num == drug_bf_minute:
+                            drug_bf = pm.get('mean_bf')
+                            break
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Find HRV at drug readout minute
+            if drug_hrv_minute is not None and request.hrv_windows:
+                for w in request.hrv_windows:
+                    try:
+                        w_minute = w.get('minute')
+                        # Handle different minute formats
+                        if w_minute is None:
+                            continue
+                        if isinstance(w_minute, (int, float)):
+                            w_minute_num = int(w_minute)
+                        else:
+                            w_minute_str = str(w_minute)
+                            w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                        
+                        if w_minute_num == drug_hrv_minute:
+                            drug_hrv_data = w
+                            break
+                    except (ValueError, TypeError):
+                        pass
             
             # Always show drug metrics if available
             y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'])
