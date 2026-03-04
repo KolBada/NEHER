@@ -426,15 +426,15 @@ function AnalysisPanel({
                 {drugPresent ? (
                   <>
                     {/* Baseline: 0 to Perf. Start (blue) */}
-                    <ReferenceArea x1={0} x2={perfStart} fill="#3b82f6" fillOpacity={0.1} />
+                    <ReferenceArea x1={0} x2={perfStart} fill="#3b82f6" fillOpacity={0.2} stroke="none" />
                     {/* Transit: Perf. Start to Perf. Start + Perf. Delay (gray) */}
-                    <ReferenceArea x1={perfStart} x2={perfStart + perfDelay} fill="#71717a" fillOpacity={0.15} />
+                    <ReferenceArea x1={perfStart} x2={perfStart + perfDelay} fill="#71717a" fillOpacity={0.25} stroke="none" />
                     {/* Drug effect: Perf. Start + Perf. Delay onwards (purple) */}
-                    <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin} fill="#a855f7" fillOpacity={0.1} />
+                    <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" />
                   </>
                 ) : (
                   /* No drug: blue box on entire recording */
-                  <ReferenceArea x1={0} x2={recordingEndMin} fill="#3b82f6" fillOpacity={0.1} />
+                  <ReferenceArea x1={0} x2={recordingEndMin + 1} fill="#3b82f6" fillOpacity={0.2} stroke="none" />
                 )}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`bf-pulse-${i}`}
