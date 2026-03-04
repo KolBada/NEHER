@@ -205,7 +205,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
           )}
         </div>
       </div>
-      <div ref={containerRef} style={{ touchAction: 'none' }}>
+      <div ref={containerRef}>
         <ResponsiveContainer width="100%" height={377}>
           <LineChart data={data} margin={{ top: 10, right: 35, left: 15, bottom: 35 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
@@ -243,7 +243,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               fill="#0c0c0e"
               tickFormatter={(v) => v.toFixed(1)}
               onChange={handleBrushChange}
-              travellerWidth={8}
+              travellerWidth={10}
             />
           </LineChart>
         </ResponsiveContainer>
