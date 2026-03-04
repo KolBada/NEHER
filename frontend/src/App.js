@@ -267,6 +267,7 @@ function App() {
   const [hasExported, setHasExported] = useState(false);
   const [isModified, setIsModified] = useState(false);  // Track if recording has been modified since last save
   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [navigateToFolderId, setNavigateToFolderId] = useState(null);  // For "Go to Folder" navigation
 
   // Session
   const [sessionId, setSessionId] = useState(null);
@@ -873,6 +874,7 @@ function App() {
     setSavedFolderId(null);
     setSavedFolderName(null);
     setShowComparisonDialog(false);
+    setNavigateToFolderId(null);
     setHasExported(false);
     setIsModified(false);
   }, []);
@@ -1109,6 +1111,7 @@ function App() {
         <HomeBrowser 
           onNewAnalysis={() => setAppView('upload')}
           onOpenRecording={handleOpenRecording}
+          initialFolderId={navigateToFolderId}
         />
       </div>
     );
@@ -1296,10 +1299,10 @@ function App() {
                 size="sm"
                 className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
                 onClick={() => {
+                  const targetFolderId = savedFolderId;
                   handleReset();
+                  setNavigateToFolderId(targetFolderId);
                   setAppView('home');
-                  // The HomeBrowser will need to handle navigation to the folder
-                  // For now, just go home - the folder will be accessible from there
                 }}
               >
                 <FolderOpen className="w-3 h-3" /> Go to Folder

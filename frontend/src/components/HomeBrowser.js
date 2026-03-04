@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import api from '../api';
 import FolderComparison from './FolderComparison';
 
-export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
+export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFolderId = null }) {
   const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -144,6 +144,13 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
     loadFolders();
     loadSections();
   }, []);
+
+  // Navigate to initial folder if provided
+  useEffect(() => {
+    if (initialFolderId) {
+      loadRecordings(initialFolderId);
+    }
+  }, [initialFolderId]);
 
   const loadFolders = async () => {
     setLoading(true);
