@@ -621,7 +621,7 @@ function AnalysisPanel({
                     Readout Time Range: {baselineBfMinute}-{baselineBfMinute + 1}min
                   </Badge>
                 </div>
-                <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                <p className={`text-[8px] mt-2 mb-6 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
                   Input = Recording start time
                 </p>
               </div>
@@ -678,7 +678,7 @@ function AnalysisPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-16 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>(Perf. Time) HRV:</Label>
+                  <Label className={`text-[9px] whitespace-nowrap ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>Perf. Time HRV:</Label>
                   <Input
                     type="number"
                     value={hrvReadoutMinute}
@@ -695,7 +695,7 @@ function AnalysisPanel({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-16 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>(Perf. Time) BF:</Label>
+                  <Label className={`text-[9px] whitespace-nowrap ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>Perf. Time BF:</Label>
                   <Input
                     type="number"
                     value={bfReadoutMinute}
