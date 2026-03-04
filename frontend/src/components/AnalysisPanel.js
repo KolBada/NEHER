@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from 'sonner';
 
 // Helper component for inline info tooltips
 function InfoTip({ text, children }) {
@@ -212,22 +213,22 @@ function AnalysisPanel({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Data for BF and NN charts - must be defined before brush handlers
+  // Data for BF and NN charts - only show after HRV is computed
   const filteredBfData = useMemo(() => {
-    if (!metrics) return [];
+    if (!metrics || !hrvResults) return [];  // Don't show until HRV is computed
     return metrics.filtered_beat_times_min.map((t, i) => ({
       time: t,
       bf: metrics.filtered_bf_bpm[i],
     }));
-  }, [metrics]);
+  }, [metrics, hrvResults]);
 
   const filteredNnData = useMemo(() => {
-    if (!metrics) return [];
+    if (!metrics || !hrvResults) return [];  // Don't show until HRV is computed
     return metrics.filtered_beat_times_min.map((t, i) => ({
       time: t,
       nn: metrics.filtered_nn_ms[i],
     }));
-  }, [metrics]);
+  }, [metrics, hrvResults]);
 
   // Handle brush change for navigation
   const handleBfBrushChange = useCallback((brushArea) => {
@@ -525,42 +526,44 @@ function AnalysisPanel({
         </Card>
       </div>
 
-      {/* Spontaneous Activity Analysis Header */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-b-none border-b-0">
-        <CardContent className="py-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-medium text-zinc-200">Spontaneous Activity Analysis (BF & HRV)</span>
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="inline-flex">
-                    <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
-                  <p className="font-medium mb-2 text-zinc-100">BF & HRV Metrics</p>
-                  <p className="text-zinc-200 mb-2">
-                    <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
-                  </p>
-                  <p className="text-zinc-200 mb-2">
-                    <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
-                  <p className="text-zinc-200 mb-2">
-                    <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
-                  </p>
-                  <p className="text-zinc-200">
-                    The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Spontaneous Activity Analysis - Header + Controls joined */}
+      <div>
+        {/* Header */}
+        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-b-none border-b-0">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-medium text-zinc-200">Spontaneous Activity Analysis (BF & HRV)</span>
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex">
+                      <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="w-80 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
+                    <p className="font-medium mb-2 text-zinc-100">BF & HRV Metrics</p>
+                    <p className="text-zinc-200 mb-2">
+                      <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
+                    </p>
+                    <p className="text-zinc-200 mb-2">
+                      <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
+                    <p className="text-zinc-200 mb-2">
+                      <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
+                    </p>
+                    <p className="text-zinc-200">
+                      The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Spontaneous Activity Controls */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-t-none">
-        <CardContent className="pt-4">
+        {/* Controls */}
+        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-t-none border-t-0">
+          <CardContent className="pt-4">
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
@@ -634,10 +637,32 @@ function AnalysisPanel({
                 <Button
                   variant="ghost"
                   size="sm"
+                  data-testid="drug-readout-toggle"
                   onClick={() => {
-                    const newState = !(enableHrvReadout || enableBfReadout);
-                    setEnableHrvReadout(newState);
-                    setEnableBfReadout(newState);
+                    const isCurrentlyOn = enableHrvReadout || enableBfReadout;
+                    if (!isCurrentlyOn) {
+                      // Trying to turn ON - check if drug is selected
+                      if (!selectedDrugs || selectedDrugs.length === 0) {
+                        toast.error('Add a drug first to enable drug readout');
+                        return;
+                      }
+                      // Turn ON - clear any previous values (no defaults)
+                      // Update all at once to avoid race conditions
+                      onDrugReadoutSettingsChange?.({
+                        ...drugReadoutSettings,
+                        enableHrvReadout: true,
+                        enableBfReadout: true,
+                        hrvReadoutMinute: '',
+                        bfReadoutMinute: '',
+                      });
+                    } else {
+                      // Turn OFF
+                      onDrugReadoutSettingsChange?.({
+                        ...drugReadoutSettings,
+                        enableHrvReadout: false,
+                        enableBfReadout: false,
+                      });
+                    }
                   }}
                   className={`h-5 px-2 text-[9px] rounded-full transition-all ${
                     (enableHrvReadout || enableBfReadout) 
@@ -660,7 +685,7 @@ function AnalysisPanel({
                     placeholder="12"
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && hrvReadoutMinute && (
+                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && hrvReadoutMinute !== '' && (
                     <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
                       → {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
                     </Badge>
@@ -677,7 +702,7 @@ function AnalysisPanel({
                     placeholder="14"
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && bfReadoutMinute && (
+                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && bfReadoutMinute !== '' && (
                     <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
                       → {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
                     </Badge>
@@ -961,6 +986,7 @@ function AnalysisPanel({
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
