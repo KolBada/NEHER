@@ -206,7 +206,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
         </div>
       </div>
       <div ref={containerRef} style={{ touchAction: 'none' }}>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={410}>
           <LineChart data={data} margin={{ top: 10, right: 35, left: 15, bottom: 35 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis dataKey="time" type="number" 
@@ -1382,13 +1382,15 @@ function App() {
                 />
                 {/* BF chart shown when metrics exist (kept visible during re-editing as reference) */}
                 {metrics && (
-                  <BFChart 
-                    metrics={metrics} 
-                    lightPulses={lightPulses} 
-                    zoomDomain={traceZoomDomain}
-                    onZoomChange={setTraceZoomDomain}
-                    isValidated={isValidated}
-                  />
+                  <div className="mt-4">
+                    <BFChart 
+                      metrics={metrics} 
+                      lightPulses={lightPulses} 
+                      zoomDomain={traceZoomDomain}
+                      onZoomChange={setTraceZoomDomain}
+                      isValidated={isValidated}
+                    />
+                  </div>
                 )}
               </div>
             </div>
