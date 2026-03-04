@@ -198,7 +198,7 @@ export default function ExportPanel({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
-                            <p>Total number of beats identified by the detection algorithm before any filtering is applied.</p>
+                            <p>Total number of beats identified by the detection algorithm.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -216,7 +216,7 @@ export default function ExportPanel({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
-                            <p>Beats retained after artifact filtering. These are used for HRV and BF analysis calculations.</p>
+                            <p>Beats retained after artifact filtering. Kept = Detected - Removed.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -234,7 +234,7 @@ export default function ExportPanel({
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
-                            <p>Beats excluded by the artifact filter (outside the specified BF percentage range of local median). These are considered artifacts or noise.</p>
+                            <p>Beats excluded by the artifact filter (intervals outside the specified BF percentage range).</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

@@ -516,9 +516,9 @@ async def compute_metrics_endpoint(request: ComputeMetricsRequest):
         'filtered_beat_times_min': [float(x) for x in filtered_bt],
         'filtered_nn_ms': [float(x) for x in filtered_nn],
         'filtered_bf_bpm': [float(x) for x in filtered_bf],
-        'n_total': len(nn_ms),  # Total intervals (N-1 for N beats)
-        'n_kept': int(np.sum(mask_arr)),  # Kept intervals after filtering
-        'n_removed': int(np.sum(~mask_arr)),
+        'n_total': len(beat_times_sec),  # Total beats detected
+        'n_removed': int(np.sum(~mask_arr)),  # Beats removed by filter
+        'n_kept': len(beat_times_sec) - int(np.sum(~mask_arr)),  # Kept = Detected - Removed
         'filter_settings': {
             'lower_pct': request.filter_lower_pct,
             'upper_pct': request.filter_upper_pct
