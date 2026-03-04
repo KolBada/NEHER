@@ -222,7 +222,7 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <FileAudio className="w-4 h-4 text-cyan-400" />
+                      <FileAudio className="w-4 h-4 text-zinc-400" />
                       <span className="text-xs font-data text-zinc-300">{f.name}</span>
                     </div>
                     <div className="flex items-center gap-2">

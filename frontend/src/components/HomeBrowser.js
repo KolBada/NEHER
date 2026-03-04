@@ -1186,8 +1186,8 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
               >
                 <CardContent className="p-4" onClick={() => handleOpenRecording(recording)}>
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-sm bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
-                      <FileAudio className="w-5 h-5 text-cyan-400" />
+                    <div className="w-10 h-10 rounded-sm bg-zinc-700/30 flex items-center justify-center flex-shrink-0">
+                      <FileAudio className="w-5 h-5 text-zinc-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
