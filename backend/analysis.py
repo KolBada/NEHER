@@ -1163,15 +1163,16 @@ def generate_pulses(start_sec, duration_sec, interval_pattern, n_pulses):
 def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pulses,
                            beat_times_min_list, bf_filtered_list, search_window_sec=3.0):
     """
-    Generate pulse timing with guided detection.
+    Generate pulse timing with guided detection for BOTH start and end points.
     
     ISI = gap between END of one pulse and START of next.
     
-    For each expected pulse position, search within ±search_window_sec to find
-    the actual pulse onset by analyzing BF patterns:
-    - Sharp increase (jump/peak) at stim onset
-    - Trend change from baseline to elevated
-    - Drop after stimulation ends
+    For each expected pulse:
+    - Search within ±search_window_sec around expected START to find actual onset
+    - Search within ±search_window_sec around expected END to find actual offset
+    
+    Start detection criteria: jump, trend change upward, threshold crossing up
+    End detection criteria: drop, trend change downward, threshold crossing down
     
     Args:
         first_start_sec: Start time of first pulse
@@ -1180,10 +1181,10 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
         n_pulses: Number of pulses
         beat_times_min_list: Beat times in minutes
         bf_filtered_list: Filtered BF values
-        search_window_sec: Window size (±) to search around expected time (default 3s)
+        search_window_sec: Window size (±) to search around expected times (default 3s)
     
     Returns:
-        List of pulse dictionaries with refined start times
+        List of pulse dictionaries with refined start AND end times
     """
     # Determine ISI gaps
     if interval_pattern == 'decreasing':
@@ -1208,7 +1209,7 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
         return generate_pulses(first_start_sec, duration_sec, interval_pattern, n_pulses)
     
     # Compute baseline from first portion (before any stimulation)
-    baseline_end_min = min(first_start_sec / 60.0 * 0.8, 2.5)  # Use data before expected first stim
+    baseline_end_min = min(first_start_sec / 60.0 * 0.8, 2.5)
     baseline_mask = bt_valid < baseline_end_min
     if np.sum(baseline_mask) < 5:
         baseline_mask = bt_valid < bt_valid[len(bt_valid) // 5]
@@ -1229,93 +1230,176 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
     bf_diff2 = np.append(bf_diff2, 0)
     
     # Thresholds
-    jump_threshold = baseline_std * 0.8  # Lowered for better sensitivity
+    jump_threshold = baseline_std * 0.8
+    drop_threshold = -baseline_std * 0.8
     elevation_threshold = baseline_bf + baseline_std * 0.8
+    
+    def find_start_point(expected_start_sec):
+        """Find the best start point within search window around expected_start_sec."""
+        window_start_min = (expected_start_sec - search_window_sec) / 60.0
+        window_end_min = (expected_start_sec + search_window_sec) / 60.0
+        
+        window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
+        window_indices = np.where(window_mask)[0]
+        
+        detected = expected_start_sec
+        best_score = -np.inf
+        best_reason = 'default'
+        
+        if len(window_indices) > 0:
+            for idx in window_indices:
+                score = 0
+                reasons = []
+                
+                # 1. Sharp positive derivative (BF jump at onset)
+                if bf_diff[idx] > jump_threshold:
+                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 3.0
+                    reasons.append('jump')
+                elif bf_diff[idx] > 0:
+                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
+                
+                # 2. Positive acceleration (trend change upward)
+                if bf_diff2[idx] > 0 and bf_diff[idx] > 0:
+                    score += 1.5
+                    reasons.append('trend_up')
+                
+                # 3. Threshold crossing upward
+                if idx > 0 and bf_smooth[idx-1] < elevation_threshold and bf_smooth[idx] >= elevation_threshold:
+                    score += 2.0
+                    reasons.append('cross_up')
+                
+                # 4. Sustained elevation after
+                check_end = min(idx + 20, len(bt_valid))
+                if check_end > idx + 5:
+                    elevated_count = np.sum(bf_smooth[idx:check_end] > elevation_threshold)
+                    elevation_ratio = elevated_count / (check_end - idx)
+                    if elevation_ratio > 0.5:
+                        score += elevation_ratio * 2.0
+                        reasons.append('sustained')
+                
+                # 5. Local max in derivative
+                if idx > 0 and idx < len(bf_diff) - 1:
+                    if bf_diff[idx] > bf_diff[idx-1] and bf_diff[idx] >= bf_diff[idx+1] and bf_diff[idx] > 0:
+                        score += 1.0
+                        reasons.append('peak')
+                
+                # 6. Proximity bonus
+                time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_start_sec)
+                score += max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 1.5
+                
+                if score > best_score:
+                    best_score = score
+                    detected = float(bt_valid[idx] * 60.0)
+                    best_reason = ','.join(reasons) if reasons else 'proximity'
+        
+        return detected, best_score, best_reason
+    
+    def find_end_point(expected_end_sec):
+        """Find the best end point within search window around expected_end_sec."""
+        window_start_min = (expected_end_sec - search_window_sec) / 60.0
+        window_end_min = (expected_end_sec + search_window_sec) / 60.0
+        
+        window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
+        window_indices = np.where(window_mask)[0]
+        
+        detected = expected_end_sec
+        best_score = -np.inf
+        best_reason = 'default'
+        
+        if len(window_indices) > 0:
+            for idx in window_indices:
+                score = 0
+                reasons = []
+                
+                # 1. Sharp negative derivative (BF drop at offset)
+                if bf_diff[idx] < drop_threshold:
+                    score += abs(bf_diff[idx] / (baseline_std + 1e-6)) * 3.0
+                    reasons.append('drop')
+                elif bf_diff[idx] < 0:
+                    score += abs(bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
+                
+                # 2. Negative acceleration (trend change downward)
+                if bf_diff2[idx] < 0 and bf_diff[idx] < 0:
+                    score += 1.5
+                    reasons.append('trend_down')
+                
+                # 3. Threshold crossing downward
+                if idx > 0 and bf_smooth[idx-1] >= elevation_threshold and bf_smooth[idx] < elevation_threshold:
+                    score += 2.0
+                    reasons.append('cross_down')
+                
+                # 4. Was elevated before this point
+                check_start = max(0, idx - 15)
+                if idx > check_start:
+                    elevated_count = np.sum(bf_smooth[check_start:idx] > elevation_threshold)
+                    elevation_ratio = elevated_count / (idx - check_start)
+                    if elevation_ratio > 0.5:
+                        score += elevation_ratio * 1.5
+                        reasons.append('was_elevated')
+                
+                # 5. Return toward baseline after
+                check_end = min(idx + 10, len(bt_valid))
+                if check_end > idx + 3:
+                    below_count = np.sum(bf_smooth[idx:check_end] < elevation_threshold)
+                    below_ratio = below_count / (check_end - idx)
+                    if below_ratio > 0.5:
+                        score += below_ratio * 1.5
+                        reasons.append('return_baseline')
+                
+                # 6. Local min in derivative (bottom of drop)
+                if idx > 0 and idx < len(bf_diff) - 1:
+                    if bf_diff[idx] < bf_diff[idx-1] and bf_diff[idx] <= bf_diff[idx+1] and bf_diff[idx] < 0:
+                        score += 1.0
+                        reasons.append('trough')
+                
+                # 7. Proximity bonus
+                time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_end_sec)
+                score += max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 1.5
+                
+                if score > best_score:
+                    best_score = score
+                    detected = float(bt_valid[idx] * 60.0)
+                    best_reason = ','.join(reasons) if reasons else 'proximity'
+        
+        return detected, best_score, best_reason
     
     pulses = []
     current_expected_start = first_start_sec
     
     for i in range(n_pulses):
-        # Define search window (±search_window_sec around expected start)
-        window_start_min = (current_expected_start - search_window_sec) / 60.0
-        window_end_min = (current_expected_start + search_window_sec) / 60.0
+        expected_end = current_expected_start + duration_sec
         
-        # Find beats in window
-        window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
-        window_indices = np.where(window_mask)[0]
+        # Find refined start point
+        detected_start, start_score, start_reason = find_start_point(current_expected_start)
         
-        detected_start = current_expected_start  # Default to expected
-        best_score = -np.inf
-        best_reason = 'default'
+        # Find refined end point
+        detected_end, end_score, end_reason = find_end_point(expected_end)
         
-        if len(window_indices) > 0:
-            # Score each point in window based on multiple criteria
-            for idx in window_indices:
-                score = 0
-                reasons = []
-                
-                # 1. Score for sharp positive derivative (BF jump/peak onset)
-                if bf_diff[idx] > jump_threshold:
-                    jump_score = (bf_diff[idx] / (baseline_std + 1e-6)) * 3.0
-                    score += jump_score
-                    reasons.append('jump')
-                elif bf_diff[idx] > 0:
-                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
-                
-                # 2. Score for trend change (second derivative - acceleration)
-                if bf_diff2[idx] > 0 and bf_diff[idx] > 0:
-                    # Positive acceleration while increasing = onset
-                    score += 1.5
-                    reasons.append('trend_change')
-                
-                # 3. Score for transition from below to above baseline
-                if idx > 0 and bf_smooth[idx-1] < elevation_threshold and bf_smooth[idx] >= elevation_threshold:
-                    score += 2.0
-                    reasons.append('threshold_cross')
-                
-                # 4. Score for sustained elevation after this point
-                check_end = min(idx + 20, len(bt_valid))
-                if check_end > idx + 5:
-                    elevated_count = np.sum(bf_smooth[idx:check_end] > elevation_threshold)
-                    elevation_ratio = elevated_count / (check_end - idx)
-                    if elevation_ratio > 0.6:
-                        score += elevation_ratio * 2.0
-                        reasons.append('sustained_elevation')
-                
-                # 5. Score for being a local maximum in derivative (peak of jump)
-                if idx > 0 and idx < len(bf_diff) - 1:
-                    if bf_diff[idx] > bf_diff[idx-1] and bf_diff[idx] >= bf_diff[idx+1]:
-                        if bf_diff[idx] > 0:
-                            score += 1.0
-                            reasons.append('derivative_peak')
-                
-                # 6. Proximity bonus (prefer times closer to expected)
-                time_diff_sec = abs(bt_valid[idx] * 60.0 - current_expected_start)
-                proximity_score = max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 1.5
-                score += proximity_score
-                
-                if score > best_score:
-                    best_score = score
-                    detected_start = float(bt_valid[idx] * 60.0)
-                    best_reason = ','.join(reasons) if reasons else 'proximity'
+        # Ensure end is after start (sanity check)
+        if detected_end <= detected_start:
+            detected_end = detected_start + duration_sec
+            end_reason = 'fallback'
+            end_score = 0.0
         
-        pulse_end = detected_start + duration_sec
         pulses.append({
             'index': i,
             'start_sec': detected_start,
-            'end_sec': pulse_end,
+            'end_sec': detected_end,
             'start_min': detected_start / 60.0,
-            'end_min': pulse_end / 60.0,
+            'end_min': detected_end / 60.0,
             'expected_start_sec': current_expected_start,
-            'detection_score': float(best_score) if best_score > -np.inf else 0.0,
-            'detection_reason': best_reason
+            'expected_end_sec': expected_end,
+            'start_score': float(start_score) if start_score > -np.inf else 0.0,
+            'end_score': float(end_score) if end_score > -np.inf else 0.0,
+            'start_reason': start_reason,
+            'end_reason': end_reason
         })
         
-        # Calculate next expected start: END of this pulse + ISI gap
+        # Calculate next expected start: detected END + ISI gap
         if i < len(intervals):
-            current_expected_start = pulse_end + intervals[i]
+            current_expected_start = detected_end + intervals[i]
         else:
-            current_expected_start = pulse_end + (intervals[-1] if intervals else 60)
+            current_expected_start = detected_end + (intervals[-1] if intervals else 60)
     
     return pulses
 

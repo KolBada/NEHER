@@ -81,7 +81,7 @@ class LightDetectRequest(BaseModel):
     auto_detect: bool = False
     beat_times_min: Optional[List[float]] = None
     bf_filtered: Optional[List[float]] = None
-    search_range_sec: float = 20.0
+    search_range_sec: float = 3.0  # Default search window ±3 seconds
 
 
 class LightHRVRequest(BaseModel):
@@ -574,7 +574,7 @@ async def light_detect_endpoint(request: LightDetectRequest):
             n_pulses=request.n_pulses,
             beat_times_min_list=request.beat_times_min,
             bf_filtered_list=request.bf_filtered,
-            search_window_sec=3.0  # Look ±3 seconds around expected time
+            search_window_sec=request.search_range_sec  # Use the request's search range
         )
     else:
         pulses = analysis.generate_pulses(
