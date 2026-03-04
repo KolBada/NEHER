@@ -622,10 +622,8 @@ function AnalysisPanel({
                   </Badge>
                 </div>
                 <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                  Input = Recording start time
+                  Input = Baseline Readout Start Time
                 </p>
-                {/* Spacer to match Drug Readout box height */}
-                <div className="h-[28px]"></div>
               </div>
             </div>
 
