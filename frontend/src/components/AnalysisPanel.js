@@ -359,6 +359,12 @@ function AnalysisPanel({
   const baseline = hrvResults?.baseline;
   const filterInfo = metrics?.filter_settings || filterSettings;
 
+  // Calculate drug phase boundaries for visualization
+  const recordingEndMin = filteredBfData.length > 0 ? Math.max(...filteredBfData.map(d => d.time)) : 10;
+  const drugPresent = selectedDrugs?.length > 0;
+  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
+  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0; // perfusionTime is actually the delay
+
   return (
     <div className="space-y-4" data-testid="analysis-panel">
 
@@ -416,6 +422,20 @@ function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                 />
+                {/* Drug phase regions */}
+                {drugPresent ? (
+                  <>
+                    {/* Baseline: 0 to Perf. Start (blue) */}
+                    <ReferenceArea x1={0} x2={perfStart} fill="#3b82f6" fillOpacity={0.1} />
+                    {/* Transit: Perf. Start to Perf. Start + Perf. Delay (gray) */}
+                    <ReferenceArea x1={perfStart} x2={perfStart + perfDelay} fill="#71717a" fillOpacity={0.15} />
+                    {/* Drug effect: Perf. Start + Perf. Delay onwards (purple) */}
+                    <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin} fill="#a855f7" fillOpacity={0.1} />
+                  </>
+                ) : (
+                  /* No drug: blue box on entire recording */
+                  <ReferenceArea x1={0} x2={recordingEndMin} fill="#3b82f6" fillOpacity={0.1} />
+                )}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`bf-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
