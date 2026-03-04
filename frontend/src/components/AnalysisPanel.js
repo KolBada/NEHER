@@ -430,19 +430,9 @@ function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                 />
-                {/* Drug phase regions */}
-                {drugPresent ? (
-                  <>
-                    {/* Baseline: 0 to Perf. Start (blue) */}
-                    <ReferenceArea x1={0} x2={perfStart} fill="#3b82f6" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
-                    {/* Transit: Perf. Start to Perf. Start + Perf. Delay (gray) */}
-                    <ReferenceArea x1={perfStart} x2={perfStart + perfDelay} fill="#71717a" fillOpacity={0.25} stroke="none" ifOverflow="extendDomain" />
-                    {/* Drug effect: Perf. Start + Perf. Delay onwards (purple) */}
-                    <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
-                  </>
-                ) : (
-                  /* No drug: blue box on entire recording */
-                  <ReferenceArea x1={0} x2={recordingEndMin + 1} fill="#3b82f6" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
+                {/* Drug effect region (purple) - only when drug is present */}
+                {drugPresent && (
+                  <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
                 )}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`bf-pulse-${i}`}
@@ -520,6 +510,10 @@ function AnalysisPanel({
                   labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                   formatter={(v) => [`${Number(v).toFixed(1)} ms`, 'NN']}
                 />
+                {/* Drug effect region (purple) - only when drug is present */}
+                {drugPresent && (
+                  <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
+                )}
                 {lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`nn-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
@@ -900,6 +894,10 @@ function AnalysisPanel({
                       <RechartsTooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
                       />
+                      {/* Drug effect region (purple) */}
+                      {drugPresent && (
+                        <ReferenceArea x1={perfStart + perfDelay} x2={recordingEndMin + 1} fill="#a855f7" fillOpacity={0.2} stroke="none" ifOverflow="extendDomain" />
+                      )}
                       <Line type="monotone" dataKey={key} stroke={color} strokeWidth={1.5} dot={{ r: 1.5 }} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
