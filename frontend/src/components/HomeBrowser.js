@@ -224,8 +224,17 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
   };
 
   const handleSectionDragStart = (e, section) => {
+    // Set drag data
+    e.dataTransfer.setData('text/plain', section.id); // Fallback for some browsers
     e.dataTransfer.setData('application/json', JSON.stringify({ type: 'section', id: section.id }));
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Set drag image (optional - helps with visual feedback)
+    if (e.target) {
+      e.dataTransfer.setDragImage(e.target, 20, 20);
+    }
+    
+    // Update state immediately
     setDraggedSection(section);
   };
 
@@ -252,10 +261,22 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
   // Handle drop on a drop zone - insertIndex is where the dragged section should go
   const handleDropZoneDrop = async (e, insertIndex) => {
     e.preventDefault();
+    e.stopPropagation();
     
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.type !== 'section') {
+      // Try to get the data - check both formats for browser compatibility
+      let data;
+      try {
+        data = JSON.parse(e.dataTransfer.getData('application/json'));
+      } catch {
+        // Fallback to text/plain
+        const id = e.dataTransfer.getData('text/plain');
+        if (id) {
+          data = { type: 'section', id };
+        }
+      }
+      
+      if (!data || data.type !== 'section') {
         setDraggedSection(null);
         setDropTargetIndex(null);
         return;
@@ -639,23 +660,28 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                   >
                     {/* Section Header - Draggable */}
                     <div 
-                      draggable
+                      draggable="true"
                       onDragStart={(e) => handleSectionDragStart(e, section)}
                       onDragEnd={handleSectionDragEnd}
-                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors hover:bg-zinc-800/30"
+                      data-testid={`section-header-${section.id}`}
+                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors hover:bg-zinc-800/30 relative z-10"
                     >
-                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
-                      <button
-                        onClick={() => handleToggleSection(section)}
-                        className="flex items-center gap-2 flex-1 text-left"
+                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0 pointer-events-none" />
+                      <div
+                        draggable="false"
+                        onClick={(e) => { e.stopPropagation(); handleToggleSection(section); }}
+                        className="flex items-center gap-2 flex-1 text-left cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleSection(section); }}
                       >
                         <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} />
                         <span className="text-sm font-medium text-zinc-300">{section.name}</span>
                         <div className="flex-1 h-px bg-zinc-800 ml-2" />
-                      </button>
+                      </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                          <Button draggable="false" variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
                             <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
                           </Button>
                         </DropdownMenuTrigger>
