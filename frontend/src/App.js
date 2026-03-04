@@ -260,6 +260,7 @@ function App() {
   const [savedRecordingId, setSavedRecordingId] = useState(null);
   const [savedFolderId, setSavedFolderId] = useState(null);
   const [hasExported, setHasExported] = useState(false);
+  const [isModified, setIsModified] = useState(false);  // Track if recording has been modified since last save
 
   // Session
   const [sessionId, setSessionId] = useState(null);
@@ -418,10 +419,12 @@ function App() {
 
   // Manual beat add/remove
   const handleAddBeat = useCallback((timeSec, voltage) => {
+    setIsModified(true);  // Mark as modified
     setBeats(prev => [...prev, { timeSec, voltage }].sort((a, b) => a.timeSec - b.timeSec));
   }, []);
 
   const handleRemoveBeat = useCallback((idx) => {
+    setIsModified(true);  // Mark as modified
     setBeats(prev => prev.filter((_, i) => i !== idx));
   }, []);
 
@@ -520,6 +523,7 @@ function App() {
 
   // Update pulses from LightPanel
   const handlePulsesUpdate = useCallback((updatedPulses) => {
+    setIsModified(true);  // Mark as modified
     setLightPulses(updatedPulses);
     setLightHrv(null);
     setLightHrvDetrended(null);
@@ -586,6 +590,7 @@ function App() {
 
   // Drug selection toggle with default settings
   const toggleDrug = useCallback((drugKey) => {
+    setIsModified(true);  // Mark as modified
     setSelectedDrugs(prev => {
       if (prev.includes(drugKey)) {
         // Remove drug settings
@@ -613,6 +618,7 @@ function App() {
 
   // Update drug setting
   const updateDrugSetting = useCallback((drugKey, field, value) => {
+    setIsModified(true);  // Mark as modified
     setDrugSettings(s => ({
       ...s,
       [drugKey]: {
@@ -624,6 +630,7 @@ function App() {
 
   // Add other drug
   const addOtherDrug = useCallback(() => {
+    setIsModified(true);  // Mark as modified
     const newId = `other_${Date.now()}`;
     setOtherDrugs(prev => [...prev, {
       id: newId,
@@ -636,11 +643,13 @@ function App() {
 
   // Remove other drug
   const removeOtherDrug = useCallback((id) => {
+    setIsModified(true);  // Mark as modified
     setOtherDrugs(prev => prev.filter(d => d.id !== id));
   }, []);
 
   // Update other drug
   const updateOtherDrug = useCallback((id, field, value) => {
+    setIsModified(true);  // Mark as modified
     setOtherDrugs(prev => prev.map(d => 
       d.id === id ? { ...d, [field]: value } : d
     ));
@@ -841,6 +850,7 @@ function App() {
     setSavedRecordingId(null);
     setSavedFolderId(null);
     setHasExported(false);
+    setIsModified(false);
   }, []);
 
   // Go back to home view
@@ -856,6 +866,7 @@ function App() {
     // Set recording identifiers
     setSavedRecordingId(recordingData.id);
     setSavedFolderId(recordingData.folder_id);
+    setIsModified(false);  // Reset modified state when opening a saved recording
     
     // Restore session info
     setRecordingName(state.recordingName || recordingData.name);
@@ -1033,8 +1044,12 @@ function App() {
   ]);
 
   // Handle save complete
-  const handleSaveComplete = useCallback((folderId) => {
+  const handleSaveComplete = useCallback((folderId, recordingId) => {
     setSavedFolderId(folderId);
+    if (recordingId) {
+      setSavedRecordingId(recordingId);
+    }
+    setIsModified(false);  // Reset modified state after save
   }, []);
 
   // --- RENDER ---
@@ -1095,9 +1110,20 @@ function App() {
               NEHER
             </h1>
             <Separator orientation="vertical" className="h-5 bg-zinc-700" />
-            {savedRecordingId && (
+            {/* Status badge: Saved (emerald), Edit (orange), Unsaved (red) */}
+            {savedRecordingId && !isModified && (
               <Badge variant="outline" className="h-6 text-[10px] border-emerald-700/50 text-emerald-400 px-2">
                 Saved
+              </Badge>
+            )}
+            {savedRecordingId && isModified && (
+              <Badge variant="outline" className="h-6 text-[10px] border-orange-700/50 text-orange-400 px-2">
+                Edit
+              </Badge>
+            )}
+            {!savedRecordingId && metrics && (
+              <Badge variant="outline" className="h-6 text-[10px] border-red-700/50 text-red-400 px-2">
+                Unsaved
               </Badge>
             )}
             {files.length > 1 && (

@@ -149,6 +149,8 @@ export default function SaveRecording({
         savedAt: new Date().toISOString(),
       };
 
+      let recordingId = existingRecordingId;
+      
       if (existingRecordingId) {
         // Update existing recording
         await api.updateRecording(existingRecordingId, {
@@ -158,18 +160,19 @@ export default function SaveRecording({
         toast.success('Recording updated');
       } else {
         // Create new recording
-        await api.createRecording({
+        const response = await api.createRecording({
           folder_id: folderId,
           name: recordingName,
           filename: currentAnalysisState?.filename || 'unknown.abf',
           analysis_state: stateToSave,
         });
+        recordingId = response.data.id;
         toast.success('Recording saved');
       }
       
       setSaved(true);
       if (onSaveComplete) {
-        onSaveComplete(folderId);
+        onSaveComplete(folderId, recordingId);
       }
     } catch (err) {
       const msg = err.response?.data?.detail || err.message;
