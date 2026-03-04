@@ -403,7 +403,9 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Selection area lines (top/bottom): white (#ffffff)
   - Mini chart preview in brush: white (#ffffff)
   - Brush text: increased to 9px, color #a1a1aa
+  - Beat detector brush height reduced from 25px to 20px (matching other charts)
   - Added margin (30-35px bottom) between charts and brushes to prevent "min" overlap
+  - Increased spacing between beat detector trace and BF chart (`space-y-6`)
 
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**

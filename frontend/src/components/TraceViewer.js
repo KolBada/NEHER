@@ -503,7 +503,7 @@ export default function TraceViewer({
           {/* Timeline brush/slider - always shows full recording */}
           <Brush
             dataKey="time"
-            height={25}
+            height={20}
             stroke="#52525b"
             fill="#0c0c0e"
             tickFormatter={(v) => v.toFixed(1)}
