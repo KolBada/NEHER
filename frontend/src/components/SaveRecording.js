@@ -422,7 +422,9 @@ export default function SaveRecording({
           
           {/* Fusion Date - Shared for all samples */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-zinc-400">Fusion Date <span className="text-zinc-600">(optional - applies to all samples)</span></Label>
+            <Label className="text-[10px] text-zinc-400">
+              {organoidInfo.length >= 2 ? 'Fusion Date' : 'Fusion Media Start'} <span className="text-zinc-600">(optional{organoidInfo.length >= 2 ? ' - applies to all samples' : ''})</span>
+            </Label>
             <Input
               type="date"
               value={fusionDate || ''}
@@ -431,7 +433,7 @@ export default function SaveRecording({
             />
             {fusionDate && recordingDate && (
               <p className="text-[10px] text-emerald-400 font-data">
-                Days since fusion: {calculateDays(fusionDate, recordingDate)}
+                {organoidInfo.length >= 2 ? 'Days since fusion' : 'Day since in fusion media'}: {calculateDays(fusionDate, recordingDate)}
               </p>
             )}
           </div>
