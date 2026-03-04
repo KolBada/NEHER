@@ -1321,6 +1321,16 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
                 best_reason = ','.join(reason) if reason else 'proximity'
         
         if best_idx is not None:
+            # Check for outlier: if this beat has a huge spike, use the NEXT beat instead
+            # (for start, we want to skip the outlier and take the following beat)
+            outlier_threshold = baseline_std * 4.0  # Very large change = outlier
+            if best_idx < len(bf_diff_raw) - 1 and abs(bf_diff_raw[best_idx]) > outlier_threshold:
+                # This might be an outlier - check if next beat is more stable
+                next_idx = best_idx + 1
+                if next_idx < len(bt_valid) and abs(bf_diff_raw[next_idx]) < outlier_threshold:
+                    best_idx = next_idx
+                    best_reason += ',outlier_skip'
+            
             return float(bt_valid[best_idx] * 60.0), best_score, best_reason
         return expected_start_sec, 0.0, 'default'
     
@@ -1389,6 +1399,16 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
                 best_reason = ','.join(reason) if reason else 'proximity'
         
         if best_idx is not None:
+            # Check for outlier: if this beat has a huge spike, use the PREVIOUS beat instead
+            # (for end, we want to skip the outlier and take the preceding beat)
+            outlier_threshold = baseline_std * 4.0  # Very large change = outlier
+            if best_idx > 0 and abs(bf_diff_raw[best_idx]) > outlier_threshold:
+                # This might be an outlier - check if previous beat is more stable
+                prev_idx = best_idx - 1
+                if prev_idx >= 0 and abs(bf_diff_raw[prev_idx]) < outlier_threshold:
+                    best_idx = prev_idx
+                    best_reason += ',outlier_skip'
+            
             return float(bt_valid[best_idx] * 60.0), best_score, best_reason
         return expected_end_sec, 0.0, 'default'
     

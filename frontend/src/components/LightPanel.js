@@ -484,6 +484,62 @@ function LightPanel({
     setLocalPulses(updatedPulses);
   }, [selectedPulseIdx, displayPulses]);
 
+  // Handle adjusting only the START of the selected pulse by beat
+  const handleAdjustStartByBeat = useCallback((beatDelta) => {
+    if (selectedPulseIdx === null || !displayPulses || !beatTimesMin.length) return;
+    
+    const pulse = displayPulses[selectedPulseIdx];
+    
+    // Find current start beat index
+    const currentBeatIdx = findNearestBeatIdx(pulse.start_min);
+    const newBeatIdx = Math.max(0, Math.min(beatTimesMin.length - 1, currentBeatIdx + beatDelta));
+    
+    const newStartMin = beatTimesMin[newBeatIdx];
+    
+    // Don't allow start to go past end
+    if (newStartMin >= pulse.end_min) return;
+    
+    // Update only this pulse's start (no cascade for start adjustment)
+    const updatedPulses = displayPulses.map((p, i) => {
+      if (i !== selectedPulseIdx) return p;
+      return {
+        ...p,
+        start_sec: newStartMin * 60,
+        start_min: newStartMin,
+      };
+    });
+    
+    setLocalPulses(updatedPulses);
+  }, [selectedPulseIdx, displayPulses, beatTimesMin, findNearestBeatIdx]);
+
+  // Handle adjusting only the END of the selected pulse by beat
+  const handleAdjustEndByBeat = useCallback((beatDelta) => {
+    if (selectedPulseIdx === null || !displayPulses || !beatTimesMin.length) return;
+    
+    const pulse = displayPulses[selectedPulseIdx];
+    
+    // Find current end beat index
+    const currentBeatIdx = findNearestBeatIdx(pulse.end_min);
+    const newBeatIdx = Math.max(0, Math.min(beatTimesMin.length - 1, currentBeatIdx + beatDelta));
+    
+    const newEndMin = beatTimesMin[newBeatIdx];
+    
+    // Don't allow end to go before start
+    if (newEndMin <= pulse.start_min) return;
+    
+    // Update only this pulse's end (no cascade for end adjustment)
+    const updatedPulses = displayPulses.map((p, i) => {
+      if (i !== selectedPulseIdx) return p;
+      return {
+        ...p,
+        end_sec: newEndMin * 60,
+        end_min: newEndMin,
+      };
+    });
+    
+    setLocalPulses(updatedPulses);
+  }, [selectedPulseIdx, displayPulses, beatTimesMin, findNearestBeatIdx]);
+
   // Reset pulses to original detection
   const handleResetPulses = useCallback(() => {
     setLocalPulses(originalPulses);
@@ -728,39 +784,21 @@ function LightPanel({
                 {/* Pulse adjustment controls */}
                 {selectedPulseIdx !== null && displayPulses && (
                   <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm border border-zinc-800">
-                    <span className="text-[10px] text-zinc-400">
-                      Stim {selectedPulseIdx + 1}:
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      Stim {selectedPulseIdx + 1}
                     </span>
                     
-                    {/* Beat-by-beat adjustment */}
-                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
-                      <span className="text-[9px] text-zinc-500">Beat:</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                        onClick={() => handleAdjustPulseByBeat(-1)}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                        onClick={() => handleAdjustPulseByBeat(1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    <div className="h-4 w-px bg-zinc-700" />
                     
-                    {/* Coarse adjustment (5s) */}
-                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
-                      <span className="text-[9px] text-zinc-500">±5s:</span>
+                    {/* Start adjustment by beat */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] text-zinc-500">Start:</span>
                       <Button
                         variant="outline"
                         size="sm"
                         className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                        onClick={() => handleAdjustPulseBySeconds(-5)}
+                        onClick={() => handleAdjustStartByBeat(-1)}
+                        title="Move start 1 beat earlier"
                       >
                         <ChevronLeft className="w-3 h-3" />
                       </Button>
@@ -768,14 +806,40 @@ function LightPanel({
                         variant="outline"
                         size="sm"
                         className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
-                        onClick={() => handleAdjustPulseBySeconds(5)}
+                        onClick={() => handleAdjustStartByBeat(1)}
+                        title="Move start 1 beat later"
                       >
                         <ChevronRight className="w-3 h-3" />
                       </Button>
                     </div>
                     
+                    {/* End adjustment by beat */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] text-zinc-500">End:</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustEndByBeat(-1)}
+                        title="Move end 1 beat earlier"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-6 p-0 border-zinc-700 hover:bg-zinc-800"
+                        onClick={() => handleAdjustEndByBeat(1)}
+                        title="Move end 1 beat later"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
+                    <div className="h-4 w-px bg-zinc-700" />
+                    
                     {/* Click-to-edit on chart */}
-                    <div className="flex items-center gap-1 border-r border-zinc-700 pr-2">
+                    <div className="flex items-center gap-1">
                       <span className="text-[9px] text-zinc-500">Click:</span>
                       <Button
                         variant={editMode === 'start' ? 'default' : 'outline'}
@@ -794,6 +858,8 @@ function LightPanel({
                         End
                       </Button>
                     </div>
+                    
+                    <div className="h-4 w-px bg-zinc-700" />
                     
                     <span className="text-[10px] font-data text-yellow-400 min-w-[100px] text-center">
                       {formatTimeConfig(displayPulses[selectedPulseIdx].start_min)} - {formatTimeConfig(displayPulses[selectedPulseIdx].end_min)} min
