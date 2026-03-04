@@ -326,8 +326,8 @@ export default function TraceViewer({
   const xDomain = zoomDomain || [timeBounds.min, timeBounds.max];
 
   return (
-    <div className="trace-container" data-testid="trace-viewer" ref={containerRef}>
-      <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900/50 border-b border-zinc-800">
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm" data-testid="trace-viewer" ref={containerRef}>
+      <div className="flex items-center justify-between gap-2 p-2">
         <div className="flex items-center gap-2">
           <Button
             data-testid="edit-mode-btn"
