@@ -698,7 +698,16 @@ function App() {
           delete newSettings[drugKey];
           return newSettings;
         });
-        return prev.filter(d => d !== drugKey);
+        const newDrugs = prev.filter(d => d !== drugKey);
+        // If no drugs left, turn off drug readout
+        if (newDrugs.length === 0) {
+          setDrugReadoutSettings(s => ({
+            ...s,
+            enableHrvReadout: false,
+            enableBfReadout: false,
+          }));
+        }
+        return newDrugs;
       } else {
         // Add with default settings
         const config = DRUG_CONFIG[drugKey];
