@@ -1221,147 +1221,176 @@ def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pu
     kernel = min(7, max(3, len(bf_valid) // 50))
     bf_smooth = np.convolve(bf_valid, np.ones(kernel) / kernel, mode='same')
     
-    # Compute derivatives for detecting changes
+    # Compute first derivative (rate of change)
     bf_diff = np.diff(bf_smooth)
     bf_diff = np.append(bf_diff, 0)
     
-    # Second derivative for detecting trend changes
+    # Compute second derivative (acceleration / trend change detection)
     bf_diff2 = np.diff(bf_diff)
     bf_diff2 = np.append(bf_diff2, 0)
     
-    # Thresholds
-    jump_threshold = baseline_std * 0.8
-    drop_threshold = -baseline_std * 0.8
-    elevation_threshold = baseline_bf + baseline_std * 0.8
+    # Identify key points in the entire signal
+    # 1. Local peaks in BF (local maxima)
+    is_peak = np.zeros(len(bf_smooth), dtype=bool)
+    for i in range(1, len(bf_smooth) - 1):
+        if bf_smooth[i] > bf_smooth[i-1] and bf_smooth[i] >= bf_smooth[i+1]:
+            is_peak[i] = True
+    
+    # 2. Local troughs in BF (local minima)
+    is_trough = np.zeros(len(bf_smooth), dtype=bool)
+    for i in range(1, len(bf_smooth) - 1):
+        if bf_smooth[i] < bf_smooth[i-1] and bf_smooth[i] <= bf_smooth[i+1]:
+            is_trough[i] = True
+    
+    # 3. Inflection points (where second derivative changes sign = critical trend change)
+    is_inflection = np.zeros(len(bf_smooth), dtype=bool)
+    for i in range(1, len(bf_diff2) - 1):
+        # Sign change in second derivative
+        if (bf_diff2[i-1] > 0 and bf_diff2[i] <= 0) or (bf_diff2[i-1] < 0 and bf_diff2[i] >= 0):
+            is_inflection[i] = True
+    
+    # 4. Sharp jumps (large positive derivative)
+    jump_threshold = baseline_std * 0.5
+    is_jump = bf_diff > jump_threshold
+    
+    # 5. Sharp drops (large negative derivative)
+    drop_threshold = -baseline_std * 0.5
+    is_drop = bf_diff < drop_threshold
     
     def find_start_point(expected_start_sec):
-        """Find the best start point within search window around expected_start_sec."""
+        """
+        Find the best START point within ±search_window around expected time.
+        
+        Priority for START detection:
+        1. Sharp jump (steep rise in BF) - indicates stimulation onset
+        2. Critical upward trend change (inflection from flat/down to up)
+        3. Beginning of a peak (BF starting to rise toward a local max)
+        """
         window_start_min = (expected_start_sec - search_window_sec) / 60.0
         window_end_min = (expected_start_sec + search_window_sec) / 60.0
         
         window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
         window_indices = np.where(window_mask)[0]
         
-        detected = expected_start_sec
+        if len(window_indices) == 0:
+            return expected_start_sec, 0.0, 'default'
+        
+        best_idx = None
         best_score = -np.inf
         best_reason = 'default'
         
-        if len(window_indices) > 0:
-            for idx in window_indices:
-                score = 0
-                reasons = []
-                
-                # 1. Sharp positive derivative (BF jump at onset)
-                if bf_diff[idx] > jump_threshold:
-                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 3.0
-                    reasons.append('jump')
-                elif bf_diff[idx] > 0:
-                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
-                
-                # 2. Positive acceleration (trend change upward)
-                if bf_diff2[idx] > 0 and bf_diff[idx] > 0:
-                    score += 1.5
-                    reasons.append('trend_up')
-                
-                # 3. Threshold crossing upward
-                if idx > 0 and bf_smooth[idx-1] < elevation_threshold and bf_smooth[idx] >= elevation_threshold:
-                    score += 2.0
-                    reasons.append('cross_up')
-                
-                # 4. Sustained elevation after
-                check_end = min(idx + 20, len(bt_valid))
-                if check_end > idx + 5:
-                    elevated_count = np.sum(bf_smooth[idx:check_end] > elevation_threshold)
-                    elevation_ratio = elevated_count / (check_end - idx)
-                    if elevation_ratio > 0.5:
-                        score += elevation_ratio * 2.0
-                        reasons.append('sustained')
-                
-                # 5. Local max in derivative
-                if idx > 0 and idx < len(bf_diff) - 1:
-                    if bf_diff[idx] > bf_diff[idx-1] and bf_diff[idx] >= bf_diff[idx+1] and bf_diff[idx] > 0:
-                        score += 1.0
-                        reasons.append('peak')
-                
-                # 6. Proximity bonus
-                time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_start_sec)
-                score += max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 1.5
-                
-                if score > best_score:
-                    best_score = score
-                    detected = float(bt_valid[idx] * 60.0)
-                    best_reason = ','.join(reasons) if reasons else 'proximity'
+        for idx in window_indices:
+            score = 0
+            reason = []
+            
+            # HIGH PRIORITY: Sharp jump (strong positive derivative)
+            if is_jump[idx]:
+                jump_magnitude = bf_diff[idx] / (baseline_std + 1e-6)
+                score += jump_magnitude * 5.0
+                reason.append('jump')
+            
+            # HIGH PRIORITY: Critical trend change (inflection point going upward)
+            if is_inflection[idx] and bf_diff[idx] > 0:
+                score += 4.0
+                reason.append('trend_change')
+            
+            # MEDIUM PRIORITY: Point just before a peak (BF rising toward local max)
+            # Look ahead to see if there's a peak coming
+            lookahead = min(idx + 15, len(bf_smooth))
+            if np.any(is_peak[idx:lookahead]) and bf_diff[idx] > 0:
+                score += 3.0
+                reason.append('pre_peak')
+            
+            # MEDIUM PRIORITY: Trough followed by rise (valley before climb)
+            if is_trough[idx] and idx < len(bf_diff) - 1 and bf_diff[idx+1] > 0:
+                score += 2.5
+                reason.append('trough_rise')
+            
+            # LOW PRIORITY: Proximity to expected time
+            time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_start_sec)
+            proximity = max(0, (search_window_sec - time_diff_sec) / search_window_sec)
+            score += proximity * 1.0
+            
+            if score > best_score:
+                best_score = score
+                best_idx = idx
+                best_reason = ','.join(reason) if reason else 'proximity'
         
-        return detected, best_score, best_reason
+        if best_idx is not None:
+            return float(bt_valid[best_idx] * 60.0), best_score, best_reason
+        return expected_start_sec, 0.0, 'default'
     
     def find_end_point(expected_end_sec):
-        """Find the best end point within search window around expected_end_sec."""
+        """
+        Find the best END point within ±search_window around expected time.
+        
+        Priority for END detection:
+        1. Sharp drop (steep fall in BF) - indicates stimulation offset
+        2. Critical downward trend change (inflection from up to down/flat)
+        3. Peak itself (local maximum, after which BF will drop)
+        """
         window_start_min = (expected_end_sec - search_window_sec) / 60.0
         window_end_min = (expected_end_sec + search_window_sec) / 60.0
         
         window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
         window_indices = np.where(window_mask)[0]
         
-        detected = expected_end_sec
+        if len(window_indices) == 0:
+            return expected_end_sec, 0.0, 'default'
+        
+        best_idx = None
         best_score = -np.inf
         best_reason = 'default'
         
-        if len(window_indices) > 0:
-            for idx in window_indices:
-                score = 0
-                reasons = []
-                
-                # 1. Sharp negative derivative (BF drop at offset)
-                if bf_diff[idx] < drop_threshold:
-                    score += abs(bf_diff[idx] / (baseline_std + 1e-6)) * 3.0
-                    reasons.append('drop')
-                elif bf_diff[idx] < 0:
-                    score += abs(bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
-                
-                # 2. Negative acceleration (trend change downward)
-                if bf_diff2[idx] < 0 and bf_diff[idx] < 0:
-                    score += 1.5
-                    reasons.append('trend_down')
-                
-                # 3. Threshold crossing downward
-                if idx > 0 and bf_smooth[idx-1] >= elevation_threshold and bf_smooth[idx] < elevation_threshold:
+        for idx in window_indices:
+            score = 0
+            reason = []
+            
+            # HIGH PRIORITY: Sharp drop (strong negative derivative)
+            if is_drop[idx]:
+                drop_magnitude = abs(bf_diff[idx]) / (baseline_std + 1e-6)
+                score += drop_magnitude * 5.0
+                reason.append('drop')
+            
+            # HIGH PRIORITY: Critical trend change (inflection point going downward)
+            if is_inflection[idx] and bf_diff[idx] < 0:
+                score += 4.0
+                reason.append('trend_change')
+            
+            # HIGH PRIORITY: Peak (local maximum - the top before dropping)
+            if is_peak[idx]:
+                # Higher score if it's significantly above baseline
+                if bf_smooth[idx] > baseline_bf + baseline_std:
+                    score += 4.5
+                    reason.append('peak')
+                else:
                     score += 2.0
-                    reasons.append('cross_down')
-                
-                # 4. Was elevated before this point
-                check_start = max(0, idx - 15)
-                if idx > check_start:
-                    elevated_count = np.sum(bf_smooth[check_start:idx] > elevation_threshold)
-                    elevation_ratio = elevated_count / (idx - check_start)
-                    if elevation_ratio > 0.5:
-                        score += elevation_ratio * 1.5
-                        reasons.append('was_elevated')
-                
-                # 5. Return toward baseline after
-                check_end = min(idx + 10, len(bt_valid))
-                if check_end > idx + 3:
-                    below_count = np.sum(bf_smooth[idx:check_end] < elevation_threshold)
-                    below_ratio = below_count / (check_end - idx)
-                    if below_ratio > 0.5:
-                        score += below_ratio * 1.5
-                        reasons.append('return_baseline')
-                
-                # 6. Local min in derivative (bottom of drop)
-                if idx > 0 and idx < len(bf_diff) - 1:
-                    if bf_diff[idx] < bf_diff[idx-1] and bf_diff[idx] <= bf_diff[idx+1] and bf_diff[idx] < 0:
-                        score += 1.0
-                        reasons.append('trough')
-                
-                # 7. Proximity bonus
-                time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_end_sec)
-                score += max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 1.5
-                
-                if score > best_score:
-                    best_score = score
-                    detected = float(bt_valid[idx] * 60.0)
-                    best_reason = ','.join(reasons) if reasons else 'proximity'
+                    reason.append('peak_low')
+            
+            # MEDIUM PRIORITY: Point just after peak (beginning of descent)
+            lookback = max(0, idx - 10)
+            if np.any(is_peak[lookback:idx]) and bf_diff[idx] < 0:
+                score += 3.0
+                reason.append('post_peak')
+            
+            # MEDIUM PRIORITY: Trough (bottom of drop - end of the fall)
+            if is_trough[idx]:
+                score += 2.0
+                reason.append('trough')
+            
+            # LOW PRIORITY: Proximity to expected time
+            time_diff_sec = abs(bt_valid[idx] * 60.0 - expected_end_sec)
+            proximity = max(0, (search_window_sec - time_diff_sec) / search_window_sec)
+            score += proximity * 1.0
+            
+            if score > best_score:
+                best_score = score
+                best_idx = idx
+                best_reason = ','.join(reason) if reason else 'proximity'
         
-        return detected, best_score, best_reason
+        if best_idx is not None:
+            return float(bt_valid[best_idx] * 60.0), best_score, best_reason
+        return expected_end_sec, 0.0, 'default'
     
     pulses = []
     current_expected_start = first_start_sec
