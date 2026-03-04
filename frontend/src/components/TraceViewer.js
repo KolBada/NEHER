@@ -426,7 +426,7 @@ export default function TraceViewer({
         <ComposedChart
           data={chartData}
           onClick={handleChartClick}
-          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          margin={{ top: 10, right: 20, left: 10, bottom: 25 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
           <XAxis
@@ -494,22 +494,23 @@ export default function TraceViewer({
           <Line
             type="monotone"
             dataKey="voltage"
-            stroke="#ffffff"
+            stroke="#c0c0c0"
             strokeWidth={1}
             dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={editMode ? { r: 6, fill: '#ffffff', stroke: '#22d3ee', strokeWidth: 2 } : { r: 4, fill: '#ffffff', stroke: '#22d3ee', strokeWidth: 1 }}
+            activeDot={editMode ? { r: 6, fill: '#c0c0c0', stroke: '#22d3ee', strokeWidth: 2 } : { r: 4, fill: '#c0c0c0', stroke: '#22d3ee', strokeWidth: 1 }}
           />
           {/* Timeline brush/slider - always shows full recording */}
           <Brush
             dataKey="time"
             height={25}
-            stroke="#ffffff"
+            stroke="#52525b"
             fill="#0c0c0e"
             tickFormatter={(v) => v.toFixed(1)}
             startIndex={brushIndices.start}
             endIndex={brushIndices.end}
             onChange={handleBrushChange}
+            travellerWidth={8}
           />
         </ComposedChart>
       </ResponsiveContainer>

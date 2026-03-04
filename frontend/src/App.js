@@ -197,8 +197,8 @@ function BFChart({ metrics, lightPulses }) {
         </div>
       </div>
       <div ref={containerRef} style={{ touchAction: 'none' }}>
-        <ResponsiveContainer width="100%" height={225}>
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis dataKey="time" type="number" 
               domain={zoomDomain || ['dataMin', 'dataMax']}
@@ -227,12 +227,13 @@ function BFChart({ metrics, lightPulses }) {
             <Brush 
               dataKey="time"
               height={20} 
-              stroke="#10b981" 
+              stroke="#52525b" 
               fill="#0c0c0e"
               tickFormatter={(v) => v.toFixed(1)}
               startIndex={brushIndices.start}
               endIndex={brushIndices.end}
               onChange={handleBrushChange}
+              travellerWidth={8}
             />
           </LineChart>
         </ResponsiveContainer>

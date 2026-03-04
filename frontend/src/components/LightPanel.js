@@ -154,7 +154,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
       {/* Panel A: Raw Data */}
       <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-cyan-400 text-center uppercase tracking-wider mb-1 font-medium">
+        <p className="text-[9px] text-emerald-400 text-center uppercase tracking-wider mb-1 font-medium">
           Panel A: Raw NN₇₀
         </p>
         <ResponsiveContainer width="100%" height={140}>
@@ -174,7 +174,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
               formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'NN₇₀']}
             />
-            <Line type="monotone" dataKey="nn_70" stroke="#22d3ee" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="nn_70" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[8px] text-zinc-600 text-center">Time (s) from stim start</p>
@@ -182,7 +182,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
 
       {/* Panel B: Trend Extraction */}
       <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-amber-400 text-center uppercase tracking-wider mb-1 font-medium">
+        <p className="text-[9px] text-zinc-300 text-center uppercase tracking-wider mb-1 font-medium">
           Panel B: Trend Extraction
         </p>
         <ResponsiveContainer width="100%" height={140}>
@@ -202,8 +202,8 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
               formatter={(v, name) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, name]}
             />
-            <Line type="monotone" dataKey="nn_70" name="Raw" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} opacity={0.5} />
-            <Line type="monotone" dataKey="trend" name="LOESS" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="nn_70" name="Raw" stroke="#71717a" strokeWidth={1} dot={false} isAnimationActive={false} opacity={0.5} />
+            <Line type="monotone" dataKey="trend" name="LOESS" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[8px] text-zinc-600 text-center">LOESS smoothed trend overlay</p>
@@ -211,7 +211,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
 
       {/* Panel C: Detrended Signal */}
       <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-emerald-400 text-center uppercase tracking-wider mb-1 font-medium">
+        <p className="text-[9px] text-yellow-400 text-center uppercase tracking-wider mb-1 font-medium">
           Panel C: Detrended Residual
         </p>
         <ResponsiveContainer width="100%" height={140}>
@@ -232,7 +232,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'Residual']}
             />
             <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
-            <Line type="monotone" dataKey="residual" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="residual" stroke="#facc15" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
         <p className="text-[8px] text-zinc-600 text-center">NN₇₀ - Trend (zero reference)</p>
@@ -657,11 +657,12 @@ export default function LightPanel({
                 )}
                 
                 <div ref={chartContainerRef}>
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={265}>
                     <LineChart 
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
                       style={{ cursor: editMode ? 'crosshair' : 'default' }}
+                      margin={{ bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis 
@@ -712,12 +713,13 @@ export default function LightPanel({
                       <Brush 
                         dataKey="time" 
                         height={20} 
-                        stroke="#10b981" 
+                        stroke="#52525b" 
                         fill="#0c0c0e" 
                         tickFormatter={(v) => v.toFixed(1)}
                         startIndex={brushIndices.start}
                         endIndex={brushIndices.end}
                         onChange={handleBrushChange}
+                        travellerWidth={8}
                       />
                     </LineChart>
                   </ResponsiveContainer>

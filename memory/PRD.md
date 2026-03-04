@@ -390,9 +390,18 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Added yellow "Light" badge (with Zap icon) before "Add Drug" when light stim is enabled
   - Changed drug badge colors from cyan to purple for consistency with Drug Readout styling
 - [x] **Trace Color Updates (Dec 4, 2025):**
-  - Beat detection trace (Trace tab): white (#ffffff) with white brush border
-  - BF x Time charts: emerald green (#10b981) with emerald brush border - in all sections
-  - NN Interval x Time chart: dark green (#166534) with dark green brush border
+  - Beat detection trace (Trace tab): silver (#c0c0c0)
+  - BF x Time charts: emerald green (#10b981) - in all sections
+  - NN Interval x Time chart: teal (#14b8a6) - in Spontaneous Activity
+- [x] **Light Stimulus HRV Visualization (Dec 4, 2025):**
+  - Panel A (Raw NN₇₀): emerald green trace (#10b981)
+  - Panel B (Trend Extraction): white trend line (#ffffff)
+  - Panel C (Detrended Residual): yellow trace (#facc15)
+- [x] **Brush/Slider Styling (Dec 4, 2025):**
+  - All brush borders: grey (#52525b) matching zoom buttons
+  - Slider handles: white border for differentiation
+  - Brush text: smaller font size (7px)
+  - Added margin between charts and brushes to prevent "min" overlap
 
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**

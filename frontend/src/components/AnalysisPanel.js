@@ -47,7 +47,7 @@ function InfoTip({ text, children }) {
 
 const CHART_COLORS = {
   bf: '#10b981',  // emerald green
-  nn: '#166534',  // dark green
+  nn: '#14b8a6',  // teal
   lnRmssd: '#22d3ee',
   sdnn: '#c084fc',
   pnn50: '#fb923c',
@@ -417,8 +417,8 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={245}>
-              <LineChart data={filteredBfData}>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={filteredBfData} margin={{ bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
@@ -443,12 +443,13 @@ export default function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke={CHART_COLORS.bf}
+                  stroke="#52525b"
                   fill="#0c0c0e" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={bfBrushIndices.start}
                   endIndex={bfBrushIndices.end}
                   onChange={handleBfBrushChange}
+                  travellerWidth={8}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -492,8 +493,8 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={245}>
-              <LineChart data={filteredNnData}>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={filteredNnData} margin={{ bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
@@ -518,12 +519,13 @@ export default function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke={CHART_COLORS.nn}
+                  stroke="#52525b"
                   fill="#0c0c0e" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={nnBrushIndices.start}
                   endIndex={nnBrushIndices.end}
                   onChange={handleNnBrushChange}
+                  travellerWidth={8}
                 />
               </LineChart>
             </ResponsiveContainer>

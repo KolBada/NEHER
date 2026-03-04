@@ -105,3 +105,26 @@
 .font-data {
     font-family: 'JetBrains Mono', monospace;
 }
+
+/* Recharts Brush Customization */
+.recharts-brush {
+    margin-top: 8px;
+}
+
+/* Brush slider (traveller) - white border */
+.recharts-brush-traveller rect {
+    stroke: #ffffff !important;
+    stroke-width: 1px;
+}
+
+/* Brush text (values on sides) - smaller */
+.recharts-brush-texts text {
+    font-size: 7px !important;
+    fill: #71717a !important;
+}
+
+/* Brush slide area - the selected region */
+.recharts-brush-slide {
+    stroke: #ffffff;
+    stroke-width: 1px;
+}
