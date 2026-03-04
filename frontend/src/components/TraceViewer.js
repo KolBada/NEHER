@@ -427,7 +427,7 @@ export default function TraceViewer({
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={455}>
+      <ResponsiveContainer width="100%" height={400}>
         <ComposedChart
           data={chartData}
           onClick={handleChartClick}
