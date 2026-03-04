@@ -407,6 +407,14 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Added margin (30-35px bottom) between charts and brushes to prevent "min" overlap
   - Increased spacing between beat detector trace and BF chart (`space-y-6`)
 
+### P0 - Completed (Mar 3, 2026)
+- [x] **X-Axis Label Overlap Fix (Mar 3, 2026):**
+  - Fixed the "(min)" label being overlapped by the brush/slider component on all 5 charts
+  - Changed label position from `insideBottomRight` to `insideBottom` with `offset: -45`
+  - Label now renders centered below the brush component, clearly visible
+  - Applied to: TraceViewer, BF chart (App.js), BF & NN charts (AnalysisPanel.js), BF chart (LightPanel.js)
+  - Changed label text from "min" to "(min)" for better readability
+
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**
   - **Spontaneous Activity Normalization Section:**
@@ -424,8 +432,12 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - data-testid attributes for automated testing
 
 ### P1 - In Progress
+- [ ] Brush/slider in TraceViewer resets when adding/deleting multiple beats (complex Recharts state issue)
+- [ ] Cannot delete a beat if the activeDot (blue reader circle) is on it
 - [ ] Light stim highlights on trace charts (yellow rectangles for stim periods) - recurring bug
 - [ ] Verify Excel export highlighting fix (baseline vs drug row colors)
+- [ ] Drag-and-drop section sensitivity improvements
+- [ ] Increase spacing after the last folder in a section
 
 ### P2 (Future)
 - [ ] Synchronized zoom across all charts
