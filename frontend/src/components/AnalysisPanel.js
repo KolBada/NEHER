@@ -48,9 +48,9 @@ function InfoTip({ text, children }) {
 const CHART_COLORS = {
   bf: '#10b981',  // emerald green
   nn: '#228b22',  // forest green
-  lnRmssd: '#f97316',  // coral/orange
-  sdnn: '#f97316',     // coral/orange
-  pnn50: '#f97316',    // coral/orange
+  lnRmssd: '#fa8072',  // salmon
+  sdnn: '#fa8072',     // salmon
+  pnn50: '#fa8072',    // salmon
 };
 
 function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 'cyan', tooltip }) {
@@ -875,17 +875,17 @@ export default function AnalysisPanel({
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">BF (bpm)</TableHead>
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN (ms)</TableHead>
                       <TableHead className="text-[10px] font-data text-zinc-500 h-7">NN₇₀ (ms)</TableHead>
-                      <TableHead className="text-[10px] font-data text-orange-400 h-7">
+                      <TableHead className="text-[10px] font-data text-red-400 h-7">
                         <span className="flex items-center gap-1">
                           RMSSD₇₀ <HrvInfoPopover metric="RMSSD" />
                         </span>
                       </TableHead>
-                      <TableHead className="text-[10px] font-data text-orange-400 h-7">
+                      <TableHead className="text-[10px] font-data text-red-400 h-7">
                         <span className="flex items-center gap-1">
                           SDNN₇₀ <HrvInfoPopover metric="SDNN" />
                         </span>
                       </TableHead>
-                      <TableHead className="text-[10px] font-data text-orange-400 h-7">
+                      <TableHead className="text-[10px] font-data text-red-400 h-7">
                         <span className="flex items-center gap-1">
                           pNN50₇₀ <HrvInfoPopover metric="pNN50" />
                         </span>
@@ -906,13 +906,13 @@ export default function AnalysisPanel({
                         <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                           {row.avg_nn_70 != null ? row.avg_nn_70.toFixed(1) : '\u2014'}
                         </TableCell>
-                        <TableCell className="text-[10px] font-data text-orange-300 py-1">
+                        <TableCell className="text-[10px] font-data text-red-300 py-1">
                           {row.hrv ? row.hrv.rmssd70.toFixed(2) : '\u2014'}
                         </TableCell>
-                        <TableCell className="text-[10px] font-data text-orange-300 py-1">
+                        <TableCell className="text-[10px] font-data text-red-300 py-1">
                           {row.hrv ? row.hrv.sdnn?.toFixed(2) : '\u2014'}
                         </TableCell>
-                        <TableCell className="text-[10px] font-data text-orange-300 py-1">
+                        <TableCell className="text-[10px] font-data text-red-300 py-1">
                           {row.hrv ? row.hrv.pnn50.toFixed(1) : '\u2014'}
                         </TableCell>
                       </TableRow>
