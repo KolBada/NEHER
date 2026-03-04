@@ -179,8 +179,8 @@ function BFChart({ metrics, lightPulses }) {
   const isZoomed = zoomDomain !== null;
 
   return (
-    <div className="trace-container" data-testid="bf-chart">
-      <div className="p-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between">
+    <div className="trace-container bg-[#09090b] border border-zinc-800 rounded-sm" data-testid="bf-chart">
+      <div className="p-2 border-b border-zinc-800 flex items-center justify-between">
         <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomIn} title="Zoom In">
@@ -1358,7 +1358,7 @@ function App() {
                 detectLoading={detectLoading}
                 beats={beats}
               />
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <TraceViewer
                   traceData={traceData}
                   beats={beats}
