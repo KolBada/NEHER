@@ -794,6 +794,14 @@ async def get_recording_endpoint(recording_id: str):
     recording = await storage.get_recording(db, recording_id)
     if not recording:
         raise HTTPException(404, "Recording not found")
+    
+    # Fix n_kept to ensure Detected = Kept + Removed for saved recordings
+    if recording.get('analysis_state') and recording['analysis_state'].get('metrics'):
+        metrics = recording['analysis_state']['metrics']
+        if 'n_total' in metrics and 'n_removed' in metrics:
+            # Recalculate n_kept to ensure the equation holds
+            metrics['n_kept'] = metrics['n_total'] - metrics['n_removed']
+    
     return recording
 
 
