@@ -359,15 +359,17 @@ function AnalysisPanel({
 
   return (
     <div className="space-y-4" data-testid="analysis-panel">
-      {/* Summary badges */}
+      {/* Total Beats and Filter Range boxes */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
-          {metrics.n_total} total beats
-        </Badge>
+        <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
+          <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Total Beats (after filtering)</p>
+          <p className="text-lg font-data text-zinc-200">{metrics.n_kept}</p>
+        </div>
         {filterInfo && (
-          <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
-            Filter: {filterInfo.lower_pct || filterInfo.lowerPct}%-{filterInfo.upper_pct || filterInfo.upperPct}%
-          </Badge>
+          <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
+            <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Filter Range</p>
+            <p className="text-lg font-data text-zinc-200">{filterInfo.lower_pct || filterInfo.lowerPct}% - {filterInfo.upper_pct || filterInfo.upperPct}%</p>
+          </div>
         )}
       </div>
 
