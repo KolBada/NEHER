@@ -502,13 +502,13 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
 
         {/* New Analysis Card */}
         <Card 
-          className="bg-gradient-to-br from-cyan-950/30 to-zinc-900/50 border-cyan-800/50 rounded-sm mb-6 cursor-pointer hover:border-cyan-600 transition-colors"
+          className="bg-gradient-to-br from-zinc-800/30 to-zinc-900/50 border-zinc-600/50 rounded-sm mb-6 cursor-pointer hover:border-zinc-500 transition-colors"
           onClick={onNewAnalysis}
           data-testid="new-analysis-card"
         >
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-cyan-900/50 flex items-center justify-center">
-              <Plus className="w-6 h-6 text-cyan-400" />
+            <div className="w-12 h-12 rounded-full bg-zinc-700/50 flex items-center justify-center">
+              <Plus className="w-6 h-6 text-zinc-400" />
             </div>
             <div>
               <h3 className="text-lg font-medium text-zinc-100">New Analysis</h3>
@@ -1149,7 +1149,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording }) {
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-cyan-700/50 hover:border-cyan-600 hover:bg-cyan-950/30 text-cyan-400"
+              className="h-8 text-xs border-emerald-700/50 hover:border-emerald-600 hover:bg-emerald-950/30 text-emerald-400"
               onClick={() => {
                 setComparisonKey(Date.now());
                 setView('comparison');

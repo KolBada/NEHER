@@ -664,15 +664,15 @@ export default function FolderComparison({ folder, onBack }) {
                     <tr className="border-b border-zinc-800">
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Recording</th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Date</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-left py-2 px-1.5 font-medium text-emerald-400 bg-emerald-950/30 whitespace-nowrap">
                         <InfoTip text="human Spinal Organoids">hSpO Info</InfoTip>
                       </th>
-                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">
+                      <th className="text-left py-2 px-1.5 font-medium text-emerald-400 bg-emerald-950/30 whitespace-nowrap">
                         <InfoTip text="human Cardiac Organoids">hCO Info</InfoTip>
                       </th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-green-400 bg-green-950/30 whitespace-nowrap">Drug Info</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">Drug Info</th>
+                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
                         Light Stim Info
                       </th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
@@ -733,11 +733,11 @@ export default function FolderComparison({ folder, onBack }) {
                             <div className="text-[10px] text-zinc-500">{rec.filename}</div>
                           </td>
                           <td className="py-2 px-1.5 text-zinc-300">{rec.recording_date || '—'}</td>
-                          <td className="py-2 px-1.5 text-zinc-300 bg-amber-950/5">{hspoDisplay}</td>
-                          <td className="py-2 px-1.5 text-zinc-300 bg-purple-950/5">{hcoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-emerald-950/5">{hspoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-emerald-950/5">{hcoDisplay}</td>
                           <td className="py-2 px-1.5 text-zinc-300">{rec.fusion_date || '—'}</td>
-                          <td className="py-2 px-1.5 text-zinc-300 bg-green-950/5">{drugDisplay}</td>
-                          <td className="py-2 px-1.5 text-zinc-300 bg-cyan-950/5">{lightDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-purple-950/5">{drugDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-amber-950/5">{lightDisplay}</td>
                           <td className="py-2 px-1.5 text-zinc-400 text-[10px] max-w-[150px] truncate">{rec.recording_description || '—'}</td>
                         </tr>
                       );
