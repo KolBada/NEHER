@@ -461,22 +461,6 @@ export default function TraceViewer({
             labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
             formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
-          {/* Threshold line */}
-          {threshold !== null && (
-            <ReferenceLine
-              y={threshold}
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              label={{
-                value: `Threshold: ${threshold.toFixed(2)} mV`,
-                position: 'right',
-                fill: '#f59e0b',
-                fontSize: 9,
-                fontFamily: 'JetBrains Mono',
-              }}
-            />
-          )}
           {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
@@ -505,6 +489,24 @@ export default function TraceViewer({
             isAnimationActive={false}
             activeDot={editMode ? { r: 6, fill: '#c0c0c0', stroke: '#22d3ee', strokeWidth: 2 } : { r: 4, fill: '#c0c0c0', stroke: '#22d3ee', strokeWidth: 1 }}
           />
+          {/* Threshold line - rendered after trace to appear on top */}
+          {threshold !== null && (
+            <ReferenceLine
+              y={threshold}
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              ifOverflow="extendDomain"
+              label={{
+                value: 'Thresh',
+                position: 'right',
+                fill: '#f59e0b',
+                fontSize: 9,
+                fontFamily: 'JetBrains Mono',
+                dy: -8,
+              }}
+            />
+          )}
           {/* Timeline brush/slider - always shows full recording */}
           <Brush
             dataKey="time"
