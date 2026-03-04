@@ -662,7 +662,7 @@ export default function LightPanel({
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
                       style={{ cursor: editMode ? 'crosshair' : 'default' }}
-                      margin={{ bottom: 40 }}
+                      margin={{ bottom: 30 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis 
