@@ -247,7 +247,8 @@ function LightPanel({
   lightHrv, lightHrvDetrended, lightResponse,
   onComputeLightHRV, onComputeLightHRVDetrended, onComputeLightResponse,
   loading, metrics, lightEnabled, onLightEnabledChange,
-  loessFrac, onLoessFracChange
+  loessFrac, onLoessFracChange,
+  selectedDrugs, drugSettings
 }) {
   const [localParams, setLocalParams] = useState(lightParams || {
     startTime: 180,
@@ -314,6 +315,12 @@ function LightPanel({
       max: Math.max(...bfChartData.map(d => d.time))
     };
   }, [bfChartData]);
+
+  // Drug phase region calculation
+  const drugPresent = selectedDrugs?.length > 0;
+  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
+  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  const recordingEndMin = timeBounds.max;
 
   // Zoom handlers
   const handleResetZoom = useCallback(() => setZoomDomain(null), []);
@@ -713,6 +720,17 @@ function LightPanel({
                         labelFormatter={(v) => formatTimeMin(v)}
                         formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                       />
+                      {/* Drug effect region (purple) - only when drug is present */}
+                      {drugPresent && (
+                        <ReferenceArea 
+                          x1={perfStart + perfDelay} 
+                          x2={recordingEndMin + 1} 
+                          fill="#a855f7" 
+                          fillOpacity={0.2} 
+                          stroke="none" 
+                          ifOverflow="extendDomain" 
+                        />
+                      )}
                       {/* Highlight pulse regions - only when light stim is enabled */}
                       {isLightEnabled && displayPulses && displayPulses.map((pulse, i) => (
                         <ReferenceArea

@@ -33,6 +33,11 @@ Build a production-ready web application for electrophysiology analysis of sharp
   - Helper text with tooltip: "Input = Perf. Time (after Perf. Start + Perf. Delay)"
   - Tooltip explains: Perf. Time, Perf. Start, Perf. Delay definitions
   - Drug Readout box widened to 320px for badge visibility
+- ✅ Drug Phase Purple Region Visualization (December 2025):
+  - Extended purple drug-effect region to Trace tab charts (Beat Detector, Beat Frequency)
+  - Extended purple drug-effect region to Light Stim tab chart
+  - Purple region shows from (perfusionStart + perfusionDelay) to end of recording
+  - Only displays when a drug is selected
 
 ## Known Issues / Bugs
 1. **P0 - Section Drag-and-Drop:** Only first 2 of 4 sections can be dragged on home page

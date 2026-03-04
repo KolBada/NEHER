@@ -54,7 +54,7 @@ function formatTimeMin(minutes) {
 }
 
 // Inline BF chart component for the Trace tab
-function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true }) {
+function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true, selectedDrugs, drugSettings }) {
   const containerRef = useRef(null);
   
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
@@ -69,6 +69,12 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
       max: Math.max(...data.map(d => d.time))
     };
   }, [data]);
+
+  // Drug phase region calculation
+  const drugPresent = selectedDrugs?.length > 0;
+  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
+  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  const recordingEndMin = timeBounds.max;
   
   // Filtered data based on zoom
   const filteredData = useMemo(() => {
@@ -226,6 +232,17 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
               labelFormatter={(v) => `${formatTimeMin(v)} min`}
               formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']} />
+            {/* Drug effect region (purple) - only when drug is present */}
+            {drugPresent && (
+              <ReferenceArea 
+                x1={perfStart + perfDelay} 
+                x2={recordingEndMin + 1} 
+                fill="#a855f7" 
+                fillOpacity={0.2} 
+                stroke="none" 
+                ifOverflow="extendDomain" 
+              />
+            )}
             {/* Highlight light pulses */}
             {lightPulses && lightPulses.map((pulse, i) => (
               <ReferenceArea
@@ -1619,6 +1636,8 @@ function App() {
                   invert={detectionParams.invert}
                   zoomDomain={traceZoomDomain}
                   onZoomChange={setTraceZoomDomain}
+                  selectedDrugs={selectedDrugs}
+                  drugSettings={drugSettings}
                 />
                 {/* BF chart shown when metrics exist (kept visible during re-editing as reference) */}
                 {metrics && (
@@ -1629,6 +1648,8 @@ function App() {
                       zoomDomain={traceZoomDomain}
                       onZoomChange={setTraceZoomDomain}
                       isValidated={isValidated}
+                      selectedDrugs={selectedDrugs}
+                      drugSettings={drugSettings}
                     />
                   </div>
                 )}
@@ -1682,6 +1703,8 @@ function App() {
               onLightEnabledChange={handleLightEnabledToggle}
               loessFrac={loessFrac}
               onLoessFracChange={handleLoessFracChange}
+              selectedDrugs={selectedDrugs}
+              drugSettings={drugSettings}
             />
           </TabsContent>
 

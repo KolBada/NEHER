@@ -13,7 +13,9 @@ function TraceViewer({
   threshold, onThresholdChange, signalStats,
   invert = false,
   zoomDomain: externalZoomDomain,
-  onZoomChange: externalOnZoomChange
+  onZoomChange: externalOnZoomChange,
+  selectedDrugs,
+  drugSettings
 }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
@@ -301,6 +303,12 @@ function TraceViewer({
   const isZoomed = zoomDomain !== null;
   const currentThreshold = threshold !== null ? threshold : (signalStats?.mean || 0);
 
+  // Drug phase region calculation
+  const drugPresent = selectedDrugs?.length > 0;
+  const perfStart = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) : 0;
+  const perfDelay = drugPresent ? (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) : 0;
+  const recordingEndMin = timeBounds.max;
+
   const CustomDot = (props) => {
     const { cx, cy, payload } = props;
     if (payload && payload.isBeat && cx !== undefined && cy !== undefined) {
@@ -461,6 +469,17 @@ function TraceViewer({
             labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
             formatter={(v, name) => [Number(v).toFixed(3), name === 'voltage' ? 'mV' : name]}
           />
+          {/* Drug effect region (purple) - only when drug is present */}
+          {drugPresent && (
+            <ReferenceArea 
+              x1={perfStart + perfDelay} 
+              x2={recordingEndMin + 1} 
+              fill="#a855f7" 
+              fillOpacity={0.2} 
+              stroke="none" 
+              ifOverflow="extendDomain" 
+            />
+          )}
           {pulsesMin && pulsesMin.map((pulse, i) => (
             <ReferenceArea
               key={`pulse-${i}`}
