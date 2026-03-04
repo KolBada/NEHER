@@ -213,7 +213,8 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
               domain={zoomDomain || ['dataMin', 'dataMax']}
               allowDataOverflow={true}
               tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
-              tickFormatter={(v) => formatTimeMin(v)} />
+              tickFormatter={(v) => formatTimeMin(v)}
+              label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -35 }} />
             <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
               domain={['auto', 'auto']}
               label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />

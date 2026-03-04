@@ -423,7 +423,7 @@ export default function AnalysisPanel({
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => v.toFixed(1)}
-                  label={{ value: '(min)', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -45 }}
+                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -35 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
@@ -499,7 +499,7 @@ export default function AnalysisPanel({
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => v.toFixed(1)}
-                  label={{ value: '(min)', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -45 }}
+                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -35 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
@@ -824,7 +824,7 @@ export default function AnalysisPanel({
                     <LineChart data={hrvChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis dataKey="minute" tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
-                        label={{ value: '(min)', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -45 }} />
+                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
                       <YAxis tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} width={40} />
                       <RechartsTooltip
                         contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
