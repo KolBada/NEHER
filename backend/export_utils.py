@@ -239,7 +239,7 @@ def create_nature_pdf(request):
             except (ValueError, TypeError):
                 drug_hrv_minute = None
             
-            # Find BF at drug readout minute
+            # Find BF at drug readout minute - check both per_minute_data and hrv_windows
             if drug_bf_minute is not None and request.per_minute_data:
                 for pm in request.per_minute_data:
                     try:
@@ -267,6 +267,28 @@ def create_nature_pdf(request):
                         
                         if w_minute_num == drug_hrv_minute:
                             drug_hrv_data = w
+                            # If BF not found in per_minute_data, get it from HRV window
+                            if drug_bf is None and w.get('mean_bf'):
+                                drug_bf = w.get('mean_bf')
+                            break
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Fallback: if BF still not found but HRV minute matches BF minute, use HRV window's BF
+            if drug_bf is None and drug_bf_minute is not None and request.hrv_windows:
+                for w in request.hrv_windows:
+                    try:
+                        w_minute = w.get('minute')
+                        if w_minute is None:
+                            continue
+                        if isinstance(w_minute, (int, float)):
+                            w_minute_num = int(w_minute)
+                        else:
+                            w_minute_str = str(w_minute)
+                            w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                        
+                        if w_minute_num == drug_bf_minute and w.get('mean_bf'):
+                            drug_bf = w.get('mean_bf')
                             break
                     except (ValueError, TypeError):
                         pass
@@ -350,16 +372,86 @@ def create_nature_pdf(request):
                 # Use drug readout if no baseline
                 drug_bf_minute = request.drug_readout.get('bf_minute')
                 if drug_bf_minute is not None:
-                    for pm in request.per_minute_data:
-                        try:
-                            minute_str = str(pm.get('minute', ''))
-                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(minute_str)
-                            if minute_num == drug_bf_minute:
-                                baseline_bf = pm.get('mean_bf')
-                                norm_source = 'Drug Readout'
-                                break
-                        except (ValueError, TypeError):
-                            pass
+                    try:
+                        drug_bf_minute = int(drug_bf_minute)
+                    except (ValueError, TypeError):
+                        drug_bf_minute = None
+                    
+                    if drug_bf_minute is not None:
+                        for pm in request.per_minute_data:
+                            try:
+                                minute_str = str(pm.get('minute', ''))
+                                minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                                if minute_num == drug_bf_minute:
+                                    baseline_bf = pm.get('mean_bf')
+                                    norm_source = 'Drug Readout'
+                                    break
+                            except (ValueError, TypeError):
+                                pass
+                        
+                        # Fallback: try hrv_windows for BF
+                        if baseline_bf is None and request.hrv_windows:
+                            for w in request.hrv_windows:
+                                try:
+                                    w_minute = w.get('minute')
+                                    if isinstance(w_minute, (int, float)):
+                                        w_minute_num = int(w_minute)
+                                    else:
+                                        w_minute_str = str(w_minute)
+                                        w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                                    
+                                    if w_minute_num == drug_bf_minute and w.get('mean_bf'):
+                                        baseline_bf = w.get('mean_bf')
+                                        norm_source = 'Drug Readout'
+                                        break
+                                except (ValueError, TypeError):
+                                    pass
+            
+            # Fallback to drug_readout_settings
+            if baseline_bf is None and request.drug_readout_settings:
+                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                    try:
+                        perf_start = 0
+                        perf_delay = 0
+                        if request.all_drugs and len(request.all_drugs) > 0:
+                            drug = request.all_drugs[0]
+                            perf_start = drug.get('start', 0) or 0
+                            perf_delay = drug.get('delay', 0) or 0
+                        drug_bf_minute = int(float(settings_bf)) + int(perf_start) + int(perf_delay)
+                        
+                        # Try per_minute_data first
+                        if request.per_minute_data:
+                            for pm in request.per_minute_data:
+                                try:
+                                    minute_str = str(pm.get('minute', ''))
+                                    minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                                    if minute_num == drug_bf_minute:
+                                        baseline_bf = pm.get('mean_bf')
+                                        norm_source = 'Drug Readout'
+                                        break
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        # Fallback to hrv_windows
+                        if baseline_bf is None and request.hrv_windows:
+                            for w in request.hrv_windows:
+                                try:
+                                    w_minute = w.get('minute')
+                                    if isinstance(w_minute, (int, float)):
+                                        w_minute_num = int(w_minute)
+                                    else:
+                                        w_minute_str = str(w_minute)
+                                        w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                                    
+                                    if w_minute_num == drug_bf_minute and w.get('mean_bf'):
+                                        baseline_bf = w.get('mean_bf')
+                                        norm_source = 'Drug Readout'
+                                        break
+                                except (ValueError, TypeError):
+                                    pass
+                    except (ValueError, TypeError):
+                        pass
             
             # Prepare data
             times, bf_values = [], []
@@ -592,10 +684,32 @@ def create_nature_pdf(request):
                         baseline_window = f"{bmin}-{bmin+1}"
                 except (ValueError, TypeError):
                     baseline_window = baseline_range
+            
+            # Get drug readout window from drug_readout or drug_readout_settings
             if request.drug_readout:
                 bf_min = request.drug_readout.get('bf_minute')
                 if bf_min is not None:
-                    drug_window = f"{bf_min}-{bf_min+1}"
+                    try:
+                        bf_min = int(bf_min)
+                        drug_window = f"{bf_min}-{bf_min+1}"
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Fallback to drug_readout_settings if needed
+            if drug_window is None and request.drug_readout_settings:
+                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                    try:
+                        perf_start = 0
+                        perf_delay = 0
+                        if request.all_drugs and len(request.all_drugs) > 0:
+                            drug = request.all_drugs[0]
+                            perf_start = drug.get('start', 0) or 0
+                            perf_delay = drug.get('delay', 0) or 0
+                        bf_min = int(float(settings_bf)) + perf_start + perf_delay
+                        drug_window = f"{bf_min}-{bf_min+1}"
+                    except (ValueError, TypeError):
+                        pass
             
             headers = ['Window (min)', 'Beats', 'Mean BF (bpm)', 'Mean NN (ms)']
             table_data = []
@@ -661,6 +775,25 @@ def create_nature_pdf(request):
                 baseline_minute = request.baseline.get('baseline_hrv_minute', 0)
             if request.drug_readout:
                 drug_minute = request.drug_readout.get('hrv_minute')
+                try:
+                    drug_minute = int(drug_minute) if drug_minute is not None else None
+                except (ValueError, TypeError):
+                    drug_minute = None
+            
+            # Fallback to drug_readout_settings if needed
+            if drug_minute is None and request.drug_readout_settings:
+                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                    try:
+                        perf_start = 0
+                        perf_delay = 0
+                        if request.all_drugs and len(request.all_drugs) > 0:
+                            drug = request.all_drugs[0]
+                            perf_start = drug.get('start', 0) or 0
+                            perf_delay = drug.get('delay', 0) or 0
+                        drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                    except (ValueError, TypeError):
+                        pass
             
             headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF']
             table_data = []
@@ -670,6 +803,16 @@ def create_nature_pdf(request):
                 sdnn = w.get('sdnn')
                 ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
                 minute = w.get('minute', 0)
+                
+                # Convert minute to int for comparison
+                try:
+                    if isinstance(minute, (int, float)):
+                        minute_num = int(minute)
+                    else:
+                        minute_str = str(minute)
+                        minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                except (ValueError, TypeError):
+                    minute_num = None
                 
                 table_data.append([
                     w.get('window', ''),
@@ -682,9 +825,9 @@ def create_nature_pdf(request):
                 ])
                 
                 # Determine row color
-                if baseline_minute is not None and minute == baseline_minute:
+                if baseline_minute is not None and minute_num == baseline_minute:
                     row_colors.append(TINTS['baseline'])
-                elif drug_minute is not None and minute == drug_minute:
+                elif drug_minute is not None and minute_num == drug_minute:
                     row_colors.append(TINTS['drug'])
                 else:
                     row_colors.append(None)
@@ -782,8 +925,9 @@ def create_nature_pdf(request):
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
                 table_data = []
                 
-                # Add ALL stims (including empty ones) - show all 5 stims
-                for i in range(len(per_stim)):
+                # Always show 5 stims before the median
+                num_stims = max(5, len(per_stim))
+                for i in range(num_stims):
                     s = per_stim[i] if i < len(per_stim) else None
                     if s:
                         table_data.append([
