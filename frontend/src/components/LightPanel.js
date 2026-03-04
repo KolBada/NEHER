@@ -689,7 +689,7 @@ function LightPanel({
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                Beat Frequency - bpm vs time
+                Beat Frequency (Filtered) - bpm vs min
                 {isLightEnabled && displayPulses && (
                   <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
                     {displayPulses.length} stims detected

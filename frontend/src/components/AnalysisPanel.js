@@ -125,7 +125,7 @@ function HrvInfoPopover({ metric }) {
 function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
-  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses,
+  drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses, lightEnabled,
   drugReadoutSettings, onDrugReadoutSettingsChange,
   baselineEnabled, onBaselineEnabledChange,
   baselineHrvMinute, onBaselineHrvMinuteChange,
@@ -435,11 +435,11 @@ function AnalysisPanel({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
+                <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
                   {metrics.n_kept} beats
                 </Badge>
-                {/* Light stim badge - amber */}
-                {lightPulses && lightPulses.length > 0 && (
+                {/* Light stim badge - amber - only when light stim is enabled */}
+                {lightEnabled && lightPulses && lightPulses.length > 0 && (
                   <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
                     {lightPulses.length} stims
                   </Badge>
@@ -498,7 +498,8 @@ function AnalysisPanel({
                     ifOverflow="extendDomain" 
                   />
                 ))}
-                {lightPulses && lightPulses.map((pulse, i) => (
+                {/* Light stim highlights - only when light stim is enabled */}
+                {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`bf-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
                     x2={pulse.end_min ?? (pulse.end_sec / 60)}
@@ -539,11 +540,11 @@ function AnalysisPanel({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
+                <Badge variant="outline" className="font-data text-[9px] border-zinc-500 text-zinc-400">
                   {metrics.n_kept} intervals
                 </Badge>
-                {/* Light stim badge - amber */}
-                {lightPulses && lightPulses.length > 0 && (
+                {/* Light stim badge - amber - only when light stim is enabled */}
+                {lightEnabled && lightPulses && lightPulses.length > 0 && (
                   <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
                     {lightPulses.length} stims
                   </Badge>
@@ -602,7 +603,8 @@ function AnalysisPanel({
                     ifOverflow="extendDomain" 
                   />
                 ))}
-                {lightPulses && lightPulses.map((pulse, i) => (
+                {/* Light stim highlights - only when light stim is enabled */}
+                {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                   <ReferenceArea key={`nn-pulse-${i}`}
                     x1={pulse.start_min ?? (pulse.start_sec / 60)}
                     x2={pulse.end_min ?? (pulse.end_sec / 60)}

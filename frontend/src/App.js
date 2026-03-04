@@ -230,7 +230,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm" data-testid="bf-chart">
       <div className="p-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
+          <span className="text-xs text-zinc-400">Beat Frequency (Filtered) - bpm vs min</span>
           {!isValidated && (
             <span className="text-[9px] text-amber-500/70 italic">(previous detection)</span>
           )}
@@ -1736,6 +1736,7 @@ function App() {
               otherDrugs={otherDrugs}
               DRUG_CONFIG={DRUG_CONFIG}
               lightPulses={lightPulses}
+              lightEnabled={lightEnabled}
               drugReadoutSettings={drugReadoutSettings}
               onDrugReadoutSettingsChange={handleDrugReadoutSettingsChange}
             />
