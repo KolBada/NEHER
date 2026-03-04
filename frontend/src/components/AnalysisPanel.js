@@ -839,10 +839,31 @@ function AnalysisPanel({
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* HRV Evolution Charts */}
-          {hrvChartData.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+      {/* Evolution of HRV Metrics */}
+      {hrvChartData.length > 0 && (
+        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+              Evolution of HRV Metrics
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="inline-flex">
+                      <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="w-72 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
+                    <p className="text-zinc-200">Time evolution of HRV metrics computed over 3-minute sliding windows, normalized to 70 bpm.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {[
                 { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.lnRmssd },
                 { key: 'ln_sdnn', label: 'ln(SDNN₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.sdnn },
@@ -866,12 +887,12 @@ function AnalysisPanel({
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Per-minute metrics table */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-6">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             Per-Minute Metrics
