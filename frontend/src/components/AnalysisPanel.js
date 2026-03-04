@@ -563,101 +563,125 @@ export default function AnalysisPanel({
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className={`space-y-2 p-3 rounded-sm border ${baselineEnabled ? 'bg-cyan-950/20 border-cyan-800/50' : 'bg-zinc-900/50 border-zinc-800/50 opacity-60'}`}>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="enable-baseline"
-                  checked={baselineEnabled}
-                  onCheckedChange={onBaselineEnabledChange}
-                  className="h-3 w-3"
-                />
-                <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-bold">Baseline Readout</p>
+            <div className={`p-3 rounded-sm border transition-all duration-200 min-w-[280px] ${
+              baselineEnabled 
+                ? 'bg-cyan-950/20 border-cyan-800/50' 
+                : 'bg-zinc-900/30 border-zinc-800/30 opacity-40'
+            }`}>
+              <div className="flex items-center justify-between mb-3">
+                <p className={`text-[9px] uppercase tracking-wider font-bold ${baselineEnabled ? 'text-cyan-400' : 'text-zinc-600'}`}>
+                  Baseline Readout
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onBaselineEnabledChange(!baselineEnabled)}
+                  className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                    baselineEnabled 
+                      ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/40' 
+                      : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                  }`}
+                >
+                  {baselineEnabled ? 'ON' : 'OFF'}
+                </Button>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className="text-[9px] text-zinc-400">HRV:</Label>
+                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-600'}`}>HRV:</Label>
                   <Input
                     type="number"
                     value={baselineHrvMinute}
                     onChange={(e) => setBaselineHrvMinute(parseInt(e.target.value) || 0)}
-                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
                     disabled={!baselineEnabled}
                   />
-                  <span className="text-[9px] text-zinc-500">min</span>
-                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700 text-cyan-400' : 'border-zinc-700 text-zinc-500'}`}>
-                    uses {baselineHrvMinute}-{baselineHrvMinute + 3}min window
+                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-800 text-zinc-600'}`}>
+                    {baselineHrvMinute}-{baselineHrvMinute + 3}min
                   </Badge>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <Label className="text-[9px] text-zinc-400">BF:</Label>
+                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-600'}`}>BF:</Label>
                   <Input
                     type="number"
                     value={baselineBfMinute}
                     onChange={(e) => setBaselineBfMinute(parseInt(e.target.value) || 1)}
-                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
                     disabled={!baselineEnabled}
                   />
-                  <span className="text-[9px] text-zinc-500">min</span>
-                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700 text-cyan-400' : 'border-zinc-700 text-zinc-500'}`}>
-                    uses {baselineBfMinute}-{baselineBfMinute + 1}min
+                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-800 text-zinc-600'}`}>
+                    {baselineBfMinute}-{baselineBfMinute + 1}min
                   </Badge>
                 </div>
               </div>
             </div>
 
-            <Separator orientation="vertical" className="h-20 bg-zinc-800 hidden md:block" />
-
-            {/* Optional readout controls - for drugs */}
-            <div className="space-y-2 p-3 bg-purple-950/20 rounded-sm border border-purple-800/50">
-              <p className="text-[9px] text-purple-400 uppercase tracking-wider font-bold">Drug Readout</p>
-              <p className="text-[8px] text-zinc-500 mb-1">
+            {/* Drug readout controls */}
+            <div className={`p-3 rounded-sm border transition-all duration-200 min-w-[280px] ${
+              (enableHrvReadout || enableBfReadout) 
+                ? 'bg-purple-950/20 border-purple-800/50' 
+                : 'bg-zinc-900/30 border-zinc-800/30 opacity-40'
+            }`}>
+              <div className="flex items-center justify-between mb-3">
+                <p className={`text-[9px] uppercase tracking-wider font-bold ${(enableHrvReadout || enableBfReadout) ? 'text-purple-400' : 'text-zinc-600'}`}>
+                  Drug Readout
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newState = !(enableHrvReadout || enableBfReadout);
+                    setEnableHrvReadout(newState);
+                    setEnableBfReadout(newState);
+                  }}
+                  className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                    (enableHrvReadout || enableBfReadout) 
+                      ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/40' 
+                      : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                  }`}
+                >
+                  {(enableHrvReadout || enableBfReadout) ? 'ON' : 'OFF'}
+                </Button>
+              </div>
+              <p className={`text-[8px] mb-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
                 Time = Perf.Time + Perf.Start + Perf.Delay
               </p>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="enable-hrv-readout"
-                  checked={enableHrvReadout}
-                  onCheckedChange={setEnableHrvReadout}
-                  className="h-3 w-3"
-                />
-                <Label htmlFor="enable-hrv-readout" className="text-[9px] text-zinc-500">HRV base min:</Label>
-                <Input
-                  type="number"
-                  value={hrvReadoutMinute}
-                  onChange={(e) => setHrvReadoutMinute(e.target.value)}
-                  disabled={!enableHrvReadout}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
-                  placeholder="12"
-                />
-                {enableHrvReadout && selectedDrugs?.length > 0 && hrvReadoutMinute && (
-                  <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
-                    → {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="enable-bf-readout"
-                  checked={enableBfReadout}
-                  onCheckedChange={setEnableBfReadout}
-                  className="h-3 w-3"
-                />
-                <Label htmlFor="enable-bf-readout" className="text-[9px] text-zinc-500">BF base min:</Label>
-                <Input
-                  type="number"
-                  value={bfReadoutMinute}
-                  onChange={(e) => setBfReadoutMinute(e.target.value)}
-                  disabled={!enableBfReadout}
-                  className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
-                  placeholder="14"
-                />
-                {enableBfReadout && selectedDrugs?.length > 0 && bfReadoutMinute && (
-                  <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
-                    → {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
-                  </Badge>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-600'}`}>HRV:</Label>
+                  <Input
+                    type="number"
+                    value={hrvReadoutMinute}
+                    onChange={(e) => setHrvReadoutMinute(e.target.value)}
+                    disabled={!(enableHrvReadout || enableBfReadout)}
+                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                    placeholder="12"
+                  />
+                  <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && hrvReadoutMinute && (
+                    <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
+                      → {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-600'}`}>BF:</Label>
+                  <Input
+                    type="number"
+                    value={bfReadoutMinute}
+                    onChange={(e) => setBfReadoutMinute(e.target.value)}
+                    disabled={!(enableHrvReadout || enableBfReadout)}
+                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                    placeholder="14"
+                  />
+                  <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                  {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && bfReadoutMinute && (
+                    <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
+                      → {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}min
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -665,7 +689,7 @@ export default function AnalysisPanel({
               data-testid="compute-hrv-btn"
               className="h-8 text-xs rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-200 self-end"
               onClick={() => onComputeHRV(
-                enableHrvReadout && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null,
+                (enableHrvReadout || enableBfReadout) && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null,
                 { 
                   hrvMinute: baselineHrvMinute, 
                   bfMinute: baselineBfMinute 

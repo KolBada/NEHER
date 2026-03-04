@@ -1120,6 +1120,17 @@ function App() {
             
             <Separator orientation="vertical" className="h-4 bg-zinc-700" />
             
+            {/* Light indicator - show if light is enabled */}
+            {lightEnabled && (
+              <Badge 
+                variant="outline" 
+                className="h-6 text-[10px] border-yellow-700 bg-yellow-950/30 text-yellow-400 px-2"
+              >
+                <Zap className="w-3 h-3 mr-1" /> 
+                Light
+              </Badge>
+            )}
+            
             {/* Drug selection */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
@@ -1140,7 +1151,7 @@ function App() {
                   {Object.entries(DRUG_CONFIG).map(([key, config]) => (
                     <DropdownMenuItem
                       key={key}
-                      className={`text-xs cursor-pointer ${selectedDrugs.includes(key) ? 'text-cyan-400' : 'text-zinc-300'}`}
+                      className={`text-xs cursor-pointer ${selectedDrugs.includes(key) ? 'text-purple-400' : 'text-zinc-300'}`}
                       onClick={() => toggleDrug(key)}
                     >
                       {selectedDrugs.includes(key) && <Check className="w-3 h-3 mr-2" />}
@@ -1158,14 +1169,14 @@ function App() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Show selected drugs as small badges */}
+              {/* Show selected drugs as small badges - purple color */}
               {selectedDrugs.map(drugKey => {
                 const config = DRUG_CONFIG[drugKey];
                 return (
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className="h-6 text-[10px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 px-2"
+                    className="h-6 text-[10px] border-purple-800 bg-purple-950/30 text-purple-400 cursor-pointer hover:bg-purple-950/50 px-2"
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
@@ -1177,7 +1188,7 @@ function App() {
                 <Badge 
                   key={drug.id} 
                   variant="outline" 
-                  className="h-6 text-[10px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 px-2"
+                  className="h-6 text-[10px] border-purple-800 bg-purple-950/30 text-purple-400 cursor-pointer hover:bg-purple-950/50 px-2"
                   onClick={() => removeOtherDrug(drug.id)}
                 >
                   {drug.name || 'Other'}

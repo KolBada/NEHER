@@ -379,6 +379,14 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Save Recording modal: Increased spacing between sample boxes (`mb-3`) and made "Sample X" title text bigger (`text-xs font-medium`)
   - Export panel: Removed horizontal divider line between format selection and export buttons
   - Main layout: Reduced spacing between header bar and tabs (`pt-2`)
+- [x] **Readout Controls Redesign (Dec 4, 2025):**
+  - Made Baseline and Drug Readout boxes same width (`min-w-[280px]`)
+  - Replaced separate HRV/BF checkboxes with single ON/OFF toggle button per box
+  - Styled toggle as rounded pill button with color-coded active/inactive states
+  - When disabled, entire box now fades to 40% opacity for clear visual distinction
+- [x] **Header Bar Updates (Dec 4, 2025):**
+  - Added yellow "Light" badge (with Zap icon) before "Add Drug" when light stim is enabled
+  - Changed drug badge colors from cyan to purple for consistency with Drug Readout styling
 
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**
