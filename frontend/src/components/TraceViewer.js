@@ -426,7 +426,7 @@ export default function TraceViewer({
         <ComposedChart
           data={chartData}
           onClick={handleChartClick}
-          margin={{ top: 10, right: 20, left: 10, bottom: 25 }}
+          margin={{ top: 10, right: 20, left: 10, bottom: 35 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
           <XAxis

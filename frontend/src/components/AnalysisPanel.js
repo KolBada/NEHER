@@ -417,8 +417,8 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={filteredBfData} margin={{ bottom: 20 }}>
+            <ResponsiveContainer width="100%" height={270}>
+              <LineChart data={filteredBfData} margin={{ bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
@@ -493,8 +493,8 @@ export default function AnalysisPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={filteredNnData} margin={{ bottom: 20 }}>
+            <ResponsiveContainer width="100%" height={270}>
+              <LineChart data={filteredNnData} margin={{ bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}

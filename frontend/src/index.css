@@ -108,23 +108,32 @@
 
 /* Recharts Brush Customization */
 .recharts-brush {
-    margin-top: 8px;
+    margin-top: 12px;
 }
 
-/* Brush slider (traveller) - white border */
+/* Brush slider (traveller handles) - white border */
 .recharts-brush-traveller rect {
     stroke: #ffffff !important;
     stroke-width: 1px;
 }
 
-/* Brush text (values on sides) - smaller */
+/* Brush text (values on sides) - larger and more visible */
 .recharts-brush-texts text {
-    font-size: 7px !important;
-    fill: #71717a !important;
+    font-size: 9px !important;
+    fill: #a1a1aa !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Brush slide area - the selected region */
+/* Brush slide area - the selected region border */
 .recharts-brush-slide {
-    stroke: #ffffff;
-    stroke-width: 1px;
+    stroke: #ffffff !important;
+    stroke-width: 1px !important;
+    fill: transparent !important;
+}
+
+/* Override the mini chart line preview in brush to be white/grey */
+.recharts-brush path.recharts-line-curve,
+.recharts-brush .recharts-layer path {
+    stroke: #ffffff !important;
+    stroke-width: 1px !important;
 }

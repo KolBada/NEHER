@@ -400,8 +400,10 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
 - [x] **Brush/Slider Styling (Dec 4, 2025):**
   - All brush borders: grey (#52525b) matching zoom buttons
   - Slider handles: white border for differentiation
-  - Brush text: smaller font size (7px)
-  - Added margin between charts and brushes to prevent "min" overlap
+  - Selection area lines (top/bottom): white (#ffffff)
+  - Mini chart preview in brush: white (#ffffff)
+  - Brush text: increased to 9px, color #a1a1aa
+  - Added margin (30-35px bottom) between charts and brushes to prevent "min" overlap
 
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**

@@ -657,12 +657,12 @@ export default function LightPanel({
                 )}
                 
                 <div ref={chartContainerRef}>
-                  <ResponsiveContainer width="100%" height={265}>
+                  <ResponsiveContainer width="100%" height={275}>
                     <LineChart 
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
                       style={{ cursor: editMode ? 'crosshair' : 'default' }}
-                      margin={{ bottom: 20 }}
+                      margin={{ bottom: 30 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis 
