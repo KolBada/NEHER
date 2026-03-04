@@ -398,6 +398,18 @@ function AnalysisPanel({
                 <Badge variant="outline" className="font-data text-[9px] border-zinc-700 text-zinc-500">
                   {metrics.n_kept} beats
                 </Badge>
+                {/* Light stim badge - amber */}
+                {lightPulses && lightPulses.length > 0 && (
+                  <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+                    {lightPulses.length} stims
+                  </Badge>
+                )}
+                {/* Drug badge - purple */}
+                {selectedDrugs?.length > 0 && (
+                  <Badge variant="outline" className="font-data text-[9px] border-purple-700 text-purple-400">
+                    {DRUG_CONFIG?.[selectedDrugs[0]]?.label || selectedDrugs[0]} perfusion
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
