@@ -625,7 +625,9 @@ def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_
 
 
 def auto_detect_all_pulses(beat_times_min_list, bf_filtered_list, expected_n_pulses=5, 
-                           pulse_duration_sec=20, min_isi_sec=8, max_isi_sec=70):
+                           pulse_duration_sec=20, min_isi_sec=8, max_isi_sec=70,
+                           first_pulse_start_sec=None, pulse_interval_sec=None,
+                           search_window_sec=3.0):
     """
     Automatically detect all light stimulation pulses from BF pattern.
     
@@ -633,6 +635,10 @@ def auto_detect_all_pulses(beat_times_min_list, bf_filtered_list, expected_n_pul
     - Sharp increase at stim onset
     - Elevated BF during stimulation
     - Return toward baseline after stim
+    
+    If first_pulse_start_sec and pulse_interval_sec are provided, the algorithm
+    uses a guided approach: for each expected pulse, it searches within a 
+    ±search_window_sec window around the expected time.
     
     Returns list of detected pulse boundaries or None if detection fails.
     """
@@ -670,6 +676,87 @@ def auto_detect_all_pulses(beat_times_min_list, bf_filtered_list, expected_n_pul
     # Also look for sustained elevation
     elevation_threshold = baseline_bf + baseline_std * 1.5
     elevated = bf_smooth > elevation_threshold
+    
+    # =================================================================
+    # GUIDED DETECTION: If we have first_pulse_start and interval, use them
+    # =================================================================
+    if first_pulse_start_sec is not None and pulse_interval_sec is not None and pulse_interval_sec > 0:
+        pulses = []
+        
+        for pulse_idx in range(expected_n_pulses):
+            # Calculate expected pulse time
+            expected_start_sec = first_pulse_start_sec + pulse_idx * pulse_interval_sec
+            expected_start_min = expected_start_sec / 60.0
+            
+            # Define search window (±search_window_sec around expected time)
+            window_start_min = (expected_start_sec - search_window_sec) / 60.0
+            window_end_min = (expected_start_sec + search_window_sec) / 60.0
+            
+            # Find beats within this window
+            window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
+            window_indices = np.where(window_mask)[0]
+            
+            if len(window_indices) == 0:
+                # No data in window, use expected time
+                pulses.append({
+                    'index': pulse_idx,
+                    'start_sec': expected_start_sec,
+                    'end_sec': expected_start_sec + pulse_duration_sec,
+                    'start_min': expected_start_min,
+                    'end_min': (expected_start_sec + pulse_duration_sec) / 60.0,
+                    'auto_detected': True,
+                    'confidence': 'low'
+                })
+                continue
+            
+            # Look for the best onset within the window
+            # Priority: significant jump + subsequent elevation
+            best_onset_idx = None
+            best_score = -np.inf
+            
+            for idx in window_indices:
+                score = 0
+                
+                # Score based on jump magnitude
+                if significant_jumps[idx]:
+                    score += bf_diff[idx] / (baseline_std + 1e-6) * 2
+                
+                # Score based on subsequent elevation
+                check_end = min(idx + 20, len(bt_valid))
+                elevation_count = np.sum(elevated[idx:check_end])
+                score += elevation_count * 0.5
+                
+                # Score based on proximity to expected time (closer = better)
+                time_diff = abs(bt_valid[idx] * 60.0 - expected_start_sec)
+                proximity_score = max(0, (search_window_sec - time_diff) / search_window_sec)
+                score += proximity_score * 3  # Weight proximity heavily
+                
+                if score > best_score:
+                    best_score = score
+                    best_onset_idx = idx
+            
+            if best_onset_idx is not None:
+                detected_start_sec = float(bt_valid[best_onset_idx] * 60.0)
+                confidence = 'high' if best_score > 3 else 'medium'
+            else:
+                detected_start_sec = expected_start_sec
+                confidence = 'low'
+            
+            pulses.append({
+                'index': pulse_idx,
+                'start_sec': detected_start_sec,
+                'end_sec': detected_start_sec + pulse_duration_sec,
+                'start_min': detected_start_sec / 60.0,
+                'end_min': (detected_start_sec + pulse_duration_sec) / 60.0,
+                'auto_detected': True,
+                'confidence': confidence
+            })
+        
+        return pulses
+    
+    # =================================================================
+    # UNGUIDED DETECTION: Original algorithm when no interval is provided
+    # =================================================================
     
     # Find onset candidates: where jump occurs AND elevation starts
     onset_candidates = []
@@ -1054,6 +1141,134 @@ def generate_pulses(start_sec, duration_sec, interval_pattern, n_pulses):
             current_start += intervals[i]
         else:
             current_start += intervals[-1] if intervals else 60
+    
+    return pulses
+
+
+def generate_pulses_guided(first_start_sec, duration_sec, interval_pattern, n_pulses,
+                           beat_times_min_list, bf_filtered_list, search_window_sec=3.0):
+    """
+    Generate pulse timing with guided detection.
+    
+    For each expected pulse based on first_start_sec and interval_pattern,
+    search within ±search_window_sec around the expected time to find the
+    actual pulse onset based on BF pattern analysis.
+    
+    Args:
+        first_start_sec: Detected/set start time of first pulse
+        duration_sec: Duration of each pulse
+        interval_pattern: 'decreasing' or number for fixed interval
+        n_pulses: Number of pulses
+        beat_times_min_list: Beat times in minutes
+        bf_filtered_list: Filtered BF values
+        search_window_sec: Window size (±) to search around expected time
+    
+    Returns:
+        List of pulse dictionaries with refined start times
+    """
+    # Determine intervals
+    if interval_pattern == 'decreasing':
+        intervals = [60, 30, 20, 10]
+    else:
+        try:
+            intervals = [int(interval_pattern)] * (n_pulses - 1)
+        except (ValueError, TypeError):
+            intervals = [60, 30, 20, 10]
+    
+    # Convert to numpy arrays
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    # Remove NaN
+    valid_mask = ~np.isnan(bf)
+    bt_valid = bt[valid_mask]
+    bf_valid = bf[valid_mask]
+    
+    if len(bt_valid) < 20:
+        # Fall back to simple generation
+        return generate_pulses(first_start_sec, duration_sec, interval_pattern, n_pulses)
+    
+    # Compute baseline from first portion
+    baseline_end_min = min(bt_valid[-1] * 0.2, 2.0)
+    baseline_mask = bt_valid < baseline_end_min
+    if np.sum(baseline_mask) < 5:
+        baseline_mask = bt_valid < bt_valid[len(bt_valid) // 5]
+    
+    baseline_bf = float(np.median(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 0 else float(np.median(bf_valid))
+    baseline_std = float(np.std(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 2 else 5.0
+    
+    # Smooth BF
+    kernel = min(7, max(3, len(bf_valid) // 50))
+    bf_smooth = np.convolve(bf_valid, np.ones(kernel) / kernel, mode='same')
+    
+    # Derivative for detecting jumps
+    bf_diff = np.diff(bf_smooth)
+    bf_diff = np.append(bf_diff, 0)
+    
+    # Thresholds
+    jump_threshold = baseline_std * 1.2
+    elevation_threshold = baseline_bf + baseline_std * 1.0
+    
+    pulses = []
+    current_expected_start = first_start_sec
+    
+    for i in range(n_pulses):
+        # Define search window
+        window_start_min = (current_expected_start - search_window_sec) / 60.0
+        window_end_min = (current_expected_start + search_window_sec) / 60.0
+        
+        # Find beats in window
+        window_mask = (bt_valid >= window_start_min) & (bt_valid <= window_end_min)
+        window_indices = np.where(window_mask)[0]
+        
+        detected_start = current_expected_start  # Default to expected
+        best_score = -np.inf
+        
+        if len(window_indices) > 0:
+            # Score each point in window
+            for idx in window_indices:
+                score = 0
+                
+                # Score for positive derivative (BF jump)
+                if bf_diff[idx] > jump_threshold:
+                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 2.0
+                elif bf_diff[idx] > 0:
+                    score += (bf_diff[idx] / (baseline_std + 1e-6)) * 0.5
+                
+                # Score for being above baseline
+                if bf_smooth[idx] > elevation_threshold:
+                    score += 1.0
+                
+                # Score for subsequent elevation (next few beats elevated)
+                check_end = min(idx + 15, len(bt_valid))
+                if check_end > idx:
+                    elevated_count = np.sum(bf_smooth[idx:check_end] > elevation_threshold)
+                    score += elevated_count * 0.2
+                
+                # Proximity bonus (prefer times closer to expected)
+                time_diff_sec = abs(bt_valid[idx] * 60.0 - current_expected_start)
+                proximity_score = max(0, (search_window_sec - time_diff_sec) / search_window_sec) * 2.0
+                score += proximity_score
+                
+                if score > best_score:
+                    best_score = score
+                    detected_start = float(bt_valid[idx] * 60.0)
+        
+        pulses.append({
+            'index': i,
+            'start_sec': detected_start,
+            'end_sec': detected_start + duration_sec,
+            'start_min': detected_start / 60.0,
+            'end_min': (detected_start + duration_sec) / 60.0,
+            'expected_start_sec': current_expected_start,
+            'detection_score': float(best_score) if best_score > -np.inf else 0.0
+        })
+        
+        # Move to next expected pulse
+        if i < len(intervals):
+            current_expected_start += intervals[i]
+        else:
+            current_expected_start += intervals[-1] if intervals else 60
     
     return pulses
 

@@ -566,11 +566,22 @@ async def light_detect_endpoint(request: LightDetectRequest):
         except (ValueError, TypeError):
             interval_arg = None
 
-    pulses = analysis.generate_pulses(
-        start_sec, request.pulse_duration_sec,
-        interval_pattern=interval_arg if interval_arg else 'decreasing', 
-        n_pulses=request.n_pulses
-    )
+    # Use guided detection if auto-detect is on and we have BF data
+    if request.auto_detect and request.beat_times_min and request.bf_filtered:
+        pulses = analysis.generate_pulses_guided(
+            start_sec, request.pulse_duration_sec,
+            interval_pattern=interval_arg if interval_arg else 'decreasing',
+            n_pulses=request.n_pulses,
+            beat_times_min_list=request.beat_times_min,
+            bf_filtered_list=request.bf_filtered,
+            search_window_sec=3.0  # Look ±3 seconds around expected time
+        )
+    else:
+        pulses = analysis.generate_pulses(
+            start_sec, request.pulse_duration_sec,
+            interval_pattern=interval_arg if interval_arg else 'decreasing', 
+            n_pulses=request.n_pulses
+        )
     return {'pulses': pulses, 'detected_start_sec': start_sec}
 
 
@@ -579,6 +590,9 @@ class LightAutoDetectAllRequest(BaseModel):
     bf_filtered: List[float]
     expected_n_pulses: int = 5
     pulse_duration_sec: float = 20.0
+    first_pulse_start_sec: Optional[float] = None  # Start time of first pulse (for guided detection)
+    pulse_interval_sec: Optional[float] = None      # Interval between pulses (for guided detection)
+    search_window_sec: float = 3.0                  # Search window around expected times
 
 
 @api_router.post("/light-detect-all")
@@ -586,12 +600,18 @@ async def light_detect_all_endpoint(request: LightAutoDetectAllRequest):
     """
     Fully automatic detection of all light stimulation pulses.
     Uses BF pattern analysis to find characteristic stim responses.
+    
+    If first_pulse_start_sec and pulse_interval_sec are provided, uses guided
+    detection: searches within ±search_window_sec around each expected pulse time.
     """
     pulses = analysis.auto_detect_all_pulses(
         request.beat_times_min, 
         request.bf_filtered,
         expected_n_pulses=request.expected_n_pulses,
-        pulse_duration_sec=request.pulse_duration_sec
+        pulse_duration_sec=request.pulse_duration_sec,
+        first_pulse_start_sec=request.first_pulse_start_sec,
+        pulse_interval_sec=request.pulse_interval_sec,
+        search_window_sec=request.search_window_sec
     )
     
     if pulses:
