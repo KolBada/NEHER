@@ -506,6 +506,11 @@ def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_
     - Peak (almost instant or in a couple of seconds)
     - Slowdown that is still above the baseline
     - Drop to baseline or lower
+    
+    Enhanced algorithm:
+    1. Compute rolling std to detect variability changes
+    2. Look for sharp BF increase (derivative spike)
+    3. Combine multiple methods for robustness
     """
     bt = np.array(beat_times_min_list, dtype=np.float64)
     bf = np.array(bf_filtered_list, dtype=np.float64)
@@ -522,48 +527,187 @@ def auto_detect_light_start(beat_times_min_list, bf_filtered_list, approx_start_
     baseline_mask = (bt_valid >= approx_min - search_min - 2.0) & (bt_valid < approx_min - search_min)
     if np.sum(baseline_mask) < 3:
         baseline_mask = (bt_valid >= approx_min - 3.0) & (bt_valid < approx_min - 1.0)
+    
     baseline_bf = float(np.median(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 0 else float(np.median(bf_valid))
+    baseline_std = float(np.std(bf_valid[baseline_mask])) if np.sum(baseline_mask) > 2 else 5.0
 
-    # Search window
-    mask = (bt_valid >= approx_min - search_min) & (bt_valid <= approx_min + search_min * 2)
+    # Search window - extend forward more to catch delayed responses
+    mask = (bt_valid >= approx_min - search_min) & (bt_valid <= approx_min + search_min * 3)
     if np.sum(mask) < 5:
         return approx_start_sec
 
     bf_window = bf_valid[mask]
     bt_window = bt_valid[mask]
 
-    # Smooth BF 
-    kernel = min(5, len(bf_window))
-    if kernel < 2:
-        return approx_start_sec
+    # Smooth BF with adaptive kernel
+    kernel = min(7, max(3, len(bf_window) // 20))
     bf_smooth = np.convolve(bf_window, np.ones(kernel) / kernel, mode='same')
     
-    # Find points significantly above baseline (potential peak response)
-    threshold = baseline_bf * 1.15  # 15% above baseline
-    above_baseline = bf_smooth > threshold
+    # Method 1: Find sharp BF increase (derivative analysis)
+    bf_diff = np.diff(bf_smooth)
     
-    if not np.any(above_baseline):
-        # Fallback: find largest positive jump
-        bf_diff = np.diff(bf_smooth)
-        if len(bf_diff) > 0:
-            onset_idx = int(np.argmax(bf_diff))
-            return float(bt_window[onset_idx] * 60.0)
+    # Method 2: Find points significantly above baseline
+    threshold_high = baseline_bf + 2 * baseline_std  # 2 std above
+    threshold_mild = baseline_bf * 1.10  # 10% above baseline
+    
+    # Method 3: Detect variance increase (rolling std)
+    window_size = min(10, len(bf_window) // 5)
+    if window_size >= 3:
+        rolling_std = np.array([np.std(bf_window[max(0, i-window_size):i+1]) 
+                                for i in range(len(bf_window))])
+        std_increase = rolling_std > baseline_std * 1.5
+    else:
+        std_increase = np.zeros(len(bf_window), dtype=bool)
+    
+    # Find candidate onset points
+    candidates = []
+    
+    # Candidate from derivative spike
+    if len(bf_diff) > 0:
+        # Find largest positive jumps
+        sorted_indices = np.argsort(bf_diff)[::-1]
+        for idx in sorted_indices[:5]:  # Top 5 jumps
+            if bf_diff[idx] > baseline_std * 0.5:  # Significant jump
+                candidates.append(('diff', float(bt_window[idx] * 60.0), bf_diff[idx]))
+    
+    # Candidate from threshold crossing
+    above_high = bf_smooth > threshold_high
+    if np.any(above_high):
+        first_above = np.argmax(above_high)
+        # Look back for the actual onset
+        search_back = min(first_above, 15)
+        if search_back > 0:
+            for i in range(first_above - search_back, first_above):
+                if bf_smooth[i] < threshold_mild and bf_smooth[min(i+3, len(bf_smooth)-1)] > threshold_mild:
+                    candidates.append(('threshold', float(bt_window[i] * 60.0), bf_smooth[first_above] - baseline_bf))
+                    break
+        if not any(c[0] == 'threshold' for c in candidates):
+            candidates.append(('threshold', float(bt_window[first_above] * 60.0), bf_smooth[first_above] - baseline_bf))
+    
+    # Candidate from variance increase
+    if np.any(std_increase):
+        first_var = np.argmax(std_increase)
+        candidates.append(('variance', float(bt_window[first_var] * 60.0), rolling_std[first_var] if window_size >= 3 else 0))
+    
+    if not candidates:
+        # Fallback to original simple detection
+        above_baseline = bf_smooth > baseline_bf * 1.15
+        if np.any(above_baseline):
+            first_above = np.argmax(above_baseline)
+            return float(bt_window[first_above] * 60.0)
         return approx_start_sec
     
-    # Find the first index where BF rises above threshold
-    first_above = np.argmax(above_baseline)
+    # Score and select best candidate
+    # Prefer candidates closer to approx_start_sec with strong signal
+    best_candidate = None
+    best_score = -float('inf')
     
-    # Look for the actual onset: where the rapid increase starts
-    search_back = min(first_above, 10)
-    if search_back > 0:
-        segment = bf_smooth[first_above - search_back:first_above + 1]
-        segment_diff = np.diff(segment)
-        if len(segment_diff) > 0:
-            rise_idx = np.argmax(segment_diff)
-            onset_idx = first_above - search_back + rise_idx
-            return float(bt_window[onset_idx] * 60.0)
+    for method, time_sec, strength in candidates:
+        # Distance penalty (prefer times near approx_start_sec)
+        dist = abs(time_sec - approx_start_sec)
+        dist_penalty = -dist / 10.0
+        
+        # Strength bonus
+        if method == 'diff':
+            strength_bonus = min(strength / baseline_std, 3.0)
+        elif method == 'threshold':
+            strength_bonus = min(strength / baseline_std, 3.0)
+        else:
+            strength_bonus = min(strength / baseline_std, 2.0)
+        
+        score = dist_penalty + strength_bonus
+        
+        if score > best_score:
+            best_score = score
+            best_candidate = time_sec
     
-    return float(bt_window[first_above] * 60.0)
+    return best_candidate if best_candidate is not None else approx_start_sec
+
+
+def auto_detect_all_pulses(beat_times_min_list, bf_filtered_list, expected_n_pulses=5, 
+                           pulse_duration_sec=20, min_isi_sec=8, max_isi_sec=70):
+    """
+    Automatically detect all light stimulation pulses from BF pattern.
+    
+    This function looks for characteristic BF response patterns:
+    - Sharp increase at stim onset
+    - Elevated BF during stimulation
+    - Return toward baseline after stim
+    
+    Returns list of detected pulse boundaries or None if detection fails.
+    """
+    bt = np.array(beat_times_min_list, dtype=np.float64)
+    bf = np.array(bf_filtered_list, dtype=np.float64)
+    
+    valid_mask = ~np.isnan(bf)
+    bt_valid = bt[valid_mask]
+    bf_valid = bf[valid_mask]
+    
+    if len(bt_valid) < 50:
+        return None
+    
+    # Compute baseline from first portion of recording
+    baseline_end_min = min(bt_valid[-1] * 0.3, 3.0)  # First 30% or 3 min
+    baseline_mask = bt_valid < baseline_end_min
+    if np.sum(baseline_mask) < 10:
+        baseline_mask = bt_valid < bt_valid[len(bt_valid) // 4]
+    
+    baseline_bf = float(np.median(bf_valid[baseline_mask]))
+    baseline_std = float(np.std(bf_valid[baseline_mask]))
+    
+    # Smooth the BF signal
+    kernel = min(7, max(3, len(bf_valid) // 50))
+    bf_smooth = np.convolve(bf_valid, np.ones(kernel) / kernel, mode='same')
+    
+    # Compute derivative to find sharp increases
+    bf_diff = np.diff(bf_smooth)
+    bf_diff = np.append(bf_diff, 0)  # Pad to same length
+    
+    # Find significant positive jumps
+    jump_threshold = baseline_std * 1.5
+    significant_jumps = bf_diff > jump_threshold
+    
+    # Also look for sustained elevation
+    elevation_threshold = baseline_bf + baseline_std * 1.5
+    elevated = bf_smooth > elevation_threshold
+    
+    # Find onset candidates: where jump occurs AND elevation starts
+    onset_candidates = []
+    
+    i = 0
+    while i < len(bt_valid):
+        if significant_jumps[i]:
+            # Found a jump - check if followed by elevation
+            check_end = min(i + 20, len(bt_valid))
+            if np.any(elevated[i:check_end]):
+                # Find the actual onset (first point before jump)
+                onset_idx = max(0, i - 2)
+                onset_time_sec = float(bt_valid[onset_idx] * 60.0)
+                
+                # Check if this onset is far enough from previous ones
+                if not onset_candidates or (onset_time_sec - onset_candidates[-1]) > min_isi_sec:
+                    onset_candidates.append(onset_time_sec)
+                    # Skip ahead to avoid detecting same pulse multiple times
+                    i += int(pulse_duration_sec * 0.5 / (bt_valid[1] - bt_valid[0]) / 60.0) if len(bt_valid) > 1 else 10
+                    continue
+        i += 1
+    
+    # If we found roughly the expected number, use them
+    if len(onset_candidates) >= expected_n_pulses - 1:
+        # Build pulse list
+        pulses = []
+        for idx, start_sec in enumerate(onset_candidates[:expected_n_pulses]):
+            pulses.append({
+                'index': idx,
+                'start_sec': start_sec,
+                'end_sec': start_sec + pulse_duration_sec,
+                'start_min': start_sec / 60.0,
+                'end_min': (start_sec + pulse_duration_sec) / 60.0,
+                'auto_detected': True
+            })
+        return pulses
+    
+    return None
 
 
 def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):

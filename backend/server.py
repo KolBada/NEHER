@@ -574,6 +574,32 @@ async def light_detect_endpoint(request: LightDetectRequest):
     return {'pulses': pulses, 'detected_start_sec': start_sec}
 
 
+class LightAutoDetectAllRequest(BaseModel):
+    beat_times_min: List[float]
+    bf_filtered: List[float]
+    expected_n_pulses: int = 5
+    pulse_duration_sec: float = 20.0
+
+
+@api_router.post("/light-detect-all")
+async def light_detect_all_endpoint(request: LightAutoDetectAllRequest):
+    """
+    Fully automatic detection of all light stimulation pulses.
+    Uses BF pattern analysis to find characteristic stim responses.
+    """
+    pulses = analysis.auto_detect_all_pulses(
+        request.beat_times_min, 
+        request.bf_filtered,
+        expected_n_pulses=request.expected_n_pulses,
+        pulse_duration_sec=request.pulse_duration_sec
+    )
+    
+    if pulses:
+        return {'success': True, 'pulses': pulses, 'n_detected': len(pulses)}
+    else:
+        return {'success': False, 'pulses': None, 'message': 'Could not auto-detect pulses. Please set manually.'}
+
+
 @api_router.post("/light-hrv")
 async def light_hrv_endpoint(request: LightHRVRequest):
     hrv_result = analysis.compute_light_hrv(

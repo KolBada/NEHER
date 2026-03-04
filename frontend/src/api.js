@@ -151,6 +151,8 @@ const api = {
 
   lightDetect: (data) => axios.post(`${API_URL}/light-detect`, data),
 
+  lightDetectAll: (data) => axios.post(`${API_URL}/light-detect-all`, data),
+
   lightHrv: (data) => axios.post(`${API_URL}/light-hrv`, data),
 
   lightHrvDetrended: (data) => axios.post(`${API_URL}/light-hrv-detrended`, data),
