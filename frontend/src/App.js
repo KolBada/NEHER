@@ -50,7 +50,7 @@ function formatTimeMin(minutes) {
 }
 
 // Inline BF chart component for the Trace tab
-function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange }) {
+function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated = true }) {
   const containerRef = useRef(null);
   
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
@@ -185,7 +185,12 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange }) {
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm" data-testid="bf-chart">
       <div className="p-2 flex items-center justify-between">
-        <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-400">Beat Frequency (filtered) &mdash; bpm vs time</span>
+          {!isValidated && (
+            <span className="text-[9px] text-amber-500/70 italic">(previous detection)</span>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomIn} title="Zoom In">
             <Plus className="w-4 h-4" />
@@ -439,12 +444,15 @@ function App() {
   }, [beats, filterParams]);
 
   // Unvalidate - allow re-editing beats
+  // Keep metrics/BF chart visible as reference until new detection
   const handleUnvalidate = useCallback(() => {
     setIsValidated(false);
-    setMetrics(null);
+    // Don't clear metrics - keep BF chart visible as previous reference
+    // setMetrics(null);
     setHrvResults(null);
     setPerMinuteData(null);
-    setLightPulses(null);
+    // Keep light pulses visible for reference
+    // setLightPulses(null);
     setLightHrv(null);
     setLightHrvDetrended(null);
     setLightResponse(null);
@@ -1369,13 +1377,14 @@ function App() {
                   zoomDomain={traceZoomDomain}
                   onZoomChange={setTraceZoomDomain}
                 />
-                {/* BF chart shown after validation */}
-                {isValidated && metrics && (
+                {/* BF chart shown when metrics exist (kept visible during re-editing as reference) */}
+                {metrics && (
                   <BFChart 
                     metrics={metrics} 
                     lightPulses={lightPulses} 
                     zoomDomain={traceZoomDomain}
                     onZoomChange={setTraceZoomDomain}
+                    isValidated={isValidated}
                   />
                 )}
               </div>
