@@ -238,9 +238,9 @@ export default function SaveRecording({
               const hasTransfection = expandedTransfection[idx] || info.transfection?.technique;
               
               return (
-                <div key={idx} className="p-3 bg-zinc-900/50 rounded-sm border border-zinc-800 space-y-2">
+                <div key={idx} className="p-3 bg-zinc-900/50 rounded-sm border border-zinc-800 space-y-2 mb-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-zinc-500">Sample {organoidInfo.length > 1 ? idx + 1 : ''}</span>
+                    <span className="text-xs font-medium text-zinc-400">Sample {organoidInfo.length > 1 ? idx + 1 : '1'}</span>
                     {organoidInfo.length > 1 && (
                       <Button
                         variant="ghost"

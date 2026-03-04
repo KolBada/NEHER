@@ -1304,7 +1304,7 @@ function App() {
       )}
 
       {/* Main content */}
-      <main className="p-4 md:p-6">
+      <main className="p-4 md:p-6 pt-2">
         <Tabs defaultValue="trace" className="w-full">
           <TabsList className="bg-zinc-900/50 border border-zinc-800 rounded-sm h-9 mb-4"
                     data-testid="main-tabs">

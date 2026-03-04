@@ -374,7 +374,13 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Metadata exported to PDF and Excel summary sheets
   - Metadata saved with recording state for persistence
 
-### P0 - Completed (Mar 2, 2026 - Latest)
+### P0 - Completed (Dec 4, 2025 - Latest)
+- [x] **UI Refinements (Dec 4, 2025):**
+  - Save Recording modal: Increased spacing between sample boxes (`mb-3`) and made "Sample X" title text bigger (`text-xs font-medium`)
+  - Export panel: Removed horizontal divider line between format selection and export buttons
+  - Main layout: Reduced spacing between header bar and tabs (`pt-2`)
+
+### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**
   - **Spontaneous Activity Normalization Section:**
     - Expandable section below main table, collapsed by default

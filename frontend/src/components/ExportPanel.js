@@ -139,8 +139,6 @@ export default function ExportPanel({
             </div>
           </div>
 
-          <Separator className="bg-zinc-800" />
-
           {/* Export buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Button
