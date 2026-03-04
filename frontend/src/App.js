@@ -13,11 +13,14 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle
+} from '@/components/ui/dialog';
 
 import FileUpload from '@/components/FileUpload';
 import TraceViewer from '@/components/TraceViewer';
@@ -27,6 +30,7 @@ import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import HomeBrowser from '@/components/HomeBrowser';
 import SaveRecording from '@/components/SaveRecording';
+import FolderComparison from '@/components/FolderComparison';
 import api, { downloadBlob } from '@/api';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -259,8 +263,10 @@ function App() {
   // Saved recording info (when editing an existing recording)
   const [savedRecordingId, setSavedRecordingId] = useState(null);
   const [savedFolderId, setSavedFolderId] = useState(null);
+  const [savedFolderName, setSavedFolderName] = useState(null);
   const [hasExported, setHasExported] = useState(false);
   const [isModified, setIsModified] = useState(false);  // Track if recording has been modified since last save
+  const [showComparisonDialog, setShowComparisonDialog] = useState(false);
 
   // Session
   const [sessionId, setSessionId] = useState(null);
@@ -865,6 +871,8 @@ function App() {
     setLightEnabled(true);
     setSavedRecordingId(null);
     setSavedFolderId(null);
+    setSavedFolderName(null);
+    setShowComparisonDialog(false);
     setHasExported(false);
     setIsModified(false);
   }, []);
@@ -876,13 +884,26 @@ function App() {
   }, [handleReset]);
 
   // Handle opening a saved recording
-  const handleOpenRecording = useCallback((recordingData) => {
+  const handleOpenRecording = useCallback(async (recordingData) => {
     const state = recordingData.analysis_state;
     
     // Set recording identifiers
     setSavedRecordingId(recordingData.id);
     setSavedFolderId(recordingData.folder_id);
     setIsModified(false);  // Reset modified state when opening a saved recording
+    
+    // Fetch folder name if folder_id exists
+    if (recordingData.folder_id) {
+      try {
+        const { data: folderData } = await api.getFolder(recordingData.folder_id);
+        setSavedFolderName(folderData.name);
+      } catch (err) {
+        console.error('Failed to fetch folder name:', err);
+        setSavedFolderName(null);
+      }
+    } else {
+      setSavedFolderName(null);
+    }
     
     // Restore session info
     setRecordingName(state.recordingName || recordingData.name);
@@ -1060,12 +1081,22 @@ function App() {
   ]);
 
   // Handle save complete
-  const handleSaveComplete = useCallback((folderId, recordingId) => {
+  const handleSaveComplete = useCallback(async (folderId, recordingId) => {
     setSavedFolderId(folderId);
     if (recordingId) {
       setSavedRecordingId(recordingId);
     }
     setIsModified(false);  // Reset modified state after save
+    
+    // Fetch folder name if folderId exists
+    if (folderId) {
+      try {
+        const { data: folderData } = await api.getFolder(folderId);
+        setSavedFolderName(folderData.name);
+      } catch (err) {
+        console.error('Failed to fetch folder name:', err);
+      }
+    }
   }, []);
 
   // --- RENDER ---
@@ -1256,15 +1287,37 @@ function App() {
               ))}
             </div>
           </div>
-          <Button
-            data-testid="reset-btn"
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
-            onClick={handleGoHome}
-          >
-            <RotateCcw className="w-3 h-3" /> New Session
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Go to Folder button - only shown if recording is in a folder */}
+            {savedFolderId && (
+              <Button
+                data-testid="go-to-folder-btn"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
+                onClick={() => {
+                  handleReset();
+                  setAppView('home');
+                  // The HomeBrowser will need to handle navigation to the folder
+                  // For now, just go home - the folder will be accessible from there
+                }}
+              >
+                <FolderOpen className="w-3 h-3" /> Go to Folder
+              </Button>
+            )}
+            {/* Comparison button - only shown if recording is in a folder */}
+            {savedFolderId && (
+              <Button
+                data-testid="comparison-btn"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30 rounded-sm gap-1"
+                onClick={() => setShowComparisonDialog(true)}
+              >
+                <BarChart3 className="w-3 h-3" /> Comparison
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -1530,6 +1583,27 @@ function App() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Folder Comparison Dialog */}
+      <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden bg-zinc-950 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-200 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-emerald-500" />
+              Folder Comparison: {savedFolderName || 'Loading...'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[calc(85vh-100px)]">
+            {savedFolderId && (
+              <FolderComparison 
+                folder={{ id: savedFolderId, name: savedFolderName || '' }}
+                onBack={() => setShowComparisonDialog(false)}
+                embedded={true}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

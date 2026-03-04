@@ -36,7 +36,7 @@ function InfoTip({ text, children }) {
   );
 }
 
-export default function FolderComparison({ folder, onBack }) {
+export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
@@ -239,36 +239,66 @@ export default function FolderComparison({ folder, onBack }) {
   const { summary, recordings, spontaneous_averages, light_hra_averages, light_hrv_averages } = comparisonData || {};
 
   return (
-    <div className="p-6 max-w-7xl mx-auto" data-testid="folder-comparison">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={onBack}
-            data-testid="back-to-folder-btn"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <div>
-            <h2 className="text-lg font-medium text-zinc-100">{folder.name} - Comparison</h2>
-            <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
+    <div className={embedded ? "p-2" : "p-6 max-w-7xl mx-auto"} data-testid="folder-comparison">
+      {/* Header - only show when not embedded */}
+      {!embedded && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={onBack}
+              data-testid="back-to-folder-btn"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <div>
+              <h2 className="text-lg font-medium text-zinc-100">{folder.name} - Comparison</h2>
+              <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportXlsx}
+              disabled={exporting || !recordings?.length}
+              className="h-8 text-xs border-zinc-700"
+              data-testid="export-xlsx-btn"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={exporting || !recordings?.length}
+              className="h-8 text-xs border-zinc-700"
+              data-testid="export-pdf-btn"
+            >
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
+              PDF
+            </Button>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
+      )}
+
+      {/* Export buttons for embedded mode - smaller and inline */}
+      {embedded && (
+        <div className="flex items-center justify-end gap-2 mb-4">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportXlsx}
             disabled={exporting || !recordings?.length}
-            className="h-8 text-xs border-zinc-700"
+            className="h-7 text-xs border-zinc-700"
             data-testid="export-xlsx-btn"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
+            <FileSpreadsheet className="w-3 h-3 mr-1" />
             Excel
           </Button>
           <Button
@@ -276,14 +306,14 @@ export default function FolderComparison({ folder, onBack }) {
             size="sm"
             onClick={handleExportPdf}
             disabled={exporting || !recordings?.length}
-            className="h-8 text-xs border-zinc-700"
+            className="h-7 text-xs border-zinc-700"
             data-testid="export-pdf-btn"
           >
-            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            <FileText className="w-3 h-3 mr-1" />
             PDF
           </Button>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
