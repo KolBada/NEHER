@@ -11,14 +11,19 @@ export default function TraceViewer({
   traceData, beats, onAddBeat, onRemoveBeat,
   lightPulses, isValidated,
   threshold, onThresholdChange, signalStats,
-  invert = false
+  invert = false,
+  zoomDomain: externalZoomDomain,
+  onZoomChange: externalOnZoomChange
 }) {
   const [editMode, setEditMode] = useState(false);
   const [selectedBeatIdx, setSelectedBeatIdx] = useState(null);
   const containerRef = useRef(null);
   
-  // Zoom state - time domain
-  const [zoomDomain, setZoomDomain] = useState(null);
+  // Use external zoom state if provided, otherwise use internal
+  const [internalZoomDomain, setInternalZoomDomain] = useState(null);
+  const zoomDomain = externalZoomDomain !== undefined ? externalZoomDomain : internalZoomDomain;
+  const setZoomDomain = externalOnZoomChange || setInternalZoomDomain;
+  
   const [isDraggingThreshold, setIsDraggingThreshold] = useState(false);
 
   // Get min/max time from data

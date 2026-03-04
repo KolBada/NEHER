@@ -50,8 +50,7 @@ function formatTimeMin(minutes) {
 }
 
 // Inline BF chart component for the Trace tab
-function BFChart({ metrics, lightPulses }) {
-  const [zoomDomain, setZoomDomain] = useState(null);
+function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange }) {
   const containerRef = useRef(null);
   
   const data = metrics.filtered_beat_times_min.map((t, i) => ({
@@ -112,19 +111,19 @@ function BFChart({ metrics, lightPulses }) {
       }
       
       if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
-        setZoomDomain(null);
+        onZoomChange(null);
       } else {
-        setZoomDomain([newMin, newMax]);
+        onZoomChange([newMin, newMax]);
       }
     };
     
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [data, zoomDomain, timeBounds]);
+  }, [data, zoomDomain, timeBounds, onZoomChange]);
 
   const handleResetZoom = useCallback(() => {
-    setZoomDomain(null);
-  }, []);
+    onZoomChange(null);
+  }, [onZoomChange]);
 
   // Zoom in/out handlers
   const handleZoomIn = useCallback(() => {
@@ -135,8 +134,8 @@ function BFChart({ metrics, lightPulses }) {
     const center = (currentMin + currentMax) / 2;
     const newMin = Math.max(timeBounds.min, center - newRange / 2);
     const newMax = Math.min(timeBounds.max, center + newRange / 2);
-    setZoomDomain([newMin, newMax]);
-  }, [zoomDomain, timeBounds]);
+    onZoomChange([newMin, newMax]);
+  }, [zoomDomain, timeBounds, onZoomChange]);
 
   const handleZoomOut = useCallback(() => {
     if (!zoomDomain) return;
@@ -148,11 +147,11 @@ function BFChart({ metrics, lightPulses }) {
     if (newMin < timeBounds.min) { newMin = timeBounds.min; newMax = newMin + newRange; }
     if (newMax > timeBounds.max) { newMax = timeBounds.max; newMin = newMax - newRange; }
     if (newRange >= (timeBounds.max - timeBounds.min) * 0.99) {
-      setZoomDomain(null);
+      onZoomChange(null);
     } else {
-      setZoomDomain([newMin, newMax]);
+      onZoomChange([newMin, newMax]);
     }
-  }, [zoomDomain, timeBounds]);
+  }, [zoomDomain, timeBounds, onZoomChange]);
 
   // Handle brush change for navigation
   const handleBrushChange = useCallback((brushArea) => {
@@ -160,10 +159,10 @@ function BFChart({ metrics, lightPulses }) {
       const startTime = data[brushArea.startIndex]?.time;
       const endTime = data[brushArea.endIndex]?.time;
       if (startTime !== undefined && endTime !== undefined) {
-        setZoomDomain([startTime, endTime]);
+        onZoomChange([startTime, endTime]);
       }
     }
-  }, [data]);
+  }, [data, onZoomChange]);
 
   // Calculate brush indices from zoom domain
   const brushIndices = useMemo(() => {
@@ -309,6 +308,9 @@ function App() {
   const [lightHrv, setLightHrv] = useState(null);
   const [lightHrvDetrended, setLightHrvDetrended] = useState(null);
   const [lightResponse, setLightResponse] = useState(null);
+
+  // Shared zoom state for trace section (TraceViewer + BFChart)
+  const [traceZoomDomain, setTraceZoomDomain] = useState(null);
 
   // Loading
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -1370,10 +1372,17 @@ function App() {
                   onThresholdChange={(v) => setDetectionParams(p => ({ ...p, threshold: v }))}
                   signalStats={signalStats}
                   invert={detectionParams.invert}
+                  zoomDomain={traceZoomDomain}
+                  onZoomChange={setTraceZoomDomain}
                 />
                 {/* BF chart shown after validation */}
                 {isValidated && metrics && (
-                  <BFChart metrics={metrics} lightPulses={lightPulses} />
+                  <BFChart 
+                    metrics={metrics} 
+                    lightPulses={lightPulses} 
+                    zoomDomain={traceZoomDomain}
+                    onZoomChange={setTraceZoomDomain}
+                  />
                 )}
               </div>
             </div>
