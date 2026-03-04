@@ -631,7 +631,7 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {/* Sections with drop zones */}
             {sections.map((section, index) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -639,18 +639,19 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
               const isBeingDragged = draggedSection?.id === section.id;
               
               return (
-                <div key={section.id}>
+                <div key={section.id} className="relative">
                   {/* Drop zone BEFORE this section (only show when dragging) */}
                   {isDragging && !isBeingDragged && (
                     <div 
                       onDragOver={(e) => handleDropZoneDragOver(e, index)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, index)}
-                      className={`h-6 -my-2 mx-2 rounded transition-all ${
+                      className={`absolute -top-2 left-0 right-0 h-4 rounded transition-all ${
                         dropTargetIndex === index 
-                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-[72px]' 
+                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
                           : 'hover:bg-zinc-700/30'
                       }`}
+                      style={{ zIndex: 20 }}
                     />
                   )}
                   
@@ -664,9 +665,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                       onDragStart={(e) => handleSectionDragStart(e, section)}
                       onDragEnd={handleSectionDragEnd}
                       data-testid={`section-header-${section.id}`}
-                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing p-2 -m-2 rounded-sm transition-colors hover:bg-zinc-800/30 relative z-10"
+                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing py-2 px-1 rounded-sm transition-colors hover:bg-zinc-800/30 relative"
+                      style={{ zIndex: 10 }}
                     >
-                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0 pointer-events-none" />
+                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
                       <div
                         draggable="false"
                         onClick={(e) => { e.stopPropagation(); handleToggleSection(section); }}
@@ -786,11 +788,12 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                       onDragOver={(e) => handleDropZoneDragOver(e, sections.length)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, sections.length)}
-                      className={`h-6 mt-2 mx-2 rounded transition-all ${
+                      className={`h-4 mt-3 rounded transition-all ${
                         dropTargetIndex === sections.length 
-                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-[72px]' 
+                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
                           : 'hover:bg-zinc-700/30'
                       }`}
+                      style={{ zIndex: 20 }}
                     />
                   )}
                 </div>

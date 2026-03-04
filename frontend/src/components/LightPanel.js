@@ -1484,6 +1484,9 @@ function LightPanel({
                         <SelectItem value="0.25">25%</SelectItem>
                         <SelectItem value="0.3">30%</SelectItem>
                         <SelectItem value="0.35">35%</SelectItem>
+                        <SelectItem value="0.4">40%</SelectItem>
+                        <SelectItem value="0.45">45%</SelectItem>
+                        <SelectItem value="0.5">50%</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
