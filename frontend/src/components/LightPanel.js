@@ -642,82 +642,80 @@ function LightPanel({
   return (
     <div className="space-y-4" data-testid="light-panel">
       {/* Enable/Disable Light Stim */}
-      {!isLightEnabled ? (
+      {/* Light Stimulation Analysis Header */}
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+        <CardContent className="py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
+              <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-[10px] text-zinc-500">
+                {isLightEnabled ? 'Enabled' : 'Disabled'}
+              </Label>
+              <Switch
+                data-testid="light-enabled-switch"
+                checked={isLightEnabled}
+                onCheckedChange={onLightEnabledChange}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* BF Chart - Always visible */}
+      {metrics && (
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-zinc-600" />
-                <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-zinc-500">Disabled</Label>
-                <Switch
-                  data-testid="light-enabled-switch"
-                  checked={isLightEnabled}
-                  onCheckedChange={onLightEnabledChange}
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-center h-20 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-sm">
-              Light stimulation analysis is disabled. Enable it above to continue.
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* BF Chart with Pulse Regions */}
-          {metrics && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    Beat Frequency - bpm vs time
-                    {displayPulses && (
-                      <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
-                        {displayPulses.length} stims detected
-                      </Badge>
-                    )}
-                    {pulsesModified && (
-                      <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
-                        Modified
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
-                      <Plus className="w-3 h-3 text-zinc-500" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
-                      <Minus className="w-3 h-3 text-zinc-500" />
-                    </Button>
-                    {isZoomed && (
-                      <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
-                        <RotateCcw className="w-3 h-3 mr-1" />Reset
-                      </Button>
-                    )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2">
-                {/* Edit mode indicator */}
-                {editMode && selectedPulseIdx !== null && (
-                  <div className="mb-2 p-2 bg-yellow-950/30 border border-yellow-700/50 rounded-sm">
-                    <p className="text-[10px] text-yellow-400 text-center">
-                      Click on the chart to set the <strong>{editMode === 'start' ? 'START' : 'END'}</strong> of Stim {selectedPulseIdx + 1}
-                    </p>
-                  </div>
+                Beat Frequency - bpm vs time
+                {isLightEnabled && displayPulses && (
+                  <Badge variant="outline" className="font-data text-[9px] border-yellow-700 text-yellow-400">
+                    {displayPulses.length} stims detected
+                  </Badge>
                 )}
-                
-                <div ref={chartContainerRef}>
-                  <ResponsiveContainer width="100%" height={275}>
-                    <LineChart 
-                      data={bfChartData}
-                      onClick={editMode ? handleChartClick : undefined}
-                      style={{ cursor: editMode ? 'crosshair' : 'default' }}
-                      margin={{ top: 10, right: 35, left: 15, bottom: 35 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                {isLightEnabled && pulsesModified && (
+                  <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
+                    Modified
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
+                  <Plus className="w-3 h-3 text-zinc-500" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
+                  <Minus className="w-3 h-3 text-zinc-500" />
+                </Button>
+                {isZoomed && (
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                    <RotateCcw className="w-3 h-3 mr-1" />Reset
+                  </Button>
+                )}
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            {/* Edit mode indicator */}
+            {isLightEnabled && editMode && selectedPulseIdx !== null && (
+              <div className="mb-2 p-2 bg-yellow-950/30 border border-yellow-700/50 rounded-sm">
+                <p className="text-[10px] text-yellow-400 text-center">
+                  Click on the chart to set the <strong>{editMode === 'start' ? 'START' : 'END'}</strong> of Stim {selectedPulseIdx + 1}
+                </p>
+              </div>
+            )}
+            
+            <div ref={chartContainerRef}>
+              <ResponsiveContainer width="100%" height={275}>
+                <LineChart 
+                  data={bfChartData}
+                  onClick={isLightEnabled && editMode ? handleChartClick : undefined}
+                  style={{ cursor: isLightEnabled && editMode ? 'crosshair' : 'default' }}
+                  margin={{ top: 10, right: 35, left: 15, bottom: 35 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis 
                         dataKey="time" 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
@@ -940,26 +938,16 @@ function LightPanel({
             </Card>
           )}
 
-          {/* Light Stimulation Analysis */}
-          <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center justify-between" style={{ fontFamily: 'Manrope' }}>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-400" />
-                  Light Stimulation Analysis
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-zinc-500">Enabled</Label>
-                  <Switch
-                    data-testid="light-enabled-switch-main"
-                    checked={isLightEnabled}
-                    onCheckedChange={onLightEnabledChange}
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          {/* Rest of Light Stim content - only show when enabled */}
+          {isLightEnabled && (
+            <>
+              {/* Light Stimulation Configuration */}
+              <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs text-zinc-400">Configuration</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-zinc-500">Approx. Start (s)</Label>
                   <Input
@@ -1623,8 +1611,8 @@ function LightPanel({
               </CardContent>
             </Card>
           )}
-        </>
-      )}
+            </>
+          )}
     </div>
   );
 }

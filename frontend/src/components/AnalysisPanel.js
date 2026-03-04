@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Brush, ReferenceArea
 } from 'recharts';
-import { Loader2, Info, RotateCcw, Plus, Minus } from 'lucide-react';
+import { Loader2, Info, RotateCcw, Plus, Minus, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -525,11 +525,12 @@ function AnalysisPanel({
         </Card>
       </div>
 
-      {/* Spontaneous Activity Analysis with Readout Controls */}
+      {/* Spontaneous Activity Analysis Header */}
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-            Spontaneous Activity Analysis (BF & HRV)
+        <CardContent className="py-3">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-zinc-200">Spontaneous Activity Analysis (BF & HRV)</span>
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -553,9 +554,13 @@ function AnalysisPanel({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Spontaneous Activity Controls */}
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+        <CardContent className="pt-4">
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
