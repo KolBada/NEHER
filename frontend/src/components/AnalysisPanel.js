@@ -628,7 +628,7 @@ function AnalysisPanel({
             </div>
 
             {/* Drug readout controls */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[320px] ${
+            <div className={`p-3 rounded-sm border transition-all duration-200 w-[300px] ${
               (enableHrvReadout || enableBfReadout) 
                 ? 'bg-purple-950/20 border-purple-800/50' 
                 : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
@@ -678,7 +678,7 @@ function AnalysisPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-20 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV (Perf.T):</Label>
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                   <Input
                     type="number"
                     value={hrvReadoutMinute}
@@ -689,13 +689,13 @@ function AnalysisPanel({
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                   {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && String(hrvReadoutMinute).trim() !== '' && (
-                    <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
-                      → {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}-{parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) + 3}min
-                    </Badge>
+                    <span className="text-[8px] text-purple-400/80">
+                      Recording Time: {parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}-{parseInt(hrvReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) + 3}min
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-20 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF (Perf.T):</Label>
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                   <Input
                     type="number"
                     value={bfReadoutMinute}
@@ -706,27 +706,32 @@ function AnalysisPanel({
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                   {(enableHrvReadout || enableBfReadout) && selectedDrugs?.length > 0 && String(bfReadoutMinute).trim() !== '' && (
-                    <Badge variant="outline" className="text-[8px] border-purple-700/50 text-purple-400/80">
-                      → {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}-{parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) + 1}min
-                    </Badge>
+                    <span className="text-[8px] text-purple-400/80">
+                      Recording Time: {parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3)}-{parseInt(bfReadoutMinute || 0) + (drugSettings?.[selectedDrugs[0]]?.perfusionStart ?? 3) + (drugSettings?.[selectedDrugs[0]]?.perfusionTime ?? 3) + 1}min
+                    </span>
                   )}
                 </div>
-                <div className={`text-[8px] mt-2 flex items-center gap-1 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                  <span>Input = Perf. Time (after Perf. Start + Perf. Delay)</span>
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-[10px] bg-zinc-900 border-zinc-700 z-50 text-zinc-100 p-2">
-                        <p><strong>Perf. Time:</strong> Time for drug to make effect</p>
-                        <p><strong>Perf. Start:</strong> When you introduce the drug in the system</p>
-                        <p><strong>Perf. Delay:</strong> Time for drug to reach the organoid/cell from when you start adding it</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                <div className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                  <div className="flex items-center gap-1">
+                    <span>Input = Perf. Time</span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span>Measure Time = Perf. Start + Perf. Delay + Perf. Time</span>
+                    <TooltipProvider delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="inline-flex">
+                            <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-[10px] bg-zinc-900 border-zinc-700 z-50 text-zinc-100 p-2">
+                          <p><strong>Perf. Start:</strong> When you introduce the drug in the system</p>
+                          <p><strong>Perf. Delay:</strong> Time for drug to reach the organoid/cell from when you start adding it</p>
+                          <p><strong>Perf. Time:</strong> Time for drug to make effect</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
               </div>
             </div>
@@ -789,14 +794,14 @@ function AnalysisPanel({
 
             {/* Drug readout - same size as baseline when enabled */}
             {(hrvReadout?.data || bfReadout?.data) && (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-4">
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] uppercase tracking-wider font-bold text-purple-500">
                     Drug Readout Metrics
                   </p>
                   {selectedDrugs?.length > 0 && (
                     <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
-                      Perf.Time + Perf.Start + Perf.Delay
+                      Perf. Start + Perf. Delay + Perf. Time
                     </Badge>
                   )}
                 </div>
