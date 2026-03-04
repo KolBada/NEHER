@@ -309,6 +309,51 @@ function App() {
     setFilterParams(newParams);
   }, []);
 
+  // Wrapper functions for metadata changes to mark as modified
+  const handleRecordingDateChange = useCallback((value) => {
+    setIsModified(true);
+    setRecordingDate(value);
+  }, []);
+
+  const handleOrganoidInfoChange = useCallback((value) => {
+    setIsModified(true);
+    setOrganoidInfo(value);
+  }, []);
+
+  const handleFusionDateChange = useCallback((value) => {
+    setIsModified(true);
+    setFusionDate(value);
+  }, []);
+
+  const handleRecordingDescriptionChange = useCallback((value) => {
+    setIsModified(true);
+    setRecordingDescription(value);
+  }, []);
+
+  // Wrapper for baseline toggle
+  const handleBaselineToggle = useCallback((value) => {
+    setIsModified(true);
+    setBaselineEnabled(value);
+  }, []);
+
+  // Wrapper for drug readout settings
+  const handleDrugReadoutSettingsChange = useCallback((newSettings) => {
+    setIsModified(true);
+    setDrugReadoutSettings(newSettings);
+  }, []);
+
+  // Wrapper for light enabled toggle
+  const handleLightEnabledToggle = useCallback((value) => {
+    setIsModified(true);
+    setLightEnabled(value);
+  }, []);
+
+  // Wrapper for light params change
+  const handleLightParamsChange = useCallback((newParams) => {
+    setIsModified(true);
+    setLightParams(newParams);
+  }, []);
+
   // Validation
   const [isValidated, setIsValidated] = useState(false);
   const [metrics, setMetrics] = useState(null);
@@ -1517,7 +1562,7 @@ function App() {
               perMinuteData={perMinuteData}
               onComputeHRV={handleComputeHRV}
               baselineEnabled={baselineEnabled}
-              onBaselineEnabledChange={setBaselineEnabled}
+              onBaselineEnabledChange={handleBaselineToggle}
               analysisLoading={analysisLoading}
               filterSettings={filterParams}
               hasDrug={hasDrug}
@@ -1527,7 +1572,7 @@ function App() {
               DRUG_CONFIG={DRUG_CONFIG}
               lightPulses={lightPulses}
               drugReadoutSettings={drugReadoutSettings}
-              onDrugReadoutSettingsChange={setDrugReadoutSettings}
+              onDrugReadoutSettingsChange={handleDrugReadoutSettingsChange}
             />
           </TabsContent>
 
@@ -1535,7 +1580,7 @@ function App() {
           <TabsContent value="light">
             <LightPanel
               lightParams={lightParams}
-              onParamsChange={setLightParams}
+              onParamsChange={handleLightParamsChange}
               pulses={lightPulses}
               onDetectPulses={handleDetectPulses}
               onPulsesUpdate={handlePulsesUpdate}
@@ -1548,7 +1593,7 @@ function App() {
               loading={analysisLoading}
               metrics={metrics}
               lightEnabled={lightEnabled}
-              onLightEnabledChange={setLightEnabled}
+              onLightEnabledChange={handleLightEnabledToggle}
             />
           </TabsContent>
 
@@ -1580,13 +1625,13 @@ function App() {
                 existingRecordingId={savedRecordingId}
                 existingFolderId={savedFolderId}
                 recordingDate={recordingDate}
-                setRecordingDate={setRecordingDate}
+                setRecordingDate={handleRecordingDateChange}
                 organoidInfo={organoidInfo}
-                setOrganoidInfo={setOrganoidInfo}
+                setOrganoidInfo={handleOrganoidInfoChange}
                 fusionDate={fusionDate}
-                setFusionDate={setFusionDate}
+                setFusionDate={handleFusionDateChange}
                 recordingDescription={recordingDescription}
-                setRecordingDescription={setRecordingDescription}
+                setRecordingDescription={handleRecordingDescriptionChange}
               />
             </div>
           </TabsContent>
