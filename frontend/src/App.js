@@ -1091,10 +1091,10 @@ function App() {
             >
               <Home className="w-4 h-4 text-zinc-400" />
             </Button>
-            <Activity className="w-5 h-5 text-cyan-400" />
-            <h1 className="text-sm font-semibold tracking-tight" style={{ fontFamily: 'Manrope' }}>
+            <h1 className="text-base font-semibold tracking-tight" style={{ fontFamily: 'Manrope' }}>
               NEHER
             </h1>
+            <Separator orientation="vertical" className="h-5 bg-zinc-700" />
             {savedRecordingId && (
               <Badge variant="outline" className="h-6 text-[10px] border-emerald-700/50 text-emerald-400 px-2">
                 Saved
