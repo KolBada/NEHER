@@ -365,14 +365,11 @@ export default function AnalysisPanel({
         <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
           {metrics.n_total} total beats
         </Badge>
-        <Badge variant="outline" className="font-data text-[10px] border-emerald-800 text-emerald-400">
-          {metrics.n_kept} kept
-        </Badge>
         <Badge variant="outline" className="font-data text-[10px] border-red-800 text-red-400">
           {metrics.n_removed} removed
         </Badge>
         {filterInfo && (
-          <Badge variant="outline" className="font-data text-[10px] border-cyan-800 text-cyan-400">
+          <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
             Filter: {filterInfo.lower_pct || filterInfo.lowerPct}%-{filterInfo.upper_pct || filterInfo.upperPct}%
           </Badge>
         )}

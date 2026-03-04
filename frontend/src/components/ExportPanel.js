@@ -29,7 +29,7 @@ export default function ExportPanel({
               {recordingName && (
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-zinc-500">Recording:</span>
-                  <Badge variant="outline" className="font-data text-[10px] border-cyan-800 text-cyan-400">
+                  <Badge variant="outline" className="font-data text-[10px] border-emerald-800 text-emerald-400">
                     {recordingName}
                   </Badge>
                 </div>
@@ -184,7 +184,7 @@ export default function ExportPanel({
                   {recordingName && (
                     <div className="flex justify-between">
                       <span>Recording Name</span>
-                      <span className="text-cyan-400">{recordingName}</span>
+                      <span className="text-emerald-400">{recordingName}</span>
                     </div>
                   )}
                   {drugUsed && (

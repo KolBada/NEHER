@@ -226,7 +226,7 @@ export default function SaveRecording({
                 variant="ghost"
                 size="sm"
                 onClick={addOrganoidEntry}
-                className="h-6 px-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                className="h-6 px-2 text-[10px] text-emerald-400 hover:text-emerald-300"
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Add Sample
