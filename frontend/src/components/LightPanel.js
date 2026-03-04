@@ -642,28 +642,6 @@ function LightPanel({
   return (
     <div className="space-y-4" data-testid="light-panel">
       {/* Enable/Disable Light Stim */}
-      {/* Light Stimulation Analysis Header */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
-              <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-[10px] text-zinc-500">
-                {isLightEnabled ? 'Enabled' : 'Disabled'}
-              </Label>
-              <Switch
-                data-testid="light-enabled-switch"
-                checked={isLightEnabled}
-                onCheckedChange={onLightEnabledChange}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* BF Chart - Always visible */}
       {metrics && (
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
@@ -735,8 +713,8 @@ function LightPanel({
                         labelFormatter={(v) => formatTimeMin(v)}
                         formatter={(v) => [`${Number(v).toFixed(1)} bpm`, 'BF']}
                       />
-                      {/* Highlight pulse regions */}
-                      {displayPulses && displayPulses.map((pulse, i) => (
+                      {/* Highlight pulse regions - only when light stim is enabled */}
+                      {isLightEnabled && displayPulses && displayPulses.map((pulse, i) => (
                         <ReferenceArea
                           key={`pulse-${i}`}
                           x1={pulse.start_min}
@@ -937,6 +915,28 @@ function LightPanel({
               </CardContent>
             </Card>
           )}
+
+          {/* Light Stimulation Analysis Header - Below the chart */}
+          <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
+                  <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[10px] text-zinc-500">
+                    {isLightEnabled ? 'Enabled' : 'Disabled'}
+                  </Label>
+                  <Switch
+                    data-testid="light-enabled-switch"
+                    checked={isLightEnabled}
+                    onCheckedChange={onLightEnabledChange}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Rest of Light Stim content - only show when enabled */}
           {isLightEnabled && (
