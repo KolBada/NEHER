@@ -113,7 +113,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
           Overlay: Raw NN₇₀ (cyan) vs Detrended Residual (green, shifted for visibility)
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 10, right: 35, left: 15, bottom: 55 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis 
               dataKey="time" 
@@ -672,7 +672,7 @@ export default function LightPanel({
                         domain={zoomDomain || ['dataMin', 'dataMax']}
                         type="number"
                         allowDataOverflow
-                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -35 }}
+                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -20 }}
                       />
                       <YAxis 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
