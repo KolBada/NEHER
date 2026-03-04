@@ -360,16 +360,16 @@ export default function FolderComparison({ folder, onBack }) {
                   <thead>
                     <tr className="border-b border-zinc-800">
                       <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
                         <InfoTip text="Mean Beat Frequency during minute 1-2 of recording (without drug or stimuli)">Baseline BF</InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
                         <InfoTip text="Root Mean Square of Successive Differences (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(RMSSD<sub>70</sub>)</span></InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
                         <InfoTip text="Standard Deviation of NN intervals (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(SDNN<sub>70</sub>)</span></InfoTip>
                       </th>
-                      <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
                         <InfoTip text="% of successive NN > 50ms (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline pNN50<sub>70</sub></span></InfoTip>
                       </th>
                       <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">Drug BF</th>
@@ -382,10 +382,10 @@ export default function FolderComparison({ folder, onBack }) {
                     {sortedRecordings?.map((rec, idx) => (
                       <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                         <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.baseline_bf, 1)}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.baseline_ln_rmssd70, 3)}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.baseline_ln_sdnn70, 3)}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.baseline_pnn50, 1)}</td>
+                        <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_bf, 1)}</td>
+                        <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_ln_rmssd70, 3)}</td>
+                        <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_ln_sdnn70, 3)}</td>
+                        <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_pnn50, 1)}</td>
                         <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.drug_bf, 1)}</td>
                         <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.drug_ln_rmssd70, 3)}</td>
                         <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.drug_ln_sdnn70, 3)}</td>
@@ -431,10 +431,10 @@ export default function FolderComparison({ folder, onBack }) {
                       <thead>
                         <tr className="border-b border-zinc-800">
                           <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF (%)</th>
-                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(RMSSD) (%)</th>
-                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline ln(SDNN) (%)</th>
-                          <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline pNN50 (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(RMSSD) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(SDNN) (%)</th>
+                          <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline pNN50 (%)</th>
                           <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug BF (%)</th>
                           <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(RMSSD) (%)</th>
                           <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">Drug ln(SDNN) (%)</th>
@@ -445,10 +445,10 @@ export default function FolderComparison({ folder, onBack }) {
                         {sortedNormalizedSpontaneous.map((rec, idx) => (
                           <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
-                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_ln_rmssd, 1)}</td>
-                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_ln_sdnn, 1)}</td>
-                            <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_pnn50, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_rmssd, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_sdnn, 1)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_pnn50, 1)}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_bf, 1)}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_rmssd, 1)}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_sdnn, 1)}</td>
@@ -490,34 +490,34 @@ export default function FolderComparison({ folder, onBack }) {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Mean Beat Frequency from -2 to -1 min before first light stimulation">Baseline BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Average Beat Frequency during light stimulation">Avg BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Maximum Beat Frequency reached during light stimulation">Peak BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Normalized Peak: 100 × Peak/Baseline">Peak %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Time To Peak (1st stim)">TTP 1st</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Time To Peak (average)">TTP Avg</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Beat Frequency at the end of the stimulation period, before the drop">Rec. BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Recovery %: 100 × Recovery/Baseline">Rec. %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Amplitude: Peak BF − Recovery BF">Amp.</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Slope of BF during stimulation, normalized by mean BF">RoC</InfoTip>
                         </th>
                       </tr>
@@ -539,18 +539,18 @@ export default function FolderComparison({ folder, onBack }) {
                         </tr>
                       ))}
                       {/* Average Row */}
-                      <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                        <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_norm, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_first, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_avg, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_pct, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_amplitude, 1)}</td>
-                        <td className="py-3 px-1 text-center text-cyan-100 text-xs">{formatValue(light_hra_averages?.averages?.light_roc, 4)}</td>
+                      <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                        <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_norm, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_first, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_avg, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_amplitude, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_roc, 4)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -579,29 +579,29 @@ export default function FolderComparison({ folder, onBack }) {
                         <thead>
                           <tr className="border-b border-zinc-800">
                             <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Avg BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Peak BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Recovery BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Avg BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Peak BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Recovery BF (%)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sortedNormalizedLightHRA.map((rec, idx) => (
                             <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                               <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
+                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
                             </tr>
                           ))}
                           {/* Folder Average Row */}
-                          <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                            <td className="py-3 px-2 text-cyan-300 text-xs">Folder Average (n={sortedNormalizedLightHRA.length})</td>
-                            <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
-                            <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
-                            <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
-                            <td className="py-3 px-2 text-center text-cyan-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_recovery_bf, 1)}</td>
+                          <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                            <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={sortedNormalizedLightHRA.length})</td>
+                            <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_recovery_bf, 1)}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -622,9 +622,9 @@ export default function FolderComparison({ folder, onBack }) {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">ln(SDNN<sub>70</sub>) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-cyan-400 bg-cyan-950/30">pNN50<sub>70</sub> corr. (%)</th>
+                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(SDNN<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">pNN50<sub>70</sub> corr. (%)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -637,11 +637,11 @@ export default function FolderComparison({ folder, onBack }) {
                         </tr>
                       ))}
                       {/* Average Row */}
-                      <tr className="bg-cyan-950/60 font-bold border-t-2 border-cyan-500">
-                        <td className="py-3 px-3 text-cyan-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
-                        <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
-                        <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
-                        <td className="py-3 px-3 text-center text-cyan-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
+                      <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                        <td className="py-3 px-3 text-amber-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
                       </tr>
                     </tbody>
                   </table>
