@@ -95,10 +95,17 @@ def create_nature_pdf(request):
             fig.text(x + 0.2, y, str(value), fontsize=7.5, fontweight='bold', color='#18181b')
             return y - line_height
         
-        def draw_separator(fig, x, y, width=0.38):
+        def draw_separator(fig, x, y, width=0.38, centered=False):
             """Draw a horizontal separator line"""
-            fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
-            return y - 0.01
+            if centered:
+                # Shorter, centered separator
+                sep_width = 0.15
+                start_x = x + (width - sep_width) / 2
+                fig.add_artist(plt.Line2D([start_x, start_x + sep_width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
+                return y - 0.015  # More space below
+            else:
+                fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
+                return y - 0.01
         
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
@@ -120,13 +127,15 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add separator between samples (not before the first one)
+                # Add centered separator between samples (not before the first one)
                 if idx > 0:
-                    y = draw_separator(fig1, left_x, y + 0.005)
+                    y = draw_separator(fig1, left_x, y + 0.005, centered=True)
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
-                    y = draw_row(fig1, left_x, y, 'Cell Type:', cell_type or '—')
+                    # Number the cell types: Cell Type 1, Cell Type 2, etc.
+                    cell_type_label = f'Cell Type {idx + 1}:' if len(request.organoid_info) > 1 else 'Cell Type:'
+                    y = draw_row(fig1, left_x, y, cell_type_label, cell_type or '—')
                 if org.get('line_name'):
                     y = draw_row(fig1, left_x, y, 'Line:', org.get('line_name'))
                 if org.get('age_at_recording') is not None:
@@ -138,9 +147,9 @@ def create_nature_pdf(request):
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
             
-            # Add separator before Days Since Fusion
+            # Add centered separator before Days Since Fusion
             if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y + 0.005)
+                y = draw_separator(fig1, left_x, y + 0.005, centered=True)
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
@@ -508,21 +517,39 @@ def create_nature_pdf(request):
                 if baseline_bf and baseline_bf > 0:
                     ax2 = fig2.add_axes([0.1, 0.1, 0.85, 0.35])
                     bf_norm = [100 * (bf / baseline_bf) for bf in bf_values]
-                    ax2.scatter(times, bf_norm, s=3, c=COLORS['sky'], alpha=0.7)
-                    ax2.axhline(y=100, color='#dc2626', linestyle='--', linewidth=1, label=f'{norm_source} (100%)')
+                    ax2.scatter(times, bf_norm, s=3, c=COLORS['emerald'], alpha=0.7)
+                    ax2.axhline(y=100, color='#dc2626', linestyle='--', linewidth=1)
                     ax2.set_ylabel('BF (% of Reference)', fontsize=9)
                     ax2.set_xlabel('Time (min)', fontsize=9)
                     ax2.set_title(f'Beat Frequency (Normalized to {norm_source})', fontsize=10, fontweight='bold', pad=10)
                     ax2.set_xlim(0, time_max * 1.05)
                     ax2.set_ylim(0, 200)
                     
+                    # Add drug regions
                     if request.all_drugs:
                         for drug in request.all_drugs:
                             start = drug.get('start', 0) + drug.get('delay', 0)
                             end = drug.get('end') if drug.get('end') else time_max * 1.1
                             ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
                     
-                    ax2.legend(loc='upper right', fontsize=7, framealpha=0.9)
+                    # Add light stim regions
+                    if request.light_enabled and request.light_pulses:
+                        for pulse in request.light_pulses:
+                            start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
+                            end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
+                            ax2.axvspan(start_min, end_min, alpha=0.2, color=COLORS['amber'])
+                    
+                    # Build legend with dot, baseline line, drug and light stim
+                    handles2 = [
+                        Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['emerald'], 
+                               markersize=6, alpha=0.7, label='Normalized BF'),
+                        Line2D([0], [0], color='#dc2626', linestyle='--', linewidth=1, label=f'{norm_source} (100%)')
+                    ]
+                    if request.all_drugs:
+                        handles2.append(mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion'))
+                    if request.light_enabled and request.light_pulses:
+                        handles2.append(mpatches.Patch(color=COLORS['amber'], alpha=0.3, label='Light Stim'))
+                    ax2.legend(handles=handles2, loc='upper right', fontsize=7, framealpha=0.9)
                     ax2.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
             
             add_page_footer(fig2, page_num)
@@ -751,7 +778,9 @@ def create_nature_pdf(request):
                         cell.set_text_props(fontweight='bold', color='white')
                         cell.set_facecolor(COLORS['emerald'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
+                        # Highlight AND bold baseline/drug readout rows
                         cell.set_facecolor(row_colors[row-1])
+                        cell.set_text_props(fontweight='bold')
                     else:
                         cell.set_facecolor('#f0fdf4' if row % 2 == 0 else 'white')
             
@@ -844,7 +873,9 @@ def create_nature_pdf(request):
                         cell.set_text_props(fontweight='bold', color='white')
                         cell.set_facecolor(COLORS['purple'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
+                        # Highlight AND bold baseline/drug readout rows
                         cell.set_facecolor(row_colors[row-1])
+                        cell.set_text_props(fontweight='bold')
                     else:
                         cell.set_facecolor('#faf5ff' if row % 2 == 0 else 'white')
             
