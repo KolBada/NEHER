@@ -494,11 +494,11 @@ export default function TraceViewer({
           <Line
             type="monotone"
             dataKey="voltage"
-            stroke="#22d3ee"
+            stroke="#ffffff"
             strokeWidth={1}
             dot={<CustomDot />}
             isAnimationActive={false}
-            activeDot={editMode ? { r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 } : { r: 4, fill: '#22d3ee', stroke: '#fff', strokeWidth: 1 }}
+            activeDot={editMode ? { r: 6, fill: '#ffffff', stroke: '#22d3ee', strokeWidth: 2 } : { r: 4, fill: '#ffffff', stroke: '#22d3ee', strokeWidth: 1 }}
           />
           {/* Timeline brush/slider - always shows full recording */}
           <Brush

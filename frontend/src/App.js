@@ -223,7 +223,7 @@ function BFChart({ metrics, lightPulses }) {
                 strokeWidth={1}
               />
             ))}
-            <Line type="monotone" dataKey="bf" stroke="#22d3ee" strokeWidth={1} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="bf" stroke="#10b981" strokeWidth={1} dot={false} isAnimationActive={false} />
             <Brush 
               dataKey="time"
               height={20} 

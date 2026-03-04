@@ -380,13 +380,17 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
   - Export panel: Removed horizontal divider line between format selection and export buttons
   - Main layout: Reduced spacing between header bar and tabs (`pt-2`)
 - [x] **Readout Controls Redesign (Dec 4, 2025):**
-  - Made Baseline and Drug Readout boxes same width (`min-w-[280px]`)
+  - Made Baseline and Drug Readout boxes same width and height (`w-[280px] h-[140px]`)
   - Replaced separate HRV/BF checkboxes with single ON/OFF toggle button per box
   - Styled toggle as rounded pill button with color-coded active/inactive states
-  - When disabled, entire box now fades to 40% opacity for clear visual distinction
+  - When disabled, box fades to 60% opacity (more visible than before) with subtle border
 - [x] **Header Bar Updates (Dec 4, 2025):**
   - Added yellow "Light" badge (with Zap icon) before "Add Drug" when light stim is enabled
   - Changed drug badge colors from cyan to purple for consistency with Drug Readout styling
+- [x] **Trace Color Updates (Dec 4, 2025):**
+  - Beat detection trace (Trace tab): Changed from cyan to white (#ffffff)
+  - BF x Time charts: Changed to emerald green (#10b981) in all sections
+  - NN Interval x Time chart: Changed to green (#22c55e) in Spontaneous Activity
 
 ### P0 - Completed (Mar 2, 2026)
 - [x] **Expandable Normalization Sections in Folder Comparison:**
