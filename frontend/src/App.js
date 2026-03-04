@@ -337,6 +337,17 @@ function App() {
     setBaselineEnabled(value);
   }, []);
 
+  // Wrappers for baseline minute settings
+  const handleBaselineHrvMinuteChange = useCallback((value) => {
+    setIsModified(true);
+    setBaselineHrvMinute(value);
+  }, []);
+
+  const handleBaselineBfMinuteChange = useCallback((value) => {
+    setIsModified(true);
+    setBaselineBfMinute(value);
+  }, []);
+
   // Wrapper for drug readout settings
   const handleDrugReadoutSettingsChange = useCallback((newSettings) => {
     setIsModified(true);
@@ -371,6 +382,8 @@ function App() {
   
   // Baseline/Spontaneous Activity enabled
   const [baselineEnabled, setBaselineEnabled] = useState(true);
+  const [baselineHrvMinute, setBaselineHrvMinute] = useState(0);  // Baseline HRV readout minute
+  const [baselineBfMinute, setBaselineBfMinute] = useState(1);    // Baseline BF readout minute
   
   // Drug readout settings (for Spontaneous Activity)
   const [drugReadoutSettings, setDrugReadoutSettings] = useState({
@@ -549,7 +562,7 @@ function App() {
   }, []);
 
   // HRV
-  const handleComputeHRV = useCallback(async (readoutMinute, baselineParams = {}) => {
+  const handleComputeHRV = useCallback(async (readoutMinute) => {
     if (!metrics) return;
     setAnalysisLoading(true);
     setIsModified(true);  // Mark as modified when computing HRV
@@ -558,8 +571,8 @@ function App() {
         beat_times_min: metrics.filtered_beat_times_min,
         bf_filtered: metrics.filtered_bf_bpm,
         readout_minute: readoutMinute,
-        baseline_hrv_minute: baselineParams.hrvMinute ?? 0,
-        baseline_bf_minute: baselineParams.bfMinute ?? 1,
+        baseline_hrv_minute: baselineHrvMinute,
+        baseline_bf_minute: baselineBfMinute,
       });
       setHrvResults(data);
       toast.success(`HRV computed — ${data.windows.length} windows`);
@@ -568,7 +581,7 @@ function App() {
     } finally {
       setAnalysisLoading(false);
     }
-  }, [metrics]);
+  }, [metrics, baselineHrvMinute, baselineBfMinute]);
 
   // Light detect
   const handleDetectPulses = useCallback(async (params) => {
@@ -913,6 +926,8 @@ function App() {
     setLightHrvDetrended(null);
     setLightResponse(null);
     setLoessFrac(0.25);  // Reset LOESS span
+    setBaselineHrvMinute(0);  // Reset baseline minute settings
+    setBaselineBfMinute(1);
     setRecordingName('');
     setRecordingDate('');
     setOrganoidInfo([{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
@@ -928,6 +943,7 @@ function App() {
       enableBfReadout: false,
     });
     setLightEnabled(true);
+    setBaselineEnabled(true);
     setSavedRecordingId(null);
     setSavedFolderId(null);
     setSavedFolderName(null);
@@ -1048,6 +1064,10 @@ function App() {
         // Restore baseline enabled (default to true for backward compatibility)
         setBaselineEnabled(state.baselineEnabled !== false);
         
+        // Restore baseline minute settings
+        setBaselineHrvMinute(state.baselineHrvMinute ?? 0);
+        setBaselineBfMinute(state.baselineBfMinute ?? 1);
+        
         // Restore light stim
         setLightEnabled(state.lightEnabled !== false);
         if (state.lightParams) {
@@ -1150,8 +1170,10 @@ function App() {
       // Drug readout settings (Spontaneous Activity)
       drugReadoutSettings,
       
-      // Baseline enabled
+      // Baseline enabled and minute settings
       baselineEnabled,
+      baselineHrvMinute,
+      baselineBfMinute,
       
       // Light stim
       lightEnabled,
@@ -1165,7 +1187,8 @@ function App() {
   }, [
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
-    drugReadoutSettings, baselineEnabled, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
+    drugReadoutSettings, baselineEnabled, baselineHrvMinute, baselineBfMinute,
+    lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
     recordingDate, organoidInfo, fusionDate, recordingDescription, loessFrac
   ]);
 
@@ -1607,6 +1630,10 @@ function App() {
               onComputeHRV={handleComputeHRV}
               baselineEnabled={baselineEnabled}
               onBaselineEnabledChange={handleBaselineToggle}
+              baselineHrvMinute={baselineHrvMinute}
+              onBaselineHrvMinuteChange={handleBaselineHrvMinuteChange}
+              baselineBfMinute={baselineBfMinute}
+              onBaselineBfMinuteChange={handleBaselineBfMinuteChange}
               analysisLoading={analysisLoading}
               filterSettings={filterParams}
               hasDrug={hasDrug}

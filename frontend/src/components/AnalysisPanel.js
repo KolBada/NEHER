@@ -124,7 +124,9 @@ function AnalysisPanel({
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
   drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses,
   drugReadoutSettings, onDrugReadoutSettingsChange,
-  baselineEnabled, onBaselineEnabledChange
+  baselineEnabled, onBaselineEnabledChange,
+  baselineHrvMinute, onBaselineHrvMinuteChange,
+  baselineBfMinute, onBaselineBfMinuteChange
 }) {
   // Use drugReadoutSettings from props, with local fallbacks for backwards compatibility
   const hrvReadoutMinute = drugReadoutSettings?.hrvReadoutMinute ?? '';
@@ -145,10 +147,6 @@ function AnalysisPanel({
   const setEnableBfReadout = (val) => {
     onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, enableBfReadout: val });
   };
-  
-  // Baseline settings - HRV readout at minute 0, BF readout at minute 1
-  const [baselineHrvMinute, setBaselineHrvMinute] = useState(0);
-  const [baselineBfMinute, setBaselineBfMinute] = useState(1);
 
   // Zoom state for charts (shared across all charts)
   const [zoomDomain, setZoomDomain] = useState(null);
@@ -587,7 +585,7 @@ function AnalysisPanel({
                   <Input
                     type="number"
                     value={baselineHrvMinute}
-                    onChange={(e) => setBaselineHrvMinute(parseInt(e.target.value) || 0)}
+                    onChange={(e) => onBaselineHrvMinuteChange(parseInt(e.target.value) || 0)}
                     className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
                     disabled={!baselineEnabled}
                   />
@@ -601,7 +599,7 @@ function AnalysisPanel({
                   <Input
                     type="number"
                     value={baselineBfMinute}
-                    onChange={(e) => setBaselineBfMinute(parseInt(e.target.value) || 1)}
+                    onChange={(e) => onBaselineBfMinuteChange(parseInt(e.target.value) || 1)}
                     className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
                     disabled={!baselineEnabled}
                   />
@@ -688,11 +686,7 @@ function AnalysisPanel({
               data-testid="compute-hrv-btn"
               className="h-8 text-xs rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-200 self-end"
               onClick={() => onComputeHRV(
-                (enableHrvReadout || enableBfReadout) && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null,
-                { 
-                  hrvMinute: baselineHrvMinute, 
-                  bfMinute: baselineBfMinute 
-                }
+                (enableHrvReadout || enableBfReadout) && hrvReadoutMinute ? parseInt(hrvReadoutMinute) : null
               )}
               disabled={analysisLoading}
             >
