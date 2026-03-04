@@ -1,8 +1,9 @@
-import { Loader2, FileSpreadsheet, FileText, FileDown } from 'lucide-react';
+import { Loader2, FileSpreadsheet, FileText, FileDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ExportPanel({
   metrics, hrvResults, lightHrv, lightResponse,
@@ -65,7 +66,7 @@ export default function ExportPanel({
               <div className={`p-2 rounded-sm border ${hasData ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Per-Beat</p>
                 <p className={`text-xs font-data ${hasData ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                  {hasData ? `${metrics.n_total} intervals` : 'No data'}
+                  {hasData ? `${metrics.n_total} beats detected` : 'No data'}
                 </p>
               </div>
               <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
@@ -186,16 +187,58 @@ export default function ExportPanel({
                     </div>
                   )}
                   <Separator className="bg-zinc-800 my-1" />
-                  <div className="flex justify-between">
-                    <span>Total Intervals</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      Beats Detected
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                            <p>Total number of beats identified by the detection algorithm before any filtering is applied.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
                     <span className="text-zinc-200">{metrics.n_total}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Kept (after filter)</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      Kept Beats
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                            <p>Beats retained after artifact filtering. These are used for HRV and BF analysis calculations.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
                     <span className="text-emerald-400">{metrics.n_kept}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Removed (artifacts)</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      Removed Beats
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="inline-flex">
+                              <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                            <p>Beats excluded by the artifact filter (outside the specified BF percentage range of local median). These are considered artifacts or noise.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
                     <span className="text-red-400">{metrics.n_removed}</span>
                   </div>
                   <div className="flex justify-between">
