@@ -30,7 +30,7 @@ TINTS = {
 def add_page_footer(fig, page_num, total_pages=None):
     """Add footer to each page"""
     footer_y = 0.02
-    fig.text(0.5, footer_y, 'NEHER', ha='center', fontsize=8, color='#71717a')
+    fig.text(0.5, footer_y, 'NEHER', ha='center', fontsize=8, fontweight='bold', color='#18181b')
     fig.text(0.95, footer_y, f'Page {page_num}' if not total_pages else f'Page {page_num}/{total_pages}', 
              ha='right', fontsize=8, color='#a1a1aa')
     fig.text(0.05, footer_y, 'Developed by Kolia H. Badarello', ha='left', fontsize=7, color='#a1a1aa', style='italic')
@@ -72,8 +72,8 @@ def create_nature_pdf(request):
         title = request.recording_name or request.filename or 'Recording Analysis'
         fig1.text(0.5, 0.96, title, ha='center', va='top', fontsize=16, fontweight='bold', color='#18181b')
         fig1.text(0.5, 0.935, 'Electrophysiology Analysis Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
-        fig1.text(0.5, 0.915, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
-        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.905, 0.905], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
+        fig1.text(0.5, 0.91, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.89, 0.89], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
         
         left_x = 0.08
         right_x = 0.52
@@ -96,7 +96,7 @@ def create_nature_pdf(request):
             return y - line_height
         
         # LEFT COLUMN
-        y = draw_header(fig1, left_x, 0.89, 'RECORDING INFO', '#18181b')
+        y = draw_header(fig1, left_x, 0.87, 'RECORDING INFO', '#18181b')
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
@@ -183,6 +183,7 @@ def create_nature_pdf(request):
                 drug_bf_minute = request.drug_readout.get('bf_minute')
                 drug_hrv_minute = request.drug_readout.get('hrv_minute')
                 
+                # Find BF at drug readout minute
                 if drug_bf_minute is not None and request.per_minute_data:
                     for pm in request.per_minute_data:
                         try:
@@ -194,11 +195,24 @@ def create_nature_pdf(request):
                         except (ValueError, TypeError):
                             pass
                 
+                # Find HRV at drug readout minute - handle both integer and string minute formats
                 if drug_hrv_minute is not None and request.hrv_windows:
                     for w in request.hrv_windows:
-                        if w.get('minute') == drug_hrv_minute:
-                            drug_hrv_data = w
-                            break
+                        try:
+                            w_minute = w.get('minute')
+                            # Handle different minute formats
+                            if isinstance(w_minute, int):
+                                w_minute_num = w_minute
+                            elif isinstance(w_minute, str):
+                                w_minute_num = int(w_minute.split('-')[0]) if '-' in w_minute else int(w_minute)
+                            else:
+                                w_minute_num = int(w_minute) if w_minute is not None else None
+                            
+                            if w_minute_num == drug_hrv_minute:
+                                drug_hrv_data = w
+                                break
+                        except (ValueError, TypeError):
+                            pass
             
             # Always show drug metrics if available
             y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'])
@@ -330,8 +344,10 @@ def create_nature_pdf(request):
                         end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
                         ax1.axvspan(start_min, end_min, alpha=0.2, color=COLORS['amber'])
                 
-                # Build legend
-                handles = [mpatches.Patch(color=COLORS['emerald'], alpha=0.7, label='Filtered BF')]
+                # Build legend - use Line2D for dot marker
+                from matplotlib.lines import Line2D
+                handles = [Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['emerald'], 
+                                  markersize=6, alpha=0.7, label='Filtered BF')]
                 if request.all_drugs:
                     handles.append(mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion'))
                 if request.light_enabled and request.light_pulses:
@@ -349,6 +365,7 @@ def create_nature_pdf(request):
                     ax2.set_xlabel('Time (min)', fontsize=9)
                     ax2.set_title(f'Beat Frequency (Normalized to {norm_source})', fontsize=10, fontweight='bold', pad=10)
                     ax2.set_xlim(0, time_max * 1.05)
+                    ax2.set_ylim(0, 200)
                     
                     if request.all_drugs:
                         for drug in request.all_drugs:
@@ -433,7 +450,7 @@ def create_nature_pdf(request):
             pdf.savefig(fig3)
             plt.close(fig3)
         
-        # ==================== PAGE 3b: LIGHT-INDUCED CORRECTED HRV PANELS ====================
+        # ==================== PAGE 3b: LIGHT-INDUCED CORRECTED HRV ANALYSIS ====================
         if request.light_enabled and request.light_metrics_detrended:
             per_stim = request.light_metrics_detrended.get('per_stim', [])
             valid_stims = [(i, s) for i, s in enumerate(per_stim) if s]
@@ -441,7 +458,7 @@ def create_nature_pdf(request):
             if valid_stims:
                 page_num += 1
                 fig3b = plt.figure(figsize=(8.5, 11))
-                fig3b.suptitle('Light-Induced Corrected HRV (Detrended)', fontsize=14, fontweight='bold', y=0.96)
+                fig3b.suptitle('Light-Induced Corrected HRV (Detrended) Analysis', fontsize=14, fontweight='bold', y=0.96)
                 
                 # Panel a: ln(RMSSD70) for each stim
                 ax_a = fig3b.add_axes([0.1, 0.68, 0.85, 0.22])
@@ -708,8 +725,9 @@ def create_nature_pdf(request):
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
                 table_data = []
                 
-                # Add each stim first
-                for i, s in enumerate(per_stim):
+                # Add ALL stims (including empty ones) - show all 5 stims
+                for i in range(len(per_stim)):
+                    s = per_stim[i] if i < len(per_stim) else None
                     if s:
                         table_data.append([
                             str(i + 1),
@@ -719,6 +737,9 @@ def create_nature_pdf(request):
                             f"{s.get('sdnn_detrended', 0):.3f}" if s.get('sdnn_detrended') else '—',
                             f"{s.get('pnn50_detrended', 0):.1f}" if s.get('pnn50_detrended') is not None else '—',
                         ])
+                    else:
+                        # Show row even if stim data is empty
+                        table_data.append([str(i + 1), '—', '—', '—', '—', '—'])
                 
                 # Add median row at the end
                 if final:
