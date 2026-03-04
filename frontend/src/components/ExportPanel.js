@@ -22,7 +22,7 @@ export default function ExportPanel({
   return (
     <div className="space-y-4" data-testid="export-panel">
       {/* Recording Info */}
-      {(recordingName || drugUsed) && (
+      {(recordingName || originalFilename) && (
         <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
           <CardContent className="py-3">
             <div className="flex items-center gap-4 flex-wrap">
@@ -31,14 +31,6 @@ export default function ExportPanel({
                   <span className="text-[10px] text-zinc-500">Recording:</span>
                   <Badge variant="outline" className="font-data text-[10px] border-emerald-800 text-emerald-400">
                     {recordingName}
-                  </Badge>
-                </div>
-              )}
-              {drugUsed && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-500">Drug:</span>
-                  <Badge variant="outline" className="font-data text-[10px] border-purple-800 text-purple-400">
-                    {drugUsed}
                   </Badge>
                 </div>
               )}
