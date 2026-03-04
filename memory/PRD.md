@@ -25,11 +25,14 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - ✅ Baseline metrics bug fix (now correctly updates on re-compute)
 - ✅ Delayed BF computation (only on button click)
 - ✅ Drug Readout toggle guards and state management
-- ✅ Spontaneous Activity UI fixes:
-  - Separator line between header and controls
-  - Increased spacing between Baseline Metrics and Drug Metrics sections
-  - Drug Readout sublabels show time ranges (e.g., "4-7min" for HRV)
-  - Drug Readout helper text indicates "Perf. Time"
+- ✅ Spontaneous Activity UI fixes (March 4, 2026):
+  - Full-width separator line between header and controls (touches borders)
+  - Increased spacing between Baseline Metrics and Drug Metrics sections (space-y-8)
+  - Drug Readout input labels now show "HRV (Perf.T):" and "BF (Perf.T):"
+  - Drug Readout time badges show ranges: HRV "→ X-(X+3)min", BF "→ X-(X+1)min"
+  - Helper text with tooltip: "Input = Perf. Time (after Perf. Start + Perf. Delay)"
+  - Tooltip explains: Perf. Time, Perf. Start, Perf. Delay definitions
+  - Drug Readout box widened to 320px for badge visibility
 
 ## Known Issues / Bugs
 1. **P0 - Section Drag-and-Drop:** Only first 2 of 4 sections can be dragged on home page
