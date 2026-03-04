@@ -110,6 +110,9 @@ class ExportRequest(BaseModel):
     light_pulses: Optional[List[dict]] = None  # For showing light stim zones on charts
     light_enabled: Optional[bool] = True  # Whether light stim is enabled
     light_stim_count: Optional[int] = 0  # Number of stims detected
+    baseline_enabled: Optional[bool] = True  # Whether baseline is enabled
+    drug_readout_enabled: Optional[bool] = False  # Whether drug readout is enabled
+    drug_readout_settings: Optional[dict] = None  # Drug readout settings
     summary: Optional[dict] = None
     filename: str = "analysis"
     recording_name: Optional[str] = None
@@ -2977,7 +2980,8 @@ async def export_xlsx(request: ExportRequest):
     style_header(ws_summary, current_row)
     current_row += 1
     
-    if request.baseline:
+    # Only show baseline metrics if baseline is enabled
+    if request.baseline_enabled and request.baseline:
         baseline_data = [
             ('Mean BF (bpm)', f"{request.baseline.get('baseline_bf', 0):.1f}" if request.baseline.get('baseline_bf') is not None else '—', request.baseline.get('baseline_bf_range', '1-2 min')),
             ('ln(RMSSD₇₀)', f"{request.baseline.get('baseline_ln_rmssd70', 0):.3f}" if request.baseline.get('baseline_ln_rmssd70') is not None else '—', request.baseline.get('baseline_hrv_range', '0-3 min')),
@@ -2990,42 +2994,50 @@ async def export_xlsx(request: ExportRequest):
             for col in ['A', 'B']:
                 ws_summary[f'{col}{current_row}'].font = data_font
                 ws_summary[f'{col}{current_row}'].border = thin_border
-            # Yellow highlight for baseline
-            ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-            ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            # Light blue highlight for baseline (matching UI)
+            ws_summary[f'A{current_row}'].fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
+            ws_summary[f'B{current_row}'].fill = PatternFill(start_color="E0F2FE", end_color="E0F2FE", fill_type="solid")
             current_row += 1
+    elif not request.baseline_enabled:
+        ws_summary[f'A{current_row}'] = 'Status'
+        ws_summary[f'B{current_row}'] = 'Disabled'
+        for col in ['A', 'B']:
+            ws_summary[f'{col}{current_row}'].font = data_font
+            ws_summary[f'{col}{current_row}'].border = thin_border
+        current_row += 1
     else:
-        ws_summary[f'A{current_row}'] = 'Not available'
-        ws_summary[f'B{current_row}'] = '—'
+        ws_summary[f'A{current_row}'] = 'Status'
+        ws_summary[f'B{current_row}'] = 'No data'
         for col in ['A', 'B']:
             ws_summary[f'{col}{current_row}'].font = data_font
             ws_summary[f'{col}{current_row}'].border = thin_border
         current_row += 1
     
-    # Drug Metrics section
-    current_row += 1
-    ws_summary[f'A{current_row}'] = 'Drug Metrics'
-    ws_summary[f'A{current_row}'].font = subtitle_font
-    current_row += 1
-    
-    ws_summary[f'A{current_row}'] = 'Metric'
-    ws_summary[f'B{current_row}'] = 'Value'
-    style_header(ws_summary, current_row, fill=header_fill_purple)
-    current_row += 1
-    
-    # Drug metrics - get from HRV windows if drug_readout is available
-    drug_metrics_available = False
-    if request.drug_readout and request.hrv_windows:
-        drug_bf_minute = request.drug_readout.get('bf_minute')
-        drug_hrv_minute = request.drug_readout.get('hrv_minute')
+    # Drug Metrics section - only show if drug readout is enabled and drugs are selected
+    if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+        current_row += 1
+        ws_summary[f'A{current_row}'] = 'Drug Metrics'
+        ws_summary[f'A{current_row}'].font = subtitle_font
+        current_row += 1
         
-        # Find HRV values for drug readout minute
-        drug_hrv_data = None
-        if drug_hrv_minute is not None:
-            for w in request.hrv_windows:
-                if w.get('minute') == drug_hrv_minute:
-                    drug_hrv_data = w
-                    break
+        ws_summary[f'A{current_row}'] = 'Metric'
+        ws_summary[f'B{current_row}'] = 'Value'
+        style_header(ws_summary, current_row, fill=header_fill_purple)
+        current_row += 1
+        
+        # Drug metrics - get from HRV windows if drug_readout is available
+        drug_metrics_available = False
+        if request.drug_readout and request.hrv_windows:
+            drug_bf_minute = request.drug_readout.get('bf_minute')
+            drug_hrv_minute = request.drug_readout.get('hrv_minute')
+            
+            # Find HRV values for drug readout minute
+            drug_hrv_data = None
+            if drug_hrv_minute is not None:
+                for w in request.hrv_windows:
+                    if w.get('minute') == drug_hrv_minute:
+                        drug_hrv_data = w
+                        break
         
         # Find BF value for drug readout minute
         drug_bf = None
@@ -3063,104 +3075,105 @@ async def export_xlsx(request: ExportRequest):
                 current_row += 1
     
     if not drug_metrics_available:
-        ws_summary[f'A{current_row}'] = 'Status'
-        ws_summary[f'B{current_row}'] = 'Disabled'
-        for col in ['A', 'B']:
-            ws_summary[f'{col}{current_row}'].font = data_font
-            ws_summary[f'{col}{current_row}'].border = thin_border
-            ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+            ws_summary[f'A{current_row}'] = 'Status'
+            ws_summary[f'B{current_row}'] = 'No data at readout time'
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+                ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+            current_row += 1
+    
+    # Light Metrics section - only show if light is enabled
+    if request.light_enabled:
         current_row += 1
-    
-    # Light Metrics section
-    current_row += 1
-    ws_summary[f'A{current_row}'] = 'Light Metrics'
-    ws_summary[f'A{current_row}'].font = subtitle_font
-    current_row += 1
-    
-    ws_summary[f'A{current_row}'] = 'Metric'
-    ws_summary[f'B{current_row}'] = 'Value'
-    style_header(ws_summary, current_row, fill=header_fill_amber)
-    current_row += 1
-    
-    light_metrics_available = False
-    if request.light_response or request.light_metrics_detrended:
-        light_metrics_available = True
+        ws_summary[f'A{current_row}'] = 'Light Metrics'
+        ws_summary[f'A{current_row}'].font = subtitle_font
+        current_row += 1
         
-        # HRA metrics (from light_response) - compute averages
-        if request.light_response:
-            valid_response = [m for m in request.light_response if m is not None]
-            if valid_response:
-                avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_response if r.get('avg_bf') is not None])
-                peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_response if r.get('peak_bf') is not None])
-                # Use peak_norm_pct (correct field name)
-                peak_norm_vals = [r.get('peak_norm_pct') for r in valid_response if r.get('peak_norm_pct') is not None]
-                peak_bf_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
-                time_to_peak_avg = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
-                # Time to Peak (1st stim)
-                time_to_peak_1st = valid_response[0].get('time_to_peak_sec') if valid_response else None
-                # Recovery BF, Recovery %, Amplitude, Rate of Change - averages
-                recovery_bf_vals = [r.get('bf_end') for r in valid_response if r.get('bf_end') is not None]
-                recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
-                recovery_pct_vals = [r.get('bf_end_pct') for r in valid_response if r.get('bf_end_pct') is not None]
-                recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
-                amplitude_vals = [r.get('amplitude') for r in valid_response if r.get('amplitude') is not None]
-                amplitude = np.mean(amplitude_vals) if amplitude_vals else None
-                roc_vals = [r.get('rate_of_change') for r in valid_response if r.get('rate_of_change') is not None]
-                rate_of_change = np.mean(roc_vals) if roc_vals else None
+        ws_summary[f'A{current_row}'] = 'Metric'
+        ws_summary[f'B{current_row}'] = 'Value'
+        style_header(ws_summary, current_row, fill=header_fill_amber)
+        current_row += 1
+        
+        light_metrics_available = False
+        if request.light_response or request.light_metrics_detrended:
+            light_metrics_available = True
+            
+            # HRA metrics (from light_response) - compute averages
+            if request.light_response:
+                valid_response = [m for m in request.light_response if m is not None]
+                if valid_response:
+                    avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_response if r.get('avg_bf') is not None])
+                    peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_response if r.get('peak_bf') is not None])
+                    # Use peak_norm_pct (correct field name)
+                    peak_norm_vals = [r.get('peak_norm_pct') for r in valid_response if r.get('peak_norm_pct') is not None]
+                    peak_bf_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
+                    time_to_peak_avg = np.mean([r.get('time_to_peak_sec', 0) for r in valid_response if r.get('time_to_peak_sec') is not None])
+                    # Time to Peak (1st stim)
+                    time_to_peak_1st = valid_response[0].get('time_to_peak_sec') if valid_response else None
+                    # Recovery BF, Recovery %, Amplitude, Rate of Change - averages
+                    recovery_bf_vals = [r.get('bf_end') for r in valid_response if r.get('bf_end') is not None]
+                    recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+                    recovery_pct_vals = [r.get('bf_end_pct') for r in valid_response if r.get('bf_end_pct') is not None]
+                    recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+                    amplitude_vals = [r.get('amplitude') for r in valid_response if r.get('amplitude') is not None]
+                    amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                    roc_vals = [r.get('rate_of_change') for r in valid_response if r.get('rate_of_change') is not None]
+                    rate_of_change = np.mean(roc_vals) if roc_vals else None
+                    
+                    hra_data = [
+                        ('Avg BF (bpm)', f"{avg_bf:.1f}"),
+                        ('Peak BF (bpm)', f"{peak_bf:.1f}"),
+                        ('Normalized Peak (%)', f"{peak_bf_norm:.1f}" if peak_bf_norm is not None else '—'),
+                        ('Time to Peak (s)', f"{time_to_peak_avg:.1f}"),
+                        ('Time to Peak 1st (s)', f"{time_to_peak_1st:.1f}" if time_to_peak_1st is not None else '—'),
+                        ('Recovery BF (bpm)', f"{recovery_bf:.1f}" if recovery_bf is not None else '—'),
+                        ('Recovery (%)', f"{recovery_pct:.1f}" if recovery_pct is not None else '—'),
+                        ('Amplitude (bpm)', f"{amplitude:.1f}" if amplitude is not None else '—'),
+                        ('Rate of Change (1/min)', f"{rate_of_change:.4f}" if rate_of_change is not None else '—'),
+                    ]
+                    for label, value in hra_data:
+                        ws_summary[f'A{current_row}'] = label
+                        ws_summary[f'B{current_row}'] = value
+                        for col in ['A', 'B']:
+                            ws_summary[f'{col}{current_row}'].font = data_font
+                            ws_summary[f'{col}{current_row}'].border = thin_border
+                        # Amber highlight for light metrics
+                        ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                        ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                        current_row += 1
+            
+            # Corrected HRV metrics (detrended) - use final medians
+            if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
+                final_det = request.light_metrics_detrended.get('final', {})
+                ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
+                ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
+                pnn50_det = final_det.get('pnn50_detrended')
                 
-                hra_data = [
-                    ('Avg BF (bpm)', f"{avg_bf:.1f}"),
-                    ('Peak BF (bpm)', f"{peak_bf:.1f}"),
-                    ('Normalized Peak (%)', f"{peak_bf_norm:.1f}" if peak_bf_norm is not None else '—'),
-                    ('Time to Peak (s)', f"{time_to_peak_avg:.1f}"),
-                    ('Time to Peak 1st (s)', f"{time_to_peak_1st:.1f}" if time_to_peak_1st is not None else '—'),
-                    ('Recovery BF (bpm)', f"{recovery_bf:.1f}" if recovery_bf is not None else '—'),
-                    ('Recovery (%)', f"{recovery_pct:.1f}" if recovery_pct is not None else '—'),
-                    ('Amplitude (bpm)', f"{amplitude:.1f}" if amplitude is not None else '—'),
-                    ('Rate of Change (1/min)', f"{rate_of_change:.4f}" if rate_of_change is not None else '—'),
+                hrv_data = [
+                    ('ln(RMSSD₇₀) corrected', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'),
+                    ('ln(SDNN₇₀) corrected', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'),
+                    ('pNN50₇₀ corrected (%)', f"{pnn50_det:.1f}" if pnn50_det is not None else '—'),
                 ]
-                for label, value in hra_data:
+                for label, value in hrv_data:
                     ws_summary[f'A{current_row}'] = label
                     ws_summary[f'B{current_row}'] = value
                     for col in ['A', 'B']:
                         ws_summary[f'{col}{current_row}'].font = data_font
                         ws_summary[f'{col}{current_row}'].border = thin_border
-                    # Amber highlight for light metrics
+                    # Amber highlight
                     ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
                     ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
                     current_row += 1
         
-        # Corrected HRV metrics (detrended) - use final medians
-        if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
-            final_det = request.light_metrics_detrended.get('final', {})
-            ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
-            ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
-            pnn50_det = final_det.get('pnn50_detrended')
-            
-            hrv_data = [
-                ('ln(RMSSD₇₀) corrected', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'),
-                ('ln(SDNN₇₀) corrected', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'),
-                ('pNN50₇₀ corrected (%)', f"{pnn50_det:.1f}" if pnn50_det is not None else '—'),
-            ]
-            for label, value in hrv_data:
-                ws_summary[f'A{current_row}'] = label
-                ws_summary[f'B{current_row}'] = value
-                for col in ['A', 'B']:
-                    ws_summary[f'{col}{current_row}'].font = data_font
-                    ws_summary[f'{col}{current_row}'].border = thin_border
-                # Amber highlight
-                ws_summary[f'A{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-                ws_summary[f'B{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-                current_row += 1
-    
-    if not light_metrics_available:
-        ws_summary[f'A{current_row}'] = 'Status'
-        ws_summary[f'B{current_row}'] = 'Disabled'
-        for col in ['A', 'B']:
-            ws_summary[f'{col}{current_row}'].font = data_font
-            ws_summary[f'{col}{current_row}'].border = thin_border
-            ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
-        current_row += 1
+        if not light_metrics_available:
+            ws_summary[f'A{current_row}'] = 'Status'
+            ws_summary[f'B{current_row}'] = f'{request.light_stim_count} stims detected' if request.light_stim_count else 'No data'
+            for col in ['A', 'B']:
+                ws_summary[f'{col}{current_row}'].font = data_font
+                ws_summary[f'{col}{current_row}'].border = thin_border
+                ws_summary[f'{col}{current_row}'].fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            current_row += 1
     
     auto_width(ws_summary)
 
@@ -3705,114 +3718,107 @@ async def export_pdf(request: ExportRequest):
         
         right_rows = []
         
-        # Baseline Metrics - shortened labels
-        right_rows.append(['BASELINE METRICS', ''])
-        if request.baseline:
-            bf_val = request.baseline.get('baseline_bf')
-            ln_rmssd = request.baseline.get('baseline_ln_rmssd70')
-            sdnn = request.baseline.get('baseline_sdnn')
-            pnn50 = request.baseline.get('baseline_pnn50')
-            
-            right_rows.append(['Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
-            right_rows.append(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
-            right_rows.append(['ln(SDNN70)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
-            right_rows.append(['pNN50-70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
-        else:
-            right_rows.append(['Status', 'Not available'])
+        # Color codes matching UI
+        EMERALD_HEX = '#10b981'  # Emerald for beats/BF
+        AMBER_HEX = '#f59e0b'    # Amber for stims
+        PURPLE_HEX = '#a855f7'   # Purple for drugs
+        SILVER_HEX = '#71717a'   # Silver for intervals
         
-        # Drug Metrics
-        right_rows.append(['', ''])
-        right_rows.append(['DRUG METRICS', ''])
+        # Baseline Metrics - only show if enabled
+        if request.baseline_enabled:
+            right_rows.append(['BASELINE METRICS', ''])
+            if request.baseline:
+                bf_val = request.baseline.get('baseline_bf')
+                ln_rmssd = request.baseline.get('baseline_ln_rmssd70')
+                sdnn = request.baseline.get('baseline_sdnn')
+                pnn50 = request.baseline.get('baseline_pnn50')
+                
+                right_rows.append(['Mean BF', f"{bf_val:.1f} bpm" if bf_val is not None else '—'])
+                right_rows.append(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd is not None else '—'])
+                right_rows.append(['ln(SDNN70)', f"{np.log(sdnn):.3f}" if sdnn and sdnn > 0 else '—'])
+                right_rows.append(['pNN50-70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+            else:
+                right_rows.append(['Status', 'No data'])
+            right_rows.append(['', ''])
         
-        drug_metrics_available = False
-        if request.drug_readout and request.hrv_windows:
-            drug_bf_minute = request.drug_readout.get('bf_minute')
-            drug_hrv_minute = request.drug_readout.get('hrv_minute')
+        # Drug Metrics - only show if drug readout is enabled
+        if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+            right_rows.append(['DRUG METRICS', ''])
             
-            drug_hrv_data = None
-            if drug_hrv_minute is not None:
-                for w in request.hrv_windows:
-                    if w.get('minute') == drug_hrv_minute:
-                        drug_hrv_data = w
-                        break
-            
-            drug_bf = None
-            if drug_bf_minute is not None and request.per_minute_data:
-                for pm in request.per_minute_data:
-                    minute_str = pm.get('minute', '0')
-                    try:
-                        minute_num = int(str(minute_str).split('-')[0])
-                        if minute_num == drug_bf_minute:
-                            drug_bf = pm.get('mean_bf')
+            drug_metrics_available = False
+            if request.drug_readout and request.hrv_windows:
+                drug_bf_minute = request.drug_readout.get('bf_minute')
+                drug_hrv_minute = request.drug_readout.get('hrv_minute')
+                
+                drug_hrv_data = None
+                if drug_hrv_minute is not None:
+                    for w in request.hrv_windows:
+                        if w.get('minute') == drug_hrv_minute:
+                            drug_hrv_data = w
                             break
-                    except (ValueError, TypeError, AttributeError):
-                        pass
-            
-            if drug_hrv_data or drug_bf is not None:
-                drug_metrics_available = True
                 
-                right_rows.append(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf is not None else '—'])
-                if drug_hrv_data:
-                    right_rows.append(['ln(RMSSD70)', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data.get('ln_rmssd70') is not None else '—'])
-                    sdnn_d = drug_hrv_data.get('sdnn')
-                    right_rows.append(['ln(SDNN70)', f"{np.log(sdnn_d):.3f}" if sdnn_d and sdnn_d > 0 else '—'])
-                    right_rows.append(['pNN50-70', f"{drug_hrv_data.get('pnn50', 0):.1f}%" if drug_hrv_data.get('pnn50') is not None else '—'])
-        
-        if not drug_metrics_available:
-            right_rows.append(['Status', 'Disabled'])
-        
-        # Light Metrics
-        right_rows.append(['', ''])
-        right_rows.append(['LIGHT METRICS', ''])
-        
-        light_metrics_available = False
-        if request.light_response or request.light_metrics_detrended:
-            light_metrics_available = True
-            
-            # HRA metrics - averages
-            if request.light_response:
-                valid_resp = [m for m in request.light_response if m is not None]
-                if valid_resp:
-                    avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
-                    peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
-                    peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
-                    peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
-                    ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid_resp if r.get('time_to_peak_sec') is not None])
-                    # Time to Peak (1st stim)
-                    ttp_1st = valid_resp[0].get('time_to_peak_sec') if valid_resp else None
-                    # Recovery BF, Recovery %, Amplitude, Rate of Change
-                    recovery_bf_vals = [r.get('bf_end') for r in valid_resp if r.get('bf_end') is not None]
-                    recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
-                    recovery_pct_vals = [r.get('bf_end_pct') for r in valid_resp if r.get('bf_end_pct') is not None]
-                    recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
-                    amplitude_vals = [r.get('amplitude') for r in valid_resp if r.get('amplitude') is not None]
-                    amplitude = np.mean(amplitude_vals) if amplitude_vals else None
-                    roc_vals = [r.get('rate_of_change') for r in valid_resp if r.get('rate_of_change') is not None]
-                    rate_of_change = np.mean(roc_vals) if roc_vals else None
+                drug_bf = None
+                if drug_bf_minute is not None and request.per_minute_data:
+                    for pm in request.per_minute_data:
+                        minute_str = pm.get('minute', '0')
+                        try:
+                            minute_num = int(str(minute_str).split('-')[0])
+                            if minute_num == drug_bf_minute:
+                                drug_bf = pm.get('mean_bf')
+                                break
+                        except (ValueError, TypeError, AttributeError):
+                            pass
+                
+                if drug_hrv_data or drug_bf is not None:
+                    drug_metrics_available = True
                     
-                    right_rows.append(['Avg BF', f"{avg_bf:.1f} bpm"])
-                    right_rows.append(['Peak BF', f"{peak_bf:.1f} bpm"])
-                    right_rows.append(['Norm. Peak', f"{peak_norm:.1f}%" if peak_norm is not None else '—'])
-                    right_rows.append(['Time to Peak', f"{ttp:.1f} s"])
-                    right_rows.append(['Time to Peak 1st', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'])
-                    right_rows.append(['Recovery BF', f"{recovery_bf:.1f} bpm" if recovery_bf is not None else '—'])
-                    right_rows.append(['Recovery %', f"{recovery_pct:.1f}%" if recovery_pct is not None else '—'])
-                    right_rows.append(['Amplitude', f"{amplitude:.1f} bpm" if amplitude is not None else '—'])
-                    right_rows.append(['Rate of Change', f"{rate_of_change:.4f}" if rate_of_change is not None else '—'])
+                    right_rows.append(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf is not None else '—'])
+                    if drug_hrv_data:
+                        right_rows.append(['ln(RMSSD70)', f"{drug_hrv_data.get('ln_rmssd70', 0):.3f}" if drug_hrv_data.get('ln_rmssd70') is not None else '—'])
+                        sdnn_d = drug_hrv_data.get('sdnn')
+                        right_rows.append(['ln(SDNN70)', f"{np.log(sdnn_d):.3f}" if sdnn_d and sdnn_d > 0 else '—'])
+                        right_rows.append(['pNN50-70', f"{drug_hrv_data.get('pnn50', 0):.1f}%" if drug_hrv_data.get('pnn50') is not None else '—'])
             
-            # Corrected HRV metrics (detrended) - use final medians
-            if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
-                final_det = request.light_metrics_detrended.get('final', {})
-                ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
-                ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
-                pnn50_det = final_det.get('pnn50_detrended')
-                
-                right_rows.append(['ln(RMSSD70) corr.', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
-                right_rows.append(['ln(SDNN70) corr.', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
-                right_rows.append(['pNN50-70 corr.', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
+            if not drug_metrics_available:
+                right_rows.append(['Status', 'No data at readout time'])
+            right_rows.append(['', ''])
         
-        if not light_metrics_available:
-            right_rows.append(['Status', 'Disabled'])
+        # Light Metrics - only show if light is enabled
+        if request.light_enabled:
+            right_rows.append(['LIGHT METRICS', ''])
+            
+            light_metrics_available = False
+            if request.light_response or request.light_metrics_detrended:
+                light_metrics_available = True
+                
+                # HRA metrics - averages
+                if request.light_response:
+                    valid_resp = [m for m in request.light_response if m is not None]
+                    if valid_resp:
+                        avg_bf = np.mean([r.get('avg_bf', 0) for r in valid_resp if r.get('avg_bf') is not None])
+                        peak_bf = np.mean([r.get('peak_bf', 0) for r in valid_resp if r.get('peak_bf') is not None])
+                        peak_norm_vals = [r.get('peak_norm_pct') for r in valid_resp if r.get('peak_norm_pct') is not None]
+                        peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
+                        ttp = np.mean([r.get('time_to_peak_sec', 0) for r in valid_resp if r.get('time_to_peak_sec') is not None])
+                        
+                        right_rows.append(['Avg BF', f"{avg_bf:.1f} bpm"])
+                        right_rows.append(['Peak BF', f"{peak_bf:.1f} bpm"])
+                        right_rows.append(['Norm. Peak', f"{peak_norm:.1f}%" if peak_norm is not None else '—'])
+                        right_rows.append(['Time to Peak', f"{ttp:.1f} s"])
+                
+                # Corrected HRV metrics (detrended)
+                if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
+                    final_det = request.light_metrics_detrended.get('final', {})
+                    ln_rmssd_det = final_det.get('ln_rmssd70_detrended')
+                    ln_sdnn_det = final_det.get('ln_sdnn70_detrended')
+                    pnn50_det = final_det.get('pnn50_detrended')
+                    
+                    right_rows.append(['ln(RMSSD70) corr.', f"{ln_rmssd_det:.3f}" if ln_rmssd_det is not None else '—'])
+                    right_rows.append(['ln(SDNN70) corr.', f"{ln_sdnn_det:.3f}" if ln_sdnn_det is not None else '—'])
+                    right_rows.append(['pNN50-70 corr.', f"{pnn50_det:.1f}%" if pnn50_det is not None else '—'])
+            
+            if not light_metrics_available:
+                right_rows.append(['Status', f'{request.light_stim_count} stims detected' if request.light_stim_count else 'No data'])
         
         # Create right table with adjusted column widths for text fitting
         if right_rows:
@@ -3827,26 +3833,35 @@ async def export_pdf(request: ExportRequest):
             table_right.set_fontsize(7)
             table_right.scale(1.0, 1.3)
             
-            # Style right table with color coding
+            # Style right table with Nature-style color coding
             section_headers = ['BASELINE METRICS', 'DRUG METRICS', 'LIGHT METRICS']
-            baseline_color = '#FEF3C7'  # Yellow
-            drug_color = '#EDE9FE'  # Purple
-            light_color = '#FEF3C7'  # Amber
+            # Nature-style: subtle, professional colors
+            baseline_color = '#E0F2FE'  # Light blue (sky)
+            drug_color = '#F3E8FF'      # Light purple
+            light_color = '#FEF3C7'     # Light amber
             
             current_section = None
             for (row, col), cell in table_right.get_celld().items():
-                cell.set_edgecolor('#e0e0e0')
+                cell.set_edgecolor('#e5e7eb')
                 text = cell.get_text().get_text()
                 
                 if text in section_headers:
-                    cell.set_text_props(fontweight='bold', color='#1a1a1a', fontsize=8)
-                    cell.set_facecolor('#f0f0f0')
+                    cell.set_text_props(fontweight='bold', color='#1f2937', fontsize=8)
+                    if text == 'BASELINE METRICS':
+                        cell.set_facecolor('#0ea5e9')
+                        cell.set_text_props(fontweight='bold', color='white', fontsize=8)
+                    elif text == 'DRUG METRICS':
+                        cell.set_facecolor('#a855f7')
+                        cell.set_text_props(fontweight='bold', color='white', fontsize=8)
+                    elif text == 'LIGHT METRICS':
+                        cell.set_facecolor('#f59e0b')
+                        cell.set_text_props(fontweight='bold', color='white', fontsize=8)
                     current_section = text
                 elif text == '':
                     cell.set_facecolor('white')
                     cell.set_height(0.012)
                 else:
-                    # Apply section-specific colors
+                    # Apply section-specific background colors
                     if current_section == 'BASELINE METRICS':
                         cell.set_facecolor(baseline_color)
                     elif current_section == 'DRUG METRICS':

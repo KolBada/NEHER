@@ -955,13 +955,16 @@ function App() {
       light_pulses: lightEnabled ? lightPulses : null,  // For showing light stim zones on PDF charts
       light_enabled: lightEnabled,
       light_stim_count: lightEnabled && lightPulses ? lightPulses.length : 0,
+      baseline_enabled: baselineEnabled,
+      drug_readout_enabled: drugReadoutSettings?.enableHrvReadout || drugReadoutSettings?.enableBfReadout || false,
+      drug_readout_settings: drugReadoutSettings,
       summary: Object.keys(summary).length > 0 ? summary : null,
       filename: recordingName || activeFile?.filename?.replace('.abf', '') || 'analysis',
       recording_name: recordingName,
       drug_used: allDrugsText.length > 0 ? allDrugsText.join(',') : null,
       all_drugs: allDrugsExport,  // Full drug details for export
       per_minute_data: perMinuteData,
-      baseline: hrvResults?.baseline,
+      baseline: baselineEnabled ? hrvResults?.baseline : null,  // Only include if enabled
       drug_readout: drugReadout,
       perfusion_params: perfusionParams,
       // New metadata fields
@@ -1003,7 +1006,7 @@ function App() {
       })(),
       recording_description: recordingDescription || null,
     };
-  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, fusionDate, recordingDescription]);
+  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, fusionDate, recordingDescription, baselineEnabled, drugReadoutSettings]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
