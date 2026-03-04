@@ -359,19 +359,6 @@ function AnalysisPanel({
 
   return (
     <div className="space-y-4" data-testid="analysis-panel">
-      {/* Total Beats and Filter Range boxes */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
-          <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Total Beats (after filtering)</p>
-          <p className="text-lg font-data text-zinc-200">{metrics.n_kept}</p>
-        </div>
-        {filterInfo && (
-          <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
-            <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Filter Range</p>
-            <p className="text-lg font-data text-zinc-200">{filterInfo.lower_pct || filterInfo.lowerPct}% - {filterInfo.upper_pct || filterInfo.upperPct}%</p>
-          </div>
-        )}
-      </div>
 
       {/* BF + NN charts (filtered) with light stim highlights and zoom */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" ref={chartContainerRef}>

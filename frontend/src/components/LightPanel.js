@@ -641,22 +641,6 @@ function LightPanel({
 
   return (
     <div className="space-y-4" data-testid="light-panel">
-      {/* Total Beats and Filter Range boxes */}
-      {metrics && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
-            <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Total Beats (after filtering)</p>
-            <p className="text-lg font-data text-zinc-200">{metrics.n_kept}</p>
-          </div>
-          {metrics.filter_settings && (
-            <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm px-3 py-2">
-              <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Filter Range</p>
-              <p className="text-lg font-data text-zinc-200">{metrics.filter_settings.lower_pct}% - {metrics.filter_settings.upper_pct}%</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Enable/Disable Light Stim */}
       {/* BF Chart - Always visible */}
       {metrics && (
