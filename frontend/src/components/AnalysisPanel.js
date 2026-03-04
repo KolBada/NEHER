@@ -47,7 +47,7 @@ function InfoTip({ text, children }) {
 
 const CHART_COLORS = {
   bf: '#10b981',  // emerald green
-  nn: '#22c55e',  // green
+  nn: '#166534',  // dark green
   lnRmssd: '#22d3ee',
   sdnn: '#c084fc',
   pnn50: '#fb923c',
@@ -443,7 +443,7 @@ export default function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke="#3f3f46" 
+                  stroke={CHART_COLORS.bf}
                   fill="#0c0c0e" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={bfBrushIndices.start}
@@ -518,7 +518,7 @@ export default function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke="#3f3f46" 
+                  stroke={CHART_COLORS.nn}
                   fill="#0c0c0e" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={nnBrushIndices.start}
@@ -563,13 +563,13 @@ export default function AnalysisPanel({
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[140px] ${
+            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[160px] ${
               baselineEnabled 
                 ? 'bg-cyan-950/20 border-cyan-800/50' 
-                : 'bg-zinc-900/40 border-zinc-700/40 opacity-60'
+                : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
             }`}>
               <div className="flex items-center justify-between mb-3">
-                <p className={`text-[9px] uppercase tracking-wider font-bold ${baselineEnabled ? 'text-cyan-400' : 'text-zinc-500'}`}>
+                <p className={`text-[9px] uppercase tracking-wider font-bold ${baselineEnabled ? 'text-cyan-400' : 'text-zinc-400'}`}>
                   Baseline Readout
                 </p>
                 <Button
@@ -579,7 +579,7 @@ export default function AnalysisPanel({
                   className={`h-5 px-2 text-[9px] rounded-full transition-all ${
                     baselineEnabled 
                       ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/40' 
-                      : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                   }`}
                 >
                   {baselineEnabled ? 'ON' : 'OFF'}
@@ -614,17 +614,20 @@ export default function AnalysisPanel({
                     {baselineBfMinute}-{baselineBfMinute + 1}min
                   </Badge>
                 </div>
+                <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                  Time = Recording start time
+                </p>
               </div>
             </div>
 
             {/* Drug readout controls */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[140px] ${
+            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[160px] ${
               (enableHrvReadout || enableBfReadout) 
                 ? 'bg-purple-950/20 border-purple-800/50' 
-                : 'bg-zinc-900/40 border-zinc-700/40 opacity-60'
+                : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
             }`}>
               <div className="flex items-center justify-between mb-3">
-                <p className={`text-[9px] uppercase tracking-wider font-bold ${(enableHrvReadout || enableBfReadout) ? 'text-purple-400' : 'text-zinc-500'}`}>
+                <p className={`text-[9px] uppercase tracking-wider font-bold ${(enableHrvReadout || enableBfReadout) ? 'text-purple-400' : 'text-zinc-400'}`}>
                   Drug Readout
                 </p>
                 <Button
@@ -638,15 +641,12 @@ export default function AnalysisPanel({
                   className={`h-5 px-2 text-[9px] rounded-full transition-all ${
                     (enableHrvReadout || enableBfReadout) 
                       ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/40' 
-                      : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                   }`}
                 >
                   {(enableHrvReadout || enableBfReadout) ? 'ON' : 'OFF'}
                 </Button>
               </div>
-              <p className={`text-[8px] mb-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                Time = Perf.Time + Perf.Start + Perf.Delay
-              </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
@@ -682,6 +682,9 @@ export default function AnalysisPanel({
                     </Badge>
                   )}
                 </div>
+                <p className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                  Time = Perf.Time + Perf.Start + Perf.Delay
+                </p>
               </div>
             </div>
 

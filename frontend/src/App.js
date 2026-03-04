@@ -227,7 +227,7 @@ function BFChart({ metrics, lightPulses }) {
             <Brush 
               dataKey="time"
               height={20} 
-              stroke="#3f3f46" 
+              stroke="#10b981" 
               fill="#0c0c0e"
               tickFormatter={(v) => v.toFixed(1)}
               startIndex={brushIndices.start}

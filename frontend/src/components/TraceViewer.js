@@ -504,7 +504,7 @@ export default function TraceViewer({
           <Brush
             dataKey="time"
             height={25}
-            stroke="#3f3f46"
+            stroke="#ffffff"
             fill="#0c0c0e"
             tickFormatter={(v) => v.toFixed(1)}
             startIndex={brushIndices.start}

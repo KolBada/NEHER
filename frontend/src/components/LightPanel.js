@@ -704,7 +704,7 @@ export default function LightPanel({
                       <Line 
                         type="monotone" 
                         dataKey="bf" 
-                        stroke="#22d3ee" 
+                        stroke="#10b981" 
                         strokeWidth={1} 
                         dot={false} 
                         isAnimationActive={false} 
@@ -712,7 +712,7 @@ export default function LightPanel({
                       <Brush 
                         dataKey="time" 
                         height={20} 
-                        stroke="#3f3f46" 
+                        stroke="#10b981" 
                         fill="#0c0c0e" 
                         tickFormatter={(v) => v.toFixed(1)}
                         startIndex={brushIndices.start}
