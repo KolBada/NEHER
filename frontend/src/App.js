@@ -13,7 +13,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, Beaker, Clock, Plus, X, Home, Minus, Check } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -1122,39 +1122,37 @@ function App() {
       </header>
 
       {/* Recording Metadata Bar */}
-      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-2">
-        <div className="flex items-start gap-4 flex-wrap">
+      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-3">
+        <div className="flex items-center justify-center gap-8 flex-wrap">
           {/* Recording name */}
-          <div className="flex items-center gap-2">
-            <Save className="w-3 h-3 text-zinc-500" />
-            <Label className="text-[10px] text-zinc-500">Recording:</Label>
+          <div className="flex items-center gap-3">
+            <Save className="w-4 h-4 text-zinc-400" />
+            <Label className="text-sm text-zinc-400 font-medium">Recording:</Label>
             <Input
               data-testid="recording-name-input"
               value={recordingName}
               onChange={(e) => setRecordingName(e.target.value)}
-              className="h-6 w-40 text-xs font-data bg-zinc-900 border-zinc-800 rounded-sm"
+              className="h-8 w-48 text-sm font-data bg-zinc-900 border-zinc-700 rounded-sm"
               placeholder="Enter name..."
             />
           </div>
           
-          <Separator orientation="vertical" className="h-8 bg-zinc-800" />
+          <Separator orientation="vertical" className="h-10 bg-zinc-700" />
           
           {/* Drug selection */}
-          <div className="flex items-start gap-2">
-            <div className="flex items-center gap-1">
-              <Beaker className="w-3 h-3 text-zinc-500" />
-              <Label className="text-[10px] text-zinc-500">Drugs:</Label>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <FlaskConical className="w-4 h-4 text-zinc-400" />
+            <Label className="text-sm text-zinc-400 font-medium">Drugs:</Label>
+            <div className="flex flex-wrap items-center gap-2">
               {/* Drug selection dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-6 text-[9px] border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-2"
+                    className="h-8 text-xs border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3"
                   >
-                    <Plus className="w-3 h-3 mr-1" /> Add Drug
+                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Drug
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
@@ -1186,11 +1184,11 @@ function App() {
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className="text-[9px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50"
+                    className="text-xs border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 h-7 px-2"
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
-                    <X className="w-2.5 h-2.5 ml-1" />
+                    <X className="w-3 h-3 ml-1.5" />
                   </Badge>
                 );
               })}
@@ -1198,11 +1196,11 @@ function App() {
                 <Badge 
                   key={drug.id} 
                   variant="outline" 
-                  className="text-[9px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50"
+                  className="text-xs border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 h-7 px-2"
                   onClick={() => removeOtherDrug(drug.id)}
                 >
                   {drug.name || 'Other'}
-                  <X className="w-2.5 h-2.5 ml-1" />
+                  <X className="w-3 h-3 ml-1.5" />
                 </Badge>
               ))}
             </div>
