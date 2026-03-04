@@ -1122,27 +1122,27 @@ function App() {
       </header>
 
       {/* Recording Metadata Bar */}
-      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-3">
-        <div className="flex items-center justify-center gap-8 flex-wrap">
+      <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-1.5">
+        <div className="flex items-center gap-6 flex-wrap">
           {/* Recording name */}
-          <div className="flex items-center gap-3">
-            <Save className="w-4 h-4 text-zinc-400" />
-            <Label className="text-sm text-zinc-400 font-medium">Recording:</Label>
+          <div className="flex items-center gap-2">
+            <Save className="w-3.5 h-3.5 text-zinc-400" />
+            <Label className="text-xs text-zinc-400 font-medium">Recording:</Label>
             <Input
               data-testid="recording-name-input"
               value={recordingName}
               onChange={(e) => setRecordingName(e.target.value)}
-              className="h-8 w-48 text-sm font-data bg-zinc-900 border-zinc-700 rounded-sm"
+              className="h-7 w-44 text-xs font-data bg-zinc-900 border-zinc-700 rounded-sm"
               placeholder="Enter name..."
             />
           </div>
           
-          <Separator orientation="vertical" className="h-10 bg-zinc-700" />
+          <Separator orientation="vertical" className="h-7 bg-zinc-700" />
           
           {/* Drug selection */}
-          <div className="flex items-center gap-3">
-            <FlaskConical className="w-4 h-4 text-zinc-400" />
-            <Label className="text-sm text-zinc-400 font-medium">Drugs:</Label>
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-3.5 h-3.5 text-zinc-400" />
+            <Label className="text-xs text-zinc-400 font-medium">Drugs:</Label>
             <div className="flex flex-wrap items-center gap-2">
               {/* Drug selection dropdown */}
               <DropdownMenu>
@@ -1150,9 +1150,9 @@ function App() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3"
+                    className="h-6 text-[10px] border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-2"
                   >
-                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Drug
+                    <Plus className="w-3 h-3 mr-1" /> Add Drug
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
@@ -1184,11 +1184,11 @@ function App() {
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className="text-xs border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 h-7 px-2"
+                    className="text-[10px] border-cyan-800 bg-cyan-950/30 text-cyan-400 cursor-pointer hover:bg-cyan-950/50 h-6 px-2"
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
-                    <X className="w-3 h-3 ml-1.5" />
+                    <X className="w-2.5 h-2.5 ml-1" />
                   </Badge>
                 );
               })}
@@ -1196,11 +1196,11 @@ function App() {
                 <Badge 
                   key={drug.id} 
                   variant="outline" 
-                  className="text-xs border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 h-7 px-2"
+                  className="text-[10px] border-amber-800 bg-amber-950/30 text-amber-400 cursor-pointer hover:bg-amber-950/50 h-6 px-2"
                   onClick={() => removeOtherDrug(drug.id)}
                 >
                   {drug.name || 'Other'}
-                  <X className="w-3 h-3 ml-1.5" />
+                  <X className="w-2.5 h-2.5 ml-1" />
                 </Badge>
               ))}
             </div>
