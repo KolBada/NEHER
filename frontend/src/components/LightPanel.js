@@ -662,7 +662,7 @@ export default function LightPanel({
                       data={bfChartData}
                       onClick={editMode ? handleChartClick : undefined}
                       style={{ cursor: editMode ? 'crosshair' : 'default' }}
-                      margin={{ bottom: 55 }}
+                      margin={{ top: 10, right: 35, left: 15, bottom: 35 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
                       <XAxis 
@@ -672,7 +672,7 @@ export default function LightPanel({
                         domain={zoomDomain || ['dataMin', 'dataMax']}
                         type="number"
                         allowDataOverflow
-                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -20 }}
+                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'right', dy: 12 }}
                       />
                       <YAxis 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 
