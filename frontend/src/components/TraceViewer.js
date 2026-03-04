@@ -497,14 +497,6 @@ export default function TraceViewer({
               strokeWidth={2}
               strokeDasharray="5 5"
               ifOverflow="extendDomain"
-              label={{
-                value: 'Thresh',
-                position: 'right',
-                fill: '#f59e0b',
-                fontSize: 9,
-                fontFamily: 'JetBrains Mono',
-                dy: -8,
-              }}
             />
           )}
           {/* Timeline brush/slider - always shows full recording */}
