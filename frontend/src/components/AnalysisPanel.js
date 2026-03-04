@@ -565,7 +565,7 @@ export default function AnalysisPanel({
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[160px] ${
+            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] ${
               baselineEnabled 
                 ? 'bg-cyan-950/20 border-cyan-800/50' 
                 : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
@@ -623,7 +623,7 @@ export default function AnalysisPanel({
             </div>
 
             {/* Drug readout controls */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] h-[160px] ${
+            <div className={`p-3 rounded-sm border transition-all duration-200 w-[280px] ${
               (enableHrvReadout || enableBfReadout) 
                 ? 'bg-purple-950/20 border-purple-800/50' 
                 : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
