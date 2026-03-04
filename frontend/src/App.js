@@ -159,7 +159,12 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange }) {
       const startTime = data[brushArea.startIndex]?.time;
       const endTime = data[brushArea.endIndex]?.time;
       if (startTime !== undefined && endTime !== undefined) {
-        onZoomChange([startTime, endTime]);
+        // Check if this represents the full range (reset)
+        if (brushArea.startIndex === 0 && brushArea.endIndex === data.length - 1) {
+          onZoomChange(null);
+        } else {
+          onZoomChange([startTime, endTime]);
+        }
       }
     }
   }, [data, onZoomChange]);
@@ -223,17 +228,6 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange }) {
               />
             ))}
             <Line type="monotone" dataKey="bf" stroke="#10b981" strokeWidth={1} dot={false} isAnimationActive={false} />
-            <Brush 
-              dataKey="time"
-              height={20} 
-              stroke="#52525b" 
-              fill="#0c0c0e"
-              tickFormatter={(v) => v.toFixed(1)}
-              startIndex={brushIndices.start}
-              endIndex={brushIndices.end}
-              onChange={handleBrushChange}
-              travellerWidth={8}
-            />
           </LineChart>
         </ResponsiveContainer>
       </div>
