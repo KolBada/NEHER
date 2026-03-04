@@ -207,7 +207,7 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
       </div>
       <div ref={containerRef} style={{ touchAction: 'none' }}>
         <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 45 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis dataKey="time" type="number" 
               domain={zoomDomain || ['dataMin', 'dataMax']}
