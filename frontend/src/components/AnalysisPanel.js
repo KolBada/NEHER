@@ -679,7 +679,7 @@ function AnalysisPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] whitespace-nowrap ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                   <Input
                     type="number"
                     value={hrvReadoutMinute}
@@ -696,7 +696,7 @@ function AnalysisPanel({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] whitespace-nowrap ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
+                  <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                   <Input
                     type="number"
                     value={bfReadoutMinute}
