@@ -264,6 +264,7 @@ function App() {
   const [savedRecordingId, setSavedRecordingId] = useState(null);
   const [savedFolderId, setSavedFolderId] = useState(null);
   const [savedFolderName, setSavedFolderName] = useState(null);
+  const [savedRecordingData, setSavedRecordingData] = useState(null);  // Store original recording for cancel
   const [hasExported, setHasExported] = useState(false);
   const [isModified, setIsModified] = useState(false);  // Track if recording has been modified since last save
   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
@@ -354,6 +355,12 @@ function App() {
     setLightParams(newParams);
   }, []);
 
+  // Wrapper for LOESS frac change
+  const handleLoessFracChange = useCallback((value) => {
+    setIsModified(true);
+    setLoessFrac(value);
+  }, []);
+
   // Validation
   const [isValidated, setIsValidated] = useState(false);
   const [metrics, setMetrics] = useState(null);
@@ -383,6 +390,7 @@ function App() {
   const [lightHrv, setLightHrv] = useState(null);
   const [lightHrvDetrended, setLightHrvDetrended] = useState(null);
   const [lightResponse, setLightResponse] = useState(null);
+  const [loessFrac, setLoessFrac] = useState(0.25);  // LOESS span for corrected HRV
 
   // Shared zoom state for trace section (TraceViewer + BFChart)
   const [traceZoomDomain, setTraceZoomDomain] = useState(null);
@@ -610,6 +618,7 @@ function App() {
         pulses: lightPulses,
       });
       setLightHrv(data);
+      setIsModified(true);  // Mark as modified
       toast.success('Light HRV computed');
     } catch (err) {
       toast.error('Light HRV failed');
@@ -629,7 +638,8 @@ function App() {
         pulses: lightPulses,
         loess_frac: loessFrac,
       });
-      setLightHrvDetrended(data);
+      setLightHrvDetrended({ ...data, loess_frac_used: loessFrac });  // Store which LOESS was used
+      setIsModified(true);  // Mark as modified
       toast.success('Corrected HRV (Detrended) computed');
     } catch (err) {
       toast.error('Detrended HRV failed: ' + (err.response?.data?.detail || err.message));
@@ -649,6 +659,7 @@ function App() {
         pulses: lightPulses,
       });
       setLightResponse(data);
+      setIsModified(true);  // Mark as modified
       toast.success('Light Heart Rate Adaptation computed');
     } catch (err) {
       toast.error('Light Heart Rate Adaptation failed');
@@ -901,6 +912,7 @@ function App() {
     setLightHrv(null);
     setLightHrvDetrended(null);
     setLightResponse(null);
+    setLoessFrac(0.25);  // Reset LOESS span
     setRecordingName('');
     setRecordingDate('');
     setOrganoidInfo([{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
@@ -919,6 +931,7 @@ function App() {
     setSavedRecordingId(null);
     setSavedFolderId(null);
     setSavedFolderName(null);
+    setSavedRecordingData(null);  // Clear saved recording data
     setShowComparisonDialog(false);
     setNavigateToFolderId(null);
     setHasExported(false);
@@ -941,6 +954,7 @@ function App() {
       // Set recording identifiers immediately
       setSavedRecordingId(recordingData.id);
       setSavedFolderId(recordingData.folder_id);
+      setSavedRecordingData(recordingData);  // Store original for cancel functionality
       setIsModified(false);
       
       // Fetch folder name in parallel (don't block)
@@ -1052,6 +1066,15 @@ function App() {
           setLightResponse(state.lightResponse);
         }
         
+        // Restore LOESS frac setting (or from detrended results, or default)
+        if (state.loessFrac !== undefined) {
+          setLoessFrac(state.loessFrac);
+        } else if (state.lightHrvDetrended?.loess_frac_used) {
+          setLoessFrac(state.lightHrvDetrended.loess_frac_used);
+        } else {
+          setLoessFrac(0.25);
+        }
+        
         // Mark as exported if was saved before (since save requires export)
         setHasExported(true);
       });
@@ -1065,6 +1088,18 @@ function App() {
       setRecordingLoading(false);
     }
   }, []);
+
+  // Cancel edit - revert to saved version
+  const handleCancelEdit = useCallback(async () => {
+    if (!savedRecordingData) {
+      toast.error('No saved version to revert to');
+      return;
+    }
+    
+    // Reload the saved recording data
+    await handleOpenRecording(savedRecordingData);
+    toast.success('Reverted to saved version');
+  }, [savedRecordingData, handleOpenRecording]);
 
   // Build analysis state for saving
   const buildAnalysisState = useCallback(() => {
@@ -1125,12 +1160,13 @@ function App() {
       lightHrv,
       lightHrvDetrended,
       lightResponse,
+      loessFrac,  // LOESS span setting
     };
   }, [
     activeFile, recordingName, traceData, beats, detectionParams, filterParams, signalStats,
     isValidated, metrics, hrvResults, perMinuteData, selectedDrugs, drugSettings, otherDrugs,
     drugReadoutSettings, baselineEnabled, lightEnabled, lightParams, lightPulses, lightHrv, lightHrvDetrended, lightResponse,
-    recordingDate, organoidInfo, fusionDate, recordingDescription
+    recordingDate, organoidInfo, fusionDate, recordingDescription, loessFrac
   ]);
 
   // Handle save complete
@@ -1211,15 +1247,23 @@ function App() {
               NEHER
             </h1>
             <Separator orientation="vertical" className="h-5 bg-zinc-700" />
-            {/* Status badge: Saved (emerald), Edit (orange), Unsaved (red) */}
+            {/* Status badge: Saved (emerald), Edit | Cancel (orange), Unsaved (red) */}
             {savedRecordingId && !isModified && (
               <Badge variant="outline" className="h-6 text-[10px] border-emerald-700/50 text-emerald-400 px-2">
                 Saved
               </Badge>
             )}
             {savedRecordingId && isModified && (
-              <Badge variant="outline" className="h-6 text-[10px] border-orange-700/50 text-orange-400 px-2">
-                Edit
+              <Badge variant="outline" className="h-6 text-[10px] border-orange-700/50 text-orange-400 px-2 flex items-center gap-0">
+                <span>Edit</span>
+                <Separator orientation="vertical" className="h-3 bg-orange-700/50 mx-1.5" />
+                <button 
+                  onClick={handleCancelEdit}
+                  className="hover:text-orange-200 transition-colors"
+                  title="Revert to saved version"
+                >
+                  Cancel
+                </button>
               </Badge>
             )}
             {!savedRecordingId && metrics && (
@@ -1594,6 +1638,8 @@ function App() {
               metrics={metrics}
               lightEnabled={lightEnabled}
               onLightEnabledChange={handleLightEnabledToggle}
+              loessFrac={loessFrac}
+              onLoessFracChange={handleLoessFracChange}
             />
           </TabsContent>
 

@@ -246,7 +246,8 @@ function LightPanel({
   pulses, onDetectPulses, onPulsesUpdate,
   lightHrv, lightHrvDetrended, lightResponse,
   onComputeLightHRV, onComputeLightHRVDetrended, onComputeLightResponse,
-  loading, metrics, lightEnabled, onLightEnabledChange
+  loading, metrics, lightEnabled, onLightEnabledChange,
+  loessFrac, onLoessFracChange
 }) {
   const [localParams, setLocalParams] = useState(lightParams || {
     startTime: 180,
@@ -261,7 +262,6 @@ function LightPanel({
   // State for detrended visualization expansion
   const [expandedStim, setExpandedStim] = useState(null);
   const [showOverlay, setShowOverlay] = useState(false);
-  const [loessFrac, setLoessFrac] = useState(0.25);
   const [localPulses, setLocalPulses] = useState(null);
   const [originalPulses, setOriginalPulses] = useState(null);
   
@@ -1473,7 +1473,7 @@ function LightPanel({
                     <Label className="text-[10px] text-zinc-500">LOESS Span:</Label>
                     <Select
                       value={String(loessFrac)}
-                      onValueChange={(v) => setLoessFrac(parseFloat(v))}
+                      onValueChange={(v) => onLoessFracChange(parseFloat(v))}
                     >
                       <SelectTrigger className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm">
                         <SelectValue />
@@ -1505,24 +1505,32 @@ function LightPanel({
                   <>
                     {/* Readout (median of 5 stims) */}
                     {lightHrvDetrended.final && (
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        <MetricCard 
-                          label="ln(RMSSD₇₀) detrended" 
-                          value={lightHrvDetrended.final.ln_rmssd70_detrended}
-                          tooltip="Log-transformed RMSSD after removing trend - reflects pure beat-to-beat variability"
-                        />
-                        <MetricCard 
-                          label="ln(SDNN₇₀) detrended" 
-                          value={lightHrvDetrended.final.ln_sdnn70_detrended}
-                          tooltip="Log-transformed SDNN after removing trend - reflects residual overall variability"
-                        />
-                        <MetricCard 
-                          label="pNN50₇₀ detrended" 
-                          value={lightHrvDetrended.final.pnn50_detrended}
-                          unit="%"
-                          tooltip="Percentage of successive detrended intervals differing >50 ms"
-                        />
-                      </div>
+                      <>
+                        {/* Show LOESS span used */}
+                        <div className="mb-2">
+                          <Badge variant="outline" className="text-[9px] border-zinc-700 text-zinc-400">
+                            LOESS Span: {Math.round((lightHrvDetrended.loess_frac_used || 0.25) * 100)}%
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          <MetricCard 
+                            label="ln(RMSSD₇₀) detrended" 
+                            value={lightHrvDetrended.final.ln_rmssd70_detrended}
+                            tooltip="Log-transformed RMSSD after removing trend - reflects pure beat-to-beat variability"
+                          />
+                          <MetricCard 
+                            label="ln(SDNN₇₀) detrended" 
+                            value={lightHrvDetrended.final.ln_sdnn70_detrended}
+                            tooltip="Log-transformed SDNN after removing trend - reflects residual overall variability"
+                          />
+                          <MetricCard 
+                            label="pNN50₇₀ detrended" 
+                            value={lightHrvDetrended.final.pnn50_detrended}
+                            unit="%"
+                            tooltip="Percentage of successive detrended intervals differing >50 ms"
+                          />
+                        </div>
+                      </>
                     )}
 
                     <Separator className="bg-zinc-800 my-3" />
