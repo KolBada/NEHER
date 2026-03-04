@@ -108,10 +108,13 @@ class ExportRequest(BaseModel):
     light_metrics_detrended: Optional[dict] = None  # Corrected HRV (Detrended) data
     light_response: Optional[List[dict]] = None
     light_pulses: Optional[List[dict]] = None  # For showing light stim zones on charts
+    light_enabled: Optional[bool] = True  # Whether light stim is enabled
+    light_stim_count: Optional[int] = 0  # Number of stims detected
     summary: Optional[dict] = None
     filename: str = "analysis"
     recording_name: Optional[str] = None
     drug_used: Optional[str] = None
+    all_drugs: Optional[List[dict]] = None  # Full drug details with start/delay/end
     per_minute_data: Optional[List[dict]] = None
     baseline: Optional[dict] = None
     drug_readout: Optional[dict] = None  # Drug readout timing info for highlighting
@@ -2797,15 +2800,39 @@ async def export_xlsx(request: ExportRequest):
                         ws_summary[f'{col}{current_row}'].border = thin_border
                     current_row += 1
         
-        # Add perfusion parameters
-        if request.perfusion_params:
+        # Add perfusion parameters - support multiple drugs
+        if request.all_drugs and len(request.all_drugs) > 0:
+            for drug_idx, drug in enumerate(request.all_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                drug_label = f" ({drug_name})" if len(request.all_drugs) > 1 else ""
+                
+                perf_data = [
+                    (f'Perfusion Start{drug_label}', f"{drug.get('start', 3)} min"),
+                    (f'Perfusion Delay{drug_label}', f"{drug.get('delay', 3)} min"),
+                ]
+                if drug.get('end') is not None:
+                    perf_data.append((f'Perfusion End{drug_label}', f"{drug.get('end')} min"))
+                
+                for label, value in perf_data:
+                    ws_summary[f'A{current_row}'] = label
+                    ws_summary[f'B{current_row}'] = value
+                    for col in ['A', 'B']:
+                        ws_summary[f'{col}{current_row}'].font = data_font
+                        ws_summary[f'{col}{current_row}'].border = thin_border
+                    current_row += 1
+        elif request.perfusion_params:
+            # Fallback to old perfusion_params format
             pp = request.perfusion_params
             perf_data = [
                 ('Perfusion Start', f"{pp.get('perfusion_start', 0)} min"),
                 ('Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"),
+            ]
+            if pp.get('perfusion_end') is not None:
+                perf_data.append(('Perfusion End', f"{pp.get('perfusion_end')} min"))
+            perf_data.extend([
                 ('Perfusion Time (BF)', f"{pp.get('perfusion_time_bf', '—')} min" if pp.get('perfusion_time_bf') is not None else '—'),
                 ('Perfusion Time (HRV)', f"{pp.get('perfusion_time_hrv', '—')} min" if pp.get('perfusion_time_hrv') is not None else '—'),
-            ]
+            ])
             for label, value in perf_data:
                 ws_summary[f'A{current_row}'] = label
                 ws_summary[f'B{current_row}'] = value
@@ -2814,10 +2841,18 @@ async def export_xlsx(request: ExportRequest):
                     ws_summary[f'{col}{current_row}'].border = thin_border
                 current_row += 1
         
-        # Light Stimulation status
-        if request.summary and 'Light Stimulation' in request.summary:
-            ws_summary[f'A{current_row}'] = 'Light Stimulation'
-            ws_summary[f'B{current_row}'] = str(request.summary['Light Stimulation'])
+        # Light Stimulation status and count
+        ws_summary[f'A{current_row}'] = 'Light Stimulation'
+        light_status = 'Enabled' if request.light_enabled else 'Disabled'
+        ws_summary[f'B{current_row}'] = light_status
+        for col in ['A', 'B']:
+            ws_summary[f'{col}{current_row}'].font = data_font
+            ws_summary[f'{col}{current_row}'].border = thin_border
+        current_row += 1
+        
+        if request.light_enabled and request.light_stim_count and request.light_stim_count > 0:
+            ws_summary[f'A{current_row}'] = 'Number of Stims'
+            ws_summary[f'B{current_row}'] = str(request.light_stim_count)
             for col in ['A', 'B']:
                 ws_summary[f'{col}{current_row}'].font = data_font
                 ws_summary[f'{col}{current_row}'].border = thin_border
@@ -3526,15 +3561,27 @@ async def export_pdf(request: ExportRequest):
                 if v is not None and k in allowed_keys:
                     left_rows.append([k, str(v)])
         
-        # Perfusion parameters
-        if request.perfusion_params:
+        # Perfusion parameters - support multiple drugs
+        if request.all_drugs and len(request.all_drugs) > 0:
+            for drug_idx, drug in enumerate(request.all_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                drug_label = f" ({drug_name})" if len(request.all_drugs) > 1 else ""
+                left_rows.append([f'Perf. Start{drug_label}', f"{drug.get('start', 3)} min"])
+                left_rows.append([f'Perf. Delay{drug_label}', f"{drug.get('delay', 3)} min"])
+                if drug.get('end') is not None:
+                    left_rows.append([f'Perf. End{drug_label}', f"{drug.get('end')} min"])
+        elif request.perfusion_params:
             pp = request.perfusion_params
             left_rows.append(['Perfusion Start', f"{pp.get('perfusion_start', 0)} min"])
             left_rows.append(['Perfusion Delay', f"{pp.get('perfusion_delay', 0)} min"])
+            if pp.get('perfusion_end') is not None:
+                left_rows.append(['Perfusion End', f"{pp.get('perfusion_end')} min"])
         
-        # Light Stimulation status
-        if request.summary and 'Light Stimulation' in request.summary:
-            left_rows.append(['Light Stimulation', str(request.summary['Light Stimulation'])])
+        # Light Stimulation status and count
+        light_status = 'Enabled' if request.light_enabled else 'Disabled'
+        left_rows.append(['Light Stimulation', light_status])
+        if request.light_enabled and request.light_stim_count and request.light_stim_count > 0:
+            left_rows.append(['Number of Stims', str(request.light_stim_count)])
         
         # Organoid/Cell Info section
         if request.recording_date or request.organoid_info or request.fusion_date or request.recording_description:

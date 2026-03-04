@@ -850,18 +850,42 @@ function App() {
     const summary = {};
     if (recordingName) summary['Recording Name'] = recordingName;
     
-    // Drug info
-    const allDrugs = [
+    // Drug info - comprehensive
+    const allDrugsDetailed = [
       ...selectedDrugs.map(d => {
         const config = DRUG_CONFIG[d];
         const settings = drugSettings[d] || {};
-        return `${config?.name || d} ${settings.concentration || ''}µM`;
+        return {
+          name: config?.name || d,
+          concentration: settings.concentration || '',
+          start: settings.perfusionStart ?? 3,
+          delay: settings.perfusionTime ?? 3,
+          end: settings.perfusionEnd ?? null,
+        };
       }),
-      ...otherDrugs.filter(d => d.name).map(d => `${d.name} ${d.concentration}µM`)
+      ...otherDrugs.filter(d => d.name).map(d => ({
+        name: d.name,
+        concentration: d.concentration || '',
+        start: d.perfusionStart ?? 3,
+        delay: d.perfusionTime ?? 3,
+        end: d.perfusionEnd ?? null,
+      }))
     ];
-    if (allDrugs.length > 0) {
-      summary['Drug(s) Used'] = allDrugs.join(', ');
+    
+    const allDrugsText = allDrugsDetailed.map(d => `${d.name} ${d.concentration}µM`);
+    if (allDrugsText.length > 0) {
+      summary['Drug(s) Used'] = allDrugsText.join(', ');
     }
+    
+    // Add drug perfusion details to summary
+    allDrugsDetailed.forEach((drug, idx) => {
+      const drugLabel = allDrugsDetailed.length > 1 ? ` (${drug.name})` : '';
+      summary[`Perfusion Start${drugLabel}`] = `${drug.start} min`;
+      summary[`Perfusion Delay${drugLabel}`] = `${drug.delay} min`;
+      if (drug.end !== null) {
+        summary[`Perfusion End${drugLabel}`] = `${drug.end} min`;
+      }
+    });
     
     if (metrics) {
       summary['Total Beats'] = metrics.n_total;
@@ -869,6 +893,13 @@ function App() {
       summary['Removed Beats'] = metrics.n_removed;
       summary['Filter Range'] = `${metrics.filter_settings?.lower_pct || 50}%-${metrics.filter_settings?.upper_pct || 200}%`;
     }
+    
+    // Light stimulation info
+    summary['Light Stimulation'] = lightEnabled ? 'Enabled' : 'Disabled';
+    if (lightEnabled && lightPulses && lightPulses.length > 0) {
+      summary['Number of Stims'] = lightPulses.length;
+    }
+    
     if (hrvResults?.readout) {
       summary['ln(RMSSD70)'] = hrvResults.readout.ln_rmssd70;
       summary['SDNN'] = hrvResults.readout.sdnn;
@@ -878,9 +909,6 @@ function App() {
     if (hrvResults?.baseline) {
       summary['Baseline BF'] = hrvResults.baseline.baseline_bf;
       summary['Baseline ln(RMSSD70)'] = hrvResults.baseline.baseline_ln_rmssd70;
-    }
-    if (!lightEnabled) {
-      summary['Light Stimulation'] = 'Disabled';
     }
 
     // Calculate drug readout timing for export highlighting
@@ -893,6 +921,7 @@ function App() {
       if (config) {
         const perfStart = settings.perfusionStart ?? config.defaultPerfStart ?? 3;
         const perfDelay = settings.perfusionTime ?? config.defaultPerfTime ?? 3;  // Now called Perfusion Delay
+        const perfEnd = settings.perfusionEnd ?? null;
         const baseBfReadout = config.bfReadout;  // This is Perfusion Time for BF
         const baseHrvReadout = config.hrvReadout;  // This is Perfusion Time for HRV
         
@@ -900,6 +929,7 @@ function App() {
         perfusionParams = {
           perfusion_start: perfStart,
           perfusion_delay: perfDelay,
+          perfusion_end: perfEnd,
           perfusion_time_bf: baseBfReadout,
           perfusion_time_hrv: baseHrvReadout,
         };
@@ -912,6 +942,9 @@ function App() {
         }
       }
     }
+    
+    // Build all drugs export data for multi-drug support
+    const allDrugsExport = allDrugsDetailed.length > 0 ? allDrugsDetailed : null;
 
     return {
       per_beat_data: perBeat,
@@ -920,10 +953,13 @@ function App() {
       light_metrics_detrended: lightEnabled ? lightHrvDetrended : null,  // Corrected HRV (Detrended)
       light_response: lightEnabled ? (lightResponse?.per_stim || null) : null,
       light_pulses: lightEnabled ? lightPulses : null,  // For showing light stim zones on PDF charts
+      light_enabled: lightEnabled,
+      light_stim_count: lightEnabled && lightPulses ? lightPulses.length : 0,
       summary: Object.keys(summary).length > 0 ? summary : null,
       filename: recordingName || activeFile?.filename?.replace('.abf', '') || 'analysis',
       recording_name: recordingName,
-      drug_used: allDrugs.length > 0 ? allDrugs.join(',') : null,
+      drug_used: allDrugsText.length > 0 ? allDrugsText.join(',') : null,
+      all_drugs: allDrugsExport,  // Full drug details for export
       per_minute_data: perMinuteData,
       baseline: hrvResults?.baseline,
       drug_readout: drugReadout,
