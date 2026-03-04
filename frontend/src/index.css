@@ -137,13 +137,3 @@
     stroke: #ffffff !important;
     stroke-width: 1px !important;
 }
-
-/* Fix brush traveller interaction - ensure travellers are clickable above slide */
-.recharts-brush-traveller {
-    pointer-events: all !important;
-    cursor: ew-resize !important;
-}
-
-.recharts-brush-slide {
-    pointer-events: none !important;
-}
