@@ -672,7 +672,7 @@ export default function LightPanel({
                         domain={zoomDomain || ['dataMin', 'dataMax']}
                         type="number"
                         allowDataOverflow
-                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -15 }}
+                        label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -17 }}
                       />
                       <YAxis 
                         tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} 

@@ -440,7 +440,7 @@ export default function TraceViewer({
             domain={xDomain}
             tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
             tickFormatter={(v) => v.toFixed(1)}
-            label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -15 }}
+            label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -17 }}
             allowDataOverflow
           />
           <YAxis
