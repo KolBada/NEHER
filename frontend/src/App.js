@@ -291,6 +291,17 @@ function App() {
   });
   const [signalStats, setSignalStats] = useState(null);
 
+  // Wrapper functions to mark as modified when params change
+  const handleDetectionParamsChange = useCallback((newParams) => {
+    setIsModified(true);
+    setDetectionParams(newParams);
+  }, []);
+
+  const handleFilterParamsChange = useCallback((newParams) => {
+    setIsModified(true);
+    setFilterParams(newParams);
+  }, []);
+
   // Validation
   const [isValidated, setIsValidated] = useState(false);
   const [metrics, setMetrics] = useState(null);
@@ -396,6 +407,7 @@ function App() {
   const handleDetect = useCallback(async () => {
     if (!sessionId || !activeFile) return;
     setDetectLoading(true);
+    setIsModified(true);  // Mark as modified when re-detecting
     try {
       const { data } = await api.detectBeats({
         session_id: sessionId,
@@ -432,6 +444,7 @@ function App() {
   const handleValidate = useCallback(async () => {
     if (beats.length < 2) { toast.error('Need at least 2 beats'); return; }
     setAnalysisLoading(true);
+    setIsModified(true);  // Mark as modified when validating
     try {
       const { data } = await api.computeMetrics({
         beat_times_sec: beats.map(b => b.timeSec),
@@ -461,6 +474,7 @@ function App() {
   // Unvalidate - allow re-editing beats
   // Keep metrics/BF chart visible as reference until new detection
   const handleUnvalidate = useCallback(() => {
+    setIsModified(true);  // Mark as modified when resetting validation
     setIsValidated(false);
     // Don't clear metrics - keep BF chart visible as previous reference
     // setMetrics(null);
@@ -477,6 +491,7 @@ function App() {
   const handleComputeHRV = useCallback(async (readoutMinute, baselineParams = {}) => {
     if (!metrics) return;
     setAnalysisLoading(true);
+    setIsModified(true);  // Mark as modified when computing HRV
     try {
       const { data } = await api.hrvAnalysis({
         beat_times_min: metrics.filtered_beat_times_min,
@@ -497,6 +512,7 @@ function App() {
   // Light detect
   const handleDetectPulses = useCallback(async (params) => {
     setAnalysisLoading(true);
+    setIsModified(true);  // Mark as modified when detecting pulses
     try {
       const { data } = await api.lightDetect({
         start_time_sec: params.startTime,
@@ -1389,9 +1405,9 @@ function App() {
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
               <DetectionPanel
                 params={detectionParams}
-                onChange={setDetectionParams}
+                onChange={handleDetectionParamsChange}
                 filterParams={filterParams}
-                onFilterChange={setFilterParams}
+                onFilterChange={handleFilterParamsChange}
                 signalStats={signalStats}
                 onDetect={handleDetect}
                 onValidate={handleValidate}
@@ -1409,7 +1425,7 @@ function App() {
                   lightPulses={lightPulses}
                   isValidated={isValidated}
                   threshold={detectionParams.threshold}
-                  onThresholdChange={(v) => setDetectionParams(p => ({ ...p, threshold: v }))}
+                  onThresholdChange={(v) => { setIsModified(true); setDetectionParams(p => ({ ...p, threshold: v })); }}
                   signalStats={signalStats}
                   invert={detectionParams.invert}
                   zoomDomain={traceZoomDomain}
