@@ -836,7 +836,7 @@ function LightPanel({
                       </Button>
                     </div>
                     
-                    <div className="h-4 w-px bg-zinc-700" />
+                    <span className="text-[9px] text-zinc-500 px-1">or</span>
                     
                     {/* Click-to-edit on chart */}
                     <div className="flex items-center gap-1">
@@ -988,7 +988,7 @@ function LightPanel({
                     checked={localParams.autoDetect}
                     onCheckedChange={(v) => updateParam('autoDetect', v)}
                   />
-                  <Label className="text-[10px] text-zinc-400">Auto-detect start from BF increase</Label>
+                  <Label className="text-[10px] text-zinc-400">Use AI pulse detection</Label>
                 </div>
               </div>
 
@@ -1064,6 +1064,9 @@ function LightPanel({
                       <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
                       <p className="text-[10px] font-data text-yellow-400">
                         {formatTimeConfig(p.start_min)} - {formatTimeConfig(p.end_min)} min
+                      </p>
+                      <p className="text-[9px] font-data text-zinc-500">
+                        ({((p.end_min - p.start_min) * 60).toFixed(1)}s)
                       </p>
                     </div>
                   ))}
