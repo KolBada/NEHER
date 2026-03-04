@@ -423,7 +423,7 @@ export default function AnalysisPanel({
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => v.toFixed(1)}
-                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'right', dy: 12 }}
+                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -15 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
@@ -499,7 +499,7 @@ export default function AnalysisPanel({
                 <XAxis dataKey="time" tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }}
                   domain={zoomDomain || ['dataMin', 'dataMax']}
                   tickFormatter={(v) => v.toFixed(1)}
-                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'right', dy: 12 }}
+                  label={{ value: 'min', fill: '#a1a1aa', fontSize: 10, position: 'insideBottom', offset: -15 }}
                   type="number" allowDataOverflow />
                 <YAxis tick={{ fill: '#71717a', fontSize: 9, fontFamily: 'JetBrains Mono' }} width={45}
                   label={{ value: 'ms', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
