@@ -1118,6 +1118,8 @@ function App() {
               placeholder="Recording name..."
             />
             
+            <Separator orientation="vertical" className="h-4 bg-zinc-700" />
+            
             {/* Drug selection */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
