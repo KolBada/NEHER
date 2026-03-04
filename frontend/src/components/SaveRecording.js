@@ -318,7 +318,7 @@ export default function SaveRecording({
                       className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
                     />
                     {ageAtRecording !== null && (
-                      <p className="text-[10px] text-cyan-400 font-data">
+                      <p className="text-[10px] text-emerald-400 font-data">
                         Age at recording: D{ageAtRecording}
                       </p>
                     )}
@@ -404,7 +404,7 @@ export default function SaveRecording({
                             className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
                           />
                           {transfectionDays !== null && (
-                            <p className="text-[10px] text-amber-400 font-data">
+                            <p className="text-[10px] text-emerald-400 font-data">
                               Days since transfection: {transfectionDays}
                             </p>
                           )}
