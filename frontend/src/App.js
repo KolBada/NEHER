@@ -211,9 +211,11 @@ function BFChart({ metrics, lightPulses, zoomDomain, onZoomChange, isValidated =
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
             <XAxis dataKey="time" type="number" 
               domain={zoomDomain || ['dataMin', 'dataMax']}
+              allowDataOverflow={true}
               tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }}
               tickFormatter={(v) => formatTimeMin(v)} />
             <YAxis tick={{ fill: '#71717a', fontFamily: 'JetBrains Mono', fontSize: 9 }} width={45}
+              domain={['auto', 'auto']}
               label={{ value: 'bpm', angle: -90, fill: '#52525b', fontSize: 9, position: 'insideLeft' }} />
             <Tooltip
               contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 10, fontFamily: 'JetBrains Mono' }}
