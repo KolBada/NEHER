@@ -65,7 +65,7 @@ export default function ExportPanel({
               <div className={`p-2 rounded-sm border ${hasData ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
                 <p className="text-xs font-data text-zinc-300 font-medium">Per-Beat</p>
                 <p className={`text-xs font-data ${hasData ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                  {hasData ? `${metrics.n_total} beats` : 'No data'}
+                  {hasData ? `${metrics.n_total} intervals` : 'No data'}
                 </p>
               </div>
               <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
@@ -187,7 +187,7 @@ export default function ExportPanel({
                   )}
                   <Separator className="bg-zinc-800 my-1" />
                   <div className="flex justify-between">
-                    <span>Total Beats</span>
+                    <span>Total Intervals</span>
                     <span className="text-zinc-200">{metrics.n_total}</span>
                   </div>
                   <div className="flex justify-between">
@@ -204,42 +204,6 @@ export default function ExportPanel({
                       {metrics.filter_settings?.lower_pct || 50}%-{metrics.filter_settings?.upper_pct || 200}%
                     </span>
                   </div>
-                  {hasHrv && hrvResults.readout && (
-                    <>
-                      <Separator className="bg-zinc-800 my-1" />
-                      <p className="text-[9px] text-zinc-500 uppercase">HRV Readout (minute {hrvResults.readout.minute})</p>
-                      <div className="flex justify-between">
-                        <span>ln(RMSSD₇₀)</span>
-                        <span className="text-cyan-400">{hrvResults.readout.ln_rmssd70?.toFixed(3) ?? '—'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>SDNN</span>
-                        <span className="text-purple-400">{hrvResults.readout.sdnn?.toFixed(3) ?? '—'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>pNN50</span>
-                        <span className="text-orange-400">{hrvResults.readout.pnn50?.toFixed(1) ?? '—'}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Mean BF</span>
-                        <span className="text-zinc-300">{hrvResults.readout.mean_bf?.toFixed(1) ?? '—'} bpm</span>
-                      </div>
-                    </>
-                  )}
-                  {hrvResults?.baseline && (
-                    <>
-                      <Separator className="bg-zinc-800 my-1" />
-                      <p className="text-[9px] text-zinc-500 uppercase">Baseline</p>
-                      <div className="flex justify-between">
-                        <span>Baseline BF ({hrvResults.baseline.baseline_bf_range})</span>
-                        <span className="text-zinc-300">{hrvResults.baseline.baseline_bf?.toFixed(1) ?? '—'} bpm</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Baseline ln(RMSSD₇₀) ({hrvResults.baseline.baseline_hrv_range})</span>
-                        <span className="text-cyan-400">{hrvResults.baseline.baseline_ln_rmssd70?.toFixed(3) ?? '—'}</span>
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </>
