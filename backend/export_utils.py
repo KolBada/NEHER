@@ -30,7 +30,7 @@ TINTS = {
 def add_page_footer(fig, page_num, total_pages=None):
     """Add footer to each page"""
     footer_y = 0.02
-    fig.text(0.5, footer_y, 'NEHER Analysis', ha='center', fontsize=8, color='#71717a')
+    fig.text(0.5, footer_y, 'NEHER', ha='center', fontsize=8, color='#71717a')
     fig.text(0.95, footer_y, f'Page {page_num}' if not total_pages else f'Page {page_num}/{total_pages}', 
              ha='right', fontsize=8, color='#a1a1aa')
     fig.text(0.05, footer_y, 'Developed by Kolia H. Badarello', ha='left', fontsize=7, color='#a1a1aa', style='italic')
@@ -71,7 +71,7 @@ def create_nature_pdf(request):
         
         title = request.recording_name or request.filename or 'Recording Analysis'
         fig1.text(0.5, 0.96, title, ha='center', va='top', fontsize=16, fontweight='bold', color='#18181b')
-        fig1.text(0.5, 0.935, 'NEHER Electrophysiology Analysis Report', ha='center', va='top', fontsize=10, color='#71717a')
+        fig1.text(0.5, 0.935, 'Electrophysiology Analysis Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
         fig1.text(0.5, 0.915, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
         fig1.add_artist(plt.Line2D([0.08, 0.92], [0.905, 0.905], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
         
@@ -318,21 +318,17 @@ def create_nature_pdf(request):
                 
                 # Add drug regions with legend
                 if request.all_drugs:
-                    drug_patch = None
                     for drug in request.all_drugs:
                         start = drug.get('start', 0) + drug.get('delay', 0)
                         end = drug.get('end') if drug.get('end') else time_max * 1.1
                         ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
-                    drug_patch = mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion')
                 
                 # Add light stim regions with legend
-                light_patch = None
                 if request.light_enabled and request.light_pulses:
                     for pulse in request.light_pulses:
                         start_min = pulse.get('start_min', pulse.get('start_sec', 0) / 60)
                         end_min = pulse.get('end_min', pulse.get('end_sec', 0) / 60)
                         ax1.axvspan(start_min, end_min, alpha=0.2, color=COLORS['amber'])
-                    light_patch = mpatches.Patch(color=COLORS['amber'], alpha=0.3, label='Light Stim')
                 
                 # Build legend
                 handles = [mpatches.Patch(color=COLORS['emerald'], alpha=0.7, label='Filtered BF')]
@@ -437,6 +433,68 @@ def create_nature_pdf(request):
             pdf.savefig(fig3)
             plt.close(fig3)
         
+        # ==================== PAGE 3b: LIGHT-INDUCED CORRECTED HRV PANELS ====================
+        if request.light_enabled and request.light_metrics_detrended:
+            per_stim = request.light_metrics_detrended.get('per_stim', [])
+            valid_stims = [(i, s) for i, s in enumerate(per_stim) if s]
+            
+            if valid_stims:
+                page_num += 1
+                fig3b = plt.figure(figsize=(8.5, 11))
+                fig3b.suptitle('Light-Induced Corrected HRV (Detrended)', fontsize=14, fontweight='bold', y=0.96)
+                
+                # Panel a: ln(RMSSD70) for each stim
+                ax_a = fig3b.add_axes([0.1, 0.68, 0.85, 0.22])
+                stim_labels = [f"Stim {i+1}" for i, s in valid_stims]
+                ln_rmssd_vals = [s.get('ln_rmssd70_detrended', 0) for i, s in valid_stims]
+                x_pos = range(len(valid_stims))
+                bars_a = ax_a.bar(x_pos, ln_rmssd_vals, color=COLORS['emerald'], alpha=0.8, width=0.6)
+                ax_a.set_ylabel('ln(RMSSD₇₀)', fontsize=9)
+                ax_a.set_xticks(x_pos)
+                ax_a.set_xticklabels(stim_labels, fontsize=8)
+                ax_a.set_title('(a) ln(RMSSD₇₀) per Stimulation', fontsize=10, fontweight='bold', color=COLORS['emerald'])
+                ax_a.set_ylim(0, 8)
+                ax_a.grid(True, alpha=0.3, axis='y')
+                for bar, val in zip(bars_a, ln_rmssd_vals):
+                    if val:
+                        ax_a.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                                 f'{val:.2f}', ha='center', va='bottom', fontsize=7)
+                
+                # Panel b: ln(SDNN70) for each stim
+                ax_b = fig3b.add_axes([0.1, 0.38, 0.85, 0.22])
+                ln_sdnn_vals = [s.get('ln_sdnn70_detrended', 0) for i, s in valid_stims]
+                bars_b = ax_b.bar(x_pos, ln_sdnn_vals, color=COLORS['purple'], alpha=0.8, width=0.6)
+                ax_b.set_ylabel('ln(SDNN₇₀)', fontsize=9)
+                ax_b.set_xticks(x_pos)
+                ax_b.set_xticklabels(stim_labels, fontsize=8)
+                ax_b.set_title('(b) ln(SDNN₇₀) per Stimulation', fontsize=10, fontweight='bold', color=COLORS['purple'])
+                ax_b.set_ylim(0, 8)
+                ax_b.grid(True, alpha=0.3, axis='y')
+                for bar, val in zip(bars_b, ln_sdnn_vals):
+                    if val:
+                        ax_b.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                                 f'{val:.2f}', ha='center', va='bottom', fontsize=7)
+                
+                # Panel c: pNN50 for each stim
+                ax_c = fig3b.add_axes([0.1, 0.08, 0.85, 0.22])
+                pnn50_vals = [s.get('pnn50_detrended', 0) for i, s in valid_stims]
+                bars_c = ax_c.bar(x_pos, pnn50_vals, color=COLORS['amber'], alpha=0.8, width=0.6)
+                ax_c.set_ylabel('pNN50₇₀ (%)', fontsize=9)
+                ax_c.set_xlabel('Stimulation', fontsize=9)
+                ax_c.set_xticks(x_pos)
+                ax_c.set_xticklabels(stim_labels, fontsize=8)
+                ax_c.set_title('(c) pNN50₇₀ per Stimulation', fontsize=10, fontweight='bold', color=COLORS['amber'])
+                ax_c.set_ylim(0, 100)
+                ax_c.grid(True, alpha=0.3, axis='y')
+                for bar, val in zip(bars_c, pnn50_vals):
+                    if val is not None:
+                        ax_c.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, 
+                                 f'{val:.1f}', ha='center', va='bottom', fontsize=7)
+                
+                add_page_footer(fig3b, page_num)
+                pdf.savefig(fig3b)
+                plt.close(fig3b)
+        
         # ==================== PAGE 4: SPONTANEOUS ACTIVITY BF DATA TABLE ====================
         if request.per_minute_data:
             page_num += 1
@@ -450,7 +508,16 @@ def create_nature_pdf(request):
             baseline_window = None
             drug_window = None
             if request.baseline:
-                baseline_window = request.baseline.get('baseline_bf_range', '1-2')
+                baseline_range = request.baseline.get('baseline_bf_range', '1-2')
+                # Normalize baseline range to "X-Y" format
+                try:
+                    if '-' in str(baseline_range):
+                        baseline_window = baseline_range
+                    else:
+                        bmin = int(baseline_range)
+                        baseline_window = f"{bmin}-{bmin+1}"
+                except (ValueError, TypeError):
+                    baseline_window = baseline_range
             if request.drug_readout:
                 bf_min = request.drug_readout.get('bf_minute')
                 if bf_min is not None:

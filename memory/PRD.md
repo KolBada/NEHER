@@ -17,6 +17,21 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### Session: March 2025 - PDF Export Refinements
+- ✅ Changed first page title to "Electrophysiology Analysis Report by NEHER"
+- ✅ Updated footer: NEHER (center), page number (right), "Developed by Kolia H. Badarello" (left)
+- ✅ BF Data Table window format shows "0-1" (minute-minute+1)
+- ✅ Spontaneous Activity BF/HRV Data Tables: baseline and drug readout rows highlighted
+- ✅ Y-axis limits: pNN50_70 (0-100), ln(SDNN_70) (0-8), ln(RMSSD_70) (0-8)
+- ✅ Beat Frequency Analysis: light stim and drug in legend
+- ✅ Beat Frequency Normalized: uses drug readout if no baseline
+- ✅ Drug Readout shows BF/HRV even without baseline
+- ✅ Tissue Info table added below Recording Info
+- ✅ Light Readout shows all HRA metrics
+- ✅ Light-Induced Corrected HRV table: each stim before median
+- ✅ New page: Light-Induced Corrected HRV panels (a, b, c bar charts per stim)
+- ✅ All table names corrected per specifications
+
 ### Session: December 2025 - UI/UX Improvements
 - ✅ Conditional labels on Save Recording screen
 - ✅ "Edit" indicator with "Cancel" feature to revert unsaved changes
@@ -25,19 +40,8 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - ✅ Baseline metrics bug fix (now correctly updates on re-compute)
 - ✅ Delayed BF computation (only on button click)
 - ✅ Drug Readout toggle guards and state management
-- ✅ Spontaneous Activity UI fixes (March 4, 2026):
-  - Full-width separator line between header and controls (touches borders)
-  - Increased spacing between Baseline Metrics and Drug Metrics sections (space-y-8)
-  - Drug Readout input labels now show "HRV (Perf.T):" and "BF (Perf.T):"
-  - Drug Readout time badges show ranges: HRV "→ X-(X+3)min", BF "→ X-(X+1)min"
-  - Helper text with tooltip: "Input = Perf. Time (after Perf. Start + Perf. Delay)"
-  - Tooltip explains: Perf. Time, Perf. Start, Perf. Delay definitions
-  - Drug Readout box widened to 320px for badge visibility
-- ✅ Drug Phase Purple Region Visualization (December 2025):
-  - Extended purple drug-effect region to Trace tab charts (Beat Detector, Beat Frequency)
-  - Extended purple drug-effect region to Light Stim tab chart
-  - Purple region shows from (perfusionStart + perfusionDelay) to end of recording
-  - Only displays when a drug is selected
+- ✅ Spontaneous Activity UI fixes
+- ✅ Drug Phase Purple Region Visualization
 
 ## Known Issues / Bugs
 1. **P0 - Section Drag-and-Drop:** Only first 2 of 4 sections can be dragged on home page
@@ -65,3 +69,4 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - `frontend/src/components/TraceViewer.js` - Voltage trace visualization
 - `backend/server.py` - FastAPI backend
 - `backend/analysis.py` - Analysis computations
+- `backend/export_utils.py` - PDF, Excel, CSV export logic (Nature-style)
