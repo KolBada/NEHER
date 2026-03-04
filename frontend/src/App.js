@@ -1358,7 +1358,7 @@ function App() {
                 detectLoading={detectLoading}
                 beats={beats}
               />
-              <div className="space-y-8">
+              <div className="space-y-10">
                 <TraceViewer
                   traceData={traceData}
                   beats={beats}
