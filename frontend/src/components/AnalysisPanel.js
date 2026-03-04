@@ -47,7 +47,7 @@ function InfoTip({ text, children }) {
 
 const CHART_COLORS = {
   bf: '#10b981',  // emerald green
-  nn: '#228b22',  // forest green
+  nn: '#c0c0c0',  // silver
   lnRmssd: '#fa8072',  // salmon
   sdnn: '#fa8072',     // salmon
   pnn50: '#fa8072',    // salmon
