@@ -255,7 +255,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               Back
             </Button>
             <div>
-              <h2 className="text-lg font-medium text-zinc-100">{folder.name} - Comparison</h2>
+              <h2 className="text-lg font-medium text-zinc-100">Comparison: {folder.name}</h2>
               <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
             </div>
           </div>

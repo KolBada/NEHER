@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, startTransition, memo } from 'react';
 import { 
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
@@ -325,14 +325,19 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
   };
 
   const loadRecordings = async (folderId) => {
+    // Set view immediately for perceived speed
+    setView('folder');
     setLoading(true);
+    
     try {
       const { data } = await api.getRecordingsInFolder(folderId);
-      setSelectedFolder(data.folder);
-      setRecordings(data.recordings || []);
-      setView('folder');
+      startTransition(() => {
+        setSelectedFolder(data.folder);
+        setRecordings(data.recordings || []);
+      });
     } catch (err) {
       toast.error('Failed to load recordings');
+      setView('home');
     } finally {
       setLoading(false);
     }

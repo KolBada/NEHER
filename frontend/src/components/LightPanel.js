@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import { Zap, Loader2, Search, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, RotateCcw, Minus, Plus, Info, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -241,7 +241,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
   );
 }
 
-export default function LightPanel({
+function LightPanel({
   lightParams, onParamsChange,
   pulses, onDetectPulses, onPulsesUpdate,
   lightHrv, lightHrvDetrended, lightResponse,
@@ -1554,3 +1554,6 @@ export default function LightPanel({
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export default memo(LightPanel);

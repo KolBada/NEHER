@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect, memo } from 'react';
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Brush, ReferenceArea, ReferenceLine
@@ -7,7 +7,7 @@ import { MousePointerClick, ZoomIn, Trash2, Plus, RotateCcw, Minus } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-export default function TraceViewer({
+function TraceViewer({
   traceData, beats, onAddBeat, onRemoveBeat,
   lightPulses, isValidated,
   threshold, onThresholdChange, signalStats,
@@ -516,3 +516,6 @@ export default function TraceViewer({
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export default memo(TraceViewer);

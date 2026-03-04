@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, startTransition, memo } from 'react';
 import '@/App.css';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check, FolderOpen } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check, FolderOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -347,6 +347,7 @@ function App() {
   const [detectLoading, setDetectLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [recordingLoading, setRecordingLoading] = useState(false);  // For opening recordings
 
   const activeFile = files[activeFileIdx] || null;
   const hasDrug = selectedDrugs.length > 0 || otherDrugs.length > 0;
@@ -887,132 +888,137 @@ function App() {
 
   // Handle opening a saved recording
   const handleOpenRecording = useCallback(async (recordingData) => {
-    const state = recordingData.analysis_state;
+    setRecordingLoading(true);
     
-    // Set recording identifiers
-    setSavedRecordingId(recordingData.id);
-    setSavedFolderId(recordingData.folder_id);
-    setIsModified(false);  // Reset modified state when opening a saved recording
-    
-    // Fetch folder name if folder_id exists
-    if (recordingData.folder_id) {
-      try {
-        const { data: folderData } = await api.getFolder(recordingData.folder_id);
-        setSavedFolderName(folderData.name);
-      } catch (err) {
-        console.error('Failed to fetch folder name:', err);
+    try {
+      const state = recordingData.analysis_state;
+      
+      // Set recording identifiers immediately
+      setSavedRecordingId(recordingData.id);
+      setSavedFolderId(recordingData.folder_id);
+      setIsModified(false);
+      
+      // Fetch folder name in parallel (don't block)
+      if (recordingData.folder_id) {
+        api.getFolder(recordingData.folder_id)
+          .then(({ data: folderData }) => setSavedFolderName(folderData.name))
+          .catch(() => setSavedFolderName(null));
+      } else {
         setSavedFolderName(null);
       }
-    } else {
-      setSavedFolderName(null);
+      
+      // Use startTransition for non-urgent UI updates
+      startTransition(() => {
+        // Restore session info
+        setRecordingName(state.recordingName || recordingData.name);
+        
+        // Restore recording metadata
+        setRecordingDate(state.recordingDate || '');
+        setOrganoidInfo(state.organoidInfo || [{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
+        setFusionDate(state.fusionDate || '');
+        setRecordingDescription(state.recordingDescription || '');
+        
+        // Restore file info
+        if (state.file_info) {
+          setFiles([{
+            file_id: state.file_info.file_id || 'restored',
+            filename: recordingData.filename,
+            ...state.file_info,
+          }]);
+        }
+        
+        // Restore trace data
+        if (state.trace_data) {
+          setTraceData(state.trace_data);
+        }
+        
+        // Restore beats
+        if (state.beats) {
+          setBeats(state.beats);
+        }
+        
+        // Restore detection params
+        if (state.detectionParams) {
+          setDetectionParams(state.detectionParams);
+        }
+        
+        // Restore filter params
+        if (state.filterParams) {
+          setFilterParams(state.filterParams);
+        }
+        
+        // Restore signal stats
+        if (state.signalStats) {
+          setSignalStats(state.signalStats);
+        }
+        
+        // Restore validation state
+        setIsValidated(state.isValidated || false);
+        
+        // Restore metrics
+        if (state.metrics) {
+          setMetrics(state.metrics);
+        }
+        
+        // Restore HRV results
+        if (state.hrvResults) {
+          setHrvResults(state.hrvResults);
+        }
+        
+        // Restore per-minute data
+        if (state.perMinuteData) {
+          setPerMinuteData(state.perMinuteData);
+        }
+        
+        // Restore drug config
+        if (state.selectedDrugs) {
+          setSelectedDrugs(state.selectedDrugs);
+        }
+        if (state.drugSettings) {
+          setDrugSettings(state.drugSettings);
+        }
+        if (state.otherDrugs) {
+          setOtherDrugs(state.otherDrugs);
+        }
+        
+        // Restore drug readout settings (Spontaneous Activity)
+        if (state.drugReadoutSettings) {
+          setDrugReadoutSettings(state.drugReadoutSettings);
+        }
+        
+        // Restore baseline enabled (default to true for backward compatibility)
+        setBaselineEnabled(state.baselineEnabled !== false);
+        
+        // Restore light stim
+        setLightEnabled(state.lightEnabled !== false);
+        if (state.lightParams) {
+          setLightParams(state.lightParams);
+        }
+        if (state.lightPulses) {
+          setLightPulses(state.lightPulses);
+        }
+        if (state.lightHrv) {
+          setLightHrv(state.lightHrv);
+        }
+        if (state.lightHrvDetrended) {
+          setLightHrvDetrended(state.lightHrvDetrended);
+        }
+        if (state.lightResponse) {
+          setLightResponse(state.lightResponse);
+        }
+        
+        // Mark as exported if was saved before (since save requires export)
+        setHasExported(true);
+      });
+      
+      // Set session and view immediately for faster perceived loading
+      setSessionId('restored-' + recordingData.id);
+      setAppView('analysis');
+      
+      toast.success(`Loaded "${recordingData.name}"`);
+    } finally {
+      setRecordingLoading(false);
     }
-    
-    // Restore session info
-    setRecordingName(state.recordingName || recordingData.name);
-    
-    // Restore recording metadata
-    setRecordingDate(state.recordingDate || '');
-    setOrganoidInfo(state.organoidInfo || [{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
-    setFusionDate(state.fusionDate || '');
-    setRecordingDescription(state.recordingDescription || '');
-    
-    // Restore file info
-    if (state.file_info) {
-      setFiles([{
-        file_id: state.file_info.file_id || 'restored',
-        filename: recordingData.filename,
-        ...state.file_info,
-      }]);
-    }
-    
-    // Restore trace data
-    if (state.trace_data) {
-      setTraceData(state.trace_data);
-    }
-    
-    // Restore beats
-    if (state.beats) {
-      setBeats(state.beats);
-    }
-    
-    // Restore detection params
-    if (state.detectionParams) {
-      setDetectionParams(state.detectionParams);
-    }
-    
-    // Restore filter params
-    if (state.filterParams) {
-      setFilterParams(state.filterParams);
-    }
-    
-    // Restore signal stats
-    if (state.signalStats) {
-      setSignalStats(state.signalStats);
-    }
-    
-    // Restore validation state
-    setIsValidated(state.isValidated || false);
-    
-    // Restore metrics
-    if (state.metrics) {
-      setMetrics(state.metrics);
-    }
-    
-    // Restore HRV results
-    if (state.hrvResults) {
-      setHrvResults(state.hrvResults);
-    }
-    
-    // Restore per-minute data
-    if (state.perMinuteData) {
-      setPerMinuteData(state.perMinuteData);
-    }
-    
-    // Restore drug config
-    if (state.selectedDrugs) {
-      setSelectedDrugs(state.selectedDrugs);
-    }
-    if (state.drugSettings) {
-      setDrugSettings(state.drugSettings);
-    }
-    if (state.otherDrugs) {
-      setOtherDrugs(state.otherDrugs);
-    }
-    
-    // Restore drug readout settings (Spontaneous Activity)
-    if (state.drugReadoutSettings) {
-      setDrugReadoutSettings(state.drugReadoutSettings);
-    }
-    
-    // Restore baseline enabled (default to true for backward compatibility)
-    setBaselineEnabled(state.baselineEnabled !== false);
-    
-    // Restore light stim
-    setLightEnabled(state.lightEnabled !== false);
-    if (state.lightParams) {
-      setLightParams(state.lightParams);
-    }
-    if (state.lightPulses) {
-      setLightPulses(state.lightPulses);
-    }
-    if (state.lightHrv) {
-      setLightHrv(state.lightHrv);
-    }
-    if (state.lightHrvDetrended) {
-      setLightHrvDetrended(state.lightHrvDetrended);
-    }
-    if (state.lightResponse) {
-      setLightResponse(state.lightResponse);
-    }
-    
-    // Mark as exported if was saved before (since save requires export)
-    setHasExported(true);
-    
-    // Set a dummy session ID to enter analysis view
-    setSessionId('restored-' + recordingData.id);
-    setAppView('analysis');
-    
-    toast.success(`Loaded "${recordingData.name}"`);
   }, []);
 
   // Build analysis state for saving
@@ -1587,13 +1593,13 @@ function App() {
         </Tabs>
       </main>
 
-      {/* Folder Comparison Dialog */}
+      {/* Comparison Dialog */}
       <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden bg-zinc-950 border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-zinc-200 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-emerald-500" />
-              Folder Comparison: {savedFolderName || 'Loading...'}
+              Comparison: {savedFolderName || 'Loading...'}
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[calc(85vh-100px)]">

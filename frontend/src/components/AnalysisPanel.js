@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Brush, ReferenceArea
@@ -119,7 +119,7 @@ function HrvInfoPopover({ metric }) {
   );
 }
 
-export default function AnalysisPanel({
+function AnalysisPanel({
   metrics, hrvResults, perMinuteData,
   onComputeHRV, analysisLoading, filterSettings, hasDrug,
   drugSettings, selectedDrugs, otherDrugs, DRUG_CONFIG, lightPulses,
@@ -963,3 +963,6 @@ export default function AnalysisPanel({
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export default memo(AnalysisPanel);
