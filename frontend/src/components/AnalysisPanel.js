@@ -844,7 +844,7 @@ function AnalysisPanel({
 
       {/* Evolution of HRV Metrics */}
       {hrvChartData.length > 0 && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-6">
+        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
               Evolution of HRV Metrics
@@ -892,7 +892,7 @@ function AnalysisPanel({
       )}
 
       {/* Per-minute metrics table */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-6">
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
             Per-Minute Metrics
