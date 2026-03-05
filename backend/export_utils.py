@@ -37,16 +37,29 @@ def add_page_footer(fig, page_num, total_pages=None):
 
 
 def create_nature_pdf(request):
-    """Create a Nature Magazine-style PDF export"""
+    """Create a professional PDF export with Optima/Carlito typography"""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
     import matplotlib.patches as mpatches
+    import matplotlib.font_manager as fm
+    
+    # Register fonts - Optima for titles, Carlito for body text
+    # Fallback to similar fonts if not available
+    title_font = 'Optima'
+    body_font = 'Carlito'
+    
+    # Check available fonts and set fallbacks
+    available_fonts = [f.name for f in fm.fontManager.ttflist]
+    if title_font not in available_fonts:
+        title_font = 'DejaVu Sans'  # Similar clean sans-serif
+    if body_font not in available_fonts:
+        body_font = 'DejaVu Sans'
     
     plt.rcParams.update({
         'font.family': 'sans-serif',
-        'font.sans-serif': ['Helvetica Neue', 'Arial', 'DejaVu Sans'],
+        'font.sans-serif': [body_font, 'Carlito', 'DejaVu Sans', 'Arial'],
         'font.size': 9,
         'axes.labelsize': 9,
         'axes.titlesize': 10,
@@ -61,6 +74,56 @@ def create_nature_pdf(request):
     
     buf = io.BytesIO()
     page_num = 0
+    total_pages = 1  # Will be updated
+    
+    # Color scheme matching the reference design
+    COLORS = {
+        'dark': '#18181b',          # Near black for text
+        'navy': '#1e3a5f',          # Dark navy blue for headers
+        'light_blue': '#e8f4fc',    # Light blue for data rows
+        'purple': '#9333ea',        # Purple for averages/totals
+        'light_purple': '#f3e8ff',  # Light purple tint
+        'amber': '#f59e0b',         # Amber for light sections
+        'light_amber': '#fef3c7',   # Light amber tint
+        'gray': '#6b7280',          # Gray for secondary text
+        'light_gray': '#f3f4f6',    # Light gray background
+        'line': '#374151',          # Dark line color
+        'emerald': '#10b981',
+        'sky': '#0ea5e9',
+    }
+    
+    # Calculate total pages
+    has_bf_chart = request.per_beat_data or request.per_minute_data
+    has_hrv_charts = request.hrv_windows
+    has_light_hrv = request.light_enabled and request.light_metrics_detrended
+    has_spont_bf_table = request.per_minute_data
+    has_spont_hrv_table = request.hrv_windows
+    has_light_hra_table = request.light_enabled and request.light_response
+    has_light_hrv_table = request.light_enabled and request.light_metrics_detrended
+    
+    total_pages = 1  # Summary always
+    if has_bf_chart: total_pages += 1
+    if has_hrv_charts: total_pages += 1
+    if has_light_hrv: total_pages += 1
+    if has_spont_bf_table: total_pages += 1
+    if has_spont_hrv_table: total_pages += 1
+    if has_light_hra_table: total_pages += 1
+    if has_light_hrv_table: total_pages += 1
+    
+    def add_page_header(fig, section_name):
+        """Add header in the bioptima style: NEHER section_name"""
+        fig.text(0.08, 0.96, 'NEHER', fontsize=11, fontweight='bold', color=COLORS['dark'],
+                fontfamily=title_font)
+        fig.text(0.155, 0.96, section_name, fontsize=11, fontstyle='italic', color=COLORS['gray'],
+                fontfamily=title_font)
+    
+    def add_page_footer(fig, page_num, total_pages):
+        """Add footer: p. XX | Recording Name | NEHER"""
+        recording_name = request.recording_name or request.filename or 'Recording'
+        fig.text(0.08, 0.025, f'p. {page_num}', fontsize=9, fontweight='bold', color=COLORS['dark'],
+                fontfamily=body_font)
+        fig.text(0.12, 0.025, f'|  {recording_name}  |  NEHER', fontsize=9, color=COLORS['gray'],
+                fontfamily=body_font)
     
     with PdfPages(buf) as pdf:
         
@@ -69,43 +132,50 @@ def create_nature_pdf(request):
         fig1 = plt.figure(figsize=(8.5, 11))
         fig1.patch.set_facecolor('white')
         
+        # Header
+        add_page_header(fig1, 'summary')
+        
+        # Main title (large, bold, Optima style)
         title = request.recording_name or request.filename or 'Recording Analysis'
-        fig1.text(0.5, 0.96, title, ha='center', va='top', fontsize=16, fontweight='bold', color='#18181b')
-        fig1.text(0.5, 0.935, 'Electrophysiology Analysis Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
-        fig1.text(0.5, 0.905, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
-        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.88, 0.88], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
+        fig1.text(0.08, 0.92, title, ha='left', va='top', fontsize=24, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        
+        # Separator line below title
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.88, 0.88], color=COLORS['line'], linewidth=1.5, transform=fig1.transFigure))
         
         left_x = 0.08
         right_x = 0.52
-        line_height = 0.02
+        line_height = 0.022
         
-        def draw_header(fig, x, y, text, color):
-            fig.text(x, y, text, fontsize=9, fontweight='bold', color='white',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor=color, edgecolor='none'))
+        def draw_section_title(fig, x, y, text):
+            """Draw section title with separator line"""
+            fig.text(x, y, text, fontsize=10, fontweight='bold', color=COLORS['dark'],
+                    fontfamily=title_font)
+            fig.add_artist(plt.Line2D([x, 0.47], [y - 0.012, y - 0.012], color=COLORS['line'], 
+                          linewidth=0.8, transform=fig.transFigure))
             return y - 0.035
         
         def draw_row(fig, x, y, label, value, bg_color=None, width=0.38):
             if bg_color:
                 fig.add_artist(mpatches.FancyBboxPatch(
-                    (x - 0.005, y - 0.006), width, 0.018,
+                    (x - 0.005, y - 0.007), width, 0.020,
                     boxstyle=mpatches.BoxStyle("Round", pad=0.002),
                     facecolor=bg_color, edgecolor='none', transform=fig.transFigure
                 ))
-            fig.text(x, y, label, fontsize=7.5, color='#52525b')
-            fig.text(x + 0.2, y, str(value), fontsize=7.5, fontweight='bold', color='#18181b')
+            fig.text(x, y, label, fontsize=8, color=COLORS['gray'], fontfamily=body_font)
+            fig.text(x + 0.2, y, str(value), fontsize=8, fontweight='bold', color=COLORS['dark'],
+                    fontfamily=body_font)
             return y - line_height
         
-        def draw_separator(fig, x, y, width=0.38, centered=False):
-            """Draw a horizontal separator line"""
-            if centered:
-                # Shorter, centered separator
-                sep_width = 0.15
-                start_x = x + (width - sep_width) / 2
-                fig.add_artist(plt.Line2D([start_x, start_x + sep_width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
-                return y - 0.015  # More space below
-            else:
-                fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
-                return y - 0.015  # Increased space below bar
+        def draw_header_box(fig, x, y, text, color, width=0.38):
+            """Draw colored header box"""
+            fig.add_artist(mpatches.FancyBboxPatch(
+                (x - 0.005, y - 0.008), width, 0.022,
+                boxstyle=mpatches.BoxStyle("Round", pad=0.003),
+                facecolor=color, edgecolor='none', transform=fig.transFigure
+            ))
+            fig.text(x, y, text, fontsize=8, fontweight='bold', color='white', fontfamily=body_font)
+            return y - 0.032
         
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
