@@ -1944,7 +1944,7 @@ def create_nature_excel(request):
                     round(safe_avg('rate_of_change'), 3) if safe_avg('rate_of_change') is not None else None,
                 ])
                 for cell in ws_hra[ws_hra.max_row]:
-                    cell.fill = avg_fill
+                    cell.fill = light_fill
                     cell.font = bold_data_font
                     cell.border = thin_border
             
@@ -1995,7 +1995,7 @@ def create_nature_excel(request):
                     round(final.get('pnn50_detrended', 0), 1) if final.get('pnn50_detrended') is not None else None,
                 ])
                 for cell in ws_corr[ws_corr.max_row]:
-                    cell.fill = avg_fill
+                    cell.fill = light_fill
                     cell.font = bold_data_font
                     cell.border = thin_border
             
