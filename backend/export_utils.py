@@ -797,7 +797,8 @@ def create_nature_pdf(request):
                 
                 # Charts positioned below title bar
                 # Moved 0.3cm lower (subtract ~0.011)
-                chart_left = 0.13
+                # Move traces 0.2cm to the right (add ~0.0075)
+                chart_left = 0.1375  # Moved 0.2cm right from 0.13
                 chart_total_width = 0.77
                 col3_offset = 0.02
                 
