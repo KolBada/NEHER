@@ -3380,3 +3380,721 @@ def create_comparison_pdf(folder_name, comparison_data):
     
     buf.seek(0)
     return buf
+
+
+
+def create_comparison_xlsx(folder_name, comparison_data):
+    """Create comparison Excel export matching the PDF structure with multiple sheets."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    import re
+    
+    data = comparison_data
+    recordings = data.get('recordings', [])
+    summary = data.get('summary', {})
+    spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+    hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+    hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    
+    # Sort recordings alphabetically
+    recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    
+    # Define styles
+    header_font = Font(bold=True, color='FFFFFF', size=10)
+    data_font = Font(size=9)
+    bold_data_font = Font(bold=True, size=9)
+    avg_font = Font(bold=True, color='FFFFFF', size=9)
+    
+    dark_fill = PatternFill(start_color='18181B', end_color='18181B', fill_type='solid')
+    emerald_fill = PatternFill(start_color='10B981', end_color='10B981', fill_type='solid')
+    amber_fill = PatternFill(start_color='F59E0B', end_color='F59E0B', fill_type='solid')
+    avg_fill = PatternFill(start_color='F87171', end_color='F87171', fill_type='solid')
+    baseline_fill = PatternFill(start_color='E0F2FE', end_color='E0F2FE', fill_type='solid')
+    drug_fill = PatternFill(start_color='F3E8FF', end_color='F3E8FF', fill_type='solid')
+    light_fill = PatternFill(start_color='FEF3C7', end_color='FEF3C7', fill_type='solid')
+    alt_fill = PatternFill(start_color='F9FAFB', end_color='F9FAFB', fill_type='solid')
+    
+    thin_border = Border(
+        left=Side(style='thin', color='E5E7EB'),
+        right=Side(style='thin', color='E5E7EB'),
+        top=Side(style='thin', color='E5E7EB'),
+        bottom=Side(style='thin', color='E5E7EB')
+    )
+    
+    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    def fmt(val, dec=2):
+        if val is None:
+            return '—'
+        try:
+            if dec == 0:
+                return f"{float(val):.0f}"
+            elif dec == 1:
+                return f"{float(val):.1f}"
+            elif dec == 3:
+                return f"{float(val):.3f}"
+            elif dec == 4:
+                return f"{float(val):.4f}"
+            return f"{float(val):.{dec}f}"
+        except:
+            return '—'
+    
+    def fmt_age_range(age_dict):
+        if not age_dict or age_dict.get('min') is None:
+            return '—'
+        return f"{age_dict.get('min')} - {age_dict.get('max')} days"
+    
+    def extract_short_name(full_name):
+        if not full_name:
+            return '—'
+        match = re.search(r'[FC]\d+$', full_name)
+        if match:
+            return match.group()
+        parts = full_name.replace('/', '-').split('-')
+        return parts[-1] if parts else full_name[:10]
+    
+    def norm_val(val, avg):
+        if val is None or avg == 0:
+            return None
+        return 100 * val / avg
+    
+    def parse_drug_info(drug_info):
+        if not drug_info:
+            return None
+        if isinstance(drug_info, dict):
+            name = drug_info.get('name', '')
+            conc = drug_info.get('concentration', '')
+            if name:
+                return f"{name} ({conc})" if conc else name
+            return None
+        if isinstance(drug_info, list):
+            results = []
+            for d in drug_info:
+                parsed = parse_drug_info(d)
+                if parsed:
+                    results.append(parsed)
+            return results if results else None
+        drug_str = str(drug_info).strip()
+        if drug_str.lower() in ['no drug', 'no', 'none', '—', '-', '']:
+            return None
+        return drug_str
+    
+    # ==================== SHEET 1: SUMMARY ====================
+    ws1 = wb.active
+    ws1.title = "Summary"
+    
+    # Title
+    ws1.merge_cells('A1:D1')
+    ws1['A1'] = folder_name
+    ws1['A1'].font = Font(bold=True, size=16)
+    ws1['A1'].alignment = left_align
+    
+    row = 3
+    # Folder Overview
+    ws1[f'A{row}'] = 'FOLDER OVERVIEW'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = dark_fill
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
+    ws1[f'A{row}'] = 'Recordings:'
+    ws1[f'B{row}'] = summary.get('recording_count', len(recordings))
+    ws1[f'B{row}'].font = bold_data_font
+    row += 1
+    ws1[f'A{row}'] = 'Date Created:'
+    ws1[f'B{row}'] = datetime.now().strftime('%Y-%m-%d')
+    ws1[f'B{row}'].font = bold_data_font
+    row += 2
+    
+    # Age Ranges
+    ws1[f'A{row}'] = 'AGE RANGES'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = PatternFill(start_color='6B7280', end_color='6B7280', fill_type='solid')
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
+    hspo_range = summary.get('hspo_age_range', {})
+    hco_range = summary.get('hco_age_range', {})
+    fusion_range = summary.get('fusion_age_range', {})
+    ws1[f'A{row}'] = 'hSpOs:'
+    ws1[f'B{row}'] = f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})"
+    row += 1
+    ws1[f'A{row}'] = 'hCOs:'
+    ws1[f'B{row}'] = f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})"
+    row += 1
+    ws1[f'A{row}'] = 'Fusion:'
+    ws1[f'B{row}'] = f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})"
+    row += 2
+    
+    # Parameters
+    ws1[f'A{row}'] = 'PARAMETERS'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = PatternFill(start_color='6B7280', end_color='6B7280', fill_type='solid')
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
+    
+    # Drug Used
+    all_drugs = []
+    drug_concentration_unit = ''
+    for r in recordings:
+        drug_info_raw = r.get('drug_info')
+        if isinstance(drug_info_raw, dict):
+            conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '')
+            if conc_unit and not drug_concentration_unit:
+                drug_concentration_unit = conc_unit
+        parsed = parse_drug_info(drug_info_raw)
+        if parsed:
+            if isinstance(parsed, list):
+                all_drugs.extend(parsed)
+            else:
+                all_drugs.append(parsed)
+    
+    if all_drugs and not drug_concentration_unit:
+        drug_concentration_unit = 'µM'
+    
+    if all_drugs:
+        unique_drugs = list(dict.fromkeys(all_drugs))
+        drug_text = unique_drugs[0]
+        if drug_concentration_unit:
+            match = re.search(r'\(([^)]+)\)$', drug_text)
+            if match:
+                conc_value = match.group(1)
+                drug_text = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug_text)
+    else:
+        drug_text = '—'
+    
+    ws1[f'A{row}'] = 'Drug Used:'
+    ws1[f'B{row}'] = drug_text
+    row += 1
+    
+    # Light Stim
+    light_used = any(r.get('has_light_stim') or r.get('stim_duration') for r in recordings)
+    ws1[f'A{row}'] = 'Light Stim:'
+    ws1[f'B{row}'] = 'Yes' if light_used else 'No'
+    row += 2
+    
+    # Right side - Spontaneous Activity Averages
+    ws1[f'D3'] = 'SPONTANEOUS ACTIVITY'
+    ws1[f'D3'].font = header_font
+    ws1[f'D3'].fill = emerald_fill
+    ws1.merge_cells('D3:E3')
+    
+    ws1['D4'] = 'Baseline Readout'
+    ws1['D4'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D5'] = 'Mean BF:'
+    ws1['E5'] = f"{fmt(spont_averages.get('baseline_bf'), 1)} bpm"
+    ws1['E5'].fill = baseline_fill
+    ws1['D6'] = 'ln(RMSSD₇₀):'
+    ws1['E6'] = fmt(spont_averages.get('baseline_ln_rmssd70'), 3)
+    ws1['E6'].fill = baseline_fill
+    ws1['D7'] = 'ln(SDNN₇₀):'
+    ws1['E7'] = fmt(spont_averages.get('baseline_ln_sdnn70'), 3)
+    ws1['E7'].fill = baseline_fill
+    ws1['D8'] = 'pNN50₇₀:'
+    ws1['E8'] = f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%"
+    ws1['E8'].fill = baseline_fill
+    
+    ws1['D10'] = 'Drug Readout'
+    ws1['D10'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D11'] = 'Mean BF:'
+    ws1['E11'] = f"{fmt(spont_averages.get('drug_bf'), 1)} bpm"
+    ws1['E11'].fill = drug_fill
+    ws1['D12'] = 'ln(RMSSD₇₀):'
+    ws1['E12'] = fmt(spont_averages.get('drug_ln_rmssd70'), 3)
+    ws1['E12'].fill = drug_fill
+    ws1['D13'] = 'ln(SDNN₇₀):'
+    ws1['E13'] = fmt(spont_averages.get('drug_ln_sdnn70'), 3)
+    ws1['E13'].fill = drug_fill
+    ws1['D14'] = 'pNN50₇₀:'
+    ws1['E14'] = f"{fmt(spont_averages.get('drug_pnn50'), 1)}%"
+    ws1['E14'].fill = drug_fill
+    
+    # Light Stimulus Averages
+    ws1[f'D16'] = 'LIGHT STIMULUS'
+    ws1[f'D16'].font = header_font
+    ws1[f'D16'].fill = amber_fill
+    ws1.merge_cells('D16:E16')
+    
+    ws1['D17'] = 'Heart Rate Adaptation (HRA)'
+    ws1['D17'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D18'] = 'Baseline BF:'
+    ws1['E18'] = f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm"
+    ws1['E18'].fill = light_fill
+    ws1['D19'] = 'Peak BF:'
+    ws1['E19'] = f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm"
+    ws1['E19'].fill = light_fill
+    ws1['D20'] = 'Peak (Norm.):'
+    ws1['E20'] = f"{fmt(hra_averages.get('light_peak_norm'), 1)}%"
+    ws1['E20'].fill = light_fill
+    ws1['D21'] = 'Amplitude:'
+    ws1['E21'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
+    ws1['E21'].fill = light_fill
+    ws1['D22'] = 'TTP (Avg):'
+    ws1['E22'] = f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s"
+    ws1['E22'].fill = light_fill
+    ws1['D23'] = 'Rate of Change:'
+    ws1['E23'] = fmt(hra_averages.get('light_roc'), 4)
+    ws1['E23'].fill = light_fill
+    ws1['D24'] = 'Recovery %:'
+    ws1['E24'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
+    ws1['E24'].fill = light_fill
+    
+    ws1['D26'] = 'Corrected HRV'
+    ws1['D26'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D27'] = 'ln(RMSSD₇₀):'
+    ws1['E27'] = fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3)
+    ws1['E27'].fill = light_fill
+    ws1['D28'] = 'ln(SDNN₇₀):'
+    ws1['E28'] = fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3)
+    ws1['E28'].fill = light_fill
+    ws1['D29'] = 'pNN50₇₀:'
+    ws1['E29'] = f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%"
+    ws1['E29'].fill = light_fill
+    
+    # Set column widths
+    ws1.column_dimensions['A'].width = 15
+    ws1.column_dimensions['B'].width = 25
+    ws1.column_dimensions['C'].width = 5
+    ws1.column_dimensions['D'].width = 18
+    ws1.column_dimensions['E'].width = 15
+    
+    # ==================== SHEET 2: METADATA ====================
+    ws2 = wb.create_sheet("Metadata")
+    
+    # Table 1: Recording Information
+    ws2['A1'] = 'Table 1 | Recording Information'
+    ws2['A1'].font = Font(bold=True, size=12)
+    
+    meta_headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
+    for col, header in enumerate(meta_headers, 1):
+        cell = ws2.cell(row=3, column=col, value=header)
+        cell.font = header_font
+        cell.fill = dark_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    row = 4
+    for idx, rec in enumerate(recordings):
+        # Recording name
+        rec_name = rec.get('name', '')
+        abf_file = rec.get('abf_filename', '') or rec.get('filename', '')
+        rec_display = f"{rec_name}\n{abf_file}" if abf_file else rec_name
+        
+        # hSpO Info
+        hspo_info_parts = []
+        hspo = rec.get('hspo_info') or {}
+        if isinstance(hspo, dict):
+            if hspo.get('line_name'):
+                hspo_info_parts.append(str(hspo.get('line_name')))
+            if hspo.get('passage'):
+                hspo_info_parts.append(f"P{hspo.get('passage')}")
+            if hspo.get('age'):
+                hspo_info_parts.append(f"D{hspo.get('age')}")
+        hspo_info = '\n'.join(hspo_info_parts) if hspo_info_parts else '—'
+        
+        # hCO Info
+        hco_info_parts = []
+        hco = rec.get('hco_info') or {}
+        if isinstance(hco, dict):
+            if hco.get('line_name'):
+                hco_info_parts.append(str(hco.get('line_name')))
+            if hco.get('passage'):
+                hco_info_parts.append(f"P{hco.get('passage')}")
+            if hco.get('age'):
+                hco_info_parts.append(f"D{hco.get('age')}")
+        hco_info = '\n'.join(hco_info_parts) if hco_info_parts else '—'
+        
+        # Drug info
+        drug_info_raw = rec.get('drug_info', [])
+        has_drug = rec.get('has_drug', False)
+        drug_hrv_readout = rec.get('drug_hrv_readout_minute')
+        drug_parts = []
+        
+        if has_drug and isinstance(drug_info_raw, list) and drug_info_raw:
+            for d in drug_info_raw:
+                if isinstance(d, dict):
+                    name = d.get('name', '')
+                    conc = d.get('concentration', '')
+                    unit = d.get('concentration_unit', '') or 'µM'
+                    if drug_hrv_readout is not None:
+                        perf_time = drug_hrv_readout
+                    else:
+                        perf_time = d.get('perfusion_time', '') or d.get('bf_readout_time', '')
+                    if name:
+                        drug_str = name
+                        if conc:
+                            drug_str += f"\n{conc}{unit}"
+                        if perf_time is not None and perf_time != '':
+                            drug_str += f"\nPerf. Time: {perf_time}min"
+                        drug_parts.append(drug_str)
+        drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
+        
+        # Light stim info
+        light_parts = []
+        if rec.get('has_light_stim'):
+            stim_count = rec.get('light_stim_count', '')
+            stim_dur = rec.get('stim_duration', '')
+            isi_struct = rec.get('isi_structure', '')
+            if stim_count:
+                light_parts.append(f"{stim_count} stim")
+            if stim_dur:
+                light_parts.append(f"{stim_dur}s")
+            if isi_struct:
+                light_parts.append(f"ISI: {isi_struct}")
+        light_info = '\n'.join(light_parts) if light_parts else '—'
+        
+        # Notes
+        notes = rec.get('notes', '') or '—'
+        
+        data_row = [rec_display, rec.get('recording_date', '—'), hspo_info, hco_info,
+                    rec.get('fusion_date', '—'), drug_info, light_info, notes]
+        
+        for col, value in enumerate(data_row, 1):
+            cell = ws2.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if idx % 2 == 1:
+                cell.fill = alt_fill
+        row += 1
+    
+    # Set column widths
+    for col, width in enumerate([25, 12, 15, 12, 10, 18, 20, 20], 1):
+        ws2.column_dimensions[get_column_letter(col)].width = width
+    
+    # ==================== SHEET 3: SPONTANEOUS ACTIVITY ====================
+    ws3 = wb.create_sheet("Spontaneous Activity")
+    
+    # Table 2: Drug-induced BF and HRV Data
+    ws3['A1'] = 'Table 2 | Drug-induced BF and HRV Data'
+    ws3['A1'].font = Font(bold=True, size=12)
+    
+    spont_headers = ['Rec', 'Base BF', 'Base RMSSD', 'Base SDNN', 'Base pNN50', 
+                    'Drug BF', 'Drug RMSSD', 'Drug SDNN', 'Drug pNN50']
+    for col, header in enumerate(spont_headers, 1):
+        cell = ws3.cell(row=3, column=col, value=header)
+        cell.font = header_font
+        cell.fill = emerald_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    row = 4
+    for rec in recordings:
+        data_row = [
+            extract_short_name(rec.get('name', '')),
+            fmt(rec.get('baseline_bf'), 1),
+            fmt(rec.get('baseline_ln_rmssd70'), 3),
+            fmt(rec.get('baseline_ln_sdnn70'), 3),
+            fmt(rec.get('baseline_pnn50'), 1),
+            fmt(rec.get('drug_bf'), 1),
+            fmt(rec.get('drug_ln_rmssd70'), 3),
+            fmt(rec.get('drug_ln_sdnn70'), 3),
+            fmt(rec.get('drug_pnn50'), 1),
+        ]
+        for col, value in enumerate(data_row, 1):
+            cell = ws3.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if 2 <= col <= 5:
+                cell.fill = baseline_fill
+            elif 6 <= col <= 9:
+                cell.fill = drug_fill
+        row += 1
+    
+    # Average row
+    avg_row = [
+        'Avg',
+        fmt(spont_averages.get('baseline_bf'), 1),
+        fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
+        fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
+        fmt(spont_averages.get('baseline_pnn50'), 1),
+        fmt(spont_averages.get('drug_bf'), 1),
+        fmt(spont_averages.get('drug_ln_rmssd70'), 3),
+        fmt(spont_averages.get('drug_ln_sdnn70'), 3),
+        fmt(spont_averages.get('drug_pnn50'), 1),
+    ]
+    for col, value in enumerate(avg_row, 1):
+        cell = ws3.cell(row=row, column=col, value=value)
+        cell.font = avg_font
+        cell.fill = avg_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    row += 2
+    
+    # Table 3: Drug-induced BF and HRV Normalized Data
+    ws3[f'A{row}'] = 'Table 3 | Drug-induced BF and HRV Normalized Data'
+    ws3[f'A{row}'].font = Font(bold=True, size=12)
+    row += 2
+    
+    norm_headers = ['Rec', 'Base BF%', 'Base RMSSD%', 'Base SDNN%', 'Base pNN50%',
+                   'Drug BF%', 'Drug RMSSD%', 'Drug SDNN%', 'Drug pNN50%']
+    for col, header in enumerate(norm_headers, 1):
+        cell = ws3.cell(row=row, column=col, value=header)
+        cell.font = header_font
+        cell.fill = emerald_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    row += 1
+    
+    # Calculate cohort averages for normalization
+    baseline_bfs = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
+    baseline_rmssds = [r.get('baseline_ln_rmssd70') for r in recordings if r.get('baseline_ln_rmssd70') is not None]
+    baseline_sdnns = [r.get('baseline_ln_sdnn70') for r in recordings if r.get('baseline_ln_sdnn70') is not None]
+    baseline_pnn50s = [r.get('baseline_pnn50') for r in recordings if r.get('baseline_pnn50') is not None]
+    
+    avg_bf = sum(baseline_bfs) / len(baseline_bfs) if baseline_bfs else 1
+    avg_rmssd = sum(baseline_rmssds) / len(baseline_rmssds) if baseline_rmssds else 1
+    avg_sdnn = sum(baseline_sdnns) / len(baseline_sdnns) if baseline_sdnns else 1
+    avg_pnn50 = sum(baseline_pnn50s) / len(baseline_pnn50s) if baseline_pnn50s else 1
+    
+    norm_sums = {'base_bf': [], 'base_rmssd': [], 'base_sdnn': [], 'base_pnn50': [],
+                'drug_bf': [], 'drug_rmssd': [], 'drug_sdnn': [], 'drug_pnn50': []}
+    
+    for rec in recordings:
+        has_baseline = rec.get('baseline_bf') is not None
+        if has_baseline:
+            n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
+            n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
+            n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
+            n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
+            n_drug_bf = norm_val(rec.get('drug_bf'), avg_bf)
+            n_drug_rmssd = norm_val(rec.get('drug_ln_rmssd70'), avg_rmssd)
+            n_drug_sdnn = norm_val(rec.get('drug_ln_sdnn70'), avg_sdnn)
+            n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_pnn50)
+        else:
+            n_base_bf = n_base_rmssd = n_base_sdnn = n_base_pnn50 = None
+            n_drug_bf = n_drug_rmssd = n_drug_sdnn = n_drug_pnn50 = None
+        
+        data_row = [
+            extract_short_name(rec.get('name', '')),
+            fmt(n_base_bf, 1), fmt(n_base_rmssd, 1), fmt(n_base_sdnn, 1), fmt(n_base_pnn50, 1),
+            fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
+        ]
+        for col, value in enumerate(data_row, 1):
+            cell = ws3.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if 2 <= col <= 5:
+                cell.fill = baseline_fill
+            elif 6 <= col <= 9:
+                cell.fill = drug_fill
+        
+        if has_baseline:
+            for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
+                            ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
+                            ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
+                            ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                if val is not None:
+                    norm_sums[key].append(val)
+        row += 1
+    
+    # Normalized average row
+    norm_avg_row = [
+        'Avg',
+        fmt(sum(norm_sums['base_bf']) / len(norm_sums['base_bf']) if norm_sums['base_bf'] else None, 1),
+        fmt(sum(norm_sums['base_rmssd']) / len(norm_sums['base_rmssd']) if norm_sums['base_rmssd'] else None, 1),
+        fmt(sum(norm_sums['base_sdnn']) / len(norm_sums['base_sdnn']) if norm_sums['base_sdnn'] else None, 1),
+        fmt(sum(norm_sums['base_pnn50']) / len(norm_sums['base_pnn50']) if norm_sums['base_pnn50'] else None, 1),
+        fmt(sum(norm_sums['drug_bf']) / len(norm_sums['drug_bf']) if norm_sums['drug_bf'] else None, 1),
+        fmt(sum(norm_sums['drug_rmssd']) / len(norm_sums['drug_rmssd']) if norm_sums['drug_rmssd'] else None, 1),
+        fmt(sum(norm_sums['drug_sdnn']) / len(norm_sums['drug_sdnn']) if norm_sums['drug_sdnn'] else None, 1),
+        fmt(sum(norm_sums['drug_pnn50']) / len(norm_sums['drug_pnn50']) if norm_sums['drug_pnn50'] else None, 1),
+    ]
+    for col, value in enumerate(norm_avg_row, 1):
+        cell = ws3.cell(row=row, column=col, value=value)
+        cell.font = avg_font
+        cell.fill = avg_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    # Set column widths
+    for col in range(1, 10):
+        ws3.column_dimensions[get_column_letter(col)].width = 12
+    
+    # ==================== SHEET 4: HEART RATE ADAPTATION ====================
+    ws4 = wb.create_sheet("Heart Rate Adaptation")
+    
+    # Table 4: Light-Induced HRA Data
+    ws4['A1'] = 'Table 4 | Light-Induced HRA Data'
+    ws4['A1'].font = Font(bold=True, size=12)
+    
+    hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+    for col, header in enumerate(hra_headers, 1):
+        cell = ws4.cell(row=3, column=col, value=header)
+        cell.font = header_font
+        cell.fill = amber_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    def fmt_ttp(val):
+        if val is None:
+            return '0.0'
+        return f"{val:.1f}"
+    
+    row = 4
+    for rec in recordings:
+        data_row = [
+            extract_short_name(rec.get('name', '')),
+            fmt(rec.get('light_baseline_bf'), 1),
+            fmt(rec.get('light_avg_bf'), 1),
+            fmt(rec.get('light_peak_bf'), 1),
+            fmt(rec.get('light_peak_norm'), 1),
+            fmt_ttp(rec.get('light_ttp_first')),
+            fmt(rec.get('light_ttp_avg'), 1),
+            fmt(rec.get('light_recovery_bf'), 1),
+            fmt(rec.get('light_recovery_pct'), 1),
+            fmt(rec.get('light_amplitude'), 1),
+            fmt(rec.get('light_roc'), 4),
+        ]
+        for col, value in enumerate(data_row, 1):
+            cell = ws4.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if col >= 2:
+                cell.fill = light_fill
+        row += 1
+    
+    # Average row
+    hra_avg_row = [
+        'Avg',
+        fmt(hra_averages.get('light_baseline_bf'), 1),
+        fmt(hra_averages.get('light_avg_bf'), 1),
+        fmt(hra_averages.get('light_peak_bf'), 1),
+        fmt(hra_averages.get('light_peak_norm'), 1),
+        fmt_ttp(hra_averages.get('light_ttp_first')),
+        fmt(hra_averages.get('light_ttp_avg'), 1),
+        fmt(hra_averages.get('light_recovery_bf'), 1),
+        fmt(hra_averages.get('light_recovery_pct'), 1),
+        fmt(hra_averages.get('light_amplitude'), 1),
+        fmt(hra_averages.get('light_roc'), 4),
+    ]
+    for col, value in enumerate(hra_avg_row, 1):
+        cell = ws4.cell(row=row, column=col, value=value)
+        cell.font = avg_font
+        cell.fill = avg_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    row += 2
+    
+    # Table 5: Light-Induced HRA Normalized Data
+    ws4[f'A{row}'] = 'Table 5 | Light-Induced HRA Normalized Data'
+    ws4[f'A{row}'].font = Font(bold=True, size=12)
+    row += 2
+    
+    norm_hra_headers = ['Rec', 'Baseline BF%', 'Avg BF%', 'Peak BF%', 'Recovery BF%']
+    for col, header in enumerate(norm_hra_headers, 1):
+        cell = ws4.cell(row=row, column=col, value=header)
+        cell.font = header_font
+        cell.fill = amber_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    row += 1
+    
+    light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
+    avg_light_bf = sum(light_baseline_bfs) / len(light_baseline_bfs) if light_baseline_bfs else 1
+    
+    norm_hra_sums = {'base': [], 'avg': [], 'peak': [], 'rec': []}
+    
+    for rec in recordings:
+        n_base = norm_val(rec.get('light_baseline_bf'), avg_light_bf)
+        n_avg = norm_val(rec.get('light_avg_bf'), avg_light_bf)
+        n_peak = norm_val(rec.get('light_peak_bf'), avg_light_bf)
+        n_rec = norm_val(rec.get('light_recovery_bf'), avg_light_bf)
+        
+        data_row = [
+            extract_short_name(rec.get('name', '')),
+            fmt(n_base, 1), fmt(n_avg, 1), fmt(n_peak, 1), fmt(n_rec, 1),
+        ]
+        for col, value in enumerate(data_row, 1):
+            cell = ws4.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if col >= 2:
+                cell.fill = light_fill
+        
+        for key, val in [('base', n_base), ('avg', n_avg), ('peak', n_peak), ('rec', n_rec)]:
+            if val is not None:
+                norm_hra_sums[key].append(val)
+        row += 1
+    
+    # Normalized HRA average row
+    norm_hra_avg_row = [
+        'Avg',
+        fmt(sum(norm_hra_sums['base']) / len(norm_hra_sums['base']) if norm_hra_sums['base'] else None, 1),
+        fmt(sum(norm_hra_sums['avg']) / len(norm_hra_sums['avg']) if norm_hra_sums['avg'] else None, 1),
+        fmt(sum(norm_hra_sums['peak']) / len(norm_hra_sums['peak']) if norm_hra_sums['peak'] else None, 1),
+        fmt(sum(norm_hra_sums['rec']) / len(norm_hra_sums['rec']) if norm_hra_sums['rec'] else None, 1),
+    ]
+    for col, value in enumerate(norm_hra_avg_row, 1):
+        cell = ws4.cell(row=row, column=col, value=value)
+        cell.font = avg_font
+        cell.fill = avg_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    # Set column widths
+    for col in range(1, 12):
+        ws4.column_dimensions[get_column_letter(col)].width = 11
+    
+    # ==================== SHEET 5: DETRENDED HRV ====================
+    ws5 = wb.create_sheet("Detrended HRV")
+    
+    # Table 6: Light-Induced Detrended HRV Data
+    ws5['A1'] = 'Table 6 | Light-Induced Detrended HRV Data'
+    ws5['A1'].font = Font(bold=True, size=12)
+    
+    hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀']
+    for col, header in enumerate(hrv_headers, 1):
+        cell = ws5.cell(row=3, column=col, value=header)
+        cell.font = header_font
+        cell.fill = amber_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    row = 4
+    for rec in recordings:
+        data_row = [
+            extract_short_name(rec.get('name', '')),
+            fmt(rec.get('light_hrv_ln_rmssd70'), 3),
+            fmt(rec.get('light_hrv_ln_sdnn70'), 3),
+            fmt(rec.get('light_hrv_pnn50'), 1),
+        ]
+        for col, value in enumerate(data_row, 1):
+            cell = ws5.cell(row=row, column=col, value=value)
+            cell.font = data_font
+            cell.alignment = center_align
+            cell.border = thin_border
+            if col >= 2:
+                cell.fill = light_fill
+        row += 1
+    
+    # Median row
+    hrv_median_row = [
+        'Median',
+        fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3),
+        fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3),
+        fmt(hrv_averages.get('light_hrv_pnn50'), 1),
+    ]
+    for col, value in enumerate(hrv_median_row, 1):
+        cell = ws5.cell(row=row, column=col, value=value)
+        cell.font = avg_font
+        cell.fill = avg_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    # Set column widths
+    for col in range(1, 5):
+        ws5.column_dimensions[get_column_letter(col)].width = 15
+    
+    # Save to buffer
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf

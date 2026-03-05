@@ -23,19 +23,18 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
-- 2025-12-05: **Exports now always fetch fresh data from database**:
-  - Comparison PDF/Excel exports fetch latest recordings data on each export (not from frontend state)
-  - This ensures exports always reflect current database state after updates/deletes/adds
-  - Single recording exports continue to use current app state (which is up-to-date with UI)
-- 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports:
-  - **Frontend (FolderComparison.js)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
-  - **Comparison PDF (export_utils.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
-  - **Comparison Excel (server.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
-  - **Single Recording PDF (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
-  - **Single Recording Excel (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
-  - **Single Recording CSV (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
-  - Root cause: Both JavaScript `||` and Python `or` operators treat `0` as falsy, causing fallback to wrong values
-- 2025-12-04: Fixed PDF Table 4 positioning (`loc='top'` -> `loc='upper center'`)
+- 2025-12-05: **New Comparison Excel Export matching PDF structure**:
+  - Created `create_comparison_xlsx` function in `export_utils.py` with 5 sheets:
+    - Summary: Folder overview, age ranges, parameters, averages
+    - Metadata: Table 1 with recording information  
+    - Spontaneous Activity: Tables 2 & 3 (raw and normalized data)
+    - Heart Rate Adaptation: Tables 4 & 5 (HRA and normalized)
+    - Detrended HRV: Table 6 (HRV data)
+  - Same styling and data structure as PDF comparison export
+  - Removed 600+ lines of old inline Excel code from server.py
+- 2025-12-05: **Exports now always fetch fresh data from database**
+- 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports
+- 2025-12-04: Fixed PDF Table 4 positioning
 - Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
 
 ## Pending Issues
