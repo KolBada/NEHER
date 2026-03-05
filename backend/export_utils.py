@@ -110,9 +110,8 @@ def create_nature_pdf(request):
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
         
-        # Add separator before Original File
-        y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
-        y -= 0.005
+        # Add separator before Original File (tight spacing to match Drug Readout)
+        y = draw_separator(fig1, left_x, y, width=0.38, centered=False)
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
@@ -131,9 +130,8 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add full-width separator before each sample (including first one)
-                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
-                y -= 0.005  # Extra space after separator
+                # Add full-width separator before each sample (tight spacing to match Drug Readout)
+                y = draw_separator(fig1, left_x, y, width=0.38, centered=False)
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
@@ -153,10 +151,9 @@ def create_nature_pdf(request):
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
             
-            # Add full-width separator before Days Since Fusion
+            # Add full-width separator before Days Since Fusion (tight spacing)
             if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
-                y -= 0.005  # Extra space after separator
+                y = draw_separator(fig1, left_x, y, width=0.38, centered=False)
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
