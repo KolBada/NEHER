@@ -712,16 +712,26 @@ def create_nature_pdf(request):
             if request.baseline_enabled and request.baseline:
                 baseline_range = request.baseline.get('baseline_bf_range')
                 if baseline_range is not None:
-                    # Normalize baseline range to "X-Y" format
+                    # Normalize baseline range to "X-Y" format (remove " min" suffix if present)
                     try:
-                        baseline_range_str = str(baseline_range)
+                        baseline_range_str = str(baseline_range).replace(' min', '').strip()
                         if '-' in baseline_range_str:
                             baseline_window = baseline_range_str
                         else:
                             bmin = int(float(baseline_range_str))
                             baseline_window = f"{bmin}-{bmin+1}"
                     except (ValueError, TypeError):
-                        baseline_window = str(baseline_range)
+                        baseline_window = str(baseline_range).replace(' min', '').strip()
+                
+                # Also check baseline_bf_minute as fallback
+                if baseline_window is None:
+                    bf_min = request.baseline.get('baseline_bf_minute')
+                    if bf_min is not None:
+                        try:
+                            bf_min = int(float(bf_min))
+                            baseline_window = f"{bf_min}-{bf_min+1}"
+                        except (ValueError, TypeError):
+                            pass
             
             # Get drug readout window from drug_readout or drug_readout_settings
             if request.drug_readout_enabled:
