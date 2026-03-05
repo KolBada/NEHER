@@ -2847,7 +2847,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                         name = d.get('name', '')
                         conc = d.get('concentration', '')
                         unit = d.get('concentration_unit', '') or 'µM'
-                        perf_time = d.get('perfusion_time', '')
+                        # Check multiple possible field names for perfusion time
+                        perf_time = d.get('perfusion_time', '') or d.get('bf_readout_time', '') or d.get('perfusionTime', '')
                         if name:
                             # Format: "DrugName\nConc: 2µM\nPerf. Time: 5min"
                             drug_str = name
@@ -2860,7 +2861,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                 name = drug_info_raw.get('name', '')
                 conc = drug_info_raw.get('concentration', '')
                 unit = drug_info_raw.get('concentration_unit', '') or 'µM'
-                perf_time = drug_info_raw.get('perfusion_time', '')
+                perf_time = drug_info_raw.get('perfusion_time', '') or drug_info_raw.get('bf_readout_time', '') or drug_info_raw.get('perfusionTime', '')
                 if name:
                     drug_str = name
                     if conc:
