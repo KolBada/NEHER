@@ -1831,7 +1831,7 @@ def create_nature_excel(request):
         ws_hrv.append(['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF'])
         for cell in ws_hrv[1]:
             cell.font = header_font
-            cell.fill = purple_fill
+            cell.fill = emerald_fill
             cell.border = thin_border
         
         baseline_minute = None
@@ -1957,11 +1957,11 @@ def create_nature_excel(request):
         final = request.light_metrics_detrended.get('final', {})
         
         if per_stim or final:
-            ws_corr = wb.create_sheet('Corrected HRV')
+            ws_corr = wb.create_sheet('Light Corrected HRV')
             ws_corr.append(['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀'])
             for cell in ws_corr[1]:
                 cell.font = header_font
-                cell.fill = emerald_fill
+                cell.fill = amber_fill
                 cell.border = thin_border
             
             num_stims = max(5, len(per_stim))
