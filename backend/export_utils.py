@@ -1170,13 +1170,17 @@ def create_nature_pdf(request):
                 table_data = []
                 
                 for i, r in enumerate(valid):
+                    # For 1st TTP, show 0.0 instead of dash
+                    first_ttp_val = r.get('first_ttp_sec')
+                    first_ttp_str = f"{first_ttp_val:.1f}" if first_ttp_val is not None else "0.0"
+                    
                     table_data.append([
                         str(i + 1),
                         f"{r.get('baseline_bf', 0):.1f}" if r.get('baseline_bf') else '—',
                         f"{r.get('avg_bf', 0):.1f}" if r.get('avg_bf') else '—',
                         f"{r.get('peak_bf', 0):.1f}" if r.get('peak_bf') else '—',
                         f"{r.get('peak_norm_pct', 0):.1f}" if r.get('peak_norm_pct') else '—',
-                        f"{r.get('first_ttp_sec', 0):.1f}" if r.get('first_ttp_sec') is not None else '—',
+                        first_ttp_str,
                         f"{r.get('time_to_peak_sec', 0):.1f}" if r.get('time_to_peak_sec') is not None else '—',
                         f"{r.get('bf_end', 0):.1f}" if r.get('bf_end') else '—',
                         f"{r.get('bf_end_pct', 0):.1f}" if r.get('bf_end_pct') else '—',
@@ -1190,13 +1194,17 @@ def create_nature_pdf(request):
                         vals = [r.get(key) for r in valid if r.get(key) is not None]
                         return np.mean(vals) if vals else None
                     
+                    # For 1st TTP avg, include 0 values
+                    first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
+                    first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
+                    
                     avg_row = [
                         'Avg',
                         f"{safe_avg('baseline_bf'):.1f}" if safe_avg('baseline_bf') else '—',
                         f"{safe_avg('avg_bf'):.1f}" if safe_avg('avg_bf') else '—',
                         f"{safe_avg('peak_bf'):.1f}" if safe_avg('peak_bf') else '—',
                         f"{safe_avg('peak_norm_pct'):.1f}" if safe_avg('peak_norm_pct') else '—',
-                        f"{safe_avg('first_ttp_sec'):.1f}" if safe_avg('first_ttp_sec') is not None else '—',
+                        f"{first_ttp_avg:.1f}",
                         f"{safe_avg('time_to_peak_sec'):.1f}" if safe_avg('time_to_peak_sec') is not None else '—',
                         f"{safe_avg('bf_end'):.1f}" if safe_avg('bf_end') else '—',
                         f"{safe_avg('bf_end_pct'):.1f}" if safe_avg('bf_end_pct') else '—',
@@ -1905,23 +1913,29 @@ def create_nature_excel(request):
         valid = [r for r in request.light_response if r]
         if valid:
             ws_hra = wb.create_sheet('Light HRA')
-            ws_hra.append(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)'])
+            # Reordered columns with 1st TTP
+            ws_hra.append(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)'])
             for cell in ws_hra[1]:
                 cell.font = header_font
                 cell.fill = amber_fill
                 cell.border = thin_border
             
             for i, r in enumerate(valid):
+                # For 1st TTP, show 0.0 even if it's 0 or None
+                first_ttp_val = r.get('first_ttp_sec')
+                first_ttp = round(first_ttp_val, 1) if first_ttp_val is not None else 0.0
+                
                 ws_hra.append([
                     i + 1,
                     round(r.get('baseline_bf', 0), 1) if r.get('baseline_bf') else None,
                     round(r.get('avg_bf', 0), 1) if r.get('avg_bf') else None,
                     round(r.get('peak_bf', 0), 1) if r.get('peak_bf') else None,
                     round(r.get('peak_norm_pct', 0), 1) if r.get('peak_norm_pct') else None,
-                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else None,
+                    first_ttp,  # 1st TTP - always show value
+                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else None,
                     round(r.get('bf_end', 0), 1) if r.get('bf_end') else None,
                     round(r.get('bf_end_pct', 0), 1) if r.get('bf_end_pct') else None,
-                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else None,
+                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else None,
                     round(r.get('rate_of_change', 0), 3) if r.get('rate_of_change') is not None else None,
                 ])
                 for cell in ws_hra[ws_hra.max_row]:
@@ -1933,16 +1947,21 @@ def create_nature_excel(request):
                     vals = [r.get(key) for r in valid if r.get(key) is not None]
                     return np.mean(vals) if vals else None
                 
+                # For 1st TTP avg, include 0 values
+                first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
+                first_ttp_avg = round(np.mean(first_ttp_vals), 1) if first_ttp_vals else 0.0
+                
                 ws_hra.append([
                     'Avg',
                     round(safe_avg('baseline_bf'), 1) if safe_avg('baseline_bf') else None,
                     round(safe_avg('avg_bf'), 1) if safe_avg('avg_bf') else None,
                     round(safe_avg('peak_bf'), 1) if safe_avg('peak_bf') else None,
                     round(safe_avg('peak_norm_pct'), 1) if safe_avg('peak_norm_pct') else None,
-                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else None,
+                    first_ttp_avg,  # 1st TTP avg - always show value
+                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else None,
                     round(safe_avg('bf_end'), 1) if safe_avg('bf_end') else None,
                     round(safe_avg('bf_end_pct'), 1) if safe_avg('bf_end_pct') else None,
-                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else None,
+                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else None,
                     round(safe_avg('rate_of_change'), 3) if safe_avg('rate_of_change') is not None else None,
                 ])
                 for cell in ws_hra[ws_hra.max_row]:
@@ -1950,7 +1969,7 @@ def create_nature_excel(request):
                     cell.font = bold_data_font
                     cell.border = thin_border
             
-            for col in range(1, 11):
+            for col in range(1, 12):
                 ws_hra.column_dimensions[get_column_letter(col)].width = 12
     
     # ==================== SHEET 5: CORRECTED HRV ====================
