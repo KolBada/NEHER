@@ -603,17 +603,41 @@ function App() {
       setMetrics(data);
       setIsValidated(true);
       
-      // Clear previous HRV/BF results - user must click "Compute BF & HRV" to recalculate
-      setHrvResults(null);
-      setPerMinuteData(null);
-
       toast.success(`Validated — ${data.n_kept} beats kept, ${data.n_removed} filtered`);
+      
+      // Automatically compute HRV analysis after validation
+      try {
+        const hrvResponse = await api.hrvAnalysis({
+          beat_times_min: data.filtered_beat_times_min,
+          bf_filtered: data.filtered_bf_bpm,
+          readout_minute: null,
+          baseline_hrv_minute: baselineHrvMinute,
+          baseline_bf_minute: baselineBfMinute,
+        });
+        setHrvResults(hrvResponse.data);
+        
+        // Also compute per-minute BF metrics
+        try {
+          const pmResp = await api.perMinuteMetrics({
+            beat_times_min: data.filtered_beat_times_min,
+            bf_filtered: data.filtered_bf_bpm,
+          });
+          setPerMinuteData(pmResp.data.rows);
+        } catch (e) { /* non-critical */ }
+        
+        toast.success(`BF & HRV computed — ${hrvResponse.data.windows.length} windows`);
+      } catch (hrvErr) {
+        // HRV computation failed but validation succeeded - just log it
+        console.warn('Auto HRV computation failed:', hrvErr);
+        setHrvResults(null);
+        setPerMinuteData(null);
+      }
     } catch (err) {
       toast.error('Validation failed: ' + (err.response?.data?.detail || err.message));
     } finally {
       setAnalysisLoading(false);
     }
-  }, [beats, filterParams]);
+  }, [beats, filterParams, baselineHrvMinute, baselineBfMinute]);
 
   // Unvalidate - allow re-editing beats
   // Keep metrics/BF chart visible as reference until new detection

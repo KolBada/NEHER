@@ -661,13 +661,13 @@ function AnalysisPanel({
                 </Tooltip>
               </TooltipProvider>
               
-              {/* Compute BF & HRV Button */}
-              <div className="ml-auto">
+              {/* Compute BF & HRV Button - always visible when metrics exist */}
+              <div className="ml-auto flex-shrink-0">
                 <Button
                   onClick={onComputeHRV}
                   disabled={analysisLoading || !metrics}
                   size="sm"
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3"
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3 whitespace-nowrap"
                   data-testid="compute-hrv-btn"
                 >
                   {analysisLoading ? (
