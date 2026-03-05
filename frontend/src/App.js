@@ -298,7 +298,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
                 fill={drug.color.fill} 
                 fillOpacity={0.15 + (idx * 0.05)} 
                 stroke="none" 
-                ifOverflow="extendDomain" 
+                ifOverflow="hidden" 
               />
             ))}
             {/* Highlight light pulses - only when light stim is enabled */}

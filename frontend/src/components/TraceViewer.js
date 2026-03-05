@@ -533,7 +533,7 @@ function TraceViewer({
               fill={drug.color.fill} 
               fillOpacity={0.15 + (idx * 0.05)} 
               stroke="none" 
-              ifOverflow="extendDomain" 
+              ifOverflow="hidden" 
             />
           ))}
           {/* Light stim highlights - only when light stim is enabled (no labels) */}

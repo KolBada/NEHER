@@ -495,7 +495,7 @@ function AnalysisPanel({
                     fill={drug.color.fill} 
                     fillOpacity={0.15 + (idx * 0.05)} 
                     stroke="none" 
-                    ifOverflow="extendDomain" 
+                    ifOverflow="hidden" 
                   />
                 ))}
                 {/* Light stim highlights - only when light stim is enabled */}
@@ -600,7 +600,7 @@ function AnalysisPanel({
                     fill={drug.color.fill} 
                     fillOpacity={0.15 + (idx * 0.05)} 
                     stroke="none" 
-                    ifOverflow="extendDomain" 
+                    ifOverflow="hidden" 
                   />
                 ))}
                 {/* Light stim highlights - only when light stim is enabled */}
@@ -993,7 +993,7 @@ function AnalysisPanel({
                           fill={drug.color.fill} 
                           fillOpacity={0.15 + (idx * 0.05)} 
                           stroke="none" 
-                          ifOverflow="extendDomain" 
+                          ifOverflow="hidden" 
                         />
                       ))}
                       <Line type="monotone" dataKey={key} stroke={color} strokeWidth={1.5} dot={{ r: 1.5 }} isAnimationActive={false} />
