@@ -2540,7 +2540,43 @@ def create_comparison_pdf(folder_name, comparison_data):
             return None
         return 100 * val / avg
     
-    total_pages = 7
+    def extract_short_name(full_name):
+        """Extract FX or CX from the end of the recording name"""
+        if not full_name:
+            return '—'
+        # Look for pattern like F1, F2, C1, C2 at the end
+        import re
+        match = re.search(r'[FC]\d+$', full_name)
+        if match:
+            return match.group()
+        # If no match, try to get last part after dash or slash
+        parts = full_name.replace('/', '-').split('-')
+        return parts[-1] if parts else full_name[:10]
+    
+    def parse_drug_info(drug_info):
+        """Parse drug info to extract name and concentration"""
+        if not drug_info:
+            return None
+        if isinstance(drug_info, dict):
+            name = drug_info.get('name', '')
+            conc = drug_info.get('concentration', '')
+            if name:
+                return f"{name} ({conc})" if conc else name
+            return None
+        if isinstance(drug_info, list):
+            results = []
+            for d in drug_info:
+                parsed = parse_drug_info(d)
+                if parsed:
+                    results.append(parsed)
+            return results if results else None
+        # String type
+        drug_str = str(drug_info).strip()
+        if drug_str.lower() in ['no drug', 'no', 'none', '—', '-', '']:
+            return None
+        return drug_str
+    
+    total_pages = 5  # Summary, Metadata, Spont+Norm, HRA+Norm, HRV
     
     with PdfPages(buf) as pdf:
         
@@ -2548,18 +2584,38 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig1 = plt.figure(figsize=(8.5, 11))  # US Letter Portrait
         fig1.patch.set_facecolor('white')
         
-        add_page_header(fig1, 'comparison summary')
+        add_page_header(fig1, 'summary')
         
-        # Main title
-        fig1.text(0.08, 0.90, folder_name, ha='left', va='top', fontsize=28, fontweight='bold', 
-                 color=COLORS['dark'], fontfamily=title_font)
-        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig1.transFigure))
+        # Main title - wrap if needed
+        title_text = folder_name
+        title_fontsize = 24 if len(title_text) > 30 else 28
+        if len(title_text) > 40:
+            # Split into two lines
+            mid = len(title_text) // 2
+            # Find a good split point near middle
+            split_idx = title_text.rfind(' ', 0, mid + 10)
+            if split_idx == -1:
+                split_idx = mid
+            line1 = title_text[:split_idx]
+            line2 = title_text[split_idx:].strip()
+            fig1.text(0.08, 0.91, line1, ha='left', va='top', fontsize=22, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig1.text(0.08, 0.875, line2, ha='left', va='top', fontsize=22, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            separator_y = 0.845
+            first_section_y = 0.81
+        else:
+            fig1.text(0.08, 0.90, title_text, ha='left', va='top', fontsize=title_fontsize, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            separator_y = 0.865
+            first_section_y = 0.83
+        
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [separator_y, separator_y], color=COLORS['dark'], linewidth=1.0, transform=fig1.transFigure))
         
         # Two columns layout
         left_x = 0.08
         right_x = 0.52
         col_width = 0.40
-        first_section_y = 0.83
         
         # LEFT COLUMN: Folder Overview, Age Ranges, Parameters
         y = draw_header(fig1, left_x, first_section_y, 'FOLDER OVERVIEW', COLORS['dark'], width=col_width)
@@ -2579,61 +2635,46 @@ def create_comparison_pdf(folder_name, comparison_data):
         # Parameters section
         y = draw_header(fig1, left_x, y, 'PARAMETERS', COLORS['purple'], width=col_width)
         
-        # Check drug usage across recordings
-        drug_used = any(r.get('drug_info') for r in recordings)
-        drug_info_text = 'No'
-        if drug_used:
-            drug_infos = []
-            for r in recordings:
-                info = r.get('drug_info', '')
-                if info:
-                    # Handle both string and list types
-                    if isinstance(info, list):
-                        drug_infos.extend([str(i) for i in info if i])
-                    else:
-                        drug_infos.append(str(info))
-            if drug_infos:
-                # Get unique drug concentrations
-                unique_drugs = list(set(drug_infos))[:2]
-                drug_info_text = f"Yes ({', '.join(unique_drugs)})" if unique_drugs else 'Yes'
-        y = draw_row(fig1, left_x, y, 'Drug Used:', drug_info_text, width=col_width)
-        
-        # Check light stim usage
-        light_used = any(r.get('light_stim_info') for r in recordings)
-        light_info_text = 'No'
-        if light_used:
-            # Try to extract stim count and ISI from recordings
-            stim_counts = []
-            isis = []
-            for r in recordings:
-                light_info = r.get('light_stim_info', '')
-                if light_info:
-                    # Handle list type
-                    if isinstance(light_info, list):
-                        light_info = ' '.join(str(i) for i in light_info)
-                    light_info = str(light_info)
-                    # Parse "5 stim @ 30s ISI" format
-                    if 'stim' in light_info.lower():
-                        try:
-                            parts = light_info.split()
-                            for i, p in enumerate(parts):
-                                if p.isdigit():
-                                    stim_counts.append(int(p))
-                                if 'isi' in p.lower() and i > 0:
-                                    isi_val = parts[i-1].replace('s', '')
-                                    isis.append(isi_val)
-                        except:
-                            pass
-            if stim_counts:
-                avg_stim = int(np.mean(stim_counts))
-                light_info_text = f"Yes ({avg_stim} stim"
-                if isis:
-                    light_info_text += f", {isis[0]}s ISI)"
+        # Drug Used: Parse properly
+        all_drugs = []
+        for r in recordings:
+            parsed = parse_drug_info(r.get('drug_info'))
+            if parsed:
+                if isinstance(parsed, list):
+                    all_drugs.extend(parsed)
                 else:
-                    light_info_text += ")"
+                    all_drugs.append(parsed)
+        
+        if all_drugs:
+            unique_drugs = list(dict.fromkeys(all_drugs))  # Preserve order, remove duplicates
+            if len(unique_drugs) == 1:
+                drug_text = unique_drugs[0]
             else:
-                light_info_text = 'Yes'
-        y = draw_row(fig1, left_x, y, 'Light Stim:', light_info_text, width=col_width)
+                drug_text = unique_drugs[0]  # Show first on the row
+        else:
+            drug_text = '—'
+        
+        y = draw_row(fig1, left_x, y, 'Drug Used:', drug_text, width=col_width)
+        
+        # Add additional drug lines if more than one
+        if all_drugs and len(set(all_drugs)) > 1:
+            unique_drugs = list(dict.fromkeys(all_drugs))
+            for drug in unique_drugs[1:3]:  # Show up to 3 drugs total
+                y = draw_row(fig1, left_x, y, '', drug, width=col_width)
+        
+        # Light Stim: Check if any recording has light stim (not "No Light")
+        light_used = False
+        for r in recordings:
+            light_info = r.get('light_stim_info', '')
+            if isinstance(light_info, list):
+                light_info = ' '.join(str(i) for i in light_info)
+            light_info = str(light_info).lower().strip()
+            if light_info and 'no light' not in light_info and light_info not in ['no', 'none', '—', '-', '']:
+                light_used = True
+                break
+        
+        light_text = 'Yes' if light_used else 'No'
+        y = draw_row(fig1, left_x, y, 'Light Stim:', light_text, width=col_width)
         
         # RIGHT COLUMN: Spontaneous Activity & Light Stimulus readouts
         y_right = first_section_y
@@ -2692,36 +2733,87 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig2.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig2.transFigure))
         
-        ax2 = fig2.add_axes([0.08, 0.10, 0.84, 0.72])
+        ax2 = fig2.add_axes([0.04, 0.08, 0.92, 0.74])
         ax2.axis('off')
         
-        meta_headers = ['Recording', 'Date', 'hSpO', 'hCO', 'Fusion', 'Drug', 'Light', 'Notes']
+        # Full metadata columns based on screenshot
+        meta_headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
         meta_data = []
         
         for rec in recordings:
-            drug_info = rec.get('drug_info', '') or '—'
-            light_info = rec.get('light_stim_info', '') or '—'
+            # Get recording name with file
+            rec_name = rec.get('name', '')
+            abf_file = rec.get('abf_filename', '') or rec.get('filename', '')
+            rec_display = f"{rec_name}\n{abf_file}" if abf_file else rec_name
+            
+            # Parse hSpO Info (line, P, D, status)
+            hspo_info_parts = []
+            if rec.get('hspo_line'):
+                hspo_info_parts.append(str(rec.get('hspo_line')))
+            if rec.get('hspo_passage'):
+                hspo_info_parts.append(f"P{rec.get('hspo_passage')}")
+            if rec.get('hspo_age'):
+                hspo_info_parts.append(f"D{rec.get('hspo_age')}")
+            if rec.get('hspo_status'):
+                hspo_info_parts.append(str(rec.get('hspo_status')))
+            hspo_info = '\n'.join(hspo_info_parts) if hspo_info_parts else '—'
+            
+            # Parse hCO Info (line, P, D)
+            hco_info_parts = []
+            if rec.get('hco_line'):
+                hco_info_parts.append(str(rec.get('hco_line')))
+            if rec.get('hco_passage'):
+                hco_info_parts.append(f"P{rec.get('hco_passage')}")
+            if rec.get('hco_age'):
+                hco_info_parts.append(f"D{rec.get('hco_age')}")
+            hco_info = '\n'.join(hco_info_parts) if hco_info_parts else '—'
+            
+            # Fusion age
+            fusion = str(rec.get('fusion_age', '')) if rec.get('fusion_age') else '—'
+            
+            # Drug info
+            drug_info = rec.get('drug_info', '')
+            if isinstance(drug_info, dict):
+                drug_name = drug_info.get('name', '')
+                drug_info = drug_name if drug_name else 'No drug'
+            elif isinstance(drug_info, list):
+                drug_info = ', '.join(str(d.get('name', d) if isinstance(d, dict) else d) for d in drug_info if d)
+            drug_info = str(drug_info) if drug_info else 'No drug'
+            if drug_info.lower() in ['no', 'none', '—', '-', '']:
+                drug_info = 'No drug'
+            
+            # Light stim info
+            light_info = rec.get('light_stim_info', '')
+            if isinstance(light_info, list):
+                light_info = '\n'.join(str(i) for i in light_info if i)
+            light_info = str(light_info) if light_info else '—'
+            if light_info.lower() in ['no', 'none', '']:
+                light_info = '—'
+            
+            # Notes
             notes = rec.get('notes', '') or '—'
             
             meta_data.append([
-                rec.get('name', '')[:20],
+                rec_display[:25],
                 rec.get('recording_date', '—') or '—',
-                str(rec.get('hspo_age', '—')) if rec.get('hspo_age') else '—',
-                str(rec.get('hco_age', '—')) if rec.get('hco_age') else '—',
-                str(rec.get('fusion_age', '—')) if rec.get('fusion_age') else '—',
-                drug_info[:15] if len(str(drug_info)) > 15 else drug_info,
-                light_info[:15] if len(str(light_info)) > 15 else light_info,
-                notes[:20] if len(str(notes)) > 20 else notes,
+                hspo_info[:30],
+                hco_info[:20],
+                fusion,
+                drug_info[:15],
+                light_info[:25],
+                notes[:20],
             ])
         
         if meta_data:
-            table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center')
+            table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center',
+                              colWidths=[0.16, 0.10, 0.13, 0.10, 0.07, 0.10, 0.15, 0.15])
             table2.auto_set_font_size(False)
             
-            # Dynamic font size based on number of recordings
-            font_size = 8 if len(recordings) <= 15 else 7 if len(recordings) <= 20 else 6
+            # Dynamic sizing
+            n_recs = len(recordings)
+            font_size = 6 if n_recs <= 10 else 5
+            row_scale = 2.5 if n_recs <= 8 else 2.0 if n_recs <= 12 else 1.5
             table2.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
             table2.scale(1.0, row_scale)
             
             for (row, col), cell in table2.get_celld().items():
@@ -2737,7 +2829,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         pdf.savefig(fig2)
         plt.close(fig2)
         
-        # ==================== PAGE 3: SPONTANEOUS ACTIVITY COMPARISON ====================
+        # ==================== PAGE 3: SPONTANEOUS ACTIVITY + NORMALIZED ====================
         fig3 = plt.figure(figsize=(8.5, 11))
         fig3.patch.set_facecolor('white')
         
@@ -2746,20 +2838,22 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
         
-        fig3.text(0.08, 0.84, 'Table 2 | Comparison Data', fontsize=11, fontweight='bold', 
+        # Table 2: Drug-induced BF and HRV Data
+        fig3.text(0.08, 0.84, 'Table 2 | Drug-induced BF and HRV Data', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        ax3 = fig3.add_axes([0.08, 0.10, 0.84, 0.72])
-        ax3.axis('off')
+        # First table area (upper half)
+        ax3a = fig3.add_axes([0.04, 0.48, 0.92, 0.34])
+        ax3a.axis('off')
         
-        spont_headers = ['Recording', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
+        spont_headers = ['Rec', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
                         'Drug BF', 'Drug\nRMSSD', 'Drug\nSDNN', 'Drug\npNN50']
         spont_data = []
         
         for rec in recordings:
             spont_data.append([
-                rec.get('name', '')[:15],
+                extract_short_name(rec.get('name', '')),
                 fmt(rec.get('baseline_bf'), 1),
                 fmt(rec.get('baseline_ln_rmssd70'), 3),
                 fmt(rec.get('baseline_ln_sdnn70'), 3),
@@ -2772,7 +2866,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         # Add average row
         spont_data.append([
-            f'Avg (n={len(recordings)})',
+            f'Avg',
             fmt(spont_averages.get('baseline_bf'), 1),
             fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
             fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
@@ -2784,14 +2878,14 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if spont_data:
-            table3 = ax3.table(cellText=spont_data, colLabels=spont_headers, loc='upper center', cellLoc='center')
-            table3.auto_set_font_size(False)
-            font_size = 7 if len(recordings) <= 15 else 6
-            table3.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table3.scale(1.0, row_scale)
+            table3a = ax3a.table(cellText=spont_data, colLabels=spont_headers, loc='upper center', cellLoc='center')
+            table3a.auto_set_font_size(False)
+            font_size = 6 if len(recordings) <= 10 else 5
+            table3a.set_fontsize(font_size)
+            row_scale = 1.6 if len(recordings) <= 8 else 1.3
+            table3a.scale(1.0, row_scale)
             
-            for (row, col), cell in table3.get_celld().items():
+            for (row, col), cell in table3a.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -2808,27 +2902,16 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        add_page_footer(fig3, 3, total_pages)
-        pdf.savefig(fig3)
-        plt.close(fig3)
-        
-        # ==================== PAGE 4: SPONTANEOUS ACTIVITY NORMALIZED ====================
-        fig4 = plt.figure(figsize=(8.5, 11))
-        fig4.patch.set_facecolor('white')
-        
-        add_page_header(fig4, 'spontaneous activity')
-        fig4.text(0.08, 0.90, 'Normalized to Baseline', ha='left', va='top', fontsize=28, fontweight='bold', 
+        # Table 3: Drug-induced BF and HRV Normalized Data
+        fig3.text(0.08, 0.44, 'Table 3 | Drug-induced BF and HRV Normalized Data', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig4.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig4.transFigure))
+        fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        fig4.text(0.08, 0.84, 'Table 3 | Normalized Comparison Data (%)', fontsize=11, fontweight='bold', 
-                 color=COLORS['dark'], fontfamily=title_font)
-        fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
+        # Second table area (lower half)
+        ax3b = fig3.add_axes([0.04, 0.08, 0.92, 0.34])
+        ax3b.axis('off')
         
-        ax4 = fig4.add_axes([0.08, 0.10, 0.84, 0.72])
-        ax4.axis('off')
-        
-        # Calculate cohort baseline averages
+        # Calculate cohort baseline averages for normalization
         baseline_bfs = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
         baseline_rmssds = [r.get('baseline_ln_rmssd70') for r in recordings if r.get('baseline_ln_rmssd70') is not None]
         baseline_sdnns = [r.get('baseline_ln_sdnn70') for r in recordings if r.get('baseline_ln_sdnn70') is not None]
@@ -2839,7 +2922,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         avg_sdnn = sum(baseline_sdnns) / len(baseline_sdnns) if baseline_sdnns else 1
         avg_pnn50 = sum(baseline_pnn50s) / len(baseline_pnn50s) if baseline_pnn50s else 1
         
-        norm_headers = ['Recording', 'Base\nBF%', 'Base\nRMSSD%', 'Base\nSDNN%', 'Base\npNN50%',
+        norm_headers = ['Rec', 'Base\nBF%', 'Base\nRMSSD%', 'Base\nSDNN%', 'Base\npNN50%',
                        'Drug\nBF%', 'Drug\nRMSSD%', 'Drug\nSDNN%', 'Drug\npNN50%']
         norm_data = []
         norm_sums = {'base_bf': [], 'base_rmssd': [], 'base_sdnn': [], 'base_pnn50': [],
@@ -2856,7 +2939,7 @@ def create_comparison_pdf(folder_name, comparison_data):
             n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_pnn50)
             
             norm_data.append([
-                rec.get('name', '')[:15],
+                extract_short_name(rec.get('name', '')),
                 fmt(n_base_bf, 1), fmt(n_base_rmssd, 1), fmt(n_base_sdnn, 1), fmt(n_base_pnn50, 1),
                 fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
             ])
@@ -2870,7 +2953,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         # Add average row
         norm_data.append([
-            f'Avg (n={len(recordings)})',
+            'Avg',
             fmt(sum(norm_sums['base_bf']) / len(norm_sums['base_bf']) if norm_sums['base_bf'] else None, 1),
             fmt(sum(norm_sums['base_rmssd']) / len(norm_sums['base_rmssd']) if norm_sums['base_rmssd'] else None, 1),
             fmt(sum(norm_sums['base_sdnn']) / len(norm_sums['base_sdnn']) if norm_sums['base_sdnn'] else None, 1),
@@ -2882,14 +2965,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if norm_data:
-            table4 = ax4.table(cellText=norm_data, colLabels=norm_headers, loc='upper center', cellLoc='center')
-            table4.auto_set_font_size(False)
-            font_size = 7 if len(recordings) <= 15 else 6
-            table4.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table4.scale(1.0, row_scale)
+            table3b = ax3b.table(cellText=norm_data, colLabels=norm_headers, loc='upper center', cellLoc='center')
+            table3b.auto_set_font_size(False)
+            table3b.set_fontsize(font_size)
+            table3b.scale(1.0, row_scale)
             
-            for (row, col), cell in table4.get_celld().items():
+            for (row, col), cell in table3b.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -2906,32 +2987,34 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        add_page_footer(fig4, 4, total_pages)
-        pdf.savefig(fig4)
-        plt.close(fig4)
+        add_page_footer(fig3, 3, total_pages)
+        pdf.savefig(fig3)
+        plt.close(fig3)
         
-        # ==================== PAGE 5: LIGHT HRA ====================
-        fig5 = plt.figure(figsize=(8.5, 11))
-        fig5.patch.set_facecolor('white')
+        # ==================== PAGE 4: LIGHT HRA + NORMALIZED ====================
+        fig4 = plt.figure(figsize=(8.5, 11))
+        fig4.patch.set_facecolor('white')
         
-        add_page_header(fig5, 'light stimulus')
-        fig5.text(0.08, 0.90, 'Heart Rate Adaptation', ha='left', va='top', fontsize=28, fontweight='bold', 
+        add_page_header(fig4, 'light stimulus')
+        fig4.text(0.08, 0.90, 'Heart Rate Adaptation', ha='left', va='top', fontsize=28, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig5.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
+        fig4.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig4.transFigure))
         
-        fig5.text(0.08, 0.84, 'Table 4 | Light-Induced HRA Data', fontsize=11, fontweight='bold', 
+        # Table 4: Light-Induced HRA Data
+        fig4.text(0.08, 0.84, 'Table 4 | Light-Induced HRA Data', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
+        fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        ax5 = fig5.add_axes([0.08, 0.10, 0.84, 0.72])
-        ax5.axis('off')
+        # First table area
+        ax4a = fig4.add_axes([0.04, 0.48, 0.92, 0.34])
+        ax4a.axis('off')
         
-        hra_headers = ['Recording', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'TTP\n1st', 'TTP\nAvg', 'RoC', 'Rec\nBF', 'Rec\n%']
+        hra_headers = ['Rec', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'TTP\n1st', 'TTP\nAvg', 'RoC', 'Rec\nBF', 'Rec\n%']
         hra_data = []
         
         for rec in recordings:
             hra_data.append([
-                rec.get('name', '')[:12],
+                extract_short_name(rec.get('name', '')),
                 fmt(rec.get('light_baseline_bf'), 1),
                 fmt(rec.get('light_avg_bf'), 1),
                 fmt(rec.get('light_peak_bf'), 1),
@@ -2945,7 +3028,7 @@ def create_comparison_pdf(folder_name, comparison_data):
             ])
         
         hra_data.append([
-            f'Avg (n={len(recordings)})',
+            'Avg',
             fmt(hra_averages.get('light_baseline_bf'), 1),
             fmt(hra_averages.get('light_avg_bf'), 1),
             fmt(hra_averages.get('light_peak_bf'), 1),
@@ -2959,14 +3042,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if hra_data:
-            table5 = ax5.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center')
-            table5.auto_set_font_size(False)
-            font_size = 6 if len(recordings) <= 15 else 5
-            table5.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table5.scale(1.0, row_scale)
+            table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center')
+            table4a.auto_set_font_size(False)
+            table4a.set_fontsize(5)
+            table4a.scale(1.0, row_scale)
             
-            for (row, col), cell in table5.get_celld().items():
+            for (row, col), cell in table4a.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -2981,30 +3062,19 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        add_page_footer(fig5, 5, total_pages)
-        pdf.savefig(fig5)
-        plt.close(fig5)
-        
-        # ==================== PAGE 6: LIGHT HRA NORMALIZED ====================
-        fig6 = plt.figure(figsize=(8.5, 11))
-        fig6.patch.set_facecolor('white')
-        
-        add_page_header(fig6, 'light stimulus')
-        fig6.text(0.08, 0.90, 'HRA Normalized to Baseline', ha='left', va='top', fontsize=28, fontweight='bold', 
+        # Table 5: Light-Induced HRA Normalized Data
+        fig4.text(0.08, 0.44, 'Table 5 | Light-Induced HRA Normalized Data', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig6.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig6.transFigure))
+        fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        fig6.text(0.08, 0.84, 'Table 5 | Light-Induced HRA Normalized (%)', fontsize=11, fontweight='bold', 
-                 color=COLORS['dark'], fontfamily=title_font)
-        fig6.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
-        
-        ax6 = fig6.add_axes([0.08, 0.10, 0.84, 0.72])
-        ax6.axis('off')
+        # Second table area
+        ax4b = fig4.add_axes([0.04, 0.08, 0.92, 0.34])
+        ax4b.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
         avg_light_bf = sum(light_baseline_bfs) / len(light_baseline_bfs) if light_baseline_bfs else 1
         
-        norm_hra_headers = ['Recording', 'Baseline BF%', 'Avg BF%', 'Peak BF%', 'Recovery BF%']
+        norm_hra_headers = ['Rec', 'Baseline BF%', 'Avg BF%', 'Peak BF%', 'Recovery BF%']
         norm_hra_data = []
         norm_hra_sums = {'base': [], 'avg': [], 'peak': [], 'rec': []}
         
@@ -3015,7 +3085,7 @@ def create_comparison_pdf(folder_name, comparison_data):
             n_rec = norm_val(rec.get('light_recovery_bf'), avg_light_bf)
             
             norm_hra_data.append([
-                rec.get('name', '')[:20],
+                extract_short_name(rec.get('name', '')),
                 fmt(n_base, 1), fmt(n_avg, 1), fmt(n_peak, 1), fmt(n_rec, 1),
             ])
             
@@ -3024,7 +3094,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                     norm_hra_sums[key].append(val)
         
         norm_hra_data.append([
-            f'Avg (n={len(recordings)})',
+            'Avg',
             fmt(sum(norm_hra_sums['base']) / len(norm_hra_sums['base']) if norm_hra_sums['base'] else None, 1),
             fmt(sum(norm_hra_sums['avg']) / len(norm_hra_sums['avg']) if norm_hra_sums['avg'] else None, 1),
             fmt(sum(norm_hra_sums['peak']) / len(norm_hra_sums['peak']) if norm_hra_sums['peak'] else None, 1),
@@ -3032,14 +3102,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if norm_hra_data:
-            table6 = ax6.table(cellText=norm_hra_data, colLabels=norm_hra_headers, loc='upper center', cellLoc='center')
-            table6.auto_set_font_size(False)
-            font_size = 8 if len(recordings) <= 15 else 7
-            table6.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table6.scale(1.0, row_scale)
+            table4b = ax4b.table(cellText=norm_hra_data, colLabels=norm_hra_headers, loc='upper center', cellLoc='center')
+            table4b.auto_set_font_size(False)
+            table4b.set_fontsize(7)
+            table4b.scale(1.0, row_scale)
             
-            for (row, col), cell in table6.get_celld().items():
+            for (row, col), cell in table4b.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -3054,57 +3122,54 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        add_page_footer(fig6, 6, total_pages)
-        pdf.savefig(fig6)
-        plt.close(fig6)
+        add_page_footer(fig4, 4, total_pages)
+        pdf.savefig(fig4)
+        plt.close(fig4)
         
-        # ==================== PAGE 7: CORRECTED HRV ====================
-        fig7 = plt.figure(figsize=(8.5, 11))
-        fig7.patch.set_facecolor('white')
+        # ==================== PAGE 5: DETRENDED HRV ====================
+        fig5 = plt.figure(figsize=(8.5, 11))
+        fig5.patch.set_facecolor('white')
         
-        add_page_header(fig7, 'light stimulus')
-        fig7.text(0.08, 0.90, 'Corrected HRV', ha='left', va='top', fontsize=28, fontweight='bold', 
+        add_page_header(fig5, 'light stimulus')
+        fig5.text(0.08, 0.90, 'Detrended HRV', ha='left', va='top', fontsize=28, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig7.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig7.transFigure))
+        fig5.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
         
-        fig7.text(0.08, 0.84, 'Table 6 | Light-Induced Corrected HRV Data', fontsize=11, fontweight='bold', 
+        fig5.text(0.08, 0.84, 'Table 6 | Light-Induced Detrended HRV Data', fontsize=11, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
-        fig7.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
+        fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
         
-        ax7 = fig7.add_axes([0.08, 0.10, 0.84, 0.72])
-        ax7.axis('off')
+        ax5 = fig5.add_axes([0.08, 0.10, 0.84, 0.72])
+        ax5.axis('off')
         
-        hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
+        # Only ln(RMSSD), ln(SDNN), pNN50 - remove raw RMSSD and SDNN
+        hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀']
         hrv_data = []
         
         for rec in recordings:
             hrv_data.append([
-                rec.get('name', '')[:20],
+                extract_short_name(rec.get('name', '')),
                 fmt(rec.get('light_hrv_ln_rmssd70'), 3),
-                fmt(rec.get('light_hrv_rmssd70'), 3),
                 fmt(rec.get('light_hrv_ln_sdnn70'), 3),
-                fmt(rec.get('light_hrv_sdnn'), 3),
                 fmt(rec.get('light_hrv_pnn50'), 1),
             ])
         
         hrv_data.append([
-            f'Median (n={len(recordings)})',
+            'Median',
             fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3),
-            fmt(hrv_averages.get('light_hrv_rmssd70'), 3),
             fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3),
-            fmt(hrv_averages.get('light_hrv_sdnn'), 3),
             fmt(hrv_averages.get('light_hrv_pnn50'), 1),
         ])
         
         if hrv_data:
-            table7 = ax7.table(cellText=hrv_data, colLabels=hrv_headers, loc='upper center', cellLoc='center')
-            table7.auto_set_font_size(False)
+            table5 = ax5.table(cellText=hrv_data, colLabels=hrv_headers, loc='upper center', cellLoc='center')
+            table5.auto_set_font_size(False)
             font_size = 8 if len(recordings) <= 15 else 7
-            table7.set_fontsize(font_size)
+            table5.set_fontsize(font_size)
             row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table7.scale(1.0, row_scale)
+            table5.scale(1.0, row_scale)
             
-            for (row, col), cell in table7.get_celld().items():
+            for (row, col), cell in table5.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -3119,9 +3184,9 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        add_page_footer(fig7, 7, total_pages)
-        pdf.savefig(fig7)
-        plt.close(fig7)
+        add_page_footer(fig5, 5, total_pages)
+        pdf.savefig(fig5)
+        plt.close(fig5)
     
     buf.seek(0)
     return buf
