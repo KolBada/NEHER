@@ -604,10 +604,9 @@ def create_nature_pdf(request):
                 time_max = max(times) if times else 10
                 
                 # Charts positioned below title bar (0.875) and within page borders
-                # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
-                # Reduce space between bar and first chart
-                chart_left = 0.12  # Shifted right to accommodate Y-axis labels
-                chart_width = 0.78  # Adjusted width (0.92 - 0.12 - small margin)
+                # Move 0.5cm (~0.02) to the right
+                chart_left = 0.14  # Shifted right by 0.5cm
+                chart_width = 0.76  # Adjusted width to stay within borders
                 chart_height = 0.32  # Increased height
                 bottom_chart_y = 0.10  # 1.5cm above footer
                 top_chart_y = 0.52  # Closer to title bar (top of chart at 0.84)
@@ -697,12 +696,9 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title
             add_page_header(fig3, 'traces')
-            # Two-line title: "Heart Rate Variability" on first line, "Evolution" on second
-            fig3.text(0.08, 0.92, 'Heart Rate Variability', ha='left', va='top', fontsize=24, fontweight='bold', 
+            fig3.text(0.08, 0.91, 'HRV Evolution', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
-            fig3.text(0.08, 0.885, 'Evolution', ha='left', va='top', fontsize=24, fontweight='bold', 
-                     color=COLORS['dark'], fontfamily=title_font)
-            fig3.add_artist(plt.Line2D([0.08, 0.92], [0.855, 0.855], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
+            fig3.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
             
             minutes = [w.get('minute', i) for i, w in enumerate(request.hrv_windows)]
             time_max = max(minutes) if minutes else 10
@@ -713,9 +709,9 @@ def create_nature_pdf(request):
             pnn50_vals = [w.get('pnn50') for w in request.hrv_windows]
             
             # Charts positioned below title bar and within page borders
-            # Leave 1.5cm (~0.055) above footer
-            chart_left = 0.12  # Shifted right to accommodate Y-axis labels
-            chart_width = 0.78  # Adjusted width
+            # Move 0.5cm (~0.02) to the right from current position
+            chart_left = 0.14  # Shifted right by 0.5cm
+            chart_width = 0.76  # Adjusted width to stay within borders
             chart_height = 0.21
             
             # Positions: closer to title bar, bottom at 0.10
@@ -796,23 +792,20 @@ def create_nature_pdf(request):
                 
                 # Bioptima-style header and title
                 add_page_header(fig3b, 'traces')
-                # Two-line title: "Light-induced Corrected HRV" on first line, "Analysis" on second
-                fig3b.text(0.08, 0.92, 'Light-induced Corrected HRV', ha='left', va='top', fontsize=22, fontweight='bold', 
+                fig3b.text(0.08, 0.91, 'Light-induced Corrected HRV', ha='left', va='top', fontsize=28, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
-                fig3b.text(0.08, 0.885, 'Analysis', ha='left', va='top', fontsize=22, fontweight='bold', 
-                         color=COLORS['dark'], fontfamily=title_font)
-                fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.855, 0.855], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
+                fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
                 # Charts positioned below title bar and within page borders
-                # Leave 1.5cm (~0.055) above footer
-                chart_left = 0.12  # Shifted right to accommodate Y-axis labels and stim labels
-                chart_total_width = 0.78  # Ensure charts don't overflow right
+                # Move 0.5cm (~0.02) to the right
+                chart_left = 0.14  # Shifted right by 0.5cm
+                chart_total_width = 0.76  # Ensure charts don't overflow right
                 
                 # Calculate row height based on number of stims
-                # Available height: from 0.10 to 0.83 = 0.73
-                available_height = 0.73
+                # Available height: from 0.10 to 0.84 = 0.74
+                available_height = 0.74
                 row_height = min(0.14, available_height / max(n_stims, 1))
-                top_margin = 0.83
+                top_margin = 0.84
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -1015,16 +1008,16 @@ def create_nature_pdf(request):
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#d1d5db')
                     if row == 0:
-                        # Header row - cyan/teal like bioptima
+                        # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                        cell.set_facecolor(COLORS['header_blue'])
+                        cell.set_facecolor(COLORS['emerald'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
-                        # Highlighted baseline/drug readout rows
+                        # Highlighted rows - blue for baseline, purple for drug
                         cell.set_facecolor(row_colors[row-1])
                         cell.set_text_props(fontweight='bold', fontfamily=body_font)
                     else:
-                        # Alternating white/light blue rows
-                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        # Alternating white/light green rows
+                        cell.set_facecolor('#d1fae5' if row % 2 == 0 else 'white')
                         cell.set_text_props(fontfamily=body_font)
             
             add_page_footer(fig4, page_num)
@@ -1136,16 +1129,16 @@ def create_nature_pdf(request):
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#d1d5db')
                     if row == 0:
-                        # Header row - cyan/teal like bioptima
+                        # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                        cell.set_facecolor(COLORS['header_blue'])
+                        cell.set_facecolor(COLORS['emerald'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
-                        # Highlighted baseline/drug readout rows
+                        # Highlighted rows - blue for baseline, purple for drug
                         cell.set_facecolor(row_colors[row-1])
                         cell.set_text_props(fontweight='bold', fontfamily=body_font)
                     else:
-                        # Alternating white/light blue rows
-                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        # Alternating white/light green rows
+                        cell.set_facecolor('#d1fae5' if row % 2 == 0 else 'white')
                         cell.set_text_props(fontfamily=body_font)
             
             add_page_footer(fig5, page_num)
