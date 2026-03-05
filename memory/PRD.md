@@ -23,12 +23,13 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
+- 2025-12-05: Fixed "Perf. Time" discrepancy in FolderComparison.js - app now correctly displays HRV drug readout time (0min) instead of BF readout time (1min). The issue was JavaScript's falsy evaluation of `0` with `||` operator.
 - 2025-12-04: Fixed PDF Table 4 positioning (`loc='top'` -> `loc='upper center'`)
 - Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
 
 ## Pending Issues
 ### P0 (High Priority)
-- Section Drag-and-Drop partially broken in `HomeBrowser.js`
+- Section Drag-and-Drop partially broken in `HomeBrowser.js` (recurring issue)
 
 ### P1 (Medium Priority)
 - PDF data table positioning refinements (if needed)

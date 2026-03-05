@@ -738,7 +738,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <div key={i} className="mb-1">
                               <div className="font-medium">{drug.name}</div>
                               {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
-                              {(rec.drug_hrv_readout_minute || drug.bf_readout_time) && <div className="text-zinc-500">Perf. Time: {rec.drug_hrv_readout_minute || drug.bf_readout_time}min</div>}
+                              {(rec.drug_hrv_readout_minute !== null && rec.drug_hrv_readout_minute !== undefined ? true : drug.bf_readout_time !== null && drug.bf_readout_time !== undefined) && <div className="text-zinc-500">Perf. Time: {rec.drug_hrv_readout_minute !== null && rec.drug_hrv_readout_minute !== undefined ? rec.drug_hrv_readout_minute : drug.bf_readout_time}min</div>}
                             </div>
                           ))}
                         </div>
