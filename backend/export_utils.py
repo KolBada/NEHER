@@ -2286,122 +2286,142 @@ def create_comparison_pdf(folder_name, comparison_data):
         return f"{age_dict.get('min')} - {age_dict.get('max')} days"
     
     def add_footer(fig, page_num, total_pages):
-        """Add consistent footer to all pages"""
-        fig.text(0.08, 0.02, 'Developed by Kolia H. Badarello', fontsize=7, color='#71717a')
-        fig.text(0.5, 0.02, 'NEHER', fontsize=7, color='#71717a', ha='center', fontweight='bold')
-        fig.text(0.92, 0.02, f'Page {page_num} of {total_pages}', fontsize=7, color='#71717a', ha='right')
+        """Add consistent footer to all pages - positioned within 1cm margin"""
+        fig.text(0.036, 0.025, 'Developed by Kolia H. Badarello', fontsize=7, color='#71717a')
+        fig.text(0.5, 0.025, 'NEHER', fontsize=7, color='#71717a', ha='center', fontweight='bold')
+        fig.text(0.964, 0.025, f'Page {page_num} of {total_pages}', fontsize=7, color='#71717a', ha='right')
     
     total_pages = 7
+    
+    # Layout constants for US Letter landscape with 1cm margins
+    # 1cm = 0.3937 inches; on 11" width = 0.036; on 8.5" height = 0.046
+    MARGIN_X = 0.036  # 1cm left/right margin
+    MARGIN_Y = 0.046  # 1cm top/bottom margin
+    CONTENT_WIDTH = 1 - 2 * MARGIN_X  # ~0.928
+    COL_GAP = 0.018  # 0.5cm gap between columns
     
     with PdfPages(buf) as pdf:
         
         # ==================== PAGE 1: SUMMARY (3 columns) ====================
-        fig1 = plt.figure(figsize=(11, 8.5))  # Landscape
+        fig1 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig1.patch.set_facecolor('white')
         
-        # Title
-        fig1.text(0.5, 0.95, folder_name, ha='center', va='top', fontsize=16, fontweight='bold', color=COLORS['dark'])
-        fig1.text(0.5, 0.91, 'Folder Comparison Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
-        fig1.text(0.5, 0.875, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
-        fig1.add_artist(plt.Line2D([0.05, 0.95], [0.85, 0.85], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
+        # Title - positioned within margins
+        title_y = 1 - MARGIN_Y - 0.02
+        fig1.text(0.5, title_y, folder_name, ha='center', va='top', fontsize=16, fontweight='bold', color=COLORS['dark'])
+        fig1.text(0.5, title_y - 0.035, 'Folder Comparison Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
+        fig1.text(0.5, title_y - 0.065, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
         
-        line_height = 0.022
-        col1_x = 0.05
-        col2_x = 0.36
-        col3_x = 0.67
-        col_width = 0.28
+        separator_y = title_y - 0.085
+        fig1.add_artist(plt.Line2D([MARGIN_X, 1 - MARGIN_X], [separator_y, separator_y], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
         
-        def draw_header(fig, x, y, text, color, width=0.28):
+        line_height = 0.024
+        
+        # Calculate column positions with 0.5cm (0.018) gaps
+        # Available width = CONTENT_WIDTH = 0.928
+        # 3 columns + 2 gaps: col_width = (0.928 - 2*0.018) / 3 = 0.297
+        col_width = (CONTENT_WIDTH - 2 * COL_GAP) / 3
+        col1_x = MARGIN_X
+        col2_x = col1_x + col_width + COL_GAP
+        col3_x = col2_x + col_width + COL_GAP
+        
+        def draw_header(fig, x, y, text, color, width=None):
+            if width is None:
+                width = col_width
             fig.text(x, y, text, fontsize=9, fontweight='bold', color='white',
                     bbox=dict(boxstyle='round,pad=0.3', facecolor=color, edgecolor='none'))
-            return y - 0.035
+            return y - 0.038
         
-        def draw_row(fig, x, y, label, value, bg_color=None, width=0.28):
+        def draw_row(fig, x, y, label, value, bg_color=None, width=None):
+            if width is None:
+                width = col_width
             if bg_color:
                 fig.add_artist(mpatches.FancyBboxPatch(
-                    (x - 0.003, y - 0.006), width, 0.018,
+                    (x - 0.003, y - 0.007), width, 0.020,
                     boxstyle=mpatches.BoxStyle("Round", pad=0.002),
                     facecolor=bg_color, edgecolor='none', transform=fig.transFigure
                 ))
             fig.text(x, y, label, fontsize=7.5, color='#52525b')
-            fig.text(x + 0.14, y, str(value), fontsize=7.5, fontweight='bold', color=COLORS['dark'])
+            fig.text(x + 0.15, y, str(value), fontsize=7.5, fontweight='bold', color=COLORS['dark'])
             return y - line_height
         
-        def draw_separator(fig, x, y, width=0.28):
+        def draw_separator(fig, x, y, width=None):
+            if width is None:
+                width = col_width
             fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
-            return y - 0.012
+            return y - 0.014
         
         # COLUMN 1: Folder Overview + Age Ranges
-        y1 = 0.82
-        y1 = draw_header(fig1, col1_x, y1, 'FOLDER OVERVIEW', COLORS['dark'], col_width)
-        y1 = draw_separator(fig1, col1_x, y1 + 0.015, col_width)
-        y1 = draw_row(fig1, col1_x, y1, 'Recordings:', str(summary.get('recording_count', len(recordings))), width=col_width)
-        y1 = draw_row(fig1, col1_x, y1, 'Generated:', datetime.now().strftime('%Y-%m-%d'), width=col_width)
-        y1 -= 0.02
+        y1 = separator_y - 0.03
+        y1 = draw_header(fig1, col1_x, y1, 'FOLDER OVERVIEW', COLORS['dark'])
+        y1 = draw_separator(fig1, col1_x, y1 + 0.018)
+        y1 = draw_row(fig1, col1_x, y1, 'Recordings:', str(summary.get('recording_count', len(recordings))))
+        y1 = draw_row(fig1, col1_x, y1, 'Generated:', datetime.now().strftime('%Y-%m-%d'))
+        y1 -= 0.025
         
-        y1 = draw_header(fig1, col1_x, y1, 'AGE RANGES', COLORS['gray'], col_width)
-        y1 = draw_separator(fig1, col1_x, y1 + 0.015, col_width)
+        y1 = draw_header(fig1, col1_x, y1, 'AGE RANGES', COLORS['gray'])
+        y1 = draw_separator(fig1, col1_x, y1 + 0.018)
         hspo_range = summary.get('hspo_age_range', {})
         hco_range = summary.get('hco_age_range', {})
         fusion_range = summary.get('fusion_age_range', {})
-        y1 = draw_row(fig1, col1_x, y1, 'hSpOs:', f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})", width=col_width)
-        y1 = draw_row(fig1, col1_x, y1, 'hCOs:', f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})", width=col_width)
-        y1 = draw_row(fig1, col1_x, y1, 'Fusion:', f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})", width=col_width)
+        y1 = draw_row(fig1, col1_x, y1, 'hSpOs:', f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})")
+        y1 = draw_row(fig1, col1_x, y1, 'hCOs:', f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})")
+        y1 = draw_row(fig1, col1_x, y1, 'Fusion:', f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})")
         
         # COLUMN 2: Spontaneous Activity Averages
-        y2 = 0.82
-        y2 = draw_header(fig1, col2_x, y2, 'SPONTANEOUS ACTIVITY', COLORS['emerald'], col_width)
-        y2 = draw_separator(fig1, col2_x, y2 + 0.015, col_width)
+        y2 = separator_y - 0.03
+        y2 = draw_header(fig1, col2_x, y2, 'SPONTANEOUS ACTIVITY', COLORS['emerald'])
+        y2 = draw_separator(fig1, col2_x, y2 + 0.018)
         
         fig1.text(col2_x, y2, 'Baseline', fontsize=7, fontstyle='italic', color='#71717a')
-        y2 -= 0.015
-        y2 = draw_row(fig1, col2_x, y2, 'Mean BF:', f"{fmt(spont_averages.get('baseline_bf'), 1)} bpm", TINTS['baseline'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'ln(RMSSD₇₀):', fmt(spont_averages.get('baseline_ln_rmssd70'), 3), TINTS['baseline'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'ln(SDNN₇₀):', fmt(spont_averages.get('baseline_ln_sdnn70'), 3), TINTS['baseline'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'pNN50₇₀:', f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%", TINTS['baseline'], col_width)
-        y2 -= 0.01
+        y2 -= 0.018
+        y2 = draw_row(fig1, col2_x, y2, 'Mean BF:', f"{fmt(spont_averages.get('baseline_bf'), 1)} bpm", TINTS['baseline'])
+        y2 = draw_row(fig1, col2_x, y2, 'ln(RMSSD₇₀):', fmt(spont_averages.get('baseline_ln_rmssd70'), 3), TINTS['baseline'])
+        y2 = draw_row(fig1, col2_x, y2, 'ln(SDNN₇₀):', fmt(spont_averages.get('baseline_ln_sdnn70'), 3), TINTS['baseline'])
+        y2 = draw_row(fig1, col2_x, y2, 'pNN50₇₀:', f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%", TINTS['baseline'])
+        y2 -= 0.012
         
         fig1.text(col2_x, y2, 'Drug Readout', fontsize=7, fontstyle='italic', color='#71717a')
-        y2 -= 0.015
-        y2 = draw_row(fig1, col2_x, y2, 'Mean BF:', f"{fmt(spont_averages.get('drug_bf'), 1)} bpm", TINTS['drug'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'ln(RMSSD₇₀):', fmt(spont_averages.get('drug_ln_rmssd70'), 3), TINTS['drug'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'ln(SDNN₇₀):', fmt(spont_averages.get('drug_ln_sdnn70'), 3), TINTS['drug'], col_width)
-        y2 = draw_row(fig1, col2_x, y2, 'pNN50₇₀:', f"{fmt(spont_averages.get('drug_pnn50'), 1)}%", TINTS['drug'], col_width)
+        y2 -= 0.018
+        y2 = draw_row(fig1, col2_x, y2, 'Mean BF:', f"{fmt(spont_averages.get('drug_bf'), 1)} bpm", TINTS['drug'])
+        y2 = draw_row(fig1, col2_x, y2, 'ln(RMSSD₇₀):', fmt(spont_averages.get('drug_ln_rmssd70'), 3), TINTS['drug'])
+        y2 = draw_row(fig1, col2_x, y2, 'ln(SDNN₇₀):', fmt(spont_averages.get('drug_ln_sdnn70'), 3), TINTS['drug'])
+        y2 = draw_row(fig1, col2_x, y2, 'pNN50₇₀:', f"{fmt(spont_averages.get('drug_pnn50'), 1)}%", TINTS['drug'])
         
         # COLUMN 3: Light Stimulus Averages
-        y3 = 0.82
-        y3 = draw_header(fig1, col3_x, y3, 'LIGHT STIMULUS', COLORS['amber'], col_width)
-        y3 = draw_separator(fig1, col3_x, y3 + 0.015, col_width)
+        y3 = separator_y - 0.03
+        y3 = draw_header(fig1, col3_x, y3, 'LIGHT STIMULUS', COLORS['amber'])
+        y3 = draw_separator(fig1, col3_x, y3 + 0.018)
         
         fig1.text(col3_x, y3, 'Heart Rate Adaptation (HRA)', fontsize=7, fontstyle='italic', color='#71717a')
-        y3 -= 0.015
-        y3 = draw_row(fig1, col3_x, y3, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'TTP (Avg):', f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'Rate of Change:', f"{fmt(hra_averages.get('light_roc'), 4)}", TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], col_width)
-        y3 -= 0.01
+        y3 -= 0.018
+        y3 = draw_row(fig1, col3_x, y3, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'TTP (Avg):', f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'Rate of Change:', f"{fmt(hra_averages.get('light_roc'), 4)}", TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'])
+        y3 -= 0.012
         
         fig1.text(col3_x, y3, 'Corrected HRV', fontsize=7, fontstyle='italic', color='#71717a')
-        y3 -= 0.015
-        y3 = draw_row(fig1, col3_x, y3, 'ln(RMSSD₇₀):', fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3), TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'ln(SDNN₇₀):', fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3), TINTS['light'], col_width)
-        y3 = draw_row(fig1, col3_x, y3, 'pNN50₇₀:', f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%", TINTS['light'], col_width)
+        y3 -= 0.018
+        y3 = draw_row(fig1, col3_x, y3, 'ln(RMSSD₇₀):', fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3), TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'ln(SDNN₇₀):', fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3), TINTS['light'])
+        y3 = draw_row(fig1, col3_x, y3, 'pNN50₇₀:', f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%", TINTS['light'])
         
         add_footer(fig1, 1, total_pages)
-        pdf.savefig(fig1, bbox_inches='tight')
+        pdf.savefig(fig1)
         plt.close(fig1)
         
         # ==================== PAGE 2: METADATA ====================
-        fig2 = plt.figure(figsize=(11, 8.5))
+        fig2 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig2.patch.set_facecolor('white')
         
-        fig2.text(0.5, 0.95, 'Recording Metadata', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig2.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig2.text(0.5, 1 - MARGIN_Y - 0.02, 'Recording Metadata', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig2.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax = fig2.add_axes([0.03, 0.08, 0.94, 0.78])
+        ax = fig2.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax.axis('off')
         
         meta_headers = ['Recording', 'Date', 'hSpO Age', 'hCO Age', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
@@ -2440,17 +2460,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                 cell.set_text_props(color='white', fontweight='bold', fontsize=7)
         
         add_footer(fig2, 2, total_pages)
-        pdf.savefig(fig2, bbox_inches='tight')
+        pdf.savefig(fig2)
         plt.close(fig2)
         
         # ==================== PAGE 3: SPONTANEOUS ACTIVITY COMPARISON ====================
-        fig3 = plt.figure(figsize=(11, 8.5))
+        fig3 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig3.patch.set_facecolor('white')
         
-        fig3.text(0.5, 0.95, 'Spontaneous Activity Comparison', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig3.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig3.text(0.5, 1 - MARGIN_Y - 0.02, 'Spontaneous Activity Comparison', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig3.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax3 = fig3.add_axes([0.03, 0.08, 0.94, 0.78])
+        ax3 = fig3.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax3.axis('off')
         
         headers = ['Recording', 'Baseline\nBF', 'Baseline\nRMSSD', 'Baseline\nSDNN', 'Baseline\npNN50', 
@@ -2508,17 +2528,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                     cell.set_facecolor(TINTS['drug'])
         
         add_footer(fig3, 3, total_pages)
-        pdf.savefig(fig3, bbox_inches='tight')
+        pdf.savefig(fig3)
         plt.close(fig3)
         
         # ==================== PAGE 4: SPONTANEOUS ACTIVITY NORMALIZED ====================
-        fig4 = plt.figure(figsize=(11, 8.5))
+        fig4 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig4.patch.set_facecolor('white')
         
-        fig4.text(0.5, 0.95, 'Spontaneous Activity — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig4.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig4.text(0.5, 1 - MARGIN_Y - 0.02, 'Spontaneous Activity — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig4.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax4 = fig4.add_axes([0.03, 0.08, 0.94, 0.78])
+        ax4 = fig4.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax4.axis('off')
         
         # Calculate cohort baseline averages
@@ -2604,17 +2624,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                     cell.set_facecolor(TINTS['drug'])
         
         add_footer(fig4, 4, total_pages)
-        pdf.savefig(fig4, bbox_inches='tight')
+        pdf.savefig(fig4)
         plt.close(fig4)
         
         # ==================== PAGE 5: LIGHT HRA ====================
-        fig5 = plt.figure(figsize=(11, 8.5))
+        fig5 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig5.patch.set_facecolor('white')
         
-        fig5.text(0.5, 0.95, 'Light-Induced Heart Rate Adaptation (HRA)', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig5.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig5.text(0.5, 1 - MARGIN_Y - 0.02, 'Light-Induced Heart Rate Adaptation (HRA)', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig5.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax5 = fig5.add_axes([0.02, 0.08, 0.96, 0.78])
+        ax5 = fig5.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax5.axis('off')
         
         hra_headers = ['Recording', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'TTP\n1st', 'TTP\nAvg', 'RoC', 'Rec\nBF', 'Rec\n%']
@@ -2671,17 +2691,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                 cell.set_facecolor(TINTS['light'])
         
         add_footer(fig5, 5, total_pages)
-        pdf.savefig(fig5, bbox_inches='tight')
+        pdf.savefig(fig5)
         plt.close(fig5)
         
         # ==================== PAGE 6: LIGHT HRA NORMALIZED ====================
-        fig6 = plt.figure(figsize=(11, 8.5))
+        fig6 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig6.patch.set_facecolor('white')
         
-        fig6.text(0.5, 0.95, 'Light-Induced HRA — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig6.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig6.text(0.5, 1 - MARGIN_Y - 0.02, 'Light-Induced HRA — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig6.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax6 = fig6.add_axes([0.08, 0.08, 0.84, 0.78])
+        ax6 = fig6.add_axes([MARGIN_X + 0.05, MARGIN_Y + 0.03, CONTENT_WIDTH - 0.1, 0.82])
         ax6.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
@@ -2736,17 +2756,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                 cell.set_facecolor(TINTS['light'])
         
         add_footer(fig6, 6, total_pages)
-        pdf.savefig(fig6, bbox_inches='tight')
+        pdf.savefig(fig6)
         plt.close(fig6)
         
         # ==================== PAGE 7: CORRECTED HRV ====================
-        fig7 = plt.figure(figsize=(11, 8.5))
+        fig7 = plt.figure(figsize=(11, 8.5))  # US Letter Landscape
         fig7.patch.set_facecolor('white')
         
-        fig7.text(0.5, 0.95, 'Corrected Light-Induced HRV', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig7.text(0.5, 0.91, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        fig7.text(0.5, 1 - MARGIN_Y - 0.02, 'Corrected Light-Induced HRV', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig7.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
-        ax7 = fig7.add_axes([0.12, 0.08, 0.76, 0.78])
+        ax7 = fig7.add_axes([MARGIN_X + 0.08, MARGIN_Y + 0.03, CONTENT_WIDTH - 0.16, 0.82])
         ax7.axis('off')
         
         hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀ (%)']
@@ -2789,7 +2809,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                 cell.set_facecolor(TINTS['light'])
         
         add_footer(fig7, 7, total_pages)
-        pdf.savefig(fig7, bbox_inches='tight')
+        pdf.savefig(fig7)
         plt.close(fig7)
     
     buf.seek(0)
