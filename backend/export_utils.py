@@ -110,8 +110,8 @@ def create_nature_pdf(request):
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
         
-        # Add separator aligned with baseline readout box level
-        y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
+        # Add separator right below header (at top of table)
+        y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
@@ -130,8 +130,8 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add separator aligned with readout box level
-                y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
+                # Add separator right below header (at top of table)
+                y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
@@ -153,7 +153,7 @@ def create_nature_pdf(request):
             
             # Add separator before Days Since Fusion
             if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
+                y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
@@ -354,7 +354,7 @@ def create_nature_pdf(request):
                     baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
                     peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                     peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
-                    ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec')]
+                    ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec') is not None]
                     ttp = np.mean(ttp_vals) if ttp_vals else None
                     ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
                     recovery_bf_vals = [r.get('bf_end') for r in valid if r.get('bf_end')]
