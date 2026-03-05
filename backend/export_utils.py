@@ -2832,7 +2832,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         if meta_data:
             table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center',
-                              colWidths=[0.16, 0.09, 0.13, 0.09, 0.06, 0.10, 0.18, 0.14])
+                              colWidths=[0.17, 0.10, 0.13, 0.10, 0.07, 0.11, 0.17, 0.15])
             table2.auto_set_font_size(False)
             
             # Dynamic sizing based on number of recordings
@@ -3079,7 +3079,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         if hra_data:
             table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center',
-                                colWidths=[0.07, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10])
+                                colWidths=[0.08, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.068])
             table4a.auto_set_font_size(False)
             table4a.set_fontsize(5)
             table4a.scale(1.0, row_scale)
@@ -3140,7 +3140,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         if norm_hra_data:
             table4b = ax4b.table(cellText=norm_hra_data, colLabels=norm_hra_headers, loc='upper center', cellLoc='center',
-                                colWidths=[0.15, 0.21, 0.21, 0.21, 0.21])
+                                colWidths=[0.16, 0.21, 0.21, 0.21, 0.21])
             table4b.auto_set_font_size(False)
             table4b.set_fontsize(7)
             table4b.scale(1.0, row_scale)
