@@ -603,13 +603,14 @@ def create_nature_pdf(request):
             if times and bf_values:
                 time_max = max(times) if times else 10
                 
-                # Charts positioned below title bar and within page borders
+                # Charts positioned below title bar - first trace at 1cm from bar
+                # Bar is at 0.865, 1cm (~0.036) below = 0.83 for top of first chart
                 chart_left = 0.15
                 chart_width = 0.75
                 chart_height = 0.30
-                # Top chart: moved 0.2cm lower (from 0.52 to 0.50)
-                top_chart_y = 0.50
-                # Bottom chart: moved 0.5cm higher (from 0.10 to 0.125)
+                # Top chart: top at 0.83, so y position = 0.83 - 0.30 = 0.53
+                top_chart_y = 0.53
+                # Bottom chart: moved 0.5cm higher
                 bottom_chart_y = 0.125
                 
                 # Top: BF Filtered
@@ -709,12 +710,13 @@ def create_nature_pdf(request):
             ln_sdnn_vals = [np.log(s) if s and s > 0 else None for s in sdnn_vals]
             pnn50_vals = [w.get('pnn50') for w in request.hrv_windows]
             
-            # Charts - moved 0.5cm higher
+            # Charts - first trace at 1cm from bar
+            # Bar is at 0.865, 1cm below = 0.83 for top of first chart
             chart_left = 0.14
             chart_width = 0.76
             chart_height = 0.19
             
-            # Positions: moved 0.5cm (~0.018) higher
+            # Positions: top chart at 0.83 - 0.19 = 0.64
             bottom_y = 0.12
             middle_y = 0.38
             top_y = 0.64
@@ -796,17 +798,17 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
-                # Charts positioned below title bar - moved 0.5cm higher
-                # First two columns 0.2cm left, third column 0.2cm right
-                chart_left = 0.13  # First two columns moved 0.2cm left (from 0.15)
-                chart_total_width = 0.77  # Adjusted for new positions
+                # Charts positioned below title bar - first trace at 1cm from bar
+                # Bar is at 0.865, 1cm below = 0.83 for top of first chart row
+                chart_left = 0.13  # First two columns moved 0.2cm left
+                chart_total_width = 0.77
                 col3_offset = 0.02  # Third column offset to move right
                 
                 # Calculate row height based on number of stims
-                # Moved 0.5cm higher
-                available_height = 0.72
+                # First row top at 0.83
+                available_height = 0.71  # from 0.12 to 0.83
                 row_height = min(0.14, available_height / max(n_stims, 1))
-                top_margin = 0.84  # Charts start higher
+                top_margin = 0.83  # First row starts here
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -1035,7 +1037,7 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title - moved 0.2cm lower
             add_page_header(fig5, 'spontaneous activity')
-            fig5.text(0.08, 0.90, 'HRV Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+            fig5.text(0.08, 0.90, 'Heart Rate Variability Data', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
             
@@ -1224,9 +1226,9 @@ def create_nature_pdf(request):
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                         cell.set_facecolor(COLORS['amber'])
                     elif row == len(table_data):
-                        # Average row - black text on white/light background
-                        cell.set_text_props(fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-                        cell.set_facecolor('#f3f4f6')  # Light gray background
+                        # Average row - red with white text
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['total_red'])
                     else:
                         # Alternating white/light amber rows
                         cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
@@ -1312,9 +1314,9 @@ def create_nature_pdf(request):
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                             cell.set_facecolor(COLORS['amber'])
                         elif row == len(table_data):
-                            # Median row - black text on white/light background
-                            cell.set_text_props(fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-                            cell.set_facecolor('#f3f4f6')  # Light gray background
+                            # Median row - red with white text
+                            cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                            cell.set_facecolor(COLORS['total_red'])
                         else:
                             # Alternating white/light amber rows
                             cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
