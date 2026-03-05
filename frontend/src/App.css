@@ -54,3 +54,17 @@
 .recharts-cartesian-grid-vertical line {
     stroke: #18181b !important;
 }
+
+/* Number input with white arrows - Chrome/Safari/Edge */
+.number-input-white-arrows::-webkit-inner-spin-button,
+.number-input-white-arrows::-webkit-outer-spin-button {
+    opacity: 1;
+    cursor: pointer;
+    background: transparent;
+    filter: invert(0.8) brightness(1.5);
+}
+
+/* For Firefox - show spinners */
+.number-input-white-arrows {
+    -moz-appearance: number-input;
+}

@@ -710,7 +710,7 @@ function AnalysisPanel({
                     type="number"
                     value={baselineHrvMinute}
                     onChange={(e) => onBaselineHrvMinuteChange(parseInt(e.target.value) || 0)}
-                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
                     disabled={!baselineEnabled}
                   />
                   <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
@@ -724,7 +724,7 @@ function AnalysisPanel({
                     type="number"
                     value={baselineBfMinute}
                     onChange={(e) => onBaselineBfMinuteChange(parseInt(e.target.value) || 1)}
-                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm"
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
                     disabled={!baselineEnabled}
                   />
                   <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
@@ -796,7 +796,7 @@ function AnalysisPanel({
                     value={hrvReadoutMinute}
                     onChange={(e) => setHrvReadoutMinute(e.target.value)}
                     disabled={!(enableHrvReadout || enableBfReadout)}
-                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50 number-input-white-arrows"
                     placeholder="12"
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
@@ -813,7 +813,7 @@ function AnalysisPanel({
                     value={bfReadoutMinute}
                     onChange={(e) => setBfReadoutMinute(e.target.value)}
                     disabled={!(enableHrvReadout || enableBfReadout)}
-                    className="w-12 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50"
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm disabled:opacity-50 number-input-white-arrows"
                     placeholder="14"
                   />
                   <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
