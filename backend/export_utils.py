@@ -2635,10 +2635,16 @@ def create_comparison_pdf(folder_name, comparison_data):
         # Parameters section
         y = draw_header(fig1, left_x, y, 'PARAMETERS', COLORS['purple'], width=col_width)
         
-        # Drug Used: Parse properly
+        # Drug Used: Parse properly and include concentration unit
         all_drugs = []
+        drug_concentration_unit = ''
         for r in recordings:
-            parsed = parse_drug_info(r.get('drug_info'))
+            drug_info_raw = r.get('drug_info')
+            if isinstance(drug_info_raw, dict):
+                conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '')
+                if conc_unit and not drug_concentration_unit:
+                    drug_concentration_unit = conc_unit
+            parsed = parse_drug_info(drug_info_raw)
             if parsed:
                 if isinstance(parsed, list):
                     all_drugs.extend(parsed)
@@ -2647,10 +2653,10 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         if all_drugs:
             unique_drugs = list(dict.fromkeys(all_drugs))  # Preserve order, remove duplicates
-            if len(unique_drugs) == 1:
-                drug_text = unique_drugs[0]
-            else:
-                drug_text = unique_drugs[0]  # Show first on the row
+            drug_text = unique_drugs[0]
+            # Add concentration unit if available
+            if drug_concentration_unit:
+                drug_text = f"{drug_text} {drug_concentration_unit}"
         else:
             drug_text = '—'
         
@@ -2662,16 +2668,24 @@ def create_comparison_pdf(folder_name, comparison_data):
             for drug in unique_drugs[1:3]:  # Show up to 3 drugs total
                 y = draw_row(fig1, left_x, y, '', drug, width=col_width)
         
-        # Light Stim: Check if any recording has light stim (not "No Light")
+        # Light Stim: Check if any recording has light stim - look for time patterns (e.g., "30s", "60s")
+        import re
         light_used = False
         for r in recordings:
             light_info = r.get('light_stim_info', '')
             if isinstance(light_info, list):
                 light_info = ' '.join(str(i) for i in light_info)
-            light_info = str(light_info).lower().strip()
-            if light_info and 'no light' not in light_info and light_info not in ['no', 'none', '—', '-', '']:
-                light_used = True
-                break
+            light_info = str(light_info).strip()
+            if light_info:
+                light_lower = light_info.lower()
+                # Check for time patterns like "30s", "60s-30s", "stim", or ISI
+                if (re.search(r'\d+s', light_info) or 
+                    'stim' in light_lower or 
+                    'isi' in light_lower or
+                    (light_lower not in ['no', 'none', 'no light', '—', '-', ''])):
+                    if 'no light' not in light_lower:
+                        light_used = True
+                        break
         
         light_text = 'Yes' if light_used else 'No'
         y = draw_row(fig1, left_x, y, 'Light Stim:', light_text, width=col_width)
@@ -2733,20 +2747,20 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig2.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig2.transFigure))
         
-        ax2 = fig2.add_axes([0.04, 0.08, 0.92, 0.74])
+        ax2 = fig2.add_axes([0.02, 0.06, 0.96, 0.76])
         ax2.axis('off')
         
-        # Full metadata columns based on screenshot
+        # Full metadata columns - ALL information, use line breaks
         meta_headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
         meta_data = []
         
         for rec in recordings:
-            # Get recording name with file
+            # Get recording name with file - full info with line breaks
             rec_name = rec.get('name', '')
             abf_file = rec.get('abf_filename', '') or rec.get('filename', '')
             rec_display = f"{rec_name}\n{abf_file}" if abf_file else rec_name
             
-            # Parse hSpO Info (line, P, D, status)
+            # Parse hSpO Info (line, P, D, status) - ALL info with line breaks
             hspo_info_parts = []
             if rec.get('hspo_line'):
                 hspo_info_parts.append(str(rec.get('hspo_line')))
@@ -2758,7 +2772,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                 hspo_info_parts.append(str(rec.get('hspo_status')))
             hspo_info = '\n'.join(hspo_info_parts) if hspo_info_parts else '—'
             
-            # Parse hCO Info (line, P, D)
+            # Parse hCO Info (line, P, D) - ALL info with line breaks
             hco_info_parts = []
             if rec.get('hco_line'):
                 hco_info_parts.append(str(rec.get('hco_line')))
@@ -2771,18 +2785,30 @@ def create_comparison_pdf(folder_name, comparison_data):
             # Fusion age
             fusion = str(rec.get('fusion_age', '')) if rec.get('fusion_age') else '—'
             
-            # Drug info
+            # Drug info - FULL info
             drug_info = rec.get('drug_info', '')
             if isinstance(drug_info, dict):
                 drug_name = drug_info.get('name', '')
-                drug_info = drug_name if drug_name else 'No drug'
+                drug_conc = drug_info.get('concentration', '')
+                if drug_name:
+                    drug_info = f"{drug_name}\n({drug_conc})" if drug_conc else drug_name
+                else:
+                    drug_info = 'No drug'
             elif isinstance(drug_info, list):
-                drug_info = ', '.join(str(d.get('name', d) if isinstance(d, dict) else d) for d in drug_info if d)
+                drug_parts = []
+                for d in drug_info:
+                    if isinstance(d, dict):
+                        name = d.get('name', '')
+                        if name:
+                            drug_parts.append(name)
+                    elif d:
+                        drug_parts.append(str(d))
+                drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
             drug_info = str(drug_info) if drug_info else 'No drug'
             if drug_info.lower() in ['no', 'none', '—', '-', '']:
                 drug_info = 'No drug'
             
-            # Light stim info
+            # Light stim info - FULL info with line breaks
             light_info = rec.get('light_stim_info', '')
             if isinstance(light_info, list):
                 light_info = '\n'.join(str(i) for i in light_info if i)
@@ -2790,29 +2816,29 @@ def create_comparison_pdf(folder_name, comparison_data):
             if light_info.lower() in ['no', 'none', '']:
                 light_info = '—'
             
-            # Notes
+            # Notes - FULL info
             notes = rec.get('notes', '') or '—'
             
             meta_data.append([
-                rec_display[:25],
+                rec_display,  # Full name
                 rec.get('recording_date', '—') or '—',
-                hspo_info[:30],
-                hco_info[:20],
+                hspo_info,  # Full info
+                hco_info,   # Full info
                 fusion,
-                drug_info[:15],
-                light_info[:25],
-                notes[:20],
+                drug_info,  # Full info
+                light_info, # Full info
+                notes,      # Full info
             ])
         
         if meta_data:
             table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center',
-                              colWidths=[0.16, 0.10, 0.13, 0.10, 0.07, 0.10, 0.15, 0.15])
+                              colWidths=[0.18, 0.09, 0.13, 0.09, 0.06, 0.10, 0.16, 0.14])
             table2.auto_set_font_size(False)
             
-            # Dynamic sizing
+            # Dynamic sizing based on number of recordings
             n_recs = len(recordings)
-            font_size = 6 if n_recs <= 10 else 5
-            row_scale = 2.5 if n_recs <= 8 else 2.0 if n_recs <= 12 else 1.5
+            font_size = 5 if n_recs <= 10 else 4
+            row_scale = 3.5 if n_recs <= 6 else 2.8 if n_recs <= 10 else 2.2 if n_recs <= 15 else 1.8
             table2.set_fontsize(font_size)
             table2.scale(1.0, row_scale)
             
@@ -2843,8 +2869,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        # First table area (upper half)
-        ax3a = fig3.add_axes([0.04, 0.48, 0.92, 0.34])
+        # First table area (upper half) - tighter margins
+        ax3a = fig3.add_axes([0.02, 0.48, 0.96, 0.34])
         ax3a.axis('off')
         
         spont_headers = ['Rec', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
@@ -2907,8 +2933,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        # Second table area (lower half)
-        ax3b = fig3.add_axes([0.04, 0.08, 0.92, 0.34])
+        # Second table area (lower half) - tighter margins
+        ax3b = fig3.add_axes([0.02, 0.06, 0.96, 0.34])
         ax3b.axis('off')
         
         # Calculate cohort baseline averages for normalization
@@ -2929,14 +2955,22 @@ def create_comparison_pdf(folder_name, comparison_data):
                     'drug_bf': [], 'drug_rmssd': [], 'drug_sdnn': [], 'drug_pnn50': []}
         
         for rec in recordings:
-            n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
-            n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
-            n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
-            n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
-            n_drug_bf = norm_val(rec.get('drug_bf'), avg_bf)
-            n_drug_rmssd = norm_val(rec.get('drug_ln_rmssd70'), avg_rmssd)
-            n_drug_sdnn = norm_val(rec.get('drug_ln_sdnn70'), avg_sdnn)
-            n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_pnn50)
+            # Check if this recording has baseline data
+            has_baseline = rec.get('baseline_bf') is not None
+            
+            if has_baseline:
+                n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
+                n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
+                n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
+                n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
+                n_drug_bf = norm_val(rec.get('drug_bf'), avg_bf)
+                n_drug_rmssd = norm_val(rec.get('drug_ln_rmssd70'), avg_rmssd)
+                n_drug_sdnn = norm_val(rec.get('drug_ln_sdnn70'), avg_sdnn)
+                n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_pnn50)
+            else:
+                # No baseline, show dashes for all normalized values
+                n_base_bf = n_base_rmssd = n_base_sdnn = n_base_pnn50 = None
+                n_drug_bf = n_drug_rmssd = n_drug_sdnn = n_drug_pnn50 = None
             
             norm_data.append([
                 extract_short_name(rec.get('name', '')),
@@ -2944,12 +2978,13 @@ def create_comparison_pdf(folder_name, comparison_data):
                 fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
             ])
             
-            for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
-                            ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
-                            ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
-                            ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
-                if val is not None:
-                    norm_sums[key].append(val)
+            if has_baseline:
+                for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
+                                ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
+                                ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
+                                ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                    if val is not None:
+                        norm_sums[key].append(val)
         
         # Add average row
         norm_data.append([
@@ -3005,11 +3040,12 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # First table area
-        ax4a = fig4.add_axes([0.04, 0.48, 0.92, 0.34])
+        # First table area - tighter margins
+        ax4a = fig4.add_axes([0.02, 0.48, 0.96, 0.34])
         ax4a.axis('off')
         
-        hra_headers = ['Rec', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'TTP\n1st', 'TTP\nAvg', 'RoC', 'Rec\nBF', 'Rec\n%']
+        # Reorganized columns: Rec, Baseline BF, Avg BF, Peak BF, Peak %, Amplitude, BF End, Recovery %, TTP (s), RoC (1/min)
+        hra_headers = ['Rec', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'BF\nEnd', 'Rec\n%', 'TTP\n(s)', 'RoC\n(1/min)']
         hra_data = []
         
         for rec in recordings:
@@ -3020,11 +3056,10 @@ def create_comparison_pdf(folder_name, comparison_data):
                 fmt(rec.get('light_peak_bf'), 1),
                 fmt(rec.get('light_peak_norm'), 1),
                 fmt(rec.get('light_amplitude'), 1),
-                fmt(rec.get('light_ttp_first'), 1),
-                fmt(rec.get('light_ttp_avg'), 1),
-                fmt(rec.get('light_roc'), 3),
-                fmt(rec.get('light_recovery_bf'), 1),
-                fmt(rec.get('light_recovery_pct'), 1),
+                fmt(rec.get('light_recovery_bf'), 1),  # BF End
+                fmt(rec.get('light_recovery_pct'), 1),  # Recovery %
+                fmt(rec.get('light_ttp_avg'), 1),       # TTP (s)
+                fmt(rec.get('light_roc'), 4),          # RoC (1/min)
             ])
         
         hra_data.append([
@@ -3034,11 +3069,10 @@ def create_comparison_pdf(folder_name, comparison_data):
             fmt(hra_averages.get('light_peak_bf'), 1),
             fmt(hra_averages.get('light_peak_norm'), 1),
             fmt(hra_averages.get('light_amplitude'), 1),
-            fmt(hra_averages.get('light_ttp_first'), 1),
-            fmt(hra_averages.get('light_ttp_avg'), 1),
-            fmt(hra_averages.get('light_roc'), 3),
             fmt(hra_averages.get('light_recovery_bf'), 1),
             fmt(hra_averages.get('light_recovery_pct'), 1),
+            fmt(hra_averages.get('light_ttp_avg'), 1),
+            fmt(hra_averages.get('light_roc'), 4),
         ])
         
         if hra_data:
@@ -3067,8 +3101,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # Second table area
-        ax4b = fig4.add_axes([0.04, 0.08, 0.92, 0.34])
+        # Second table area - tighter margins
+        ax4b = fig4.add_axes([0.02, 0.06, 0.96, 0.34])
         ax4b.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
@@ -3139,7 +3173,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
         
-        ax5 = fig5.add_axes([0.08, 0.10, 0.84, 0.72])
+        ax5 = fig5.add_axes([0.06, 0.08, 0.88, 0.72])
         ax5.axis('off')
         
         # Only ln(RMSSD), ln(SDNN), pNN50 - remove raw RMSSD and SDNN
