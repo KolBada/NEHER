@@ -2934,8 +2934,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        # Second table area (lower half) - within page borders, closer to title bar
-        ax3b = fig3.add_axes([0.08, 0.10, 0.84, 0.30])
+        # Second table area (lower half) - top closer to title bar at 0.425
+        ax3b = fig3.add_axes([0.08, 0.06, 0.84, 0.36])
         ax3b.axis('off')
         
         # Calculate cohort baseline averages for normalization
@@ -3104,8 +3104,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # Second table area - within page borders, closer to title bar
-        ax4b = fig4.add_axes([0.08, 0.10, 0.84, 0.30])
+        # Second table area - top closer to title bar at 0.425
+        ax4b = fig4.add_axes([0.08, 0.06, 0.84, 0.36])
         ax4b.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
@@ -3177,7 +3177,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
         
-        ax5 = fig5.add_axes([0.08, 0.12, 0.84, 0.68])
+        ax5 = fig5.add_axes([0.08, 0.06, 0.84, 0.76])
         ax5.axis('off')
         
         # Only ln(RMSSD), ln(SDNN), pNN50 - remove raw RMSSD and SDNN
