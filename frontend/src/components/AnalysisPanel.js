@@ -215,22 +215,22 @@ function AnalysisPanel({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Data for BF and NN charts - only show after HRV is computed
+  // Data for BF and NN charts - show when metrics are available
   const filteredBfData = useMemo(() => {
-    if (!metrics || !hrvResults) return [];  // Don't show until HRV is computed
+    if (!metrics) return [];
     return metrics.filtered_beat_times_min.map((t, i) => ({
       time: t,
       bf: metrics.filtered_bf_bpm[i],
     }));
-  }, [metrics, hrvResults]);
+  }, [metrics]);
 
   const filteredNnData = useMemo(() => {
-    if (!metrics || !hrvResults) return [];  // Don't show until HRV is computed
+    if (!metrics) return [];
     return metrics.filtered_beat_times_min.map((t, i) => ({
       time: t,
       nn: metrics.filtered_nn_ms[i],
     }));
-  }, [metrics, hrvResults]);
+  }, [metrics]);
 
   // Handle brush change for navigation
   const handleBfBrushChange = useCallback((brushArea) => {
