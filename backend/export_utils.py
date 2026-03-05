@@ -912,8 +912,10 @@ def create_nature_pdf(request):
                      color=COLORS['dark'], fontfamily=title_font)
             fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
             
-            ax = fig4.add_axes([0.08, 0.18, 0.84, 0.62])
+            ax = fig4.add_axes([0.08, 0.10, 0.84, 0.70])
             ax.axis('off')
+            ax.set_ylim(0, 1)
+            ax.set_xlim(0, 1)
             
             # Get baseline and drug readout windows for highlighting
             baseline_window = None
@@ -1004,7 +1006,7 @@ def create_nature_pdf(request):
                     row_colors.append(None)
             
             if table_data:
-                table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
+                table = ax.table(cellText=table_data, colLabels=headers, loc='top', cellLoc='center')
                 table.auto_set_font_size(False)
                 table.set_fontsize(9)
                 table.scale(1.0, 1.8)
@@ -1042,8 +1044,10 @@ def create_nature_pdf(request):
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
             
-            ax = fig5.add_axes([0.08, 0.18, 0.84, 0.62])
+            ax = fig5.add_axes([0.08, 0.10, 0.84, 0.70])
             ax.axis('off')
+            ax.set_ylim(0, 1)
+            ax.set_xlim(0, 1)
             
             # Get baseline and drug readout windows for highlighting
             baseline_minute = None
@@ -1122,7 +1126,7 @@ def create_nature_pdf(request):
                     row_colors.append(None)
             
             if table_data:
-                table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
+                table = ax.table(cellText=table_data, colLabels=headers, loc='top', cellLoc='center')
                 table.auto_set_font_size(False)
                 table.set_fontsize(8)
                 table.scale(1.0, 1.6)
@@ -1162,8 +1166,10 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
                 
-                ax = fig6.add_axes([0.08, 0.18, 0.84, 0.62])
+                ax = fig6.add_axes([0.08, 0.10, 0.84, 0.70])
                 ax.axis('off')
+                ax.set_ylim(0, 1)
+                ax.set_xlim(0, 1)
                 
                 # All HRA metrics except beats
                 headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)']
@@ -1203,7 +1209,7 @@ def create_nature_pdf(request):
                     ]
                     table_data.append(avg_row)
                 
-                table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
+                table = ax.table(cellText=table_data, colLabels=headers, loc='top', cellLoc='center')
                 table.auto_set_font_size(False)
                 table.set_fontsize(7)
                 table.scale(1.0, 1.8)
@@ -1249,8 +1255,10 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
                 
-                ax = fig7.add_axes([0.08, 0.18, 0.84, 0.62])
+                ax = fig7.add_axes([0.08, 0.10, 0.84, 0.70])
                 ax.axis('off')
+                ax.set_ylim(0, 1)
+                ax.set_xlim(0, 1)
                 
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
                 table_data = []
@@ -1289,7 +1297,7 @@ def create_nature_pdf(request):
                     ])
                 
                 if table_data:
-                    table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
+                    table = ax.table(cellText=table_data, colLabels=headers, loc='top', cellLoc='center')
                     table.auto_set_font_size(False)
                     table.set_fontsize(9)
                     table.scale(1.0, 1.8)
