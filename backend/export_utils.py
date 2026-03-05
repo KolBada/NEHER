@@ -603,17 +603,22 @@ def create_nature_pdf(request):
             if times and bf_values:
                 time_max = max(times) if times else 10
                 
-                # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
-                # Top chart: y from 0.48 to 0.83 (height 0.35), Bottom chart: y from 0.08 to 0.43 (height 0.35)
-                chart_left = 0.08
-                chart_width = 0.84  # 0.92 - 0.08
+                # Charts positioned below title bar (0.875) and within page borders
+                # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
+                # Available height: from 0.10 (1.5cm above footer) to 0.84 (below title bar) = 0.74
+                # Two charts with height 0.30 each, gap of 0.08 between them
+                chart_left = 0.12  # Shifted right to accommodate Y-axis labels
+                chart_width = 0.78  # Adjusted width (0.92 - 0.12 - small margin)
+                chart_height = 0.30
+                bottom_chart_y = 0.10  # 1.5cm above footer
+                top_chart_y = 0.48  # Gap of 0.08 between charts
                 
                 # Top: BF Filtered
-                ax1 = fig2.add_axes([chart_left, 0.48, chart_width, 0.35])
+                ax1 = fig2.add_axes([chart_left, top_chart_y, chart_width, chart_height])
                 ax1.scatter(times, bf_values, s=3, c=COLORS['emerald'], alpha=0.7, label='Filtered BF')
                 ax1.set_ylabel('BF (bpm)', fontsize=9)
                 ax1.set_xlabel('Time (min)', fontsize=9)
-                ax1.set_title('Beat Frequency (Filtered)', fontsize=10, fontweight='bold', pad=10)
+                ax1.set_title('Beat Frequency (Filtered)', fontsize=10, fontweight='bold', pad=8)
                 ax1.set_xlim(0, time_max * 1.05)
                 
                 # Add drug regions with legend
@@ -643,13 +648,13 @@ def create_nature_pdf(request):
                 
                 # Bottom: BF Normalized
                 if baseline_bf and baseline_bf > 0:
-                    ax2 = fig2.add_axes([chart_left, 0.08, chart_width, 0.35])
+                    ax2 = fig2.add_axes([chart_left, bottom_chart_y, chart_width, chart_height])
                     bf_norm = [100 * (bf / baseline_bf) for bf in bf_values]
                     ax2.scatter(times, bf_norm, s=3, c=COLORS['emerald'], alpha=0.7)
                     ax2.axhline(y=100, color='#dc2626', linestyle='--', linewidth=1)
                     ax2.set_ylabel('BF (% of Reference)', fontsize=9)
                     ax2.set_xlabel('Time (min)', fontsize=9)
-                    ax2.set_title(f'Beat Frequency (Normalized to {norm_source})', fontsize=10, fontweight='bold', pad=10)
+                    ax2.set_title(f'Beat Frequency (Normalized to {norm_source})', fontsize=10, fontweight='bold', pad=8)
                     ax2.set_xlim(0, time_max * 1.05)
                     ax2.set_ylim(0, 200)
                     
@@ -705,22 +710,28 @@ def create_nature_pdf(request):
             ln_sdnn_vals = [np.log(s) if s and s > 0 else None for s in sdnn_vals]
             pnn50_vals = [w.get('pnn50') for w in request.hrv_windows]
             
-            # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
-            chart_left = 0.08
-            chart_width = 0.84  # 0.92 - 0.08
+            # Charts positioned below title bar (0.875) and within page borders
+            # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
+            # Available height: from 0.10 to 0.84 = 0.74
+            # Three charts with height 0.20 each, gaps of 0.07 between them
+            chart_left = 0.12  # Shifted right to accommodate Y-axis labels
+            chart_width = 0.78  # Adjusted width
+            chart_height = 0.20
             
-            # Three charts: heights 0.22 each, with gaps between them
-            # Top: 0.60-0.82, Middle: 0.34-0.56, Bottom: 0.08-0.30
+            # Positions: bottom at 0.10, middle at 0.37, top at 0.64
+            bottom_y = 0.10
+            middle_y = 0.37
+            top_y = 0.64
             
             # ln(RMSSD70) - Y: 0 to 8
-            ax1 = fig3.add_axes([chart_left, 0.60, chart_width, 0.22])
+            ax1 = fig3.add_axes([chart_left, top_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(ln_rmssd_vals) if v is not None]
             if valid_idx:
                 ax1.plot([minutes[i] for i in valid_idx], [ln_rmssd_vals[i] for i in valid_idx],
                         'o-', color=COLORS['emerald'], markersize=4, linewidth=1.5)
             ax1.set_ylabel('ln(RMSSD₇₀)', fontsize=9)
             ax1.set_xlabel('Time (min)', fontsize=9)
-            ax1.set_title('ln(RMSSD₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['emerald'])
+            ax1.set_title('ln(RMSSD₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['emerald'], pad=6)
             ax1.set_xlim(0, time_max + 1)
             ax1.set_ylim(0, 8)
             ax1.grid(True, alpha=0.3)
@@ -731,14 +742,14 @@ def create_nature_pdf(request):
                     ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # ln(SDNN70) - Y: 0 to 8
-            ax2 = fig3.add_axes([chart_left, 0.34, chart_width, 0.22])
+            ax2 = fig3.add_axes([chart_left, middle_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(ln_sdnn_vals) if v is not None]
             if valid_idx:
                 ax2.plot([minutes[i] for i in valid_idx], [ln_sdnn_vals[i] for i in valid_idx],
                         'o-', color=COLORS['purple'], markersize=4, linewidth=1.5)
             ax2.set_ylabel('ln(SDNN₇₀)', fontsize=9)
             ax2.set_xlabel('Time (min)', fontsize=9)
-            ax2.set_title('ln(SDNN₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['purple'])
+            ax2.set_title('ln(SDNN₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['purple'], pad=6)
             ax2.set_xlim(0, time_max + 1)
             ax2.set_ylim(0, 8)
             ax2.grid(True, alpha=0.3)
@@ -749,14 +760,14 @@ def create_nature_pdf(request):
                     ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # pNN50 - Y: 0 to 100
-            ax3 = fig3.add_axes([chart_left, 0.08, chart_width, 0.22])
+            ax3 = fig3.add_axes([chart_left, bottom_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(pnn50_vals) if v is not None]
             if valid_idx:
                 ax3.plot([minutes[i] for i in valid_idx], [pnn50_vals[i] for i in valid_idx],
                         'o-', color=COLORS['amber'], markersize=4, linewidth=1.5)
             ax3.set_ylabel('pNN50₇₀ (%)', fontsize=9)
             ax3.set_xlabel('Time (min)', fontsize=9)
-            ax3.set_title('pNN50₇₀ Evolution', fontsize=10, fontweight='bold', color=COLORS['amber'])
+            ax3.set_title('pNN50₇₀ Evolution', fontsize=10, fontweight='bold', color=COLORS['amber'], pad=6)
             ax3.set_xlim(0, time_max + 1)
             ax3.set_ylim(0, 100)
             ax3.grid(True, alpha=0.3)
@@ -789,13 +800,15 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
-                # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
-                chart_left = 0.08
-                chart_total_width = 0.84  # 0.92 - 0.08
+                # Charts positioned below title bar (0.875) and within page borders
+                # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
+                chart_left = 0.12  # Shifted right to accommodate Y-axis labels and stim labels
+                chart_total_width = 0.80  # 0.92 - 0.12
                 
-                # Calculate row height based on number of stims - available height is 0.78 (from 0.08 to 0.86)
-                available_height = 0.76  # from 0.08 to 0.84
-                row_height = min(0.15, available_height / max(n_stims, 1))
+                # Calculate row height based on number of stims
+                # Available height: from 0.10 (1.5cm above footer) to 0.84 = 0.74
+                available_height = 0.74
+                row_height = min(0.14, available_height / max(n_stims, 1))
                 top_margin = 0.84
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
@@ -827,55 +840,55 @@ def create_nature_pdf(request):
                     
                     # Column 1: NN₇₀ (emerald)
                     col1_x = chart_left
-                    ax1 = fig3b.add_axes([col1_x, y_pos, col_width, row_height * 0.85])
+                    ax1 = fig3b.add_axes([col1_x, y_pos, col_width, row_height * 0.80])
                     ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
                     ax1.set_facecolor('white')
                     ax1.set_ylim(nn_ylim)
                     # Stim label vertical on the left side
-                    ax1.text(-0.15, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
-                            fontsize=8, fontweight='bold', va='center', ha='right', rotation=90)
+                    ax1.text(-0.12, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
+                            fontsize=7, fontweight='bold', va='center', ha='right', rotation=90)
                     if row_idx == 0:
-                        ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold')
+                        ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold', pad=4)
                     if row_idx == n_stims - 1:
                         ax1.set_xlabel('Time (s)', fontsize=7)
                     else:
                         ax1.set_xticklabels([])
-                    ax1.tick_params(axis='both', labelsize=6)
+                    ax1.tick_params(axis='both', labelsize=5)
                     ax1.grid(True, alpha=0.3)
                     
                     # Column 2: NN₇₀ + Trend (emerald + grey)
                     col2_x = chart_left + chart_total_width / 3
-                    ax2 = fig3b.add_axes([col2_x, y_pos, col_width, row_height * 0.85])
+                    ax2 = fig3b.add_axes([col2_x, y_pos, col_width, row_height * 0.80])
                     ax2.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1, alpha=0.7)
                     if trend:
                         ax2.plot(time_rel, trend, color='#6b7280', linewidth=1.5)  # Grey color
                     ax2.set_facecolor('white')
                     ax2.set_ylim(nn_ylim)  # Same Y-axis as column 1
                     if row_idx == 0:
-                        ax2.set_title('NN₇₀ + Trend', fontsize=8, fontweight='bold')
+                        ax2.set_title('NN₇₀ + Trend', fontsize=8, fontweight='bold', pad=4)
                     if row_idx == n_stims - 1:
                         ax2.set_xlabel('Time (s)', fontsize=7)
                     else:
                         ax2.set_xticklabels([])
                     ax2.set_yticklabels([])
-                    ax2.tick_params(axis='both', labelsize=6)
+                    ax2.tick_params(axis='both', labelsize=5)
                     ax2.grid(True, alpha=0.3)
                     
                     # Column 3: Residuals (amber)
                     col3_x = chart_left + 2 * chart_total_width / 3
-                    ax3 = fig3b.add_axes([col3_x, y_pos, col_width, row_height * 0.85])
+                    ax3 = fig3b.add_axes([col3_x, y_pos, col_width, row_height * 0.80])
                     if residual:
                         ax3.plot(time_rel, residual, color=COLORS['amber'], linewidth=1)
                         ax3.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
                     ax3.set_facecolor('white')
                     ax3.set_ylim(res_ylim)  # Different Y-axis, centered at 0
                     if row_idx == 0:
-                        ax3.set_title('Residual (ms)', fontsize=8, fontweight='bold')
+                        ax3.set_title('Residual (ms)', fontsize=8, fontweight='bold', pad=4)
                     if row_idx == n_stims - 1:
                         ax3.set_xlabel('Time (s)', fontsize=7)
                     else:
                         ax3.set_xticklabels([])
-                    ax3.tick_params(axis='both', labelsize=6)
+                    ax3.tick_params(axis='both', labelsize=5)
                     ax3.grid(True, alpha=0.3)
                 
                 add_page_footer(fig3b, page_num)
