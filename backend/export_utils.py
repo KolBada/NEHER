@@ -912,7 +912,7 @@ def create_nature_pdf(request):
                      color=COLORS['dark'], fontfamily=title_font)
             fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
             
-            ax = fig4.add_axes([0.08, 0.14, 0.84, 0.66])
+            ax = fig4.add_axes([0.08, 0.18, 0.84, 0.62])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1006,22 +1006,8 @@ def create_nature_pdf(request):
             if table_data:
                 table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                 table.auto_set_font_size(False)
-                table.set_fontsize(8)  # Consistent font size
+                table.set_fontsize(9)
                 table.scale(1.0, 1.8)
-                
-                # Set column widths - Window column narrower, others equal
-                n_cols = len(headers)
-                window_width = 0.12  # Same as Table 3 Stim column
-                other_width = (1.0 - window_width) / (n_cols - 1)
-                for col in range(n_cols):
-                    if col == 0:  # Window column
-                        table.auto_set_column_width([col])
-                    for row in range(len(table_data) + 1):
-                        if (row, col) in table.get_celld():
-                            if col == 0:
-                                table.get_celld()[(row, col)].set_width(window_width)
-                            else:
-                                table.get_celld()[(row, col)].set_width(other_width)
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#e5e7eb')
@@ -1056,7 +1042,7 @@ def create_nature_pdf(request):
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
             
-            ax = fig5.add_axes([0.08, 0.14, 0.84, 0.66])
+            ax = fig5.add_axes([0.08, 0.18, 0.84, 0.62])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1138,20 +1124,8 @@ def create_nature_pdf(request):
             if table_data:
                 table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                 table.auto_set_font_size(False)
-                table.set_fontsize(8)  # Consistent font size
+                table.set_fontsize(8)
                 table.scale(1.0, 1.6)
-                
-                # Set column widths - Window column narrower, others equal
-                n_cols = len(headers)
-                window_width = 0.12  # Same as Table 3 Stim column
-                other_width = (1.0 - window_width) / (n_cols - 1)
-                for col in range(n_cols):
-                    for row in range(len(table_data) + 1):
-                        if (row, col) in table.get_celld():
-                            if col == 0:
-                                table.get_celld()[(row, col)].set_width(window_width)
-                            else:
-                                table.get_celld()[(row, col)].set_width(other_width)
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#e5e7eb')
@@ -1188,7 +1162,7 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
                 
-                ax = fig6.add_axes([0.08, 0.14, 0.84, 0.66])
+                ax = fig6.add_axes([0.08, 0.18, 0.84, 0.62])
                 ax.axis('off')
                 
                 # All HRA metrics except beats
@@ -1231,23 +1205,11 @@ def create_nature_pdf(request):
                 
                 table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                 table.auto_set_font_size(False)
-                table.set_fontsize(8)  # Consistent font size
+                table.set_fontsize(7)
                 table.scale(1.0, 1.8)
                 
-                # Set column widths - Stim column narrower, others equal
-                n_cols = len(headers)
-                stim_width = 0.08  # Narrow Stim column
-                other_width = (1.0 - stim_width) / (n_cols - 1)
-                for col in range(n_cols):
-                    for row in range(len(table_data) + 1):
-                        if (row, col) in table.get_celld():
-                            if col == 0:
-                                table.get_celld()[(row, col)].set_width(stim_width)
-                            else:
-                                table.get_celld()[(row, col)].set_width(other_width)
-                
                 # Lighter red for average row
-                light_red = '#f87171'  # Lighter red
+                light_red = '#f87171'
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#e5e7eb')
@@ -1255,7 +1217,6 @@ def create_nature_pdf(request):
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                         cell.set_facecolor(COLORS['amber'])
                     elif row == len(table_data):
-                        # Average row - lighter red with white text
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                         cell.set_facecolor(light_red)
                     else:
@@ -1288,7 +1249,7 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
                 
-                ax = fig7.add_axes([0.08, 0.14, 0.84, 0.66])
+                ax = fig7.add_axes([0.08, 0.18, 0.84, 0.62])
                 ax.axis('off')
                 
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
@@ -1330,23 +1291,11 @@ def create_nature_pdf(request):
                 if table_data:
                     table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                     table.auto_set_font_size(False)
-                    table.set_fontsize(8)  # Consistent font size
+                    table.set_fontsize(9)
                     table.scale(1.0, 1.8)
                     
-                    # Set column widths - Stim column narrower, others equal
-                    n_cols = len(headers)
-                    stim_width = 0.12  # Same as Table 3 Stim column
-                    other_width = (1.0 - stim_width) / (n_cols - 1)
-                    for col in range(n_cols):
-                        for row in range(len(table_data) + 1):
-                            if (row, col) in table.get_celld():
-                                if col == 0:
-                                    table.get_celld()[(row, col)].set_width(stim_width)
-                                else:
-                                    table.get_celld()[(row, col)].set_width(other_width)
-                    
                     # Lighter red for median row
-                    light_red = '#f87171'  # Lighter red
+                    light_red = '#f87171'
                     
                     for (row, col), cell in table.get_celld().items():
                         cell.set_edgecolor('#e5e7eb')
@@ -1354,7 +1303,6 @@ def create_nature_pdf(request):
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                             cell.set_facecolor(COLORS['amber'])
                         elif row == len(table_data):
-                            # Median row - lighter red with white text
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                             cell.set_facecolor(light_red)
                         else:
