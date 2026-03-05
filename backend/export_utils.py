@@ -2286,19 +2286,19 @@ def create_comparison_pdf(folder_name, comparison_data):
         return f"{age_dict.get('min')} - {age_dict.get('max')} days"
     
     def add_footer(fig, page_num, total_pages):
-        """Add consistent footer to all pages - positioned within 1cm margin"""
-        fig.text(0.036, 0.025, 'Developed by Kolia H. Badarello', fontsize=7, color='#71717a')
-        fig.text(0.5, 0.025, 'NEHER', fontsize=7, color='#71717a', ha='center', fontweight='bold')
-        fig.text(0.964, 0.025, f'Page {page_num} of {total_pages}', fontsize=7, color='#71717a', ha='right')
+        """Add consistent footer to all pages - positioned within 2cm margin"""
+        fig.text(0.072, 0.035, 'Developed by Kolia H. Badarello', fontsize=7, color='#71717a')
+        fig.text(0.5, 0.035, 'NEHER', fontsize=7, color='#71717a', ha='center', fontweight='bold')
+        fig.text(0.928, 0.035, f'Page {page_num} of {total_pages}', fontsize=7, color='#71717a', ha='right')
     
     total_pages = 7
     
-    # Layout constants for US Letter landscape with 1cm margins
-    # 1cm = 0.3937 inches; on 11" width = 0.036; on 8.5" height = 0.046
-    MARGIN_X = 0.036  # 1cm left/right margin
-    MARGIN_Y = 0.046  # 1cm top/bottom margin
-    CONTENT_WIDTH = 1 - 2 * MARGIN_X  # ~0.928
-    COL_GAP = 0.018  # 0.5cm gap between columns
+    # Layout constants for US Letter landscape with 2cm margins
+    # 2cm = 0.7874 inches; on 11" width = 0.072; on 8.5" height = 0.093
+    MARGIN_X = 0.072  # 2cm left/right margin
+    MARGIN_Y = 0.093  # 2cm top/bottom margin
+    CONTENT_WIDTH = 1 - 2 * MARGIN_X  # ~0.856
+    COL_GAP = 0.036  # 1cm gap between columns
     
     with PdfPages(buf) as pdf:
         
@@ -2419,7 +2419,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig2.patch.set_facecolor('white')
         
         fig2.text(0.5, 1 - MARGIN_Y - 0.02, 'Recording Metadata', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig2.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax = fig2.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax.axis('off')
@@ -2468,7 +2467,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig3.patch.set_facecolor('white')
         
         fig3.text(0.5, 1 - MARGIN_Y - 0.02, 'Spontaneous Activity Comparison', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig3.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax3 = fig3.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax3.axis('off')
@@ -2536,7 +2534,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig4.patch.set_facecolor('white')
         
         fig4.text(0.5, 1 - MARGIN_Y - 0.02, 'Spontaneous Activity — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig4.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax4 = fig4.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax4.axis('off')
@@ -2632,7 +2629,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig5.patch.set_facecolor('white')
         
         fig5.text(0.5, 1 - MARGIN_Y - 0.02, 'Light-Induced Heart Rate Adaptation (HRA)', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig5.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax5 = fig5.add_axes([MARGIN_X, MARGIN_Y + 0.03, CONTENT_WIDTH, 0.82])
         ax5.axis('off')
@@ -2699,7 +2695,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig6.patch.set_facecolor('white')
         
         fig6.text(0.5, 1 - MARGIN_Y - 0.02, 'Light-Induced HRA — Normalized to Cohort Baseline', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig6.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax6 = fig6.add_axes([MARGIN_X + 0.05, MARGIN_Y + 0.03, CONTENT_WIDTH - 0.1, 0.82])
         ax6.axis('off')
@@ -2764,7 +2759,6 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig7.patch.set_facecolor('white')
         
         fig7.text(0.5, 1 - MARGIN_Y - 0.02, 'Corrected Light-Induced HRV', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
-        fig7.text(0.5, 1 - MARGIN_Y - 0.055, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
         
         ax7 = fig7.add_axes([MARGIN_X + 0.08, MARGIN_Y + 0.03, CONTENT_WIDTH - 0.16, 0.82])
         ax7.axis('off')
