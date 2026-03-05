@@ -127,9 +127,10 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add centered separator between samples (not before the first one)
+                # Add full-width separator between samples (not before the first one)
                 if idx > 0:
-                    y = draw_separator(fig1, left_x, y + 0.005, centered=True)
+                    y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+                    y -= 0.005  # Extra space after separator
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
@@ -147,9 +148,10 @@ def create_nature_pdf(request):
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
             
-            # Add centered separator before Days Since Fusion
+            # Add full-width separator before Days Since Fusion
             if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y + 0.005, centered=True)
+                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+                y -= 0.005  # Extra space after separator
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
@@ -765,19 +767,10 @@ def create_nature_pdf(request):
                         except (ValueError, TypeError):
                             pass
             
-            # Get drug readout window from drug_readout or drug_readout_settings
-            if request.drug_readout_enabled or request.drug_readout:
-                if request.drug_readout:
-                    bf_min = request.drug_readout.get('bf_minute')
-                    if bf_min is not None:
-                        try:
-                            bf_min = int(float(bf_min))
-                            drug_window = f"{bf_min}-{bf_min+1}"
-                        except (ValueError, TypeError):
-                            pass
-                
-                # Fallback to drug_readout_settings if needed
-                if drug_window is None and request.drug_readout_settings:
+            # Get drug readout window from drug_readout_settings (user override) or drug_readout (calculated)
+            if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
+                # First try user-specified override from drug_readout_settings
+                if request.drug_readout_settings:
                     settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
                     if settings_bf not in (None, ''):
                         try:
@@ -788,6 +781,16 @@ def create_nature_pdf(request):
                                 perf_start = int(float(drug.get('start', 0) or 0))
                                 perf_delay = int(float(drug.get('delay', 0) or 0))
                             bf_min = int(float(settings_bf)) + perf_start + perf_delay
+                            drug_window = f"{bf_min}-{bf_min+1}"
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Fallback to calculated drug_readout if no user override
+                if drug_window is None and request.drug_readout:
+                    bf_min = request.drug_readout.get('bf_minute')
+                    if bf_min is not None:
+                        try:
+                            bf_min = int(float(bf_min))
                             drug_window = f"{bf_min}-{bf_min+1}"
                         except (ValueError, TypeError):
                             pass
@@ -867,18 +870,10 @@ def create_nature_pdf(request):
                     except (ValueError, TypeError):
                         baseline_minute = None
             
-            # Get drug readout minute
-            if request.drug_readout_enabled or request.drug_readout:
-                if request.drug_readout:
-                    drug_minute = request.drug_readout.get('hrv_minute')
-                    if drug_minute is not None:
-                        try:
-                            drug_minute = int(float(drug_minute))
-                        except (ValueError, TypeError):
-                            drug_minute = None
-                
-                # Fallback to drug_readout_settings if needed
-                if drug_minute is None and request.drug_readout_settings:
+            # Get drug readout minute from drug_readout_settings (user override) or drug_readout (calculated)
+            if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
+                # First try user-specified override from drug_readout_settings
+                if request.drug_readout_settings:
                     settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
                     if settings_hrv not in (None, ''):
                         try:
@@ -891,6 +886,15 @@ def create_nature_pdf(request):
                             drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
                         except (ValueError, TypeError):
                             pass
+                
+                # Fallback to calculated drug_readout if no user override
+                if drug_minute is None and request.drug_readout:
+                    drug_minute = request.drug_readout.get('hrv_minute')
+                    if drug_minute is not None:
+                        try:
+                            drug_minute = int(float(drug_minute))
+                        except (ValueError, TypeError):
+                            drug_minute = None
             
             headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF']
             table_data = []
