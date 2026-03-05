@@ -3043,7 +3043,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
         # First table area - within page borders
-        ax4a = fig4.add_axes([0.08, 0.48, 0.84, 0.34])
+        ax4a = fig4.add_axes([0.06, 0.48, 0.88, 0.34])
         ax4a.axis('off')
         
         # Reorganized columns: Rec, Baseline BF, Avg BF, Peak BF, Peak %, Amplitude, BF End, Recovery %, TTP (s), RoC (1/min)
