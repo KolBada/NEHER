@@ -2839,7 +2839,7 @@ def create_comparison_pdf(folder_name, comparison_data):
             # Drug info - from drug_info list of dicts - show ALL information
             drug_info_raw = rec.get('drug_info', [])
             has_drug = rec.get('has_drug', False)
-            drug_hrv_readout = rec.get('drug_hrv_readout_minute', '')  # Get HRV readout minute
+            drug_hrv_readout = rec.get('drug_hrv_readout_minute')  # Get HRV readout minute (can be 0)
             drug_parts = []
             
             if has_drug and isinstance(drug_info_raw, list) and drug_info_raw:
@@ -2848,26 +2848,32 @@ def create_comparison_pdf(folder_name, comparison_data):
                         name = d.get('name', '')
                         conc = d.get('concentration', '')
                         unit = d.get('concentration_unit', '') or 'µM'
-                        # Use HRV readout minute from comparison data
-                        perf_time = drug_hrv_readout or d.get('perfusion_time', '') or d.get('bf_readout_time', '') or d.get('perfusionTime', '')
+                        # Use HRV readout minute from comparison data (handles 0 correctly)
+                        if drug_hrv_readout is not None:
+                            perf_time = drug_hrv_readout
+                        else:
+                            perf_time = d.get('perfusion_time', '') or d.get('bf_readout_time', '') or d.get('perfusionTime', '')
                         if name:
                             # Format: "DrugName\nConc: 2µM\nPerf. Time: 5min"
                             drug_str = name
                             if conc:
                                 drug_str += f"\n{conc}{unit}"
-                            if perf_time:
+                            if perf_time is not None and perf_time != '':
                                 drug_str += f"\nPerf. Time: {perf_time}min"
                             drug_parts.append(drug_str)
             elif isinstance(drug_info_raw, dict):
                 name = drug_info_raw.get('name', '')
                 conc = drug_info_raw.get('concentration', '')
                 unit = drug_info_raw.get('concentration_unit', '') or 'µM'
-                perf_time = drug_hrv_readout or drug_info_raw.get('perfusion_time', '') or drug_info_raw.get('bf_readout_time', '') or drug_info_raw.get('perfusionTime', '')
+                if drug_hrv_readout is not None:
+                    perf_time = drug_hrv_readout
+                else:
+                    perf_time = drug_info_raw.get('perfusion_time', '') or drug_info_raw.get('bf_readout_time', '') or drug_info_raw.get('perfusionTime', '')
                 if name:
                     drug_str = name
                     if conc:
                         drug_str += f"\n{conc}{unit}"
-                    if perf_time:
+                    if perf_time is not None and perf_time != '':
                         drug_str += f"\nPerf. Time: {perf_time}min"
                     drug_parts.append(drug_str)
             elif drug_info_raw and str(drug_info_raw).lower() not in ['no', 'none', 'no drug', '—', '-', '']:

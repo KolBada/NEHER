@@ -1983,10 +1983,15 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
         
         # Drug info - use dashes if no drug
         drug_info = rec.get('drug_info', [])
+        drug_hrv_readout = rec.get('drug_hrv_readout_minute')  # Get HRV readout minute (can be 0)
         if rec.get('has_drug') and drug_info:
             drug_names = ', '.join([d.get('name', '') for d in drug_info]) if drug_info else ''
             drug_concs = ', '.join([str(d.get('concentration', '')) for d in drug_info if d.get('concentration')]) if drug_info else ''
-            drug_times = ', '.join([str(d.get('perfusion_time', '')) for d in drug_info if d.get('perfusion_time')]) if drug_info else ''
+            # Use HRV readout minute first (handles 0 correctly), then fallback to perfusion_time
+            if drug_hrv_readout is not None:
+                drug_times = str(drug_hrv_readout)
+            else:
+                drug_times = ', '.join([str(d.get('perfusion_time', '')) for d in drug_info if d.get('perfusion_time')]) if drug_info else ''
         else:
             drug_names = '—'
             drug_concs = '—'

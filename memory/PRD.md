@@ -23,7 +23,11 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
-- 2025-12-05: Fixed "Perf. Time" discrepancy in FolderComparison.js - app now correctly displays HRV drug readout time (0min) instead of BF readout time (1min). The issue was JavaScript's falsy evaluation of `0` with `||` operator.
+- 2025-12-05: Fixed "Perf. Time" data consistency across all exports:
+  - **Frontend (FolderComparison.js)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks (handles `0` correctly)
+  - **Comparison PDF (export_utils.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
+  - **Comparison Excel (server.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
+  - Root cause: Both JavaScript `||` and Python `or` operators treat `0` as falsy, causing fallback to `bf_readout_time`
 - 2025-12-04: Fixed PDF Table 4 positioning (`loc='top'` -> `loc='upper center'`)
 - Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
 
