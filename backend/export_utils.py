@@ -540,10 +540,11 @@ def create_nature_pdf(request):
                             ax2.axvspan(start_min, end_min, alpha=0.2, color=COLORS['amber'])
                     
                     # Build legend with dot, baseline line, drug and light stim
+                    legend_label = f'{norm_source} Readout (100%)' if norm_source == 'Baseline' else f'{norm_source} (100%)'
                     handles2 = [
                         Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['emerald'], 
                                markersize=6, alpha=0.7, label='Normalized BF'),
-                        Line2D([0], [0], color='#dc2626', linestyle='--', linewidth=1, label=f'{norm_source} (100%)')
+                        Line2D([0], [0], color='#dc2626', linestyle='--', linewidth=1, label=legend_label)
                     ]
                     if request.all_drugs:
                         handles2.append(mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion'))
@@ -731,8 +732,8 @@ def create_nature_pdf(request):
                         perf_delay = 0
                         if request.all_drugs and len(request.all_drugs) > 0:
                             drug = request.all_drugs[0]
-                            perf_start = drug.get('start', 0) or 0
-                            perf_delay = drug.get('delay', 0) or 0
+                            perf_start = int(drug.get('start', 0) or 0)
+                            perf_delay = int(drug.get('delay', 0) or 0)
                         bf_min = int(float(settings_bf)) + perf_start + perf_delay
                         drug_window = f"{bf_min}-{bf_min+1}"
                     except (ValueError, TypeError):
