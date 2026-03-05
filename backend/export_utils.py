@@ -1163,13 +1163,14 @@ def create_nature_excel(request):
     ws.title = 'Summary'
     ws.column_dimensions['A'].width = 22
     ws.column_dimensions['B'].width = 25
-    ws.column_dimensions['C'].width = 22
-    ws.column_dimensions['D'].width = 25
+    ws.column_dimensions['C'].width = 3  # Empty separator column
+    ws.column_dimensions['D'].width = 22
+    ws.column_dimensions['E'].width = 25
     
     row = 1
     title = request.recording_name or request.filename or 'Recording Analysis'
     ws.cell(row=row, column=1, value=title).font = Font(bold=True, size=14)
-    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
     row += 1
     ws.cell(row=row, column=1, value='Electrophysiology Analysis Report by NEHER').font = Font(size=10, color='71717A')
     row += 1
@@ -1179,7 +1180,7 @@ def create_nature_excel(request):
     
     # LEFT COLUMN - RECORDING INFO
     left_col = 1
-    right_col = 3
+    right_col = 4  # Column D (after empty separator column C)
     left_row = row
     right_row = row
     
