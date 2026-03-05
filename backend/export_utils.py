@@ -840,8 +840,8 @@ def create_nature_pdf(request):
                     ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
                     ax1.set_facecolor('white')
                     ax1.set_ylim(nn_ylim)
-                    # Stim label vertical on the left side
-                    ax1.text(-0.12, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
+                    # Stim label vertical on the left side - moved 0.2cm to the left
+                    ax1.text(-0.16, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
                             fontsize=7, fontweight='bold', va='center', ha='right', rotation=90)
                     if row_idx == 0:
                         ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold', pad=4)
