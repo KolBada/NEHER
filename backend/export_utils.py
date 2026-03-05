@@ -1815,7 +1815,7 @@ def create_nature_excel(request):
         kept_beats = [b for b in request.per_beat_data if b.get('status') == 'kept']
         if kept_beats:
             ws_beat = wb.create_sheet('Per-Beat')
-            ws_beat.append(['Beat #', 'Time (min)', 'BF (bpm)', 'NN (ms)'])
+            ws_beat.append(['Beat #', 'Time (min)', 'BF Filtered (bpm)', 'NN Filtered (ms)'])
             for cell in ws_beat[1]:
                 cell.font = header_font
                 cell.fill = emerald_fill
@@ -1843,19 +1843,242 @@ def create_nature_excel(request):
 
 
 def create_nature_csv(request):
-    """Create a clean CSV export"""
+    """Create a clean CSV export matching PDF structure"""
     import csv
     
     buf = io.StringIO()
     writer = csv.writer(buf)
     
-    writer.writerow(['NEHER Analysis Export'])
-    writer.writerow(['Recording', request.recording_name or request.filename or ''])
+    # ==================== HEADER ====================
+    title = request.recording_name or request.filename or 'Recording Analysis'
+    writer.writerow([title])
+    writer.writerow(['Electrophysiology Analysis Report by NEHER'])
+    if request.recording_date:
+        writer.writerow([f'Recording Date: {request.recording_date}'])
     writer.writerow([])
     
+    # ==================== RECORDING INFO ====================
+    writer.writerow(['=== RECORDING INFO ==='])
+    if request.original_filename:
+        writer.writerow(['Original File', request.original_filename])
+    if request.recording_date:
+        writer.writerow(['Recording Date', request.recording_date])
+    if request.summary:
+        if 'Total Beats' in request.summary:
+            writer.writerow(['Total Beats', request.summary['Total Beats']])
+        if 'Kept Beats' in request.summary:
+            writer.writerow(['Kept Beats', request.summary['Kept Beats']])
+        if 'Filter Range' in request.summary:
+            writer.writerow(['Filter Range', request.summary['Filter Range']])
+    writer.writerow([])
+    
+    # ==================== TISSUE INFO ====================
+    if request.organoid_info:
+        writer.writerow(['=== TISSUE INFO ==='])
+        for idx, org in enumerate(request.organoid_info):
+            if len(request.organoid_info) > 1:
+                writer.writerow([f'--- Sample {idx + 1} ---'])
+            if org.get('cell_type'):
+                cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
+                writer.writerow(['Cell Type', cell_type or ''])
+            if org.get('line_name'):
+                writer.writerow(['Line', org.get('line_name')])
+            if org.get('passage_number'):
+                writer.writerow(['Passage', org.get('passage_number')])
+            if org.get('age_at_recording') is not None:
+                writer.writerow(['Age at Recording', f"{org.get('age_at_recording')} days"])
+            if org.get('transfection'):
+                trans = org['transfection']
+                if trans.get('name'):
+                    writer.writerow(['Transfection', trans.get('name')])
+                if trans.get('days_since_transfection') is not None:
+                    writer.writerow(['Days Post-Transfection', trans.get('days_since_transfection')])
+        if request.days_since_fusion is not None:
+            writer.writerow(['Days Since Fusion', request.days_since_fusion])
+        writer.writerow([])
+    
+    # ==================== DRUG PERFUSION ====================
+    if request.all_drugs and len(request.all_drugs) > 0:
+        writer.writerow(['=== DRUG PERFUSION ==='])
+        for drug in request.all_drugs:
+            writer.writerow(['Drug', drug.get('name', 'Drug')])
+            if drug.get('concentration'):
+                writer.writerow(['Concentration', f"{drug.get('concentration')}µM"])
+            writer.writerow(['Perf. Start', f"{drug.get('start', 0)} min"])
+            writer.writerow(['Perf. Delay', f"{drug.get('delay', 0)} min"])
+            perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
+            writer.writerow(['Perf. Time', f"{perf_time} min"])
+            perf_end = drug.get('end')
+            writer.writerow(['Perf. End', f"{perf_end} min" if perf_end is not None else '—'])
+        writer.writerow([])
+    
+    # ==================== LIGHT STIMULATION ====================
+    if request.light_enabled:
+        writer.writerow(['=== LIGHT STIMULATION ==='])
+        writer.writerow(['Status', 'Enabled'])
+        if request.light_stim_count and request.light_stim_count > 0:
+            writer.writerow(['Stims Detected', request.light_stim_count])
+        if request.light_pulses and len(request.light_pulses) > 0:
+            first_pulse = request.light_pulses[0]
+            light_start = first_pulse.get('start_min')
+            if light_start is not None:
+                writer.writerow(['Stims Start', f"{light_start:.2f} min"])
+        if request.light_params:
+            if request.light_params.get('pulseDuration') is not None:
+                writer.writerow(['Stim Duration', f"{request.light_params.get('pulseDuration')} sec"])
+            if request.light_params.get('interval'):
+                interval_val = request.light_params.get('interval')
+                interval_display_map = {
+                    'decreasing': '60s-30s-20s-10s',
+                    '60': 'Uniform 60s',
+                    '30': 'Uniform 30s',
+                }
+                interval_display = interval_display_map.get(str(interval_val), str(interval_val))
+                writer.writerow(['Inter-stimuli intervals', interval_display])
+        writer.writerow([])
+    
+    # ==================== BASELINE READOUT ====================
+    if request.baseline_enabled and request.baseline:
+        writer.writerow(['=== BASELINE READOUT ==='])
+        baseline = request.baseline
+        bf_val = baseline.get('baseline_bf')
+        writer.writerow(['Mean BF', f"{bf_val:.1f} bpm" if bf_val else '—'])
+        ln_rmssd = baseline.get('baseline_ln_rmssd70')
+        writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
+        sdnn = baseline.get('baseline_sdnn')
+        ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+        writer.writerow(['ln(SDNN70)', f"{ln_sdnn:.3f}" if ln_sdnn else '—'])
+        pnn50 = baseline.get('baseline_pnn50')
+        writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+        writer.writerow([])
+    
+    # ==================== DRUG READOUT ====================
+    if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+        writer.writerow(['=== DRUG READOUT ==='])
+        
+        # Get drug readout data (same logic as PDF/Excel)
+        drug_bf = None
+        drug_hrv_data = None
+        drug_bf_minute = None
+        drug_hrv_minute = None
+        
+        if request.drug_readout:
+            drug_bf_minute = request.drug_readout.get('bf_minute')
+            drug_hrv_minute = request.drug_readout.get('hrv_minute')
+        
+        if request.drug_readout_settings:
+            settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+            settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+            perf_start = 0
+            perf_delay = 0
+            if request.all_drugs and len(request.all_drugs) > 0:
+                drug = request.all_drugs[0]
+                perf_start = drug.get('start', 0) or 0
+                perf_delay = drug.get('delay', 0) or 0
+            
+            if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                try:
+                    drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
+                except (ValueError, TypeError):
+                    pass
+            if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                try:
+                    drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                except (ValueError, TypeError):
+                    pass
+        
+        if drug_bf_minute is not None and request.per_minute_data:
+            for pm in request.per_minute_data:
+                try:
+                    minute_str = str(pm.get('minute', ''))
+                    minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                    if minute_num == drug_bf_minute:
+                        drug_bf = pm.get('mean_bf')
+                        break
+                except (ValueError, TypeError):
+                    pass
+        
+        if drug_hrv_minute is not None and request.hrv_windows:
+            for w in request.hrv_windows:
+                try:
+                    w_minute = w.get('minute')
+                    if isinstance(w_minute, (int, float)):
+                        w_minute_num = int(w_minute)
+                    else:
+                        w_minute_str = str(w_minute)
+                        w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                    if w_minute_num == drug_hrv_minute:
+                        drug_hrv_data = w
+                        if drug_bf is None and w.get('mean_bf'):
+                            drug_bf = w.get('mean_bf')
+                        break
+                except (ValueError, TypeError):
+                    pass
+        
+        writer.writerow(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf else '—'])
+        if drug_hrv_data:
+            ln_rmssd = drug_hrv_data.get('ln_rmssd70')
+            writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
+            sdnn = drug_hrv_data.get('sdnn')
+            ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+            writer.writerow(['ln(SDNN70)', f"{ln_sdnn:.3f}" if ln_sdnn else '—'])
+            pnn50 = drug_hrv_data.get('pnn50')
+            writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+        writer.writerow([])
+    
+    # ==================== LIGHT READOUT ====================
+    if request.light_enabled and (request.light_response or request.light_metrics_detrended):
+        writer.writerow(['=== LIGHT READOUT ==='])
+        
+        if request.light_response:
+            valid = [r for r in request.light_response if r]
+            if valid:
+                baseline_bf_vals = [r.get('baseline_bf') for r in valid if r.get('baseline_bf')]
+                baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
+                avg_bf = np.mean([r.get('avg_bf', 0) for r in valid if r.get('avg_bf')])
+                peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
+                peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
+                peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
+                amplitude_vals = [r.get('amplitude') for r in valid if r.get('amplitude')]
+                amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec') is not None]
+                ttp = np.mean(ttp_vals) if ttp_vals else None
+                ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
+                roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
+                roc = np.mean(roc_vals) if roc_vals else None
+                recovery_bf_vals = [r.get('bf_end') for r in valid if r.get('bf_end')]
+                recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
+                recovery_pct_vals = [r.get('bf_end_pct') for r in valid if r.get('bf_end_pct')]
+                recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+                
+                writer.writerow(['Baseline BF', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'])
+                writer.writerow(['Avg BF', f"{avg_bf:.1f} bpm"])
+                writer.writerow(['Peak BF', f"{peak_bf:.1f} bpm"])
+                writer.writerow(['Peak (Norm.)', f"{peak_norm:.1f}%" if peak_norm else '—'])
+                writer.writerow(['Amplitude', f"{amplitude:.1f} bpm" if amplitude else '—'])
+                writer.writerow(['Time to Peak (AVG)', f"{ttp:.1f} s" if ttp is not None else '—'])
+                writer.writerow(['TTP (1st Stim)', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'])
+                writer.writerow(['Rate of Change', f"{roc:.3f} 1/min" if roc else '—'])
+                writer.writerow(['Recovery BF', f"{recovery_bf:.1f} bpm" if recovery_bf else '—'])
+                writer.writerow(['Recovery %', f"{recovery_pct:.1f}%" if recovery_pct else '—'])
+        
+        # Corrected HRV
+        if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
+            writer.writerow([])
+            writer.writerow(['--- Corrected HRV ---'])
+            final = request.light_metrics_detrended['final']
+            ln_rmssd = final.get('ln_rmssd70_detrended')
+            writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
+            ln_sdnn = final.get('ln_sdnn70_detrended')
+            writer.writerow(['ln(SDNN70)', f"{ln_sdnn:.3f}" if ln_sdnn else '—'])
+            pnn50 = final.get('pnn50_detrended')
+            writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+        writer.writerow([])
+    
+    # ==================== SPONTANEOUS BF TABLE ====================
     if request.per_minute_data:
-        writer.writerow(['SPONTANEOUS BF DATA'])
-        writer.writerow(['Window (min)', 'Beats', 'Mean BF (bpm)', 'Mean NN (ms)'])
+        writer.writerow(['=== SPONTANEOUS BF DATA ==='])
+        writer.writerow(['Window (min)', 'Mean BF (bpm)', 'Mean NN (ms)'])
         for pm in request.per_minute_data:
             minute_val = pm.get('minute', '')
             try:
@@ -1863,17 +2086,21 @@ def create_nature_csv(request):
                 window_str = f"{minute_num}-{minute_num+1}"
             except (ValueError, TypeError):
                 window_str = str(minute_val)
+            
+            bf_val = pm.get('mean_bf') or pm.get('avg_bf')
+            nn_val = pm.get('mean_nn') or pm.get('avg_nn')
+            
             writer.writerow([
                 window_str,
-                pm.get('beat_count', pm.get('n_beats', 0)),
-                round(pm.get('mean_bf', 0), 1),
-                round(pm.get('mean_nn', 0), 1),
+                round(bf_val, 1) if bf_val else '',
+                round(nn_val, 1) if nn_val else '',
             ])
         writer.writerow([])
     
+    # ==================== SPONTANEOUS HRV TABLE ====================
     if request.hrv_windows:
-        writer.writerow(['SPONTANEOUS HRV DATA'])
-        writer.writerow(['Window', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50', 'BF'])
+        writer.writerow(['=== SPONTANEOUS HRV DATA ==='])
+        writer.writerow(['Window', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50_70', 'BF'])
         for w in request.hrv_windows:
             sdnn = w.get('sdnn')
             ln_sdnn = round(np.log(sdnn), 3) if sdnn and sdnn > 0 else ''
@@ -1888,40 +2115,72 @@ def create_nature_csv(request):
             ])
         writer.writerow([])
     
+    # ==================== LIGHT HRA TABLE ====================
     if request.light_enabled and request.light_response:
         valid = [r for r in request.light_response if r]
         if valid:
-            writer.writerow(['LIGHT-INDUCED HRA'])
-            writer.writerow(['Stim', 'Beats', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'TTP (s)'])
+            writer.writerow(['=== LIGHT-INDUCED HRA ==='])
+            writer.writerow(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)'])
             for i, r in enumerate(valid):
                 writer.writerow([
                     i + 1,
-                    r.get('n_beats', 0),
-                    round(r.get('baseline_bf', 0), 1),
-                    round(r.get('avg_bf', 0), 1),
-                    round(r.get('peak_bf', 0), 1),
+                    round(r.get('baseline_bf', 0), 1) if r.get('baseline_bf') else '',
+                    round(r.get('avg_bf', 0), 1) if r.get('avg_bf') else '',
+                    round(r.get('peak_bf', 0), 1) if r.get('peak_bf') else '',
                     round(r.get('peak_norm_pct', 0), 1) if r.get('peak_norm_pct') else '',
-                    round(r.get('time_to_peak_sec', 0), 1),
+                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else '',
+                    round(r.get('bf_end', 0), 1) if r.get('bf_end') else '',
+                    round(r.get('bf_end_pct', 0), 1) if r.get('bf_end_pct') else '',
+                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else '',
+                    round(r.get('rate_of_change', 0), 3) if r.get('rate_of_change') is not None else '',
+                ])
+            
+            # Add average row
+            if len(valid) > 1:
+                def safe_avg(key):
+                    vals = [r.get(key) for r in valid if r.get(key) is not None]
+                    return np.mean(vals) if vals else None
+                
+                writer.writerow([
+                    'Avg',
+                    round(safe_avg('baseline_bf'), 1) if safe_avg('baseline_bf') else '',
+                    round(safe_avg('avg_bf'), 1) if safe_avg('avg_bf') else '',
+                    round(safe_avg('peak_bf'), 1) if safe_avg('peak_bf') else '',
+                    round(safe_avg('peak_norm_pct'), 1) if safe_avg('peak_norm_pct') else '',
+                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else '',
+                    round(safe_avg('bf_end'), 1) if safe_avg('bf_end') else '',
+                    round(safe_avg('bf_end_pct'), 1) if safe_avg('bf_end_pct') else '',
+                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else '',
+                    round(safe_avg('rate_of_change'), 3) if safe_avg('rate_of_change') is not None else '',
                 ])
             writer.writerow([])
     
+    # ==================== CORRECTED HRV TABLE ====================
     if request.light_enabled and request.light_metrics_detrended:
-        per_stim = request.light_metrics_detrended.get('per_stim', [])
+        per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
         final = request.light_metrics_detrended.get('final', {})
         
         if per_stim or final:
-            writer.writerow(['LIGHT-INDUCED CORRECTED HRV (DETRENDED)'])
-            writer.writerow(['Stim', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50'])
-            for i, s in enumerate(per_stim):
-                if s:
+            writer.writerow(['=== LIGHT-INDUCED CORRECTED HRV ==='])
+            writer.writerow(['Stim', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50_70'])
+            
+            num_stims = max(5, len(per_stim))
+            for i in range(num_stims):
+                s = per_stim[i] if i < len(per_stim) else None
+                has_data = s and (s.get('ln_rmssd70_detrended') is not None or 
+                                 s.get('rmssd70_detrended') is not None)
+                
+                if has_data:
                     writer.writerow([
                         i + 1,
-                        round(s.get('ln_rmssd70_detrended', 0), 3) if s.get('ln_rmssd70_detrended') else '',
-                        round(s.get('rmssd70_detrended', 0), 3) if s.get('rmssd70_detrended') else '',
-                        round(s.get('ln_sdnn70_detrended', 0), 3) if s.get('ln_sdnn70_detrended') else '',
-                        round(s.get('sdnn_detrended', 0), 3) if s.get('sdnn_detrended') else '',
+                        round(s.get('ln_rmssd70_detrended', 0), 3) if s.get('ln_rmssd70_detrended') is not None else '',
+                        round(s.get('rmssd70_detrended', 0), 3) if s.get('rmssd70_detrended') is not None else '',
+                        round(s.get('ln_sdnn70_detrended', 0), 3) if s.get('ln_sdnn70_detrended') is not None else '',
+                        round(s.get('sdnn_detrended', 0), 3) if s.get('sdnn_detrended') is not None else '',
                         round(s.get('pnn50_detrended', 0), 1) if s.get('pnn50_detrended') is not None else '',
                     ])
+                else:
+                    writer.writerow([i + 1, '', '', '', '', ''])
             
             if final:
                 writer.writerow([
@@ -1931,6 +2190,21 @@ def create_nature_csv(request):
                     round(final.get('ln_sdnn70_detrended', 0), 3) if final.get('ln_sdnn70_detrended') else '',
                     round(final.get('sdnn_detrended', 0), 3) if final.get('sdnn_detrended') else '',
                     round(final.get('pnn50_detrended', 0), 1) if final.get('pnn50_detrended') is not None else '',
+                ])
+            writer.writerow([])
+    
+    # ==================== PER-BEAT DATA (kept beats only) ====================
+    if request.per_beat_data:
+        kept_beats = [b for b in request.per_beat_data if b.get('status') == 'kept']
+        if kept_beats:
+            writer.writerow(['=== PER-BEAT DATA ==='])
+            writer.writerow(['Beat #', 'Time (min)', 'BF Filtered (bpm)', 'NN Filtered (ms)'])
+            for i, beat in enumerate(kept_beats):
+                writer.writerow([
+                    i + 1,
+                    round(beat.get('time_min', 0), 4) if beat.get('time_min') is not None else '',
+                    round(beat.get('bf_bpm', 0), 1) if beat.get('bf_bpm') is not None else '',
+                    round(beat.get('nn_ms', 0), 1) if beat.get('nn_ms') is not None else '',
                 ])
     
     output = io.BytesIO()
