@@ -578,6 +578,7 @@ def create_nature_pdf(request):
                 ax1.plot([minutes[i] for i in valid_idx], [ln_rmssd_vals[i] for i in valid_idx],
                         'o-', color=COLORS['emerald'], markersize=4, linewidth=1.5)
             ax1.set_ylabel('ln(RMSSD₇₀)', fontsize=9)
+            ax1.set_xlabel('Time (min)', fontsize=9)
             ax1.set_title('ln(RMSSD₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['emerald'])
             ax1.set_xlim(0, time_max + 1)
             ax1.set_ylim(0, 8)
@@ -595,6 +596,7 @@ def create_nature_pdf(request):
                 ax2.plot([minutes[i] for i in valid_idx], [ln_sdnn_vals[i] for i in valid_idx],
                         'o-', color=COLORS['purple'], markersize=4, linewidth=1.5)
             ax2.set_ylabel('ln(SDNN₇₀)', fontsize=9)
+            ax2.set_xlabel('Time (min)', fontsize=9)
             ax2.set_title('ln(SDNN₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['purple'])
             ax2.set_xlim(0, time_max + 1)
             ax2.set_ylim(0, 8)
@@ -764,7 +766,7 @@ def create_nature_pdf(request):
                             pass
             
             # Get drug readout window from drug_readout or drug_readout_settings
-            if request.drug_readout_enabled:
+            if request.drug_readout_enabled or request.drug_readout:
                 if request.drug_readout:
                     bf_min = request.drug_readout.get('bf_minute')
                     if bf_min is not None:
@@ -777,7 +779,7 @@ def create_nature_pdf(request):
                 # Fallback to drug_readout_settings if needed
                 if drug_window is None and request.drug_readout_settings:
                     settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-                    if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                    if settings_bf not in (None, ''):
                         try:
                             perf_start = 0
                             perf_delay = 0
@@ -866,7 +868,7 @@ def create_nature_pdf(request):
                         baseline_minute = None
             
             # Get drug readout minute
-            if request.drug_readout_enabled:
+            if request.drug_readout_enabled or request.drug_readout:
                 if request.drug_readout:
                     drug_minute = request.drug_readout.get('hrv_minute')
                     if drug_minute is not None:
@@ -878,7 +880,7 @@ def create_nature_pdf(request):
                 # Fallback to drug_readout_settings if needed
                 if drug_minute is None and request.drug_readout_settings:
                     settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-                    if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                    if settings_hrv not in (None, ''):
                         try:
                             perf_start = 0
                             perf_delay = 0
