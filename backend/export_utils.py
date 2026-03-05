@@ -2583,10 +2583,18 @@ def create_comparison_pdf(folder_name, comparison_data):
         drug_used = any(r.get('drug_info') for r in recordings)
         drug_info_text = 'No'
         if drug_used:
-            drug_infos = [r.get('drug_info', '') for r in recordings if r.get('drug_info')]
+            drug_infos = []
+            for r in recordings:
+                info = r.get('drug_info', '')
+                if info:
+                    # Handle both string and list types
+                    if isinstance(info, list):
+                        drug_infos.extend([str(i) for i in info if i])
+                    else:
+                        drug_infos.append(str(info))
             if drug_infos:
                 # Get unique drug concentrations
-                unique_drugs = list(set(d for d in drug_infos if d))[:2]
+                unique_drugs = list(set(drug_infos))[:2]
                 drug_info_text = f"Yes ({', '.join(unique_drugs)})" if unique_drugs else 'Yes'
         y = draw_row(fig1, left_x, y, 'Drug Used:', drug_info_text, width=col_width)
         
@@ -2600,6 +2608,10 @@ def create_comparison_pdf(folder_name, comparison_data):
             for r in recordings:
                 light_info = r.get('light_stim_info', '')
                 if light_info:
+                    # Handle list type
+                    if isinstance(light_info, list):
+                        light_info = ' '.join(str(i) for i in light_info)
+                    light_info = str(light_info)
                     # Parse "5 stim @ 30s ISI" format
                     if 'stim' in light_info.lower():
                         try:
