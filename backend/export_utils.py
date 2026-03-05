@@ -110,6 +110,10 @@ def create_nature_pdf(request):
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
         
+        # Add separator before Original File
+        y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+        y -= 0.005
+        
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
         if request.recording_date:
@@ -127,10 +131,9 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add full-width separator between samples (not before the first one)
-                if idx > 0:
-                    y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
-                    y -= 0.005  # Extra space after separator
+                # Add full-width separator before each sample (including first one)
+                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+                y -= 0.005  # Extra space after separator
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
