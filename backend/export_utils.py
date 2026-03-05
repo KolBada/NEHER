@@ -194,7 +194,7 @@ def create_nature_pdf(request):
         section_gap = 0.025  # Gap between sections
         
         # LEFT COLUMN
-        y = draw_header(fig1, left_x, first_section_y, 'RECORDING INFO', COLORS['header_blue'], width=col_width)
+        y = draw_header(fig1, left_x, first_section_y, 'RECORDING INFO', COLORS['dark'], width=col_width)
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename, width=col_width)
@@ -212,11 +212,12 @@ def create_nature_pdf(request):
         if request.organoid_info:
             y -= section_gap
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280', width=col_width)
+            num_organoids = len(request.organoid_info)
             for idx, org in enumerate(request.organoid_info):
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
                     # Number the cell types: Cell Type 1, Cell Type 2, etc.
-                    cell_type_label = f'Cell Type {idx + 1}:' if len(request.organoid_info) > 1 else 'Cell Type:'
+                    cell_type_label = f'Cell Type {idx + 1}:' if num_organoids > 1 else 'Cell Type:'
                     y = draw_row(fig1, left_x, y, cell_type_label, cell_type or '—', width=col_width)
                 if org.get('line_name'):
                     y = draw_row(fig1, left_x, y, 'Line:', org.get('line_name'), width=col_width)
@@ -230,8 +231,19 @@ def create_nature_pdf(request):
                         y = draw_row(fig1, left_x, y, 'Transfection:', trans.get('name'), width=col_width)
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'), width=col_width)
+                
+                # Add separator line between samples (0.2cm = ~0.007 spacing above and below)
+                if idx < num_organoids - 1:
+                    y -= 0.007  # 0.2cm above line
+                    y = draw_separator(fig1, left_x, y, width=col_width)
+                    y -= 0.007  # 0.2cm below line
         
+        # Add separator line before Days Since Fusion (if there are organoid samples)
         if request.days_since_fusion is not None:
+            if request.organoid_info and len(request.organoid_info) > 0:
+                y -= 0.007  # 0.2cm above line
+                y = draw_separator(fig1, left_x, y, width=col_width)
+                y -= 0.007  # 0.2cm below line
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion, width=col_width)
         
         # DRUG PERFUSION
@@ -417,9 +429,9 @@ def create_nature_pdf(request):
                 y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'], width=col_width)
             y_right -= section_gap
         
-        # LIGHT READOUT - all HRA metrics
+        # LIGHT STIMULUS READOUT - all HRA metrics
         if request.light_enabled and (request.light_response or request.light_metrics_detrended):
-            y_right = draw_header(fig1, right_x, y_right, 'LIGHT READOUT', COLORS['amber'], width=col_width)
+            y_right = draw_header(fig1, right_x, y_right, 'LIGHT STIMULUS READOUT', COLORS['amber'], width=col_width)
             
             if request.light_response:
                 valid = [r for r in request.light_response if r]
@@ -442,16 +454,17 @@ def create_nature_pdf(request):
                     roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
                     roc = np.mean(roc_vals) if roc_vals else None
                     
+                    # Reorganized order: Baseline BF, Avg BF, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Rate of Change
                     y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{peak_bf:.1f} bpm", TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—', TINTS['light'], width=col_width)
-                    y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'], width=col_width)
-                    y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—', TINTS['light'], width=col_width)
-                    y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'], width=col_width)
             
             # Corrected HRV
             if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
