@@ -745,11 +745,6 @@ def create_nature_pdf(request):
             ax1.set_xlim(0, time_max + 1)
             ax1.set_ylim(0, 8)
             ax1.grid(True, alpha=0.3)
-            if request.all_drugs:
-                for drug in request.all_drugs:
-                    start = drug.get('start', 0) + drug.get('delay', 0)
-                    end = drug.get('end') if drug.get('end') else time_max + 1
-                    ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # ln(SDNN70) - Y: 0 to 8 - SALMON
             ax2 = fig3.add_axes([chart_left, middle_y, chart_width, chart_height])
@@ -763,11 +758,6 @@ def create_nature_pdf(request):
             ax2.set_xlim(0, time_max + 1)
             ax2.set_ylim(0, 8)
             ax2.grid(True, alpha=0.3)
-            if request.all_drugs:
-                for drug in request.all_drugs:
-                    start = drug.get('start', 0) + drug.get('delay', 0)
-                    end = drug.get('end') if drug.get('end') else time_max + 1
-                    ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # pNN50 - Y: 0 to 100 - SALMON
             ax3 = fig3.add_axes([chart_left, bottom_y, chart_width, chart_height])
@@ -781,11 +771,6 @@ def create_nature_pdf(request):
             ax3.set_xlim(0, time_max + 1)
             ax3.set_ylim(0, 100)
             ax3.grid(True, alpha=0.3)
-            if request.all_drugs:
-                for drug in request.all_drugs:
-                    start = drug.get('start', 0) + drug.get('delay', 0)
-                    end = drug.get('end') if drug.get('end') else time_max + 1
-                    ax3.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             add_page_footer(fig3, page_num)
             pdf.savefig(fig3)
