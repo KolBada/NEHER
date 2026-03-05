@@ -179,14 +179,14 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'LIGHT STIMULATION', COLORS['amber'])
             y = draw_row(fig1, left_x, y, 'Status:', 'Enabled', TINTS['light'])
-            # Light Start - from first pulse
+            if request.light_stim_count and request.light_stim_count > 0:
+                y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
+            # Stims Start - from first pulse (below Stims Detected)
             if request.light_pulses and len(request.light_pulses) > 0:
                 first_pulse = request.light_pulses[0]
                 light_start = first_pulse.get('start_min')
                 if light_start is not None:
-                    y = draw_row(fig1, left_x, y, 'Light Start:', f"{light_start:.2f} min", TINTS['light'])
-            if request.light_stim_count and request.light_stim_count > 0:
-                y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
+                    y = draw_row(fig1, left_x, y, 'Stims Start:', f"{light_start:.2f} min", TINTS['light'])
             if request.light_params:
                 if request.light_params.get('pulseDuration') is not None:
                     y = draw_row(fig1, left_x, y, 'Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
