@@ -111,6 +111,7 @@ class ExportRequest(BaseModel):
     light_pulses: Optional[List[dict]] = None  # For showing light stim zones on charts
     light_enabled: Optional[bool] = True  # Whether light stim is enabled
     light_stim_count: Optional[int] = 0  # Number of stims detected
+    light_params: Optional[dict] = None  # Light stimulation parameters (duration, ISI, etc.)
     baseline_enabled: Optional[bool] = True  # Whether baseline is enabled
     drug_readout_enabled: Optional[bool] = False  # Whether drug readout is enabled
     drug_readout_settings: Optional[dict] = None  # Drug readout settings

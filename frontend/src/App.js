@@ -955,6 +955,7 @@ function App() {
       light_pulses: lightEnabled ? lightPulses : null,  // For showing light stim zones on PDF charts
       light_enabled: lightEnabled,
       light_stim_count: lightEnabled && lightPulses ? lightPulses.length : 0,
+      light_params: lightEnabled ? lightParams : null,  // Light stimulation parameters
       baseline_enabled: baselineEnabled,
       drug_readout_enabled: drugReadoutSettings?.enableHrvReadout || drugReadoutSettings?.enableBfReadout || false,
       drug_readout_settings: drugReadoutSettings,

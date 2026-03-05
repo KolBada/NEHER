@@ -139,6 +139,8 @@ def create_nature_pdf(request):
                     y = draw_row(fig1, left_x, y, cell_type_label, cell_type or '—')
                 if org.get('line_name'):
                     y = draw_row(fig1, left_x, y, 'Line:', org.get('line_name'))
+                if org.get('passage_number'):
+                    y = draw_row(fig1, left_x, y, 'Passage:', org.get('passage_number'))
                 if org.get('age_at_recording') is not None:
                     y = draw_row(fig1, left_x, y, 'Age at Recording:', f"{org.get('age_at_recording')} days")
                 if org.get('transfection'):
@@ -161,12 +163,14 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'DRUG PERFUSION', COLORS['purple'])
             for drug in request.all_drugs:
-                drug_name = f"{drug.get('name', 'Drug')}"
+                y = draw_row(fig1, left_x, y, 'Drug:', drug.get('name', 'Drug'), TINTS['drug'])
                 if drug.get('concentration'):
-                    drug_name += f" {drug.get('concentration')}µM"
-                y = draw_row(fig1, left_x, y, 'Drug:', drug_name, TINTS['drug'])
-                y = draw_row(fig1, left_x, y, 'Start:', f"{drug.get('start', 3)} min", TINTS['drug'])
-                y = draw_row(fig1, left_x, y, 'Delay:', f"{drug.get('delay', 3)} min", TINTS['drug'])
+                    y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", TINTS['drug'])
+                y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", TINTS['drug'])
+                y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", TINTS['drug'])
+                # Calculate and show Perf. Time (start + delay)
+                perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
+                y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'])
                 if drug.get('end') is not None:
                     y = draw_row(fig1, left_x, y, 'End:', f"{drug.get('end')} min", TINTS['drug'])
         
@@ -177,6 +181,11 @@ def create_nature_pdf(request):
             y = draw_row(fig1, left_x, y, 'Status:', 'Enabled', TINTS['light'])
             if request.light_stim_count and request.light_stim_count > 0:
                 y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
+            if request.light_params:
+                if request.light_params.get('pulseDuration') is not None:
+                    y = draw_row(fig1, left_x, y, 'Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
+                if request.light_params.get('interval'):
+                    y = draw_row(fig1, left_x, y, 'ISI:', str(request.light_params.get('interval')), TINTS['light'])
         
         # RIGHT COLUMN - READOUTS
         y_right = 0.855
