@@ -1,72 +1,59 @@
-# NEHER - Cardiac Electrophysiology Analysis Platform
+# NEHER - Electrophysiology Analysis Application
 
 ## Original Problem Statement
-Build a production-ready web application for electrophysiology analysis of sharp-electrode extracellular ABF recordings. The application supports uploading `.abf` files, filtering voltage traces, detecting beats, and performing detailed analysis with persistent storage in MongoDB.
+Build a production-ready web application, **NEHER**, for electrophysiology analysis of sharp-electrode extracellular ABF recordings. The application must support uploading `.abf` files, filtering the voltage trace, detecting beats, and performing detailed analysis with persistent storage in MongoDB.
 
-## Core Features
-1. **Core Workflow:** Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysis sessions from folders
-2. **Folder Comparison:** Aggregated data tables, folder averages, expandable normalized data, PDF/Excel exports
-3. **Trace Visualization:** Unified zoom system, full-duration timeline slider, decimal minute time axes
-4. **Folder Organization:** Collapsible sections, customizable folder colors, drag-and-drop reordering
-5. **Sorting:** Alphabetical, date created, last modified for folders and recordings
+## Core Workflow
+Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysis sessions from folders
 
-## Tech Stack
+## Key Features Implemented
+- ABF file upload and processing
+- Voltage trace visualization with unified zoom
+- Beat detection and editing
+- Spontaneous Activity analysis
+- Light Stimulation analysis
+- Drug analysis
+- Folder organization with collapsible Sections
+- PDF and Excel exports with professional formatting
+- Comparison view for folder aggregation
+
+## Technical Stack
 - **Frontend:** React, Tailwind CSS, shadcn/ui, Recharts, lucide-react
-- **Backend:** FastAPI (Python)
+- **Backend:** FastAPI (Python), Matplotlib, openpyxl
 - **Database:** MongoDB
 
-## What's Been Implemented
+## Recent Changes (December 2025)
+- 2025-12-04: Fixed PDF Table 4 positioning (`loc='top'` -> `loc='upper center'`)
+- Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
 
-### Session: March 2025 - PDF Export Refinements
-- ✅ Changed first page title to "Electrophysiology Analysis Report by NEHER"
-- ✅ Updated footer: NEHER (center), page number (right), "Developed by Kolia H. Badarello" (left)
-- ✅ BF Data Table window format shows "0-1" (minute-minute+1)
-- ✅ Spontaneous Activity BF/HRV Data Tables: baseline and drug readout rows highlighted
-- ✅ Y-axis limits: pNN50_70 (0-100), ln(SDNN_70) (0-8), ln(RMSSD_70) (0-8)
-- ✅ Beat Frequency Analysis: light stim and drug in legend
-- ✅ Beat Frequency Normalized: uses drug readout if no baseline
-- ✅ Drug Readout shows BF/HRV even without baseline
-- ✅ Tissue Info table added below Recording Info
-- ✅ Light Readout shows all HRA metrics
-- ✅ Light-Induced Corrected HRV table: each stim before median
-- ✅ New page: Light-Induced Corrected HRV panels (a, b, c bar charts per stim)
-- ✅ All table names corrected per specifications
+## Pending Issues
+### P0 (High Priority)
+- Section Drag-and-Drop partially broken in `HomeBrowser.js`
 
-### Session: December 2025 - UI/UX Improvements
-- ✅ Conditional labels on Save Recording screen
-- ✅ "Edit" indicator with "Cancel" feature to revert unsaved changes
-- ✅ State management refactor (loessFrac, baseline minutes lifted to App.js)
-- ✅ UI layout refactoring in AnalysisPanel and LightPanel
-- ✅ Baseline metrics bug fix (now correctly updates on re-compute)
-- ✅ Delayed BF computation (only on button click)
-- ✅ Drug Readout toggle guards and state management
-- ✅ Spontaneous Activity UI fixes
-- ✅ Drug Phase Purple Region Visualization
+### P1 (Medium Priority)
+- PDF data table positioning refinements (if needed)
+- Drug readout input values not clearing
+- BF/NN charts data visibility on new recordings
 
-## Known Issues / Bugs
-1. **P0 - Section Drag-and-Drop:** Only first 2 of 4 sections can be dragged on home page
-2. **P1 - Drug readout inputs:** Not clearing values when enabled
-3. **P1 - BF/NN chart visibility:** Needs verification for new uploads
-4. **P1 - Beat Frequency chart brush:** Not interactive
-5. **P1 - TraceViewer brush reset:** Zoom state resets on beat edits
-6. **P1 - Beat deletion:** Cannot delete beat when activeDot is on it
+### P2 (Lower Priority)
+- Beat Frequency chart brush not interactive
+- Brush/slider in TraceViewer.js resets on data changes
+- Cannot delete beat if activeDot is on it
+- Extend synchronized zoom to more tabs
 
-## Upcoming Tasks (P1)
-- Add light stimulation highlights to main TraceViewer
-- Extend synchronized zoom to Spontaneous/Light tabs
-
-## Future/Backlog (P2-P3)
-- Refactor App.js (1700+ lines) - extract into custom hooks
-- Refactor HomeBrowser.js drag-and-drop (consider dnd-kit library)
+## Backlog / Future
+- Component refactoring (App.js, HomeBrowser.js, AnalysisPanel.js)
 - Cohort Normalization functionality
-- Batch Processing for multiple .abf files
+- Batch Processing for multiple ABF files
+- export_utils.py refactoring (3000+ lines, should be modularized)
 
 ## Key Files
-- `frontend/src/App.js` - Main state management hub
-- `frontend/src/components/AnalysisPanel.js` - Spontaneous Activity analysis
-- `frontend/src/components/HomeBrowser.js` - Home page with sections/folders
-- `frontend/src/components/LightPanel.js` - Light Stimulus analysis
-- `frontend/src/components/TraceViewer.js` - Voltage trace visualization
-- `backend/server.py` - FastAPI backend
-- `backend/analysis.py` - Analysis computations
-- `backend/export_utils.py` - PDF, Excel, CSV export logic (Nature-style)
+- `/app/backend/export_utils.py` - PDF/Excel export logic
+- `/app/frontend/src/components/HomeBrowser.js` - Section/folder management
+- `/app/backend/server.py` - FastAPI routes
+- `/app/backend/analysis.py` - Analysis algorithms
+
+## Database Schema
+- `sections`: {_id, name, order, expanded}
+- `folders`: {_id, name, section_id, color}
+- `recordings`: {_id, name, folder_id, abf_file_path, analysis_state}

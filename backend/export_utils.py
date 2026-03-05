@@ -1289,7 +1289,7 @@ def create_nature_pdf(request):
                     ])
                 
                 if table_data:
-                    table = ax.table(cellText=table_data, colLabels=headers, loc='top', cellLoc='center')
+                    table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                     table.auto_set_font_size(False)
                     table.set_fontsize(9)
                     table.scale(1.0, 1.8)
