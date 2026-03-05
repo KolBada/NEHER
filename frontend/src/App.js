@@ -688,6 +688,49 @@ function App() {
     }
   }, [metrics, baselineHrvMinute, baselineBfMinute]);
 
+  // Auto-compute HRV when metrics exist but hrvResults is null
+  // This handles both new recordings after validation and loaded recordings missing HRV data
+  useEffect(() => {
+    // Only run if we have metrics, are validated, and don't have HRV results yet
+    if (!metrics || !isValidated || hrvResults || analysisLoading) return;
+    
+    // Use a flag to prevent double-execution
+    let cancelled = false;
+    
+    const computeHrvAutomatically = async () => {
+      try {
+        const hrvResponse = await api.hrvAnalysis({
+          beat_times_min: metrics.filtered_beat_times_min,
+          bf_filtered: metrics.filtered_bf_bpm,
+          readout_minute: null,
+          baseline_hrv_minute: baselineHrvMinute,
+          baseline_bf_minute: baselineBfMinute,
+        });
+        
+        if (cancelled) return;
+        setHrvResults(hrvResponse.data);
+        
+        // Also compute per-minute metrics
+        try {
+          const pmResp = await api.perMinuteMetrics({
+            beat_times_min: metrics.filtered_beat_times_min,
+            bf_filtered: metrics.filtered_bf_bpm,
+          });
+          if (!cancelled) {
+            setPerMinuteData(pmResp.data.rows);
+          }
+        } catch (e) { /* non-critical */ }
+        
+      } catch (err) {
+        console.warn('Auto HRV computation failed:', err);
+      }
+    };
+    
+    computeHrvAutomatically();
+    
+    return () => { cancelled = true; };
+  }, [metrics, isValidated, hrvResults, analysisLoading, baselineHrvMinute, baselineBfMinute]);
+
   // Light detect
   const handleDetectPulses = useCallback(async (params) => {
     setAnalysisLoading(true);

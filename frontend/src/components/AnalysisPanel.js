@@ -661,28 +661,13 @@ function AnalysisPanel({
                 </Tooltip>
               </TooltipProvider>
               
-              {/* Compute BF & HRV Button - always visible when metrics exist */}
-              <div className="ml-auto flex-shrink-0">
-                <Button
-                  onClick={onComputeHRV}
-                  disabled={analysisLoading || !metrics}
-                  size="sm"
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3 whitespace-nowrap"
-                  data-testid="compute-hrv-btn"
-                >
-                  {analysisLoading ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                      Computing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      Compute BF & HRV
-                    </>
-                  )}
-                </Button>
-              </div>
+              {/* Auto-computing indicator - shows only when loading */}
+              {analysisLoading && (
+                <div className="ml-auto flex items-center gap-1 text-cyan-400 text-xs">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Computing...</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
