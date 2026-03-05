@@ -610,8 +610,8 @@ def create_nature_pdf(request):
                 chart_height = 0.30
                 # Top chart: top at 0.83, so y position = 0.83 - 0.30 = 0.53
                 top_chart_y = 0.53
-                # Bottom chart: moved 0.5cm higher
-                bottom_chart_y = 0.125
+                # Bottom chart: moved 1cm higher (add ~0.036)
+                bottom_chart_y = 0.16
                 
                 # Top: BF Filtered
                 ax1 = fig2.add_axes([chart_left, top_chart_y, chart_width, chart_height])
@@ -712,6 +712,8 @@ def create_nature_pdf(request):
             
             # Charts - first trace at 1cm from bar
             # Bar is at 0.865, 1cm below = 0.83 for top of first chart
+            # All traces and titles in SALMON color
+            salmon_color = '#FA8072'  # Salmon color
             chart_left = 0.14
             chart_width = 0.76
             chart_height = 0.19
@@ -721,15 +723,15 @@ def create_nature_pdf(request):
             middle_y = 0.38
             top_y = 0.64
             
-            # ln(RMSSD70) - Y: 0 to 8
+            # ln(RMSSD70) - Y: 0 to 8 - SALMON
             ax1 = fig3.add_axes([chart_left, top_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(ln_rmssd_vals) if v is not None]
             if valid_idx:
                 ax1.plot([minutes[i] for i in valid_idx], [ln_rmssd_vals[i] for i in valid_idx],
-                        'o-', color=COLORS['emerald'], markersize=4, linewidth=1.5)
+                        'o-', color=salmon_color, markersize=4, linewidth=1.5)
             ax1.set_ylabel('ln(RMSSD₇₀)', fontsize=9)
             ax1.set_xlabel('Time (min)', fontsize=9)
-            ax1.set_title('ln(RMSSD₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['emerald'], pad=6)
+            ax1.set_title('ln(RMSSD₇₀) Evolution', fontsize=10, fontweight='bold', color=salmon_color, pad=6)
             ax1.set_xlim(0, time_max + 1)
             ax1.set_ylim(0, 8)
             ax1.grid(True, alpha=0.3)
@@ -739,15 +741,15 @@ def create_nature_pdf(request):
                     end = drug.get('end') if drug.get('end') else time_max + 1
                     ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
-            # ln(SDNN70) - Y: 0 to 8
+            # ln(SDNN70) - Y: 0 to 8 - SALMON
             ax2 = fig3.add_axes([chart_left, middle_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(ln_sdnn_vals) if v is not None]
             if valid_idx:
                 ax2.plot([minutes[i] for i in valid_idx], [ln_sdnn_vals[i] for i in valid_idx],
-                        'o-', color=COLORS['purple'], markersize=4, linewidth=1.5)
+                        'o-', color=salmon_color, markersize=4, linewidth=1.5)
             ax2.set_ylabel('ln(SDNN₇₀)', fontsize=9)
             ax2.set_xlabel('Time (min)', fontsize=9)
-            ax2.set_title('ln(SDNN₇₀) Evolution', fontsize=10, fontweight='bold', color=COLORS['purple'], pad=6)
+            ax2.set_title('ln(SDNN₇₀) Evolution', fontsize=10, fontweight='bold', color=salmon_color, pad=6)
             ax2.set_xlim(0, time_max + 1)
             ax2.set_ylim(0, 8)
             ax2.grid(True, alpha=0.3)
@@ -757,15 +759,15 @@ def create_nature_pdf(request):
                     end = drug.get('end') if drug.get('end') else time_max + 1
                     ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
-            # pNN50 - Y: 0 to 100
+            # pNN50 - Y: 0 to 100 - SALMON
             ax3 = fig3.add_axes([chart_left, bottom_y, chart_width, chart_height])
             valid_idx = [i for i, v in enumerate(pnn50_vals) if v is not None]
             if valid_idx:
                 ax3.plot([minutes[i] for i in valid_idx], [pnn50_vals[i] for i in valid_idx],
-                        'o-', color=COLORS['amber'], markersize=4, linewidth=1.5)
+                        'o-', color=salmon_color, markersize=4, linewidth=1.5)
             ax3.set_ylabel('pNN50₇₀ (%)', fontsize=9)
             ax3.set_xlabel('Time (min)', fontsize=9)
-            ax3.set_title('pNN50₇₀ Evolution', fontsize=10, fontweight='bold', color=COLORS['amber'], pad=6)
+            ax3.set_title('pNN50₇₀ Evolution', fontsize=10, fontweight='bold', color=salmon_color, pad=6)
             ax3.set_xlim(0, time_max + 1)
             ax3.set_ylim(0, 100)
             ax3.grid(True, alpha=0.3)
@@ -799,16 +801,16 @@ def create_nature_pdf(request):
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
                 # Charts positioned below title bar - first trace at 1cm from bar
-                # Bar is at 0.865, 1cm below = 0.83 for top of first chart row
-                chart_left = 0.13  # First two columns moved 0.2cm left
+                # Moved 1cm higher
+                chart_left = 0.13
                 chart_total_width = 0.77
-                col3_offset = 0.02  # Third column offset to move right
+                col3_offset = 0.02
                 
                 # Calculate row height based on number of stims
-                # First row top at 0.83
-                available_height = 0.71  # from 0.12 to 0.83
+                # First row top at 0.83, moved 1cm higher = 0.87
+                available_height = 0.73
                 row_height = min(0.14, available_height / max(n_stims, 1))
-                top_margin = 0.83  # First row starts here
+                top_margin = 0.87  # Moved 1cm higher
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -1009,9 +1011,7 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    # Remove vertical lines - only horizontal
-                    cell.set_edgecolor('white')
-                    cell.visible_edges = 'BT'  # Only top and bottom edges
+                    cell.set_edgecolor('#e5e7eb')  # Light gray border
                     if row == 0:
                         # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -1132,9 +1132,7 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.6)
                 
                 for (row, col), cell in table.get_celld().items():
-                    # Remove vertical lines - only horizontal
-                    cell.set_edgecolor('white')
-                    cell.visible_edges = 'BT'  # Only top and bottom edges
+                    cell.set_edgecolor('#e5e7eb')  # Light gray border
                     if row == 0:
                         # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -1218,9 +1216,7 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    # Remove vertical lines - only horizontal
-                    cell.set_edgecolor('white')
-                    cell.visible_edges = 'BT'
+                    cell.set_edgecolor('#e5e7eb')  # Light gray border
                     if row == 0:
                         # Header row - amber
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -1306,9 +1302,7 @@ def create_nature_pdf(request):
                     table.scale(1.0, 1.8)
                     
                     for (row, col), cell in table.get_celld().items():
-                        # Remove vertical lines - only horizontal
-                        cell.set_edgecolor('white')
-                        cell.visible_edges = 'BT'
+                        cell.set_edgecolor('#e5e7eb')  # Light gray border
                         if row == 0:
                             # Header row - amber
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
