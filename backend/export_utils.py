@@ -3225,7 +3225,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
         
-        ax5 = fig5.add_axes([0.08, 0.06, 0.84, 0.76])
+        ax5 = fig5.add_axes([0.08, 0.04, 0.84, 0.79])
         ax5.axis('off')
         
         # Only ln(RMSSD), ln(SDNN), pNN50 - remove raw RMSSD and SDNN
