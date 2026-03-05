@@ -3047,7 +3047,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         ax4a.axis('off')
         
         # Reorganized columns: Rec, Baseline BF, Avg BF, Peak BF, Peak %, Amplitude, BF End, Recovery %, TTP (s), RoC (1/min)
-        hra_headers = ['Rec', 'Base\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amp', 'BF\nEnd', 'Rec\n%', 'TTP\n(s)', 'RoC\n(1/min)']
+        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amplitude', 'BF\nEnd', 'Recovery\n%', 'TTP\n(s)', 'RoC\n(1/min)']
         hra_data = []
         
         for rec in recordings:
