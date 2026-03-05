@@ -1165,8 +1165,8 @@ def create_nature_pdf(request):
                 ax = fig6.add_axes([0.08, 0.10, 0.84, 0.72])
                 ax.axis('off')
                 
-                # All HRA metrics except beats
-                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)']
+                # All HRA metrics - reordered with 1st TTP
+                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
                 table_data = []
                 
                 for i, r in enumerate(valid):
@@ -1176,10 +1176,11 @@ def create_nature_pdf(request):
                         f"{r.get('avg_bf', 0):.1f}" if r.get('avg_bf') else '—',
                         f"{r.get('peak_bf', 0):.1f}" if r.get('peak_bf') else '—',
                         f"{r.get('peak_norm_pct', 0):.1f}" if r.get('peak_norm_pct') else '—',
-                        f"{r.get('amplitude', 0):.1f}" if r.get('amplitude') is not None else '—',
+                        f"{r.get('first_ttp_sec', 0):.1f}" if r.get('first_ttp_sec') is not None else '—',
+                        f"{r.get('time_to_peak_sec', 0):.1f}" if r.get('time_to_peak_sec') is not None else '—',
                         f"{r.get('bf_end', 0):.1f}" if r.get('bf_end') else '—',
                         f"{r.get('bf_end_pct', 0):.1f}" if r.get('bf_end_pct') else '—',
-                        f"{r.get('time_to_peak_sec', 0):.1f}" if r.get('time_to_peak_sec') is not None else '—',
+                        f"{r.get('amplitude', 0):.1f}" if r.get('amplitude') is not None else '—',
                         f"{r.get('rate_of_change', 0):.3f}" if r.get('rate_of_change') is not None else '—',
                     ])
                 
@@ -1195,10 +1196,11 @@ def create_nature_pdf(request):
                         f"{safe_avg('avg_bf'):.1f}" if safe_avg('avg_bf') else '—',
                         f"{safe_avg('peak_bf'):.1f}" if safe_avg('peak_bf') else '—',
                         f"{safe_avg('peak_norm_pct'):.1f}" if safe_avg('peak_norm_pct') else '—',
-                        f"{safe_avg('amplitude'):.1f}" if safe_avg('amplitude') is not None else '—',
+                        f"{safe_avg('first_ttp_sec'):.1f}" if safe_avg('first_ttp_sec') is not None else '—',
+                        f"{safe_avg('time_to_peak_sec'):.1f}" if safe_avg('time_to_peak_sec') is not None else '—',
                         f"{safe_avg('bf_end'):.1f}" if safe_avg('bf_end') else '—',
                         f"{safe_avg('bf_end_pct'):.1f}" if safe_avg('bf_end_pct') else '—',
-                        f"{safe_avg('time_to_peak_sec'):.1f}" if safe_avg('time_to_peak_sec') is not None else '—',
+                        f"{safe_avg('amplitude'):.1f}" if safe_avg('amplitude') is not None else '—',
                         f"{safe_avg('rate_of_change'):.3f}" if safe_avg('rate_of_change') is not None else '—',
                     ]
                     table_data.append(avg_row)
