@@ -604,9 +604,9 @@ def create_nature_pdf(request):
                 time_max = max(times) if times else 10
                 
                 # Charts positioned below title bar (0.875) and within page borders
-                # Move 0.5cm (~0.02) to the right
-                chart_left = 0.14  # Shifted right by 0.5cm
-                chart_width = 0.76  # Adjusted width to stay within borders
+                # Move additional 0.2cm (~0.01) to the right
+                chart_left = 0.15  # Shifted right by additional 0.2cm
+                chart_width = 0.75  # Adjusted width to stay within borders
                 chart_height = 0.32  # Increased height
                 bottom_chart_y = 0.10  # 1.5cm above footer
                 top_chart_y = 0.52  # Closer to title bar (top of chart at 0.84)
@@ -712,11 +712,12 @@ def create_nature_pdf(request):
             # Move 0.5cm (~0.02) to the right from current position
             chart_left = 0.14  # Shifted right by 0.5cm
             chart_width = 0.76  # Adjusted width to stay within borders
-            chart_height = 0.21
+            chart_height = 0.19  # Reduced to prevent overlap
             
-            # Positions: closer to title bar, bottom at 0.10
+            # Positions: properly spaced to avoid overlap
+            # Available: 0.10 to 0.84 = 0.74, need 3 charts + gaps
             bottom_y = 0.10
-            middle_y = 0.38
+            middle_y = 0.36
             top_y = 0.62
             
             # ln(RMSSD70) - Y: 0 to 8
@@ -797,9 +798,9 @@ def create_nature_pdf(request):
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
                 # Charts positioned below title bar and within page borders
-                # Move 0.5cm (~0.02) to the right
-                chart_left = 0.14  # Shifted right by 0.5cm
-                chart_total_width = 0.76  # Ensure charts don't overflow right
+                # Move additional 0.2cm (~0.01) to the right
+                chart_left = 0.15  # Shifted right by additional 0.2cm
+                chart_total_width = 0.75  # Ensure charts don't overflow right
                 
                 # Calculate row height based on number of stims
                 # Available height: from 0.10 to 0.84 = 0.74
@@ -1006,7 +1007,9 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#d1d5db')
+                    # Remove vertical lines - only horizontal
+                    cell.set_edgecolor('white')
+                    cell.visible_edges = 'BT'  # Only top and bottom edges
                     if row == 0:
                         # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -1036,12 +1039,12 @@ def create_nature_pdf(request):
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
             
-            # Table section title
-            fig5.text(0.08, 0.85, 'Table 2 | Per-Minute Heart Rate Variability Data', fontsize=11, fontweight='bold', 
+            # Table section title - renamed to Per-Three Minutes
+            fig5.text(0.08, 0.85, 'Table 2 | Per-Three Minutes Heart Rate Variability Data', fontsize=11, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
             
-            ax = fig5.add_axes([0.05, 0.1, 0.9, 0.72])
+            ax = fig5.add_axes([0.08, 0.1, 0.84, 0.72])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1127,7 +1130,9 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.6)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#d1d5db')
+                    # Remove vertical lines - only horizontal
+                    cell.set_edgecolor('white')
+                    cell.visible_edges = 'BT'  # Only top and bottom edges
                     if row == 0:
                         # Header row - emerald green
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
@@ -1153,9 +1158,9 @@ def create_nature_pdf(request):
                 fig6 = plt.figure(figsize=(8.5, 11))
                 fig6.patch.set_facecolor('white')
                 
-                # Bioptima-style header and title
+                # Bioptima-style header and title - renamed
                 add_page_header(fig6, 'light stimulus')
-                fig6.text(0.08, 0.91, 'Heart Rate Acceleration', ha='left', va='top', fontsize=28, fontweight='bold', 
+                fig6.text(0.08, 0.91, 'Heart Rate Adaptation Data', ha='left', va='top', fontsize=28, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig6.transFigure))
                 
@@ -1164,7 +1169,7 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
                 
-                ax = fig6.add_axes([0.05, 0.1, 0.9, 0.72])
+                ax = fig6.add_axes([0.08, 0.1, 0.84, 0.72])
                 ax.axis('off')
                 
                 # All HRA metrics except beats
@@ -1211,25 +1216,27 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#d1d5db')
+                    # Remove vertical lines - only horizontal
+                    cell.set_edgecolor('white')
+                    cell.visible_edges = 'BT'
                     if row == 0:
-                        # Header row - cyan/teal like bioptima
+                        # Header row - amber
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                        cell.set_facecolor(COLORS['header_blue'])
+                        cell.set_facecolor(COLORS['amber'])
                     elif row == len(table_data):
-                        # Average row - red/maroon total like bioptima
+                        # Average row - red
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                         cell.set_facecolor(COLORS['total_red'])
                     else:
-                        # Alternating white/light blue rows
-                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        # Alternating white/light amber rows
+                        cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
                         cell.set_text_props(fontfamily=body_font)
                 
                 add_page_footer(fig6, page_num)
                 pdf.savefig(fig6)
                 plt.close(fig6)
         
-        # ==================== PAGE 7: LIGHT-INDUCED CORRECTED HRV (DETRENDED) DATA TABLE ====================
+        # ==================== PAGE 7: LIGHT-INDUCED CORRECTED HRV DATA TABLE ====================
         if request.light_enabled and request.light_metrics_detrended:
             # Support both 'per_stim' and 'per_pulse' keys (backend uses 'per_pulse')
             per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
@@ -1240,9 +1247,9 @@ def create_nature_pdf(request):
                 fig7 = plt.figure(figsize=(8.5, 11))
                 fig7.patch.set_facecolor('white')
                 
-                # Bioptima-style header and title
+                # Bioptima-style header and title - renamed
                 add_page_header(fig7, 'light stimulus')
-                fig7.text(0.08, 0.91, 'Corrected HRV (Detrended)', ha='left', va='top', fontsize=28, fontweight='bold', 
+                fig7.text(0.08, 0.91, 'Corrected HRV Data', ha='left', va='top', fontsize=28, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig7.transFigure))
                 
@@ -1251,7 +1258,7 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
                 
-                ax = fig7.add_axes([0.05, 0.1, 0.9, 0.72])
+                ax = fig7.add_axes([0.08, 0.1, 0.84, 0.72])
                 ax.axis('off')
                 
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
@@ -1297,18 +1304,20 @@ def create_nature_pdf(request):
                     table.scale(1.0, 1.8)
                     
                     for (row, col), cell in table.get_celld().items():
-                        cell.set_edgecolor('#d1d5db')
+                        # Remove vertical lines - only horizontal
+                        cell.set_edgecolor('white')
+                        cell.visible_edges = 'BT'
                         if row == 0:
-                            # Header row - cyan/teal like bioptima
+                            # Header row - amber
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                            cell.set_facecolor(COLORS['header_blue'])
+                            cell.set_facecolor(COLORS['amber'])
                         elif row == len(table_data):
-                            # Median row - red/maroon total like bioptima
+                            # Median row - red
                             cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                             cell.set_facecolor(COLORS['total_red'])
                         else:
-                            # Alternating white/light blue rows
-                            cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                            # Alternating white/light amber rows
+                            cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
                             cell.set_text_props(fontfamily=body_font)
                 
                 add_page_footer(fig7, page_num)
