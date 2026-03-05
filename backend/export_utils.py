@@ -629,7 +629,8 @@ def create_nature_pdf(request):
         
         # ==================== PAGE 3b: LIGHT-INDUCED CORRECTED HRV ANALYSIS ====================
         if request.light_enabled and request.light_metrics_detrended:
-            per_stim = request.light_metrics_detrended.get('per_stim', [])
+            # Support both 'per_stim' and 'per_pulse' keys (backend uses 'per_pulse')
+            per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
             # Filter for stims that have actual HRV data
             valid_stims = [(i, s) for i, s in enumerate(per_stim) if s and (
                 s.get('ln_rmssd70_detrended') is not None or 
@@ -964,7 +965,8 @@ def create_nature_pdf(request):
         
         # ==================== PAGE 7: LIGHT-INDUCED CORRECTED HRV (DETRENDED) DATA TABLE ====================
         if request.light_enabled and request.light_metrics_detrended:
-            per_stim = request.light_metrics_detrended.get('per_stim', [])
+            # Support both 'per_stim' and 'per_pulse' keys (backend uses 'per_pulse')
+            per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
             final = request.light_metrics_detrended.get('final', {})
             
             if per_stim or final:
