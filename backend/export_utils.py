@@ -172,13 +172,19 @@ def create_nature_pdf(request):
                 perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
                 y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'])
                 if drug.get('end') is not None:
-                    y = draw_row(fig1, left_x, y, 'End:', f"{drug.get('end')} min", TINTS['drug'])
+                    y = draw_row(fig1, left_x, y, 'Perf. End:', f"{drug.get('end')} min", TINTS['drug'])
         
         # LIGHT STIMULATION
         if request.light_enabled:
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'LIGHT STIMULATION', COLORS['amber'])
             y = draw_row(fig1, left_x, y, 'Status:', 'Enabled', TINTS['light'])
+            # Light Start - from first pulse
+            if request.light_pulses and len(request.light_pulses) > 0:
+                first_pulse = request.light_pulses[0]
+                light_start = first_pulse.get('start_min')
+                if light_start is not None:
+                    y = draw_row(fig1, left_x, y, 'Light Start:', f"{light_start:.2f} min", TINTS['light'])
             if request.light_stim_count and request.light_stim_count > 0:
                 y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
             if request.light_params:
