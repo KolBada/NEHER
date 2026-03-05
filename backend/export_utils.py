@@ -2211,3 +2211,524 @@ def create_nature_csv(request):
     output.write(buf.getvalue().encode('utf-8'))
     output.seek(0)
     return output
+
+
+
+def create_comparison_pdf(folder_name, comparison_data):
+    """Create a comparison PDF matching the single recording PDF style"""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+    import matplotlib.patches as mpatches
+    
+    plt.rcParams.update({
+        'font.family': 'sans-serif',
+        'font.sans-serif': ['Helvetica Neue', 'Arial', 'DejaVu Sans'],
+        'font.size': 9,
+        'axes.labelsize': 9,
+        'axes.titlesize': 10,
+        'axes.linewidth': 0.8,
+        'xtick.labelsize': 8,
+        'ytick.labelsize': 8,
+        'legend.fontsize': 8,
+        'figure.titlesize': 12,
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+    })
+    
+    data = comparison_data
+    recordings = data.get('recordings', [])
+    summary = data.get('summary', {})
+    spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
+    hra_averages = data.get('light_hra_averages', {}).get('averages', {})
+    hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    
+    # Sort recordings alphabetically
+    recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
+    
+    buf = io.BytesIO()
+    
+    # Colors matching single recording PDF
+    COLORS = {
+        'dark': '#18181b',
+        'gray': '#6b7280',
+        'emerald': '#10b981',
+        'purple': '#a855f7',
+        'amber': '#f59e0b',
+        'sky': '#0ea5e9',
+        'cyan': '#06b6d4',
+    }
+    
+    TINTS = {
+        'baseline': '#e0f2fe',
+        'drug': '#f3e8ff',
+        'light': '#fef3c7',
+        'avg': '#d1fae5',
+    }
+    
+    def fmt(val, dec=2):
+        if val is None:
+            return '—'
+        if dec == 0:
+            return f"{val:.0f}"
+        elif dec == 1:
+            return f"{val:.1f}"
+        elif dec == 3:
+            return f"{val:.3f}"
+        elif dec == 4:
+            return f"{val:.4f}"
+        return f"{val:.{dec}f}"
+    
+    def fmt_age_range(age_dict):
+        if not age_dict or age_dict.get('min') is None:
+            return '—'
+        return f"{age_dict.get('min')} - {age_dict.get('max')} days"
+    
+    with PdfPages(buf) as pdf:
+        
+        # ==================== PAGE 1: SUMMARY ====================
+        fig1 = plt.figure(figsize=(8.5, 11))
+        fig1.patch.set_facecolor('white')
+        
+        # Title
+        fig1.text(0.5, 0.96, folder_name, ha='center', va='top', fontsize=16, fontweight='bold', color=COLORS['dark'])
+        fig1.text(0.5, 0.935, 'Folder Comparison Report by NEHER', ha='center', va='top', fontsize=10, color='#71717a')
+        fig1.text(0.5, 0.905, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}', ha='center', va='top', fontsize=8, color='#a1a1aa')
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.88, 0.88], color='#e4e4e7', linewidth=1, transform=fig1.transFigure))
+        
+        left_x = 0.08
+        right_x = 0.52
+        line_height = 0.02
+        
+        def draw_header(fig, x, y, text, color):
+            fig.text(x, y, text, fontsize=9, fontweight='bold', color='white',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor=color, edgecolor='none'))
+            return y - 0.035
+        
+        def draw_row(fig, x, y, label, value, bg_color=None, width=0.38):
+            if bg_color:
+                fig.add_artist(mpatches.FancyBboxPatch(
+                    (x - 0.005, y - 0.006), width, 0.018,
+                    boxstyle=mpatches.BoxStyle("Round", pad=0.002),
+                    facecolor=bg_color, edgecolor='none', transform=fig.transFigure
+                ))
+            fig.text(x, y, label, fontsize=7.5, color='#52525b')
+            fig.text(x + 0.2, y, str(value), fontsize=7.5, fontweight='bold', color=COLORS['dark'])
+            return y - line_height
+        
+        def draw_separator(fig, x, y, width=0.38):
+            fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
+            return y - 0.015
+        
+        # LEFT COLUMN
+        y = draw_header(fig1, left_x, 0.855, 'FOLDER OVERVIEW', COLORS['dark'])
+        y = draw_separator(fig1, left_x, y + 0.015, width=0.38)
+        y = draw_row(fig1, left_x, y, 'Recordings:', str(summary.get('recording_count', len(recordings))))
+        y = draw_row(fig1, left_x, y, 'Generated:', datetime.now().strftime('%B %d, %Y'))
+        y -= 0.015
+        
+        # Age Ranges
+        y = draw_header(fig1, left_x, y, 'AGE RANGES', COLORS['gray'])
+        y = draw_separator(fig1, left_x, y + 0.015, width=0.38)
+        
+        hspo_range = summary.get('hspo_age_range', {})
+        hco_range = summary.get('hco_age_range', {})
+        fusion_range = summary.get('fusion_age_range', {})
+        
+        y = draw_row(fig1, left_x, y, 'hSpOs:', f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})")
+        y = draw_row(fig1, left_x, y, 'hCOs:', f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})")
+        y = draw_row(fig1, left_x, y, 'Fusion:', f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})")
+        y -= 0.015
+        
+        # Spontaneous Averages
+        y = draw_header(fig1, left_x, y, 'SPONTANEOUS AVERAGES', COLORS['emerald'])
+        y = draw_separator(fig1, left_x, y + 0.015, width=0.38)
+        
+        # Baseline
+        fig1.text(left_x, y, 'Baseline', fontsize=7, fontstyle='italic', color='#71717a')
+        y -= 0.015
+        y = draw_row(fig1, left_x, y, 'Mean BF:', f"{fmt(spont_averages.get('baseline_bf'), 1)} bpm", TINTS['baseline'])
+        y = draw_row(fig1, left_x, y, 'ln(RMSSD₇₀):', fmt(spont_averages.get('baseline_ln_rmssd70'), 3), TINTS['baseline'])
+        y = draw_row(fig1, left_x, y, 'ln(SDNN₇₀):', fmt(spont_averages.get('baseline_ln_sdnn70'), 3), TINTS['baseline'])
+        y = draw_row(fig1, left_x, y, 'pNN50₇₀:', f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%", TINTS['baseline'])
+        y -= 0.01
+        
+        # Drug
+        fig1.text(left_x, y, 'Drug Readout', fontsize=7, fontstyle='italic', color='#71717a')
+        y -= 0.015
+        y = draw_row(fig1, left_x, y, 'Mean BF:', f"{fmt(spont_averages.get('drug_bf'), 1)} bpm", TINTS['drug'])
+        y = draw_row(fig1, left_x, y, 'ln(RMSSD₇₀):', fmt(spont_averages.get('drug_ln_rmssd70'), 3), TINTS['drug'])
+        y = draw_row(fig1, left_x, y, 'ln(SDNN₇₀):', fmt(spont_averages.get('drug_ln_sdnn70'), 3), TINTS['drug'])
+        y = draw_row(fig1, left_x, y, 'pNN50₇₀:', f"{fmt(spont_averages.get('drug_pnn50'), 1)}%", TINTS['drug'])
+        
+        # RIGHT COLUMN
+        y_right = 0.855
+        
+        # Light HRA Averages
+        y_right = draw_header(fig1, right_x, y_right, 'LIGHT HRA AVERAGES', COLORS['amber'])
+        y_right = draw_separator(fig1, right_x, y_right + 0.015, width=0.38)
+        
+        y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{fmt(hra_averages.get('light_ttp_first'), 1)} s", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'TTP (Avg):', f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{fmt(hra_averages.get('light_roc'), 4)} 1/min", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'])
+        y_right -= 0.015
+        
+        # Corrected HRV Averages
+        y_right = draw_header(fig1, right_x, y_right, 'CORRECTED HRV AVERAGES', COLORS['cyan'])
+        y_right = draw_separator(fig1, right_x, y_right + 0.015, width=0.38)
+        
+        y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3), TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3), TINTS['light'])
+        y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%", TINTS['light'])
+        
+        # Footer
+        fig1.text(0.5, 0.02, f'Page 1 | {folder_name}', ha='center', fontsize=8, color='#a1a1aa')
+        
+        pdf.savefig(fig1, bbox_inches='tight')
+        plt.close(fig1)
+        
+        # ==================== PAGE 2: SPONTANEOUS ACTIVITY TABLE ====================
+        fig2 = plt.figure(figsize=(11, 8.5))  # Landscape for tables
+        fig2.patch.set_facecolor('white')
+        
+        fig2.text(0.5, 0.95, 'Spontaneous Activity Comparison', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig2.text(0.5, 0.925, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        
+        ax = fig2.add_axes([0.02, 0.08, 0.96, 0.80])
+        ax.axis('off')
+        
+        # Build table data
+        headers = ['Recording', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
+                   'Drug BF', 'Drug\nRMSSD', 'Drug\nSDNN', 'Drug\npNN50']
+        table_data = [headers]
+        
+        for rec in recordings:
+            table_data.append([
+                rec.get('name', '')[:18],
+                fmt(rec.get('baseline_bf'), 1),
+                fmt(rec.get('baseline_ln_rmssd70'), 3),
+                fmt(rec.get('baseline_ln_sdnn70'), 3),
+                fmt(rec.get('baseline_pnn50'), 1),
+                fmt(rec.get('drug_bf'), 1),
+                fmt(rec.get('drug_ln_rmssd70'), 3),
+                fmt(rec.get('drug_ln_sdnn70'), 3),
+                fmt(rec.get('drug_pnn50'), 1),
+            ])
+        
+        # Add average row
+        table_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(spont_averages.get('baseline_bf'), 1),
+            fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
+            fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
+            fmt(spont_averages.get('baseline_pnn50'), 1),
+            fmt(spont_averages.get('drug_bf'), 1),
+            fmt(spont_averages.get('drug_ln_rmssd70'), 3),
+            fmt(spont_averages.get('drug_ln_sdnn70'), 3),
+            fmt(spont_averages.get('drug_pnn50'), 1),
+        ])
+        
+        n_rows = len(table_data)
+        row_height = min(0.07, 0.75 / n_rows)
+        table_height = row_height * n_rows
+        
+        table = ax.table(cellText=table_data, loc='upper center', cellLoc='center',
+                        colWidths=[0.16, 0.09, 0.1, 0.1, 0.1, 0.09, 0.1, 0.1, 0.1],
+                        bbox=[0.01, 1.0 - table_height - 0.02, 0.98, table_height])
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor('#e5e7eb')
+            if row == 0:
+                cell.set_facecolor(COLORS['dark'])
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(table_data) - 1:
+                cell.set_facecolor(TINTS['avg'])
+                cell.set_text_props(fontweight='bold')
+            else:
+                if 1 <= col <= 4:
+                    cell.set_facecolor(TINTS['baseline'])
+                elif 5 <= col <= 8:
+                    cell.set_facecolor(TINTS['drug'])
+        
+        # Normalized section below
+        norm_start_y = 1.0 - table_height - 0.12
+        ax.text(0.01, norm_start_y, 'Normalized to Cohort Baseline', fontsize=10, fontweight='bold', 
+               color=COLORS['dark'], transform=ax.transAxes)
+        
+        # Calculate cohort baseline averages
+        baseline_bfs = [r.get('baseline_bf') for r in recordings if r.get('baseline_bf') is not None]
+        baseline_rmssds = [r.get('baseline_ln_rmssd70') for r in recordings if r.get('baseline_ln_rmssd70') is not None]
+        baseline_sdnns = [r.get('baseline_ln_sdnn70') for r in recordings if r.get('baseline_ln_sdnn70') is not None]
+        baseline_pnn50s = [r.get('baseline_pnn50') for r in recordings if r.get('baseline_pnn50') is not None]
+        
+        avg_bf = sum(baseline_bfs) / len(baseline_bfs) if baseline_bfs else 1
+        avg_rmssd = sum(baseline_rmssds) / len(baseline_rmssds) if baseline_rmssds else 1
+        avg_sdnn = sum(baseline_sdnns) / len(baseline_sdnns) if baseline_sdnns else 1
+        avg_pnn50 = sum(baseline_pnn50s) / len(baseline_pnn50s) if baseline_pnn50s else 1
+        
+        def norm_val(val, avg):
+            if val is None or avg == 0:
+                return None
+            return 100 * val / avg
+        
+        norm_headers = ['Recording', 'Base\nBF%', 'Base\nRMSSD%', 'Base\nSDNN%', 'Base\npNN50%',
+                       'Drug\nBF%', 'Drug\nRMSSD%', 'Drug\nSDNN%', 'Drug\npNN50%']
+        norm_data = [norm_headers]
+        norm_sums = {'base_bf': [], 'base_rmssd': [], 'base_sdnn': [], 'base_pnn50': [],
+                    'drug_bf': [], 'drug_rmssd': [], 'drug_sdnn': [], 'drug_pnn50': []}
+        
+        for rec in recordings:
+            n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
+            n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
+            n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
+            n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
+            n_drug_bf = norm_val(rec.get('drug_bf'), avg_bf)
+            n_drug_rmssd = norm_val(rec.get('drug_ln_rmssd70'), avg_rmssd)
+            n_drug_sdnn = norm_val(rec.get('drug_ln_sdnn70'), avg_sdnn)
+            n_drug_pnn50 = norm_val(rec.get('drug_pnn50'), avg_pnn50)
+            
+            norm_data.append([
+                rec.get('name', '')[:18],
+                fmt(n_base_bf, 1), fmt(n_base_rmssd, 1), fmt(n_base_sdnn, 1), fmt(n_base_pnn50, 1),
+                fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
+            ])
+            
+            for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
+                            ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
+                            ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
+                            ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                if val is not None:
+                    norm_sums[key].append(val)
+        
+        # Add average row
+        norm_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(sum(norm_sums['base_bf']) / len(norm_sums['base_bf']) if norm_sums['base_bf'] else None, 1),
+            fmt(sum(norm_sums['base_rmssd']) / len(norm_sums['base_rmssd']) if norm_sums['base_rmssd'] else None, 1),
+            fmt(sum(norm_sums['base_sdnn']) / len(norm_sums['base_sdnn']) if norm_sums['base_sdnn'] else None, 1),
+            fmt(sum(norm_sums['base_pnn50']) / len(norm_sums['base_pnn50']) if norm_sums['base_pnn50'] else None, 1),
+            fmt(sum(norm_sums['drug_bf']) / len(norm_sums['drug_bf']) if norm_sums['drug_bf'] else None, 1),
+            fmt(sum(norm_sums['drug_rmssd']) / len(norm_sums['drug_rmssd']) if norm_sums['drug_rmssd'] else None, 1),
+            fmt(sum(norm_sums['drug_sdnn']) / len(norm_sums['drug_sdnn']) if norm_sums['drug_sdnn'] else None, 1),
+            fmt(sum(norm_sums['drug_pnn50']) / len(norm_sums['drug_pnn50']) if norm_sums['drug_pnn50'] else None, 1),
+        ])
+        
+        n_norm_rows = len(norm_data)
+        norm_row_height = min(0.06, 0.35 / n_norm_rows)
+        norm_table_height = norm_row_height * n_norm_rows
+        
+        norm_table = ax.table(cellText=norm_data, loc='upper center', cellLoc='center',
+                             colWidths=[0.16, 0.09, 0.1, 0.1, 0.1, 0.09, 0.1, 0.1, 0.1],
+                             bbox=[0.01, norm_start_y - norm_table_height - 0.04, 0.98, norm_table_height])
+        norm_table.auto_set_font_size(False)
+        norm_table.set_fontsize(8)
+        
+        for (row, col), cell in norm_table.get_celld().items():
+            cell.set_edgecolor('#e5e7eb')
+            if row == 0:
+                cell.set_facecolor(COLORS['dark'])
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(norm_data) - 1:
+                cell.set_facecolor(TINTS['avg'])
+                cell.set_text_props(fontweight='bold')
+            else:
+                if 1 <= col <= 4:
+                    cell.set_facecolor(TINTS['baseline'])
+                elif 5 <= col <= 8:
+                    cell.set_facecolor(TINTS['drug'])
+        
+        fig2.text(0.5, 0.02, f'Page 2 | {folder_name}', ha='center', fontsize=8, color='#a1a1aa')
+        
+        pdf.savefig(fig2, bbox_inches='tight')
+        plt.close(fig2)
+        
+        # ==================== PAGE 3: LIGHT HRA TABLE ====================
+        fig3 = plt.figure(figsize=(11, 8.5))
+        fig3.patch.set_facecolor('white')
+        
+        fig3.text(0.5, 0.95, 'Light-Induced Heart Rate Adaptation (HRA)', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig3.text(0.5, 0.925, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        
+        ax3 = fig3.add_axes([0.02, 0.08, 0.96, 0.80])
+        ax3.axis('off')
+        
+        hra_headers = ['Recording', 'Base BF', 'Avg BF', 'Peak BF', 'Peak%', 'Amp', 'TTP 1st', 'TTP Avg', 'RoC', 'Rec BF', 'Rec%']
+        hra_data = [hra_headers]
+        
+        for rec in recordings:
+            hra_data.append([
+                rec.get('name', '')[:15],
+                fmt(rec.get('light_baseline_bf'), 1),
+                fmt(rec.get('light_avg_bf'), 1),
+                fmt(rec.get('light_peak_bf'), 1),
+                fmt(rec.get('light_peak_norm'), 1),
+                fmt(rec.get('light_amplitude'), 1),
+                fmt(rec.get('light_ttp_first'), 1),
+                fmt(rec.get('light_ttp_avg'), 1),
+                fmt(rec.get('light_roc'), 3),
+                fmt(rec.get('light_recovery_bf'), 1),
+                fmt(rec.get('light_recovery_pct'), 1),
+            ])
+        
+        hra_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(hra_averages.get('light_baseline_bf'), 1),
+            fmt(hra_averages.get('light_avg_bf'), 1),
+            fmt(hra_averages.get('light_peak_bf'), 1),
+            fmt(hra_averages.get('light_peak_norm'), 1),
+            fmt(hra_averages.get('light_amplitude'), 1),
+            fmt(hra_averages.get('light_ttp_first'), 1),
+            fmt(hra_averages.get('light_ttp_avg'), 1),
+            fmt(hra_averages.get('light_roc'), 3),
+            fmt(hra_averages.get('light_recovery_bf'), 1),
+            fmt(hra_averages.get('light_recovery_pct'), 1),
+        ])
+        
+        n_hra_rows = len(hra_data)
+        hra_row_height = min(0.07, 0.75 / n_hra_rows)
+        hra_table_height = hra_row_height * n_hra_rows
+        
+        hra_table = ax3.table(cellText=hra_data, loc='upper center', cellLoc='center',
+                             colWidths=[0.14, 0.08, 0.08, 0.08, 0.08, 0.07, 0.08, 0.08, 0.08, 0.08, 0.08],
+                             bbox=[0.01, 1.0 - hra_table_height - 0.02, 0.98, hra_table_height])
+        hra_table.auto_set_font_size(False)
+        hra_table.set_fontsize(7)
+        
+        for (row, col), cell in hra_table.get_celld().items():
+            cell.set_edgecolor('#e5e7eb')
+            if row == 0:
+                cell.set_facecolor(COLORS['amber'])
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(hra_data) - 1:
+                cell.set_facecolor(TINTS['avg'])
+                cell.set_text_props(fontweight='bold')
+            elif col >= 1:
+                cell.set_facecolor(TINTS['light'])
+        
+        # Normalized HRA section
+        norm_hra_start_y = 1.0 - hra_table_height - 0.12
+        ax3.text(0.01, norm_hra_start_y, 'Normalized to Cohort Baseline (Light)', fontsize=10, fontweight='bold', 
+                color=COLORS['dark'], transform=ax3.transAxes)
+        
+        light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
+        avg_light_bf = sum(light_baseline_bfs) / len(light_baseline_bfs) if light_baseline_bfs else 1
+        
+        norm_hra_headers = ['Recording', 'Base BF%', 'Avg BF%', 'Peak BF%', 'Rec BF%']
+        norm_hra_data = [norm_hra_headers]
+        norm_hra_sums = {'base': [], 'avg': [], 'peak': [], 'rec': []}
+        
+        for rec in recordings:
+            n_base = norm_val(rec.get('light_baseline_bf'), avg_light_bf)
+            n_avg = norm_val(rec.get('light_avg_bf'), avg_light_bf)
+            n_peak = norm_val(rec.get('light_peak_bf'), avg_light_bf)
+            n_rec = norm_val(rec.get('light_recovery_bf'), avg_light_bf)
+            
+            norm_hra_data.append([
+                rec.get('name', '')[:15],
+                fmt(n_base, 1), fmt(n_avg, 1), fmt(n_peak, 1), fmt(n_rec, 1),
+            ])
+            
+            for key, val in [('base', n_base), ('avg', n_avg), ('peak', n_peak), ('rec', n_rec)]:
+                if val is not None:
+                    norm_hra_sums[key].append(val)
+        
+        norm_hra_data.append([
+            f'Average (n={len(recordings)})',
+            fmt(sum(norm_hra_sums['base']) / len(norm_hra_sums['base']) if norm_hra_sums['base'] else None, 1),
+            fmt(sum(norm_hra_sums['avg']) / len(norm_hra_sums['avg']) if norm_hra_sums['avg'] else None, 1),
+            fmt(sum(norm_hra_sums['peak']) / len(norm_hra_sums['peak']) if norm_hra_sums['peak'] else None, 1),
+            fmt(sum(norm_hra_sums['rec']) / len(norm_hra_sums['rec']) if norm_hra_sums['rec'] else None, 1),
+        ])
+        
+        n_norm_hra_rows = len(norm_hra_data)
+        norm_hra_row_height = min(0.06, 0.30 / n_norm_hra_rows)
+        norm_hra_table_height = norm_hra_row_height * n_norm_hra_rows
+        
+        norm_hra_table = ax3.table(cellText=norm_hra_data, loc='upper center', cellLoc='center',
+                                   colWidths=[0.24, 0.17, 0.17, 0.17, 0.17],
+                                   bbox=[0.04, norm_hra_start_y - norm_hra_table_height - 0.04, 0.92, norm_hra_table_height])
+        norm_hra_table.auto_set_font_size(False)
+        norm_hra_table.set_fontsize(8)
+        
+        for (row, col), cell in norm_hra_table.get_celld().items():
+            cell.set_edgecolor('#e5e7eb')
+            if row == 0:
+                cell.set_facecolor(COLORS['amber'])
+                cell.set_text_props(color='white', fontweight='bold', fontsize=7)
+            elif row == len(norm_hra_data) - 1:
+                cell.set_facecolor(TINTS['avg'])
+                cell.set_text_props(fontweight='bold')
+            elif col >= 1:
+                cell.set_facecolor(TINTS['light'])
+        
+        fig3.text(0.5, 0.02, f'Page 3 | {folder_name}', ha='center', fontsize=8, color='#a1a1aa')
+        
+        pdf.savefig(fig3, bbox_inches='tight')
+        plt.close(fig3)
+        
+        # ==================== PAGE 4: CORRECTED HRV TABLE ====================
+        fig4 = plt.figure(figsize=(8.5, 11))  # Portrait for simpler table
+        fig4.patch.set_facecolor('white')
+        
+        fig4.text(0.5, 0.95, 'Corrected Light-Induced HRV', ha='center', va='top', fontsize=14, fontweight='bold', color=COLORS['dark'])
+        fig4.text(0.5, 0.925, folder_name, ha='center', va='top', fontsize=10, color='#71717a')
+        
+        ax4 = fig4.add_axes([0.08, 0.15, 0.84, 0.75])
+        ax4.axis('off')
+        
+        hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀']
+        hrv_data = [hrv_headers]
+        
+        for rec in recordings:
+            hrv_data.append([
+                rec.get('name', '')[:25],
+                fmt(rec.get('light_hrv_ln_rmssd70'), 3),
+                fmt(rec.get('light_hrv_ln_sdnn70'), 3),
+                fmt(rec.get('light_hrv_pnn50'), 1),
+            ])
+        
+        hrv_data.append([
+            f'Folder Average (n={len(recordings)})',
+            fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3),
+            fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3),
+            fmt(hrv_averages.get('light_hrv_pnn50'), 1),
+        ])
+        
+        n_hrv_rows = len(hrv_data)
+        hrv_row_height = min(0.05, 0.70 / n_hrv_rows)
+        hrv_table_height = hrv_row_height * n_hrv_rows
+        
+        hrv_table = ax4.table(cellText=hrv_data, loc='upper center', cellLoc='center',
+                             colWidths=[0.40, 0.20, 0.20, 0.20],
+                             bbox=[0.0, 1.0 - hrv_table_height - 0.02, 1.0, hrv_table_height])
+        hrv_table.auto_set_font_size(False)
+        hrv_table.set_fontsize(9)
+        
+        for (row, col), cell in hrv_table.get_celld().items():
+            cell.set_edgecolor('#e5e7eb')
+            if row == 0:
+                cell.set_facecolor(COLORS['cyan'])
+                cell.set_text_props(color='white', fontweight='bold', fontsize=8)
+            elif row == len(hrv_data) - 1:
+                cell.set_facecolor(TINTS['avg'])
+                cell.set_text_props(fontweight='bold')
+            elif col >= 1:
+                cell.set_facecolor(TINTS['light'])
+        
+        fig4.text(0.5, 0.02, f'Page 4 | {folder_name}', ha='center', fontsize=8, color='#a1a1aa')
+        
+        pdf.savefig(fig4, bbox_inches='tight')
+        plt.close(fig4)
+    
+    buf.seek(0)
+    return buf
