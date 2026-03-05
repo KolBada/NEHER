@@ -105,13 +105,13 @@ def create_nature_pdf(request):
                 return y - 0.015  # More space below
             else:
                 fig.add_artist(plt.Line2D([x, x + width], [y, y], color='#d1d5db', linewidth=0.5, transform=fig.transFigure))
-                return y - 0.01
+                return y - 0.015  # Increased space below bar
         
         # LEFT COLUMN
         y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
         
-        # Add separator before Original File (bar at original position, reduced space after)
-        y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+        # Add separator aligned with baseline readout box level
+        y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
         
         if request.original_filename:
             y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
@@ -130,8 +130,8 @@ def create_nature_pdf(request):
             y -= 0.015
             y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
             for idx, org in enumerate(request.organoid_info):
-                # Add full-width separator before each sample (bar at original position, reduced space after)
-                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+                # Add separator aligned with readout box level
+                y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
                 
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
@@ -151,9 +151,9 @@ def create_nature_pdf(request):
                     if trans.get('days_since_transfection') is not None:
                         y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
             
-            # Add full-width separator before Days Since Fusion (bar at original position, reduced space after)
+            # Add separator before Days Since Fusion
             if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y + 0.005, width=0.38, centered=False)
+                y = draw_separator(fig1, left_x, y - 0.005, width=0.38, centered=False)
         
         if request.days_since_fusion is not None:
             y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
@@ -171,8 +171,8 @@ def create_nature_pdf(request):
                 # Calculate and show Perf. Time (start + delay)
                 perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
                 y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'])
-                if drug.get('end') is not None:
-                    y = draw_row(fig1, left_x, y, 'Perf. End:', f"{drug.get('end')} min", TINTS['drug'])
+                perf_end = drug.get('end')
+                y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', TINTS['drug'])
         
         # LIGHT STIMULATION
         if request.light_enabled:
