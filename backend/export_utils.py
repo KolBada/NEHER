@@ -631,65 +631,77 @@ def create_nature_pdf(request):
         if request.light_enabled and request.light_metrics_detrended:
             # Support both 'per_stim' and 'per_pulse' keys (backend uses 'per_pulse')
             per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
-            # Filter for stims that have actual HRV data
-            valid_stims = [(i, s) for i, s in enumerate(per_stim) if s and (
-                s.get('ln_rmssd70_detrended') is not None or 
-                s.get('ln_sdnn70_detrended') is not None or
-                s.get('pnn50_detrended') is not None
-            )]
+            # Filter for stims that have visualization data
+            valid_stims = [(i, s) for i, s in enumerate(per_stim) if s and s.get('viz')]
             
             if valid_stims:
                 page_num += 1
+                n_stims = len(valid_stims)
                 fig3b = plt.figure(figsize=(8.5, 11))
-                fig3b.suptitle('Light-Induced Corrected HRV (Detrended) Analysis', fontsize=14, fontweight='bold', y=0.96)
+                fig3b.suptitle('Light-Induced Corrected HRV (Detrended) Analysis', fontsize=14, fontweight='bold', y=0.97)
                 
-                # Panel a: ln(RMSSD70) for each stim
-                ax_a = fig3b.add_axes([0.1, 0.68, 0.85, 0.22])
-                stim_labels = [f"Stim {i+1}" for i, s in valid_stims]
-                ln_rmssd_vals = [s.get('ln_rmssd70_detrended', 0) for i, s in valid_stims]
-                x_pos = range(len(valid_stims))
-                bars_a = ax_a.bar(x_pos, ln_rmssd_vals, color=COLORS['emerald'], alpha=0.8, width=0.6)
-                ax_a.set_ylabel('ln(RMSSD₇₀)', fontsize=9)
-                ax_a.set_xticks(x_pos)
-                ax_a.set_xticklabels(stim_labels, fontsize=8)
-                ax_a.set_title('(a) ln(RMSSD₇₀) per Stimulation', fontsize=10, fontweight='bold', color=COLORS['emerald'])
-                ax_a.set_ylim(0, 8)
-                ax_a.grid(True, alpha=0.3, axis='y')
-                for bar, val in zip(bars_a, ln_rmssd_vals):
-                    if val:
-                        ax_a.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
-                                 f'{val:.2f}', ha='center', va='bottom', fontsize=7)
+                # Calculate row height based on number of stims
+                row_height = min(0.15, 0.85 / max(n_stims, 1))
+                top_margin = 0.92
                 
-                # Panel b: ln(SDNN70) for each stim
-                ax_b = fig3b.add_axes([0.1, 0.38, 0.85, 0.22])
-                ln_sdnn_vals = [s.get('ln_sdnn70_detrended', 0) for i, s in valid_stims]
-                bars_b = ax_b.bar(x_pos, ln_sdnn_vals, color=COLORS['purple'], alpha=0.8, width=0.6)
-                ax_b.set_ylabel('ln(SDNN₇₀)', fontsize=9)
-                ax_b.set_xticks(x_pos)
-                ax_b.set_xticklabels(stim_labels, fontsize=8)
-                ax_b.set_title('(b) ln(SDNN₇₀) per Stimulation', fontsize=10, fontweight='bold', color=COLORS['purple'])
-                ax_b.set_ylim(0, 8)
-                ax_b.grid(True, alpha=0.3, axis='y')
-                for bar, val in zip(bars_b, ln_sdnn_vals):
-                    if val:
-                        ax_b.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
-                                 f'{val:.2f}', ha='center', va='bottom', fontsize=7)
-                
-                # Panel c: pNN50 for each stim
-                ax_c = fig3b.add_axes([0.1, 0.08, 0.85, 0.22])
-                pnn50_vals = [s.get('pnn50_detrended', 0) for i, s in valid_stims]
-                bars_c = ax_c.bar(x_pos, pnn50_vals, color=COLORS['amber'], alpha=0.8, width=0.6)
-                ax_c.set_ylabel('pNN50₇₀ (%)', fontsize=9)
-                ax_c.set_xlabel('Stimulation', fontsize=9)
-                ax_c.set_xticks(x_pos)
-                ax_c.set_xticklabels(stim_labels, fontsize=8)
-                ax_c.set_title('(c) pNN50₇₀ per Stimulation', fontsize=10, fontweight='bold', color=COLORS['amber'])
-                ax_c.set_ylim(0, 100)
-                ax_c.grid(True, alpha=0.3, axis='y')
-                for bar, val in zip(bars_c, pnn50_vals):
-                    if val is not None:
-                        ax_c.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, 
-                                 f'{val:.1f}', ha='center', va='bottom', fontsize=7)
+                for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
+                    viz = stim_data.get('viz', {})
+                    time_rel = viz.get('time_rel', [])  # Time in seconds
+                    nn_70 = viz.get('nn_70', [])
+                    trend = viz.get('trend', [])
+                    residual = viz.get('residual', [])
+                    
+                    if not time_rel or not nn_70:
+                        continue
+                    
+                    y_pos = top_margin - (row_idx + 1) * row_height
+                    col_width = 0.26
+                    
+                    # Column 1: NN₇₀ (emerald)
+                    ax1 = fig3b.add_axes([0.08, y_pos, col_width, row_height * 0.85])
+                    ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
+                    ax1.set_facecolor('white')
+                    ax1.set_ylabel(f'Stim {stim_idx + 1}', fontsize=8, fontweight='bold', rotation=0, labelpad=25, va='center')
+                    if row_idx == 0:
+                        ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold')
+                    if row_idx == n_stims - 1:
+                        ax1.set_xlabel('Time (s)', fontsize=7)
+                    else:
+                        ax1.set_xticklabels([])
+                    ax1.tick_params(axis='both', labelsize=6)
+                    ax1.grid(True, alpha=0.3)
+                    
+                    # Column 2: NN₇₀ + Trend (emerald + amber)
+                    ax2 = fig3b.add_axes([0.38, y_pos, col_width, row_height * 0.85])
+                    ax2.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1, alpha=0.7)
+                    if trend:
+                        ax2.plot(time_rel, trend, color=COLORS['amber'], linewidth=1.5)
+                    ax2.set_facecolor('white')
+                    if row_idx == 0:
+                        ax2.set_title('NN₇₀ + Trend', fontsize=8, fontweight='bold')
+                    if row_idx == n_stims - 1:
+                        ax2.set_xlabel('Time (s)', fontsize=7)
+                    else:
+                        ax2.set_xticklabels([])
+                    ax2.set_yticklabels([])
+                    ax2.tick_params(axis='both', labelsize=6)
+                    ax2.grid(True, alpha=0.3)
+                    
+                    # Column 3: Residuals (amber)
+                    ax3 = fig3b.add_axes([0.68, y_pos, col_width, row_height * 0.85])
+                    if residual:
+                        ax3.plot(time_rel, residual, color=COLORS['amber'], linewidth=1)
+                        ax3.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+                    ax3.set_facecolor('white')
+                    if row_idx == 0:
+                        ax3.set_title('Residual (ms)', fontsize=8, fontweight='bold')
+                    if row_idx == n_stims - 1:
+                        ax3.set_xlabel('Time (s)', fontsize=7)
+                    else:
+                        ax3.set_xticklabels([])
+                    ax3.set_yticklabels([])
+                    ax3.tick_params(axis='both', labelsize=6)
+                    ax3.grid(True, alpha=0.3)
                 
                 add_page_footer(fig3b, page_num)
                 pdf.savefig(fig3b)
