@@ -2448,9 +2448,9 @@ def create_nature_csv(request):
             writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
         writer.writerow([])
     
-    # ==================== SPONTANEOUS BF TABLE ====================
+    # ==================== SPONTANEOUS BF TABLE (Table 1) ====================
     if request.per_minute_data:
-        writer.writerow(['=== SPONTANEOUS BF DATA ==='])
+        writer.writerow(['=== TABLE 1 | PER-MINUTE BEAT FREQUENCY DATA ==='])
         writer.writerow(['Window (min)', 'Mean BF (bpm)', 'Mean NN (ms)'])
         for pm in request.per_minute_data:
             minute_val = pm.get('minute', '')
@@ -2470,9 +2470,9 @@ def create_nature_csv(request):
             ])
         writer.writerow([])
     
-    # ==================== SPONTANEOUS HRV TABLE ====================
+    # ==================== SPONTANEOUS HRV TABLE (Table 2) ====================
     if request.hrv_windows:
-        writer.writerow(['=== SPONTANEOUS HRV DATA ==='])
+        writer.writerow(['=== TABLE 2 | PER-THREE MINUTES HRV DATA ==='])
         writer.writerow(['Window', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50_70', 'BF'])
         for w in request.hrv_windows:
             sdnn = w.get('sdnn')
@@ -2488,23 +2488,28 @@ def create_nature_csv(request):
             ])
         writer.writerow([])
     
-    # ==================== LIGHT HRA TABLE ====================
+    # ==================== LIGHT HRA TABLE (Table 3) ====================
     if request.light_enabled and request.light_response:
         valid = [r for r in request.light_response if r]
         if valid:
-            writer.writerow(['=== LIGHT-INDUCED HRA ==='])
-            writer.writerow(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)'])
+            writer.writerow(['=== TABLE 3 | LIGHT-INDUCED HRA ==='])
+            writer.writerow(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)'])
             for i, r in enumerate(valid):
+                # 1st TTP shows value for first stim, 0.0 for others
+                first_ttp = r.get('first_ttp_sec')
+                first_ttp_str = f"{first_ttp:.1f}" if first_ttp is not None else "0.0"
+                
                 writer.writerow([
                     i + 1,
                     round(r.get('baseline_bf', 0), 1) if r.get('baseline_bf') else '',
                     round(r.get('avg_bf', 0), 1) if r.get('avg_bf') else '',
                     round(r.get('peak_bf', 0), 1) if r.get('peak_bf') else '',
                     round(r.get('peak_norm_pct', 0), 1) if r.get('peak_norm_pct') else '',
-                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else '',
+                    first_ttp_str,
+                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else '',
                     round(r.get('bf_end', 0), 1) if r.get('bf_end') else '',
                     round(r.get('bf_end_pct', 0), 1) if r.get('bf_end_pct') else '',
-                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else '',
+                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else '',
                     round(r.get('rate_of_change', 0), 3) if r.get('rate_of_change') is not None else '',
                 ])
             
@@ -2514,27 +2519,31 @@ def create_nature_csv(request):
                     vals = [r.get(key) for r in valid if r.get(key) is not None]
                     return np.mean(vals) if vals else None
                 
+                first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
+                first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
+                
                 writer.writerow([
                     'Avg',
                     round(safe_avg('baseline_bf'), 1) if safe_avg('baseline_bf') else '',
                     round(safe_avg('avg_bf'), 1) if safe_avg('avg_bf') else '',
                     round(safe_avg('peak_bf'), 1) if safe_avg('peak_bf') else '',
                     round(safe_avg('peak_norm_pct'), 1) if safe_avg('peak_norm_pct') else '',
-                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else '',
+                    f"{first_ttp_avg:.1f}",
+                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else '',
                     round(safe_avg('bf_end'), 1) if safe_avg('bf_end') else '',
                     round(safe_avg('bf_end_pct'), 1) if safe_avg('bf_end_pct') else '',
-                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else '',
+                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else '',
                     round(safe_avg('rate_of_change'), 3) if safe_avg('rate_of_change') is not None else '',
                 ])
             writer.writerow([])
     
-    # ==================== CORRECTED HRV TABLE ====================
+    # ==================== CORRECTED HRV TABLE (Table 4) ====================
     if request.light_enabled and request.light_metrics_detrended:
         per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
         final = request.light_metrics_detrended.get('final', {})
         
         if per_stim or final:
-            writer.writerow(['=== LIGHT-INDUCED CORRECTED HRV ==='])
+            writer.writerow(['=== TABLE 4 | PER-STIMULUS DETRENDED HRV DATA ==='])
             writer.writerow(['Stim', 'ln(RMSSD70)', 'RMSSD70', 'ln(SDNN70)', 'SDNN', 'pNN50_70'])
             
             num_stims = max(5, len(per_stim))
@@ -2570,7 +2579,7 @@ def create_nature_csv(request):
     if request.per_beat_data:
         kept_beats = [b for b in request.per_beat_data if b.get('status') == 'kept']
         if kept_beats:
-            writer.writerow(['=== PER-BEAT DATA ==='])
+            writer.writerow(['=== PER-BEAT DATA (KEPT BEATS ONLY) ==='])
             writer.writerow(['Beat #', 'Time (min)', 'BF Filtered (bpm)', 'NN Filtered (ms)'])
             for i, beat in enumerate(kept_beats):
                 writer.writerow([
