@@ -128,11 +128,11 @@ def create_nature_pdf(request):
                 fontfamily=title_font)
     
     def add_page_footer(fig, page_num, total_pages=None):
-        """Add footer: p. XX | Recording Name | NEHER"""
+        """Add footer: p. XX | Recording Name | Electrophysiology Analysis Report by NEHER"""
         recording_name = request.recording_name or request.filename or 'Recording'
         fig.text(0.08, 0.025, f'p. {page_num}', fontsize=10, fontweight='bold', color=COLORS['dark'],
                 fontfamily=body_font)
-        fig.text(0.125, 0.025, f'|  {recording_name}  |  NEHER', fontsize=10, color=COLORS['gray'],
+        fig.text(0.125, 0.025, f'|  {recording_name}  |  Electrophysiology Analysis Report by NEHER', fontsize=10, color=COLORS['gray'],
                 fontfamily=body_font)
     
     def draw_header(fig, x, y, text, color, width=0.38):
@@ -603,8 +603,13 @@ def create_nature_pdf(request):
             if times and bf_values:
                 time_max = max(times) if times else 10
                 
+                # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
+                # Top chart: y from 0.48 to 0.83 (height 0.35), Bottom chart: y from 0.08 to 0.43 (height 0.35)
+                chart_left = 0.08
+                chart_width = 0.84  # 0.92 - 0.08
+                
                 # Top: BF Filtered
-                ax1 = fig2.add_axes([0.1, 0.55, 0.85, 0.35])
+                ax1 = fig2.add_axes([chart_left, 0.48, chart_width, 0.35])
                 ax1.scatter(times, bf_values, s=3, c=COLORS['emerald'], alpha=0.7, label='Filtered BF')
                 ax1.set_ylabel('BF (bpm)', fontsize=9)
                 ax1.set_xlabel('Time (min)', fontsize=9)
@@ -638,7 +643,7 @@ def create_nature_pdf(request):
                 
                 # Bottom: BF Normalized
                 if baseline_bf and baseline_bf > 0:
-                    ax2 = fig2.add_axes([0.1, 0.1, 0.85, 0.35])
+                    ax2 = fig2.add_axes([chart_left, 0.08, chart_width, 0.35])
                     bf_norm = [100 * (bf / baseline_bf) for bf in bf_values]
                     ax2.scatter(times, bf_norm, s=3, c=COLORS['emerald'], alpha=0.7)
                     ax2.axhline(y=100, color='#dc2626', linestyle='--', linewidth=1)
@@ -700,8 +705,15 @@ def create_nature_pdf(request):
             ln_sdnn_vals = [np.log(s) if s and s > 0 else None for s in sdnn_vals]
             pnn50_vals = [w.get('pnn50') for w in request.hrv_windows]
             
+            # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
+            chart_left = 0.08
+            chart_width = 0.84  # 0.92 - 0.08
+            
+            # Three charts: heights 0.22 each, with gaps between them
+            # Top: 0.60-0.82, Middle: 0.34-0.56, Bottom: 0.08-0.30
+            
             # ln(RMSSD70) - Y: 0 to 8
-            ax1 = fig3.add_axes([0.1, 0.68, 0.85, 0.22])
+            ax1 = fig3.add_axes([chart_left, 0.60, chart_width, 0.22])
             valid_idx = [i for i, v in enumerate(ln_rmssd_vals) if v is not None]
             if valid_idx:
                 ax1.plot([minutes[i] for i in valid_idx], [ln_rmssd_vals[i] for i in valid_idx],
@@ -719,7 +731,7 @@ def create_nature_pdf(request):
                     ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # ln(SDNN70) - Y: 0 to 8
-            ax2 = fig3.add_axes([0.1, 0.38, 0.85, 0.22])
+            ax2 = fig3.add_axes([chart_left, 0.34, chart_width, 0.22])
             valid_idx = [i for i, v in enumerate(ln_sdnn_vals) if v is not None]
             if valid_idx:
                 ax2.plot([minutes[i] for i in valid_idx], [ln_sdnn_vals[i] for i in valid_idx],
@@ -737,7 +749,7 @@ def create_nature_pdf(request):
                     ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
             
             # pNN50 - Y: 0 to 100
-            ax3 = fig3.add_axes([0.1, 0.08, 0.85, 0.22])
+            ax3 = fig3.add_axes([chart_left, 0.08, chart_width, 0.22])
             valid_idx = [i for i, v in enumerate(pnn50_vals) if v is not None]
             if valid_idx:
                 ax3.plot([minutes[i] for i in valid_idx], [pnn50_vals[i] for i in valid_idx],
@@ -777,9 +789,14 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
-                # Calculate row height based on number of stims
-                row_height = min(0.13, 0.78 / max(n_stims, 1))
-                top_margin = 0.85
+                # Charts positioned below title bar (0.875) and within page borders (0.08 to 0.92)
+                chart_left = 0.08
+                chart_total_width = 0.84  # 0.92 - 0.08
+                
+                # Calculate row height based on number of stims - available height is 0.78 (from 0.08 to 0.86)
+                available_height = 0.76  # from 0.08 to 0.84
+                row_height = min(0.15, available_height / max(n_stims, 1))
+                top_margin = 0.84
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -792,7 +809,7 @@ def create_nature_pdf(request):
                         continue
                     
                     y_pos = top_margin - (row_idx + 1) * row_height
-                    col_width = 0.24
+                    col_width = chart_total_width / 3 - 0.02  # Three columns with small gaps
                     
                     # Calculate shared Y-axis limits for columns 1 and 2 (NN values)
                     all_nn_values = list(nn_70) + (list(trend) if trend else [])
@@ -808,8 +825,9 @@ def create_nature_pdf(request):
                     else:
                         res_ylim = (-100, 100)
                     
-                    # Column 1: NN₇₀ (emerald) - adjusted positions for better spacing
-                    ax1 = fig3b.add_axes([0.10, y_pos, col_width, row_height * 0.85])
+                    # Column 1: NN₇₀ (emerald)
+                    col1_x = chart_left
+                    ax1 = fig3b.add_axes([col1_x, y_pos, col_width, row_height * 0.85])
                     ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
                     ax1.set_facecolor('white')
                     ax1.set_ylim(nn_ylim)
@@ -825,8 +843,9 @@ def create_nature_pdf(request):
                     ax1.tick_params(axis='both', labelsize=6)
                     ax1.grid(True, alpha=0.3)
                     
-                    # Column 2: NN₇₀ + Trend (emerald + grey) - moved left
-                    ax2 = fig3b.add_axes([0.36, y_pos, col_width, row_height * 0.85])
+                    # Column 2: NN₇₀ + Trend (emerald + grey)
+                    col2_x = chart_left + chart_total_width / 3
+                    ax2 = fig3b.add_axes([col2_x, y_pos, col_width, row_height * 0.85])
                     ax2.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1, alpha=0.7)
                     if trend:
                         ax2.plot(time_rel, trend, color='#6b7280', linewidth=1.5)  # Grey color
@@ -842,8 +861,9 @@ def create_nature_pdf(request):
                     ax2.tick_params(axis='both', labelsize=6)
                     ax2.grid(True, alpha=0.3)
                     
-                    # Column 3: Residuals (amber) - more space from column 2
-                    ax3 = fig3b.add_axes([0.66, y_pos, col_width, row_height * 0.85])
+                    # Column 3: Residuals (amber)
+                    col3_x = chart_left + 2 * chart_total_width / 3
+                    ax3 = fig3b.add_axes([col3_x, y_pos, col_width, row_height * 0.85])
                     if residual:
                         ax3.plot(time_rel, residual, color=COLORS['amber'], linewidth=1)
                         ax3.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
