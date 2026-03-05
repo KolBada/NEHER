@@ -671,14 +671,14 @@ def create_nature_pdf(request):
                     else:
                         res_ylim = (-100, 100)
                     
-                    # Column 1: NN₇₀ (emerald)
-                    ax1 = fig3b.add_axes([0.12, y_pos, col_width, row_height * 0.85])
+                    # Column 1: NN₇₀ (emerald) - adjusted positions for better spacing
+                    ax1 = fig3b.add_axes([0.10, y_pos, col_width, row_height * 0.85])
                     ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
                     ax1.set_facecolor('white')
                     ax1.set_ylim(nn_ylim)
-                    # Stim label on the left side with more padding
-                    ax1.text(-0.22, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
-                            fontsize=8, fontweight='bold', va='center', ha='right')
+                    # Stim label vertical on the left side
+                    ax1.text(-0.15, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
+                            fontsize=8, fontweight='bold', va='center', ha='right', rotation=90)
                     if row_idx == 0:
                         ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold')
                     if row_idx == n_stims - 1:
@@ -688,8 +688,8 @@ def create_nature_pdf(request):
                     ax1.tick_params(axis='both', labelsize=6)
                     ax1.grid(True, alpha=0.3)
                     
-                    # Column 2: NN₇₀ + Trend (emerald + grey)
-                    ax2 = fig3b.add_axes([0.40, y_pos, col_width, row_height * 0.85])
+                    # Column 2: NN₇₀ + Trend (emerald + grey) - moved left
+                    ax2 = fig3b.add_axes([0.36, y_pos, col_width, row_height * 0.85])
                     ax2.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1, alpha=0.7)
                     if trend:
                         ax2.plot(time_rel, trend, color='#6b7280', linewidth=1.5)  # Grey color
@@ -705,8 +705,8 @@ def create_nature_pdf(request):
                     ax2.tick_params(axis='both', labelsize=6)
                     ax2.grid(True, alpha=0.3)
                     
-                    # Column 3: Residuals (amber) - centered at 0
-                    ax3 = fig3b.add_axes([0.68, y_pos, col_width, row_height * 0.85])
+                    # Column 3: Residuals (amber) - more space from column 2
+                    ax3 = fig3b.add_axes([0.66, y_pos, col_width, row_height * 0.85])
                     if residual:
                         ax3.plot(time_rel, residual, color=COLORS['amber'], linewidth=1)
                         ax3.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
