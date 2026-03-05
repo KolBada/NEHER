@@ -2708,21 +2708,28 @@ def create_comparison_pdf(folder_name, comparison_data):
             for drug in unique_drugs[1:3]:  # Show up to 3 drugs total
                 y = draw_row(fig1, left_x, y, '', drug, width=col_width)
         
-        # Light Stim: Check if any recording has light stim - look for time patterns (e.g., "30s", "60s")
-        import re
+        # Light Stim: Check if any recording has stim_duration and isi_structure
         light_used = False
         for r in recordings:
+            # Check for stim_duration and isi_structure fields
+            stim_dur = r.get('stim_duration')
+            isi_struct = r.get('isi_structure')
+            has_light = r.get('has_light_stim')
+            
+            if has_light or (stim_dur and isi_struct):
+                light_used = True
+                break
+            
+            # Fallback: check light_stim_info for time patterns
             light_info = r.get('light_stim_info', '')
             if isinstance(light_info, list):
                 light_info = ' '.join(str(i) for i in light_info)
             light_info = str(light_info).strip()
             if light_info:
                 light_lower = light_info.lower()
-                # Check for time patterns like "30s", "60s-30s", "stim", or ISI
                 if (re.search(r'\d+s', light_info) or 
                     'stim' in light_lower or 
-                    'isi' in light_lower or
-                    (light_lower not in ['no', 'none', 'no light', '—', '-', ''])):
+                    'isi' in light_lower):
                     if 'no light' not in light_lower:
                         light_used = True
                         break
