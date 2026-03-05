@@ -183,93 +183,89 @@ def create_nature_pdf(request):
         # Separator line below title (thin black line)
         fig1.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig1.transFigure))
         
+        # Layout: two columns spanning 0.08 to 0.92 with 1cm (≈0.04) gap between them
+        # Total width: 0.84, gap: 0.04, each column: 0.40
         left_x = 0.08
-        right_x = 0.52
-        col_width = 0.40
+        right_x = 0.52  # 0.08 + 0.40 + 0.04
+        col_width = 0.40  # Each column is 0.40 wide (right column ends at 0.92)
+        
+        # Increased spacing from title bar
+        first_section_y = 0.84
+        section_gap = 0.025  # Gap between sections
         
         # LEFT COLUMN
-        y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', COLORS['header_blue'])
-        
-        # Add separator right below header (at top of table)
-        y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
+        y = draw_header(fig1, left_x, first_section_y, 'RECORDING INFO', COLORS['header_blue'], width=col_width)
         
         if request.original_filename:
-            y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename)
+            y = draw_row(fig1, left_x, y, 'Original File:', request.original_filename, width=col_width)
         if request.recording_date:
-            y = draw_row(fig1, left_x, y, 'Recording Date:', request.recording_date)
+            y = draw_row(fig1, left_x, y, 'Recording Date:', request.recording_date, width=col_width)
         if request.summary:
             if 'Total Beats' in request.summary:
-                y = draw_row(fig1, left_x, y, 'Total Beats:', request.summary['Total Beats'])
+                y = draw_row(fig1, left_x, y, 'Total Beats:', request.summary['Total Beats'], width=col_width)
             if 'Kept Beats' in request.summary:
-                y = draw_row(fig1, left_x, y, 'Kept Beats:', request.summary['Kept Beats'])
+                y = draw_row(fig1, left_x, y, 'Kept Beats:', request.summary['Kept Beats'], width=col_width)
             if 'Filter Range' in request.summary:
-                y = draw_row(fig1, left_x, y, 'Filter Range:', request.summary['Filter Range'])
+                y = draw_row(fig1, left_x, y, 'Filter Range:', request.summary['Filter Range'], width=col_width)
         
         # TISSUE INFO (below Recording Info)
         if request.organoid_info:
-            y -= 0.015
-            y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280')
+            y -= section_gap
+            y = draw_header(fig1, left_x, y, 'TISSUE INFO', '#6b7280', width=col_width)
             for idx, org in enumerate(request.organoid_info):
-                # Add separator right below header (at top of table)
-                y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
-                
                 if org.get('cell_type'):
                     cell_type = org.get('other_cell_type') if org.get('cell_type') == 'Other' else org.get('cell_type')
                     # Number the cell types: Cell Type 1, Cell Type 2, etc.
                     cell_type_label = f'Cell Type {idx + 1}:' if len(request.organoid_info) > 1 else 'Cell Type:'
-                    y = draw_row(fig1, left_x, y, cell_type_label, cell_type or '—')
+                    y = draw_row(fig1, left_x, y, cell_type_label, cell_type or '—', width=col_width)
                 if org.get('line_name'):
-                    y = draw_row(fig1, left_x, y, 'Line:', org.get('line_name'))
+                    y = draw_row(fig1, left_x, y, 'Line:', org.get('line_name'), width=col_width)
                 if org.get('passage_number'):
-                    y = draw_row(fig1, left_x, y, 'Passage:', org.get('passage_number'))
+                    y = draw_row(fig1, left_x, y, 'Passage:', org.get('passage_number'), width=col_width)
                 if org.get('age_at_recording') is not None:
-                    y = draw_row(fig1, left_x, y, 'Age at Recording:', f"{org.get('age_at_recording')} days")
+                    y = draw_row(fig1, left_x, y, 'Age at Recording:', f"{org.get('age_at_recording')} days", width=col_width)
                 if org.get('transfection'):
                     trans = org['transfection']
                     if trans.get('name'):
-                        y = draw_row(fig1, left_x, y, 'Transfection:', trans.get('name'))
+                        y = draw_row(fig1, left_x, y, 'Transfection:', trans.get('name'), width=col_width)
                     if trans.get('days_since_transfection') is not None:
-                        y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'))
-            
-            # Add separator before Days Since Fusion
-            if request.days_since_fusion is not None:
-                y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
+                        y = draw_row(fig1, left_x, y, 'Days Post-Transf.:', trans.get('days_since_transfection'), width=col_width)
         
         if request.days_since_fusion is not None:
-            y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion)
+            y = draw_row(fig1, left_x, y, 'Days Since Fusion:', request.days_since_fusion, width=col_width)
         
         # DRUG PERFUSION
         if request.all_drugs and len(request.all_drugs) > 0:
-            y -= 0.015
-            y = draw_header(fig1, left_x, y, 'DRUG PERFUSION', COLORS['purple'])
+            y -= section_gap
+            y = draw_header(fig1, left_x, y, 'DRUG PERFUSION', COLORS['purple'], width=col_width)
             for drug in request.all_drugs:
-                y = draw_row(fig1, left_x, y, 'Drug:', drug.get('name', 'Drug'), TINTS['drug'])
+                y = draw_row(fig1, left_x, y, 'Drug:', drug.get('name', 'Drug'), TINTS['drug'], width=col_width)
                 if drug.get('concentration'):
-                    y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", TINTS['drug'])
-                y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", TINTS['drug'])
-                y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", TINTS['drug'])
+                    y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", TINTS['drug'], width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", TINTS['drug'], width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", TINTS['drug'], width=col_width)
                 # Calculate and show Perf. Time (start + delay)
                 perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
-                y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'])
+                y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'], width=col_width)
                 perf_end = drug.get('end')
-                y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', TINTS['drug'])
+                y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', TINTS['drug'], width=col_width)
         
         # LIGHT STIMULATION
         if request.light_enabled:
-            y -= 0.015
-            y = draw_header(fig1, left_x, y, 'LIGHT STIMULATION', COLORS['amber'])
-            y = draw_row(fig1, left_x, y, 'Status:', 'Enabled', TINTS['light'])
+            y -= section_gap
+            y = draw_header(fig1, left_x, y, 'LIGHT STIMULATION', COLORS['amber'], width=col_width)
+            y = draw_row(fig1, left_x, y, 'Status:', 'Enabled', TINTS['light'], width=col_width)
             if request.light_stim_count and request.light_stim_count > 0:
-                y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'])
+                y = draw_row(fig1, left_x, y, 'Stims Detected:', str(request.light_stim_count), TINTS['light'], width=col_width)
             # Stims Start - from first pulse (below Stims Detected)
             if request.light_pulses and len(request.light_pulses) > 0:
                 first_pulse = request.light_pulses[0]
                 light_start = first_pulse.get('start_min')
                 if light_start is not None:
-                    y = draw_row(fig1, left_x, y, 'Stims Start:', f"{light_start:.2f} min", TINTS['light'])
+                    y = draw_row(fig1, left_x, y, 'Stims Start:', f"{light_start:.2f} min", TINTS['light'], width=col_width)
             if request.light_params:
                 if request.light_params.get('pulseDuration') is not None:
-                    y = draw_row(fig1, left_x, y, 'Stim Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
+                    y = draw_row(fig1, left_x, y, 'Stim Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'], width=col_width)
                 if request.light_params.get('interval'):
                     # Map interval values to display labels
                     interval_val = request.light_params.get('interval')
@@ -279,29 +275,29 @@ def create_nature_pdf(request):
                         '30': 'Uniform 30s',
                     }
                     interval_display = interval_display_map.get(str(interval_val), str(interval_val))
-                    y = draw_row(fig1, left_x, y, 'Inter-stimuli intervals:', interval_display, TINTS['light'])
+                    y = draw_row(fig1, left_x, y, 'Inter-stimuli intervals:', interval_display, TINTS['light'], width=col_width)
         
         # RIGHT COLUMN - READOUTS
-        y_right = 0.855
+        y_right = first_section_y
         
         # BASELINE READOUT
         if request.baseline_enabled and request.baseline:
-            y_right = draw_header(fig1, right_x, y_right, 'BASELINE READOUT', COLORS['sky'])
+            y_right = draw_header(fig1, right_x, y_right, 'BASELINE READOUT', COLORS['sky'], width=col_width)
             baseline = request.baseline
             bf_val = baseline.get('baseline_bf')
-            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{bf_val:.1f} bpm" if bf_val else '—', TINTS['baseline'])
+            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{bf_val:.1f} bpm" if bf_val else '—', TINTS['baseline'], width=col_width)
             ln_rmssd = baseline.get('baseline_ln_rmssd70')
-            y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['baseline'])
+            y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['baseline'], width=col_width)
             sdnn = baseline.get('baseline_sdnn')
             ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-            y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['baseline'])
+            y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['baseline'], width=col_width)
             pnn50 = baseline.get('baseline_pnn50')
-            y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['baseline'])
-            y_right -= 0.015
+            y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['baseline'], width=col_width)
+            y_right -= section_gap
         
         # DRUG READOUT - show even without baseline
         if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
-            y_right = draw_header(fig1, right_x, y_right, 'DRUG READOUT', COLORS['purple'])
+            y_right = draw_header(fig1, right_x, y_right, 'DRUG READOUT', COLORS['purple'], width=col_width)
             
             drug_bf = None
             drug_hrv_data = None
@@ -408,22 +404,22 @@ def create_nature_pdf(request):
                         pass
             
             # Always show drug metrics if available
-            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'])
+            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'], width=col_width)
             if drug_hrv_data:
                 ln_rmssd = drug_hrv_data.get('ln_rmssd70')
-                y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['drug'])
+                y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['drug'], width=col_width)
                 sdnn = drug_hrv_data.get('sdnn')
                 ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-                y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['drug'])
+                y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['drug'], width=col_width)
                 pnn50 = drug_hrv_data.get('pnn50')
-                y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['drug'])
+                y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['drug'], width=col_width)
             else:
-                y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'])
-            y_right -= 0.015
+                y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'], width=col_width)
+            y_right -= section_gap
         
         # LIGHT READOUT - all HRA metrics
         if request.light_enabled and (request.light_response or request.light_metrics_detrended):
-            y_right = draw_header(fig1, right_x, y_right, 'LIGHT READOUT', COLORS['amber'])
+            y_right = draw_header(fig1, right_x, y_right, 'LIGHT READOUT', COLORS['amber'], width=col_width)
             
             if request.light_response:
                 valid = [r for r in request.light_response if r]
@@ -446,16 +442,16 @@ def create_nature_pdf(request):
                     roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
                     roc = np.mean(roc_vals) if roc_vals else None
                     
-                    y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{peak_bf:.1f} bpm", TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'])
-                    y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'])
+                    y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{peak_bf:.1f} bpm", TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'], width=col_width)
             
             # Corrected HRV
             if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
@@ -464,11 +460,11 @@ def create_nature_pdf(request):
                 y_right -= 0.020  # Line height for small text
                 final = request.light_metrics_detrended['final']
                 ln_rmssd = final.get('ln_rmssd70_detrended')
-                y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['light'])
+                y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['light'], width=col_width)
                 ln_sdnn = final.get('ln_sdnn70_detrended')
-                y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['light'])
+                y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['light'], width=col_width)
                 pnn50 = final.get('pnn50_detrended')
-                y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['light'])
+                y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['light'], width=col_width)
         
         add_page_footer(fig1, page_num)
         pdf.savefig(fig1)
