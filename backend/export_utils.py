@@ -360,6 +360,8 @@ def create_nature_pdf(request):
                     recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
                     amplitude_vals = [r.get('amplitude') for r in valid if r.get('amplitude')]
                     amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                    roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
+                    roc = np.mean(roc_vals) if roc_vals else None
                     
                     y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'])
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'])
@@ -368,6 +370,7 @@ def create_nature_pdf(request):
                     y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'])
                     y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp else '—', TINTS['light'])
                     y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st else '—', TINTS['light'])
+                    y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'])
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'])
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'])
             
