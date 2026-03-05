@@ -37,7 +37,7 @@ def add_page_footer(fig, page_num, total_pages=None):
 
 
 def create_nature_pdf(request):
-    """Create a professional PDF export with Optima/Carlito typography"""
+    """Create a professional PDF export with Optima/Carlito typography - bioptima style"""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -76,13 +76,15 @@ def create_nature_pdf(request):
     page_num = 0
     total_pages = 1  # Will be updated
     
-    # Color scheme matching the reference design
+    # Color scheme matching the bioptima reference design
     COLORS = {
         'dark': '#18181b',          # Near black for text
-        'navy': '#1e3a5f',          # Dark navy blue for headers
-        'light_blue': '#e8f4fc',    # Light blue for data rows
-        'purple': '#9333ea',        # Purple for averages/totals
-        'light_purple': '#f3e8ff',  # Light purple tint
+        'header_blue': '#5ba4c9',   # Teal/cyan for table headers (like bioptima)
+        'category_blue': '#aed4e6', # Light blue for category column
+        'row_blue': '#d5eaf4',      # Very light blue for alternating rows
+        'total_red': '#c7254e',     # Red/maroon for total rows
+        'purple': '#9333ea',        # Purple for drug sections
+        'light_purple': '#e8d5f5',  # Light purple for drug rows
         'amber': '#f59e0b',         # Amber for light sections
         'light_amber': '#fef3c7',   # Light amber tint
         'gray': '#6b7280',          # Gray for secondary text
@@ -90,6 +92,14 @@ def create_nature_pdf(request):
         'line': '#374151',          # Dark line color
         'emerald': '#10b981',
         'sky': '#0ea5e9',
+        'baseline_blue': '#E0F2FE', # Light blue for baseline
+    }
+    
+    # Tints for row backgrounds
+    TINTS = {
+        'baseline': '#E0F2FE',     # Light blue
+        'drug': '#e8d5f5',         # Light purple
+        'light': '#FEF3C7',        # Light amber
     }
     
     # Calculate total pages
@@ -112,18 +122,48 @@ def create_nature_pdf(request):
     
     def add_page_header(fig, section_name):
         """Add header in the bioptima style: NEHER section_name"""
-        fig.text(0.08, 0.96, 'NEHER', fontsize=11, fontweight='bold', color=COLORS['dark'],
+        fig.text(0.08, 0.96, 'NEHER', fontsize=12, fontweight='bold', color=COLORS['dark'],
                 fontfamily=title_font)
-        fig.text(0.155, 0.96, section_name, fontsize=11, fontstyle='italic', color=COLORS['gray'],
+        fig.text(0.16, 0.96, section_name, fontsize=12, fontweight='normal', color=COLORS['gray'],
                 fontfamily=title_font)
     
-    def add_page_footer(fig, page_num, total_pages):
+    def add_page_footer(fig, page_num, total_pages=None):
         """Add footer: p. XX | Recording Name | NEHER"""
         recording_name = request.recording_name or request.filename or 'Recording'
-        fig.text(0.08, 0.025, f'p. {page_num}', fontsize=9, fontweight='bold', color=COLORS['dark'],
+        fig.text(0.08, 0.025, f'p. {page_num}', fontsize=10, fontweight='bold', color=COLORS['dark'],
                 fontfamily=body_font)
-        fig.text(0.12, 0.025, f'|  {recording_name}  |  NEHER', fontsize=9, color=COLORS['gray'],
+        fig.text(0.125, 0.025, f'|  {recording_name}  |  NEHER', fontsize=10, color=COLORS['gray'],
                 fontfamily=body_font)
+    
+    def draw_header(fig, x, y, text, color, width=0.38):
+        """Draw section header with colored background - bioptima style"""
+        # Draw rectangle header
+        fig.add_artist(mpatches.Rectangle(
+            (x, y - 0.012), width, 0.024,
+            facecolor=color, edgecolor='none', transform=fig.transFigure
+        ))
+        fig.text(x + 0.01, y, text, fontsize=9, fontweight='bold', color='white',
+                fontfamily=body_font, va='center')
+        return y - 0.028
+    
+    def draw_separator(fig, x, y, width=0.38, centered=False):
+        """Draw horizontal separator line"""
+        end_x = x + width
+        fig.add_artist(plt.Line2D([x, end_x], [y, y], color=COLORS['line'], 
+                      linewidth=0.5, transform=fig.transFigure))
+        return y - 0.008
+    
+    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18):
+        """Draw a data row with label and value"""
+        if bg_color:
+            fig.add_artist(mpatches.Rectangle(
+                (x, y - 0.008), width, 0.020,
+                facecolor=bg_color, edgecolor='none', transform=fig.transFigure
+            ))
+        fig.text(x + 0.01, y, label, fontsize=8, color=COLORS['gray'], fontfamily=body_font, va='center')
+        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=COLORS['dark'],
+                fontfamily=body_font, va='center')
+        return y - 0.020
     
     with PdfPages(buf) as pdf:
         
@@ -135,50 +175,20 @@ def create_nature_pdf(request):
         # Header
         add_page_header(fig1, 'summary')
         
-        # Main title (large, bold, Optima style)
+        # Main title (large, bold, Optima style - like bioptima)
         title = request.recording_name or request.filename or 'Recording Analysis'
-        fig1.text(0.08, 0.92, title, ha='left', va='top', fontsize=24, fontweight='bold', 
+        fig1.text(0.08, 0.91, title, ha='left', va='top', fontsize=28, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         
-        # Separator line below title
-        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.88, 0.88], color=COLORS['line'], linewidth=1.5, transform=fig1.transFigure))
+        # Separator line below title (thin black line)
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig1.transFigure))
         
         left_x = 0.08
         right_x = 0.52
-        line_height = 0.022
-        
-        def draw_section_title(fig, x, y, text):
-            """Draw section title with separator line"""
-            fig.text(x, y, text, fontsize=10, fontweight='bold', color=COLORS['dark'],
-                    fontfamily=title_font)
-            fig.add_artist(plt.Line2D([x, 0.47], [y - 0.012, y - 0.012], color=COLORS['line'], 
-                          linewidth=0.8, transform=fig.transFigure))
-            return y - 0.035
-        
-        def draw_row(fig, x, y, label, value, bg_color=None, width=0.38):
-            if bg_color:
-                fig.add_artist(mpatches.FancyBboxPatch(
-                    (x - 0.005, y - 0.007), width, 0.020,
-                    boxstyle=mpatches.BoxStyle("Round", pad=0.002),
-                    facecolor=bg_color, edgecolor='none', transform=fig.transFigure
-                ))
-            fig.text(x, y, label, fontsize=8, color=COLORS['gray'], fontfamily=body_font)
-            fig.text(x + 0.2, y, str(value), fontsize=8, fontweight='bold', color=COLORS['dark'],
-                    fontfamily=body_font)
-            return y - line_height
-        
-        def draw_header_box(fig, x, y, text, color, width=0.38):
-            """Draw colored header box"""
-            fig.add_artist(mpatches.FancyBboxPatch(
-                (x - 0.005, y - 0.008), width, 0.022,
-                boxstyle=mpatches.BoxStyle("Round", pad=0.003),
-                facecolor=color, edgecolor='none', transform=fig.transFigure
-            ))
-            fig.text(x, y, text, fontsize=8, fontweight='bold', color='white', fontfamily=body_font)
-            return y - 0.032
+        col_width = 0.40
         
         # LEFT COLUMN
-        y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', '#18181b')
+        y = draw_header(fig1, left_x, 0.855, 'RECORDING INFO', COLORS['header_blue'])
         
         # Add separator right below header (at top of table)
         y = draw_separator(fig1, left_x, y + 0.015, width=0.38, centered=False)
@@ -451,7 +461,7 @@ def create_nature_pdf(request):
             if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
                 y_right -= 0.008
                 fig1.text(right_x, y_right, 'Corrected HRV:', fontsize=7, fontstyle='italic', color='#52525b')
-                y_right -= line_height
+                y_right -= 0.020  # Line height for small text
                 final = request.light_metrics_detrended['final']
                 ln_rmssd = final.get('ln_rmssd70_detrended')
                 y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['light'])
@@ -468,7 +478,13 @@ def create_nature_pdf(request):
         if request.per_beat_data or request.per_minute_data:
             page_num += 1
             fig2 = plt.figure(figsize=(8.5, 11))
-            fig2.suptitle('Beat Frequency Analysis', fontsize=14, fontweight='bold', y=0.96)
+            fig2.patch.set_facecolor('white')
+            
+            # Bioptima-style header and title
+            add_page_header(fig2, 'traces')
+            fig2.text(0.08, 0.91, 'Beat Frequency Analysis', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig2.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig2.transFigure))
             
             # Get baseline or drug BF for normalization
             baseline_bf = None
@@ -659,7 +675,13 @@ def create_nature_pdf(request):
         if request.hrv_windows:
             page_num += 1
             fig3 = plt.figure(figsize=(8.5, 11))
-            fig3.suptitle('HRV Evolution', fontsize=14, fontweight='bold', y=0.96)
+            fig3.patch.set_facecolor('white')
+            
+            # Bioptima-style header and title
+            add_page_header(fig3, 'traces')
+            fig3.text(0.08, 0.91, 'HRV Evolution', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig3.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
             
             minutes = [w.get('minute', i) for i, w in enumerate(request.hrv_windows)]
             time_max = max(minutes) if minutes else 10
@@ -738,11 +760,17 @@ def create_nature_pdf(request):
                 page_num += 1
                 n_stims = len(valid_stims)
                 fig3b = plt.figure(figsize=(8.5, 11))
-                fig3b.suptitle('Light-Induced Corrected HRV (Detrended) Analysis', fontsize=14, fontweight='bold', y=0.97)
+                fig3b.patch.set_facecolor('white')
+                
+                # Bioptima-style header and title
+                add_page_header(fig3b, 'traces')
+                fig3b.text(0.08, 0.91, 'Corrected HRV Analysis', ha='left', va='top', fontsize=28, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
                 # Calculate row height based on number of stims
-                row_height = min(0.15, 0.85 / max(n_stims, 1))
-                top_margin = 0.92
+                row_height = min(0.13, 0.78 / max(n_stims, 1))
+                top_margin = 0.85
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -829,9 +857,20 @@ def create_nature_pdf(request):
         if request.per_minute_data:
             page_num += 1
             fig4 = plt.figure(figsize=(8.5, 11))
-            fig4.suptitle('Spontaneous Activity BF Data Table', fontsize=14, fontweight='bold', y=0.96)
+            fig4.patch.set_facecolor('white')
             
-            ax = fig4.add_axes([0.05, 0.1, 0.9, 0.8])
+            # Bioptima-style header and title
+            add_page_header(fig4, 'spontaneous activity')
+            fig4.text(0.08, 0.91, 'Beat Frequency Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig4.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig4.transFigure))
+            
+            # Table section title
+            fig4.text(0.08, 0.85, 'Table 1 | Per-Minute Beat Frequency Data', fontsize=11, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig4.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
+            
+            ax = fig4.add_axes([0.08, 0.1, 0.84, 0.72])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -929,16 +968,19 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#e5e7eb')
+                    cell.set_edgecolor('#d1d5db')
                     if row == 0:
-                        cell.set_text_props(fontweight='bold', color='white')
-                        cell.set_facecolor(COLORS['emerald'])
+                        # Header row - cyan/teal like bioptima
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['header_blue'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
-                        # Highlight AND bold baseline/drug readout rows
+                        # Highlighted baseline/drug readout rows
                         cell.set_facecolor(row_colors[row-1])
-                        cell.set_text_props(fontweight='bold')
+                        cell.set_text_props(fontweight='bold', fontfamily=body_font)
                     else:
-                        cell.set_facecolor('#f0fdf4' if row % 2 == 0 else 'white')
+                        # Alternating white/light blue rows
+                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        cell.set_text_props(fontfamily=body_font)
             
             add_page_footer(fig4, page_num)
             pdf.savefig(fig4)
@@ -948,9 +990,20 @@ def create_nature_pdf(request):
         if request.hrv_windows:
             page_num += 1
             fig5 = plt.figure(figsize=(8.5, 11))
-            fig5.suptitle('Spontaneous Activity HRV Data Table', fontsize=14, fontweight='bold', y=0.96)
+            fig5.patch.set_facecolor('white')
             
-            ax = fig5.add_axes([0.05, 0.1, 0.9, 0.8])
+            # Bioptima-style header and title
+            add_page_header(fig5, 'spontaneous activity')
+            fig5.text(0.08, 0.91, 'HRV Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig5.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
+            
+            # Table section title
+            fig5.text(0.08, 0.85, 'Table 2 | Per-Minute Heart Rate Variability Data', fontsize=11, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig5.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
+            
+            ax = fig5.add_axes([0.05, 0.1, 0.9, 0.72])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1036,16 +1089,19 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.6)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#e5e7eb')
+                    cell.set_edgecolor('#d1d5db')
                     if row == 0:
-                        cell.set_text_props(fontweight='bold', color='white')
-                        cell.set_facecolor(COLORS['purple'])
+                        # Header row - cyan/teal like bioptima
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['header_blue'])
                     elif row > 0 and row <= len(row_colors) and row_colors[row-1]:
-                        # Highlight AND bold baseline/drug readout rows
+                        # Highlighted baseline/drug readout rows
                         cell.set_facecolor(row_colors[row-1])
-                        cell.set_text_props(fontweight='bold')
+                        cell.set_text_props(fontweight='bold', fontfamily=body_font)
                     else:
-                        cell.set_facecolor('#faf5ff' if row % 2 == 0 else 'white')
+                        # Alternating white/light blue rows
+                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        cell.set_text_props(fontfamily=body_font)
             
             add_page_footer(fig5, page_num)
             pdf.savefig(fig5)
@@ -1057,9 +1113,20 @@ def create_nature_pdf(request):
             if valid:
                 page_num += 1
                 fig6 = plt.figure(figsize=(8.5, 11))
-                fig6.suptitle('Light-Induced HRA Data Table', fontsize=14, fontweight='bold', y=0.96)
+                fig6.patch.set_facecolor('white')
                 
-                ax = fig6.add_axes([0.05, 0.1, 0.9, 0.8])
+                # Bioptima-style header and title
+                add_page_header(fig6, 'light stimulus')
+                fig6.text(0.08, 0.91, 'Heart Rate Acceleration', ha='left', va='top', fontsize=28, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig6.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig6.transFigure))
+                
+                # Table section title
+                fig6.text(0.08, 0.85, 'Table 3 | Per-Stimulus HRA Metrics', fontsize=11, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig6.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
+                
+                ax = fig6.add_axes([0.05, 0.1, 0.9, 0.72])
                 ax.axis('off')
                 
                 # All HRA metrics except beats
@@ -1106,15 +1173,19 @@ def create_nature_pdf(request):
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
-                    cell.set_edgecolor('#e5e7eb')
+                    cell.set_edgecolor('#d1d5db')
                     if row == 0:
-                        cell.set_text_props(fontweight='bold', color='white')
-                        cell.set_facecolor(COLORS['amber'])
+                        # Header row - cyan/teal like bioptima
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['header_blue'])
                     elif row == len(table_data):
-                        cell.set_text_props(fontweight='bold')
-                        cell.set_facecolor('#fef3c7')
+                        # Average row - red/maroon total like bioptima
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['total_red'])
                     else:
-                        cell.set_facecolor('#fffbeb' if row % 2 == 0 else 'white')
+                        # Alternating white/light blue rows
+                        cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                        cell.set_text_props(fontfamily=body_font)
                 
                 add_page_footer(fig6, page_num)
                 pdf.savefig(fig6)
@@ -1129,9 +1200,20 @@ def create_nature_pdf(request):
             if per_stim or final:
                 page_num += 1
                 fig7 = plt.figure(figsize=(8.5, 11))
-                fig7.suptitle('Light-Induced Corrected HRV (Detrended) Data Table', fontsize=14, fontweight='bold', y=0.96)
+                fig7.patch.set_facecolor('white')
                 
-                ax = fig7.add_axes([0.05, 0.1, 0.9, 0.8])
+                # Bioptima-style header and title
+                add_page_header(fig7, 'light stimulus')
+                fig7.text(0.08, 0.91, 'Corrected HRV (Detrended)', ha='left', va='top', fontsize=28, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig7.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig7.transFigure))
+                
+                # Table section title
+                fig7.text(0.08, 0.85, 'Table 4 | Per-Stimulus Detrended HRV Metrics', fontsize=11, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig7.add_artist(plt.Line2D([0.08, 0.92], [0.835, 0.835], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
+                
+                ax = fig7.add_axes([0.05, 0.1, 0.9, 0.72])
                 ax.axis('off')
                 
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
@@ -1177,15 +1259,19 @@ def create_nature_pdf(request):
                     table.scale(1.0, 1.8)
                     
                     for (row, col), cell in table.get_celld().items():
-                        cell.set_edgecolor('#e5e7eb')
+                        cell.set_edgecolor('#d1d5db')
                         if row == 0:
-                            cell.set_text_props(fontweight='bold', color='white')
-                            cell.set_facecolor(COLORS['emerald'])
+                            # Header row - cyan/teal like bioptima
+                            cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                            cell.set_facecolor(COLORS['header_blue'])
                         elif row == len(table_data):
-                            cell.set_text_props(fontweight='bold')
-                            cell.set_facecolor('#d1fae5')
+                            # Median row - red/maroon total like bioptima
+                            cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                            cell.set_facecolor(COLORS['total_red'])
                         else:
-                            cell.set_facecolor('#ecfdf5' if row % 2 == 0 else 'white')
+                            # Alternating white/light blue rows
+                            cell.set_facecolor(COLORS['row_blue'] if row % 2 == 0 else 'white')
+                            cell.set_text_props(fontfamily=body_font)
                 
                 add_page_footer(fig7, page_num)
                 pdf.savefig(fig7)
