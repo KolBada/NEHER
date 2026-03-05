@@ -2747,7 +2747,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig2.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig2.transFigure))
         
-        ax2 = fig2.add_axes([0.02, 0.06, 0.96, 0.76])
+        ax2 = fig2.add_axes([0.06, 0.06, 0.88, 0.76])
         ax2.axis('off')
         
         # Full metadata columns - ALL information, use line breaks
@@ -2869,8 +2869,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        # First table area (upper half) - tighter margins
-        ax3a = fig3.add_axes([0.02, 0.48, 0.96, 0.34])
+        # First table area (upper half) - within page borders
+        ax3a = fig3.add_axes([0.06, 0.48, 0.88, 0.34])
         ax3a.axis('off')
         
         spont_headers = ['Rec', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
@@ -2933,8 +2933,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
-        # Second table area (lower half) - tighter margins
-        ax3b = fig3.add_axes([0.02, 0.06, 0.96, 0.34])
+        # Second table area (lower half) - within page borders
+        ax3b = fig3.add_axes([0.06, 0.06, 0.88, 0.34])
         ax3b.axis('off')
         
         # Calculate cohort baseline averages for normalization
@@ -3040,8 +3040,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # First table area - tighter margins
-        ax4a = fig4.add_axes([0.02, 0.48, 0.96, 0.34])
+        # First table area - within page borders
+        ax4a = fig4.add_axes([0.06, 0.48, 0.88, 0.34])
         ax4a.axis('off')
         
         # Reorganized columns: Rec, Baseline BF, Avg BF, Peak BF, Peak %, Amplitude, BF End, Recovery %, TTP (s), RoC (1/min)
@@ -3101,8 +3101,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # Second table area - tighter margins
-        ax4b = fig4.add_axes([0.02, 0.06, 0.96, 0.34])
+        # Second table area - within page borders
+        ax4b = fig4.add_axes([0.06, 0.06, 0.88, 0.34])
         ax4b.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
