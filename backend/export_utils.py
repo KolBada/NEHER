@@ -2831,16 +2831,16 @@ def create_comparison_pdf(folder_name, comparison_data):
             ])
         
         if meta_data:
-            table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center',
-                              colWidths=[0.18, 0.09, 0.13, 0.09, 0.06, 0.10, 0.16, 0.14])
+            # Use bbox to constrain table within axes
+            table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='center', cellLoc='center',
+                              colWidths=[0.16, 0.09, 0.13, 0.09, 0.06, 0.10, 0.18, 0.14],
+                              bbox=[0.0, 0.0, 1.0, 1.0])
             table2.auto_set_font_size(False)
             
             # Dynamic sizing based on number of recordings
             n_recs = len(recordings)
             font_size = 5 if n_recs <= 10 else 4
-            row_scale = 3.5 if n_recs <= 6 else 2.8 if n_recs <= 10 else 2.2 if n_recs <= 15 else 1.8
             table2.set_fontsize(font_size)
-            table2.scale(1.0, row_scale)
             
             for (row, col), cell in table2.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
@@ -2904,12 +2904,13 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if spont_data:
-            table3a = ax3a.table(cellText=spont_data, colLabels=spont_headers, loc='upper center', cellLoc='center')
+            # Use bbox to constrain table within axes
+            table3a = ax3a.table(cellText=spont_data, colLabels=spont_headers, loc='center', cellLoc='center',
+                                colWidths=[0.08, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11],
+                                bbox=[0.0, 0.0, 1.0, 1.0])
             table3a.auto_set_font_size(False)
             font_size = 6 if len(recordings) <= 10 else 5
             table3a.set_fontsize(font_size)
-            row_scale = 1.6 if len(recordings) <= 8 else 1.3
-            table3a.scale(1.0, row_scale)
             
             for (row, col), cell in table3a.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
@@ -3000,10 +3001,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if norm_data:
-            table3b = ax3b.table(cellText=norm_data, colLabels=norm_headers, loc='upper center', cellLoc='center')
+            # Use bbox to constrain table within axes
+            table3b = ax3b.table(cellText=norm_data, colLabels=norm_headers, loc='center', cellLoc='center',
+                                colWidths=[0.08, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11],
+                                bbox=[0.0, 0.0, 1.0, 1.0])
             table3b.auto_set_font_size(False)
             table3b.set_fontsize(font_size)
-            table3b.scale(1.0, row_scale)
             
             for (row, col), cell in table3b.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
@@ -3076,10 +3079,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if hra_data:
-            table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center')
+            # Use bbox to constrain table within axes
+            table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='center', cellLoc='center',
+                                colWidths=[0.08, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10],
+                                bbox=[0.0, 0.0, 1.0, 1.0])
             table4a.auto_set_font_size(False)
             table4a.set_fontsize(5)
-            table4a.scale(1.0, row_scale)
             
             for (row, col), cell in table4a.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
@@ -3136,10 +3141,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if norm_hra_data:
-            table4b = ax4b.table(cellText=norm_hra_data, colLabels=norm_hra_headers, loc='upper center', cellLoc='center')
+            # Use bbox to constrain table within axes
+            table4b = ax4b.table(cellText=norm_hra_data, colLabels=norm_hra_headers, loc='center', cellLoc='center',
+                                colWidths=[0.15, 0.21, 0.21, 0.21, 0.21],
+                                bbox=[0.0, 0.0, 1.0, 1.0])
             table4b.auto_set_font_size(False)
             table4b.set_fontsize(7)
-            table4b.scale(1.0, row_scale)
             
             for (row, col), cell in table4b.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
@@ -3196,12 +3203,13 @@ def create_comparison_pdf(folder_name, comparison_data):
         ])
         
         if hrv_data:
-            table5 = ax5.table(cellText=hrv_data, colLabels=hrv_headers, loc='upper center', cellLoc='center')
+            # Use bbox to constrain table within axes
+            table5 = ax5.table(cellText=hrv_data, colLabels=hrv_headers, loc='center', cellLoc='center',
+                              colWidths=[0.25, 0.25, 0.25, 0.25],
+                              bbox=[0.0, 0.0, 1.0, 1.0])
             table5.auto_set_font_size(False)
             font_size = 8 if len(recordings) <= 15 else 7
             table5.set_fontsize(font_size)
-            row_scale = 1.8 if len(recordings) <= 15 else 1.5 if len(recordings) <= 20 else 1.3
-            table5.scale(1.0, row_scale)
             
             for (row, col), cell in table5.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
