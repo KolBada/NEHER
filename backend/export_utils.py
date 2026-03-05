@@ -2686,9 +2686,17 @@ def create_comparison_pdf(folder_name, comparison_data):
         if all_drugs:
             unique_drugs = list(dict.fromkeys(all_drugs))  # Preserve order, remove duplicates
             drug_text = unique_drugs[0]
-            # Add concentration unit in parentheses if available
+            # Combine concentration and unit - e.g., "ruxolitinib (2)" + "µM" -> "ruxolitinib (2µM)"
             if drug_concentration_unit:
-                drug_text = f"{drug_text} ({drug_concentration_unit})"
+                # Check if drug_text already has a concentration in parentheses like "drug (2)"
+                import re
+                match = re.search(r'\(([^)]+)\)$', drug_text)
+                if match:
+                    # Replace "(2)" with "(2µM)"
+                    conc_value = match.group(1)
+                    drug_text = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug_text)
+                else:
+                    drug_text = f"{drug_text} ({drug_concentration_unit})"
         else:
             drug_text = '—'
         
@@ -3074,13 +3082,19 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
-        # First table area - within page borders
-        ax4a = fig4.add_axes([0.06, 0.48, 0.88, 0.34])
+        # First table area - within page borders, reduced width by 0.1cm each side
+        ax4a = fig4.add_axes([0.07, 0.48, 0.86, 0.34])
         ax4a.axis('off')
         
-        # Reorganized columns: Rec, Baseline BF, Avg BF, Peak BF, Peak %, Amplitude, BF End, Recovery %, TTP (s), RoC (1/min)
-        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', 'Amplitude', 'BF\nEnd', 'Recovery\n%', 'TTP\n(s)', 'RoC\n(1/min)']
+        # Reordered columns with 1st TTP
+        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'RoC\n(1/min)']
         hra_data = []
+        
+        def fmt_ttp(val):
+            """Format TTP - show 0.0 even if value is 0 or None"""
+            if val is None:
+                return '0.0'
+            return f"{val:.1f}"
         
         for rec in recordings:
             hra_data.append([
@@ -3089,11 +3103,12 @@ def create_comparison_pdf(folder_name, comparison_data):
                 fmt(rec.get('light_avg_bf'), 1),
                 fmt(rec.get('light_peak_bf'), 1),
                 fmt(rec.get('light_peak_norm'), 1),
-                fmt(rec.get('light_amplitude'), 1),
-                fmt(rec.get('light_recovery_bf'), 1),  # BF End
-                fmt(rec.get('light_recovery_pct'), 1),  # Recovery %
-                fmt(rec.get('light_ttp_avg'), 1),       # TTP (s)
-                fmt(rec.get('light_roc'), 4),          # RoC (1/min)
+                fmt_ttp(rec.get('light_ttp_first')),       # 1st TTP (s)
+                fmt(rec.get('light_ttp_avg'), 1),          # TTP (s)
+                fmt(rec.get('light_recovery_bf'), 1),      # BF Rec
+                fmt(rec.get('light_recovery_pct'), 1),     # Rec %
+                fmt(rec.get('light_amplitude'), 1),        # Amp. BF
+                fmt(rec.get('light_roc'), 4),              # RoC (1/min)
             ])
         
         hra_data.append([
@@ -3102,16 +3117,17 @@ def create_comparison_pdf(folder_name, comparison_data):
             fmt(hra_averages.get('light_avg_bf'), 1),
             fmt(hra_averages.get('light_peak_bf'), 1),
             fmt(hra_averages.get('light_peak_norm'), 1),
-            fmt(hra_averages.get('light_amplitude'), 1),
+            fmt_ttp(hra_averages.get('light_ttp_first')),
+            fmt(hra_averages.get('light_ttp_avg'), 1),
             fmt(hra_averages.get('light_recovery_bf'), 1),
             fmt(hra_averages.get('light_recovery_pct'), 1),
-            fmt(hra_averages.get('light_ttp_avg'), 1),
+            fmt(hra_averages.get('light_amplitude'), 1),
             fmt(hra_averages.get('light_roc'), 4),
         ])
         
         if hra_data:
             table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center',
-                                colWidths=[0.08, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.103, 0.068])
+                                colWidths=[0.07, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09])
             table4a.auto_set_font_size(False)
             table4a.set_fontsize(5)
             table4a.scale(1.0, row_scale)
