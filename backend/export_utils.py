@@ -605,20 +605,19 @@ def create_nature_pdf(request):
                 
                 # Charts positioned below title bar (0.875) and within page borders
                 # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
-                # Available height: from 0.10 (1.5cm above footer) to 0.84 (below title bar) = 0.74
-                # Two charts with height 0.30 each, gap of 0.08 between them
+                # Reduce space between bar and first chart
                 chart_left = 0.12  # Shifted right to accommodate Y-axis labels
                 chart_width = 0.78  # Adjusted width (0.92 - 0.12 - small margin)
-                chart_height = 0.30
+                chart_height = 0.32  # Increased height
                 bottom_chart_y = 0.10  # 1.5cm above footer
-                top_chart_y = 0.48  # Gap of 0.08 between charts
+                top_chart_y = 0.52  # Closer to title bar (top of chart at 0.84)
                 
                 # Top: BF Filtered
                 ax1 = fig2.add_axes([chart_left, top_chart_y, chart_width, chart_height])
                 ax1.scatter(times, bf_values, s=3, c=COLORS['emerald'], alpha=0.7, label='Filtered BF')
                 ax1.set_ylabel('BF (bpm)', fontsize=9)
                 ax1.set_xlabel('Time (min)', fontsize=9)
-                ax1.set_title('Beat Frequency (Filtered)', fontsize=10, fontweight='bold', pad=8)
+                ax1.set_title('Beat Frequency (Filtered)', fontsize=10, fontweight='bold', pad=6)
                 ax1.set_xlim(0, time_max * 1.05)
                 
                 # Add drug regions with legend
@@ -698,9 +697,12 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title
             add_page_header(fig3, 'traces')
-            fig3.text(0.08, 0.91, 'HRV Evolution', ha='left', va='top', fontsize=28, fontweight='bold', 
+            # Two-line title: "Heart Rate Variability" on first line, "Evolution" on second
+            fig3.text(0.08, 0.92, 'Heart Rate Variability', ha='left', va='top', fontsize=24, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
-            fig3.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
+            fig3.text(0.08, 0.885, 'Evolution', ha='left', va='top', fontsize=24, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig3.add_artist(plt.Line2D([0.08, 0.92], [0.855, 0.855], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
             
             minutes = [w.get('minute', i) for i, w in enumerate(request.hrv_windows)]
             time_max = max(minutes) if minutes else 10
@@ -710,18 +712,16 @@ def create_nature_pdf(request):
             ln_sdnn_vals = [np.log(s) if s and s > 0 else None for s in sdnn_vals]
             pnn50_vals = [w.get('pnn50') for w in request.hrv_windows]
             
-            # Charts positioned below title bar (0.875) and within page borders
-            # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
-            # Available height: from 0.10 to 0.84 = 0.74
-            # Three charts with height 0.20 each, gaps of 0.07 between them
+            # Charts positioned below title bar and within page borders
+            # Leave 1.5cm (~0.055) above footer
             chart_left = 0.12  # Shifted right to accommodate Y-axis labels
             chart_width = 0.78  # Adjusted width
-            chart_height = 0.20
+            chart_height = 0.21
             
-            # Positions: bottom at 0.10, middle at 0.37, top at 0.64
+            # Positions: closer to title bar, bottom at 0.10
             bottom_y = 0.10
-            middle_y = 0.37
-            top_y = 0.64
+            middle_y = 0.38
+            top_y = 0.62
             
             # ln(RMSSD70) - Y: 0 to 8
             ax1 = fig3.add_axes([chart_left, top_y, chart_width, chart_height])
@@ -796,20 +796,23 @@ def create_nature_pdf(request):
                 
                 # Bioptima-style header and title
                 add_page_header(fig3b, 'traces')
-                fig3b.text(0.08, 0.91, 'Corrected HRV Analysis', ha='left', va='top', fontsize=28, fontweight='bold', 
+                # Two-line title: "Light-induced Corrected HRV" on first line, "Analysis" on second
+                fig3b.text(0.08, 0.92, 'Light-induced Corrected HRV', ha='left', va='top', fontsize=22, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
-                fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.875, 0.875], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
+                fig3b.text(0.08, 0.885, 'Analysis', ha='left', va='top', fontsize=22, fontweight='bold', 
+                         color=COLORS['dark'], fontfamily=title_font)
+                fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.855, 0.855], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
-                # Charts positioned below title bar (0.875) and within page borders
-                # Leave 1.5cm (~0.055) above footer, shift right to avoid Y-axis label overflow
+                # Charts positioned below title bar and within page borders
+                # Leave 1.5cm (~0.055) above footer
                 chart_left = 0.12  # Shifted right to accommodate Y-axis labels and stim labels
-                chart_total_width = 0.80  # 0.92 - 0.12
+                chart_total_width = 0.78  # Ensure charts don't overflow right
                 
                 # Calculate row height based on number of stims
-                # Available height: from 0.10 (1.5cm above footer) to 0.84 = 0.74
-                available_height = 0.74
+                # Available height: from 0.10 to 0.83 = 0.73
+                available_height = 0.73
                 row_height = min(0.14, available_height / max(n_stims, 1))
-                top_margin = 0.84
+                top_margin = 0.83
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
