@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ExportPanel({
   metrics, hrvResults, lightHrv, lightResponse,
   onExportCsv, onExportXlsx, onExportPdf,
-  loading, recordingName, drugUsed, perMinuteData,
+  loading, recordingName, onRecordingNameChange, drugUsed, perMinuteData,
   originalFilename,
   // Drug readout settings for metrics availability
   drugReadoutSettings
@@ -23,30 +24,30 @@ export default function ExportPanel({
   return (
     <div className="space-y-4" data-testid="export-panel">
       {/* Recording Info */}
-      {(recordingName || originalFilename) && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardContent className="py-3">
-            <div className="flex items-center gap-4 flex-wrap">
-              {recordingName && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-500">Recording:</span>
-                  <Badge variant="outline" className="font-data text-[10px] border-emerald-800 text-emerald-400">
-                    {recordingName}
-                  </Badge>
-                </div>
-              )}
-              {originalFilename && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-500">ABF File:</span>
-                  <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
-                    {originalFilename}
-                  </Badge>
-                </div>
-              )}
+      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
+        <CardContent className="py-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-500">Recording Name:</span>
+              <Input
+                data-testid="export-recording-name-input"
+                value={recordingName}
+                onChange={(e) => onRecordingNameChange?.(e.target.value)}
+                className="h-6 w-48 text-[10px] font-data bg-zinc-950 border-zinc-700 text-emerald-400 px-2 rounded-sm"
+                placeholder="Enter recording name..."
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            {originalFilename && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-500">ABF File:</span>
+                <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
+                  {originalFilename}
+                </Badge>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardHeader className="pb-2">

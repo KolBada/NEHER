@@ -1974,6 +1974,7 @@ function App() {
               onExportPdf={() => { handleExportPdf(); setHasExported(true); }}
               loading={exportLoading}
               recordingName={recordingName}
+              onRecordingNameChange={setRecordingName}
               drugUsed={[...selectedDrugs, ...otherDrugs.map(d => d.name)].filter(Boolean).join(',')}
               perMinuteData={perMinuteData}
               originalFilename={activeFile?.filename}
@@ -1989,6 +1990,8 @@ function App() {
                 onSaveComplete={handleSaveComplete}
                 existingRecordingId={savedRecordingId}
                 existingFolderId={savedFolderId}
+                recordingName={recordingName}
+                onRecordingNameChange={setRecordingName}
                 recordingDate={recordingDate}
                 setRecordingDate={handleRecordingDateChange}
                 organoidInfo={organoidInfo}

@@ -17,6 +17,9 @@ export default function SaveRecording({
   onSaveComplete, 
   existingRecordingId = null,
   existingFolderId = null,
+  // Recording name sync with parent
+  recordingName,
+  onRecordingNameChange,
   // Organoid/Cell info props
   recordingDate,
   setRecordingDate,
@@ -38,7 +41,6 @@ export default function SaveRecording({
   const [mode, setMode] = useState(existingRecordingId ? 'update' : 'new'); // 'new', 'existing', 'update'
   const [selectedFolderId, setSelectedFolderId] = useState(existingFolderId || '');
   const [newFolderName, setNewFolderName] = useState('');
-  const [recordingName, setRecordingName] = useState(analysisState?.recordingName || analysisState?.filename || 'Untitled');
 
   // Track which samples have transfection expanded
   const [expandedTransfection, setExpandedTransfection] = useState({});
@@ -465,7 +467,7 @@ export default function SaveRecording({
             <Label className="text-xs text-zinc-500">Recording Name</Label>
             <Input
               value={recordingName}
-              onChange={(e) => setRecordingName(e.target.value)}
+              onChange={(e) => onRecordingNameChange?.(e.target.value)}
               placeholder="Enter recording name"
               className="bg-zinc-950 border-zinc-800 h-9 text-sm"
             />
