@@ -1978,6 +1978,7 @@ function App() {
               drugUsed={[...selectedDrugs, ...otherDrugs.map(d => d.name)].filter(Boolean).join(',')}
               perMinuteData={perMinuteData}
               originalFilename={activeFile?.filename}
+              recordingDate={recordingDate}
               drugReadoutSettings={drugReadoutSettings}
             />
           </TabsContent>

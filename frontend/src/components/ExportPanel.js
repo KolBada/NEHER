@@ -10,7 +10,7 @@ export default function ExportPanel({
   metrics, hrvResults, lightHrv, lightResponse,
   onExportCsv, onExportXlsx, onExportPdf,
   loading, recordingName, onRecordingNameChange, drugUsed, perMinuteData,
-  originalFilename,
+  originalFilename, recordingDate,
   // Drug readout settings for metrics availability
   drugReadoutSettings
 }) {
@@ -179,6 +179,18 @@ export default function ExportPanel({
                     <div className="flex justify-between">
                       <span>Recording Name</span>
                       <span className="text-emerald-400">{recordingName}</span>
+                    </div>
+                  )}
+                  {originalFilename && (
+                    <div className="flex justify-between">
+                      <span>Original File</span>
+                      <span className="text-zinc-300">{originalFilename}</span>
+                    </div>
+                  )}
+                  {recordingDate && (
+                    <div className="flex justify-between">
+                      <span>Recording Date</span>
+                      <span className="text-cyan-400">{recordingDate}</span>
                     </div>
                   )}
                   {drugUsed && (
