@@ -2641,15 +2641,26 @@ def create_comparison_pdf(folder_name, comparison_data):
         for r in recordings:
             drug_info_raw = r.get('drug_info')
             if isinstance(drug_info_raw, dict):
-                conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '')
+                conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '') or drug_info_raw.get('conc_unit', '')
                 if conc_unit and not drug_concentration_unit:
                     drug_concentration_unit = conc_unit
+            # Also check if drug_info is a string with concentration like "Nepi 100nM"
+            elif isinstance(drug_info_raw, str) and drug_info_raw:
+                # Try to extract unit from string like "100nM", "10uM", etc.
+                import re
+                unit_match = re.search(r'\d+\s*(nM|µM|uM|mM|pM)', drug_info_raw, re.IGNORECASE)
+                if unit_match and not drug_concentration_unit:
+                    drug_concentration_unit = unit_match.group(1)
             parsed = parse_drug_info(drug_info_raw)
             if parsed:
                 if isinstance(parsed, list):
                     all_drugs.extend(parsed)
                 else:
                     all_drugs.append(parsed)
+        
+        # Default to µM if we have drugs but no unit found
+        if all_drugs and not drug_concentration_unit:
+            drug_concentration_unit = 'µM'
         
         if all_drugs:
             unique_drugs = list(dict.fromkeys(all_drugs))  # Preserve order, remove duplicates
