@@ -2795,116 +2795,96 @@ def create_comparison_pdf(folder_name, comparison_data):
         meta_data = []
         
         for rec in recordings:
-            # Get recording name with file - full info with line breaks
+            # Get recording name with file
             rec_name = rec.get('name', '')
             abf_file = rec.get('abf_filename', '') or rec.get('filename', '') or rec.get('abf_file', '')
             rec_display = f"{rec_name}\n{abf_file}" if abf_file else rec_name
             
-            # Parse hSpO Info - check multiple possible field names
+            # Parse hSpO Info - from hspo_info dict
             hspo_info_parts = []
-            hspo_line = rec.get('hspo_line') or rec.get('hspo_info', {}).get('line') if isinstance(rec.get('hspo_info'), dict) else None
-            hspo_passage = rec.get('hspo_passage') or rec.get('hspo_info', {}).get('passage') if isinstance(rec.get('hspo_info'), dict) else None
-            hspo_age_val = rec.get('hspo_age') or rec.get('hspo_info', {}).get('age') if isinstance(rec.get('hspo_info'), dict) else None
-            hspo_status = rec.get('hspo_status') or rec.get('hspo_info', {}).get('status') if isinstance(rec.get('hspo_info'), dict) else None
-            
-            # If hspo_info is a dict with nested data
-            if isinstance(rec.get('hspo_info'), dict):
-                hspo_dict = rec.get('hspo_info')
-                if not hspo_line:
-                    hspo_line = hspo_dict.get('line', '')
-                if not hspo_passage:
-                    hspo_passage = hspo_dict.get('passage', '')
-                if not hspo_age_val:
-                    hspo_age_val = hspo_dict.get('age', '')
-                if not hspo_status:
-                    hspo_status = hspo_dict.get('status', '')
-            
-            if hspo_line:
-                hspo_info_parts.append(str(hspo_line))
-            if hspo_passage:
-                hspo_info_parts.append(f"P{hspo_passage}")
-            if hspo_age_val:
-                hspo_info_parts.append(f"D{hspo_age_val}")
-            if hspo_status:
-                hspo_info_parts.append(str(hspo_status))
+            hspo = rec.get('hspo_info') or {}
+            if isinstance(hspo, dict):
+                if hspo.get('line_name'):
+                    hspo_info_parts.append(str(hspo.get('line_name')))
+                if hspo.get('passage'):
+                    hspo_info_parts.append(f"P{hspo.get('passage')}")
+                if hspo.get('age'):
+                    hspo_info_parts.append(f"D{hspo.get('age')}")
+                if hspo.get('has_transduction'):
+                    hspo_info_parts.append('Transduced')
             hspo_info = '\n'.join(hspo_info_parts) if hspo_info_parts else '—'
             
-            # Parse hCO Info - check multiple possible field names
+            # Parse hCO Info - from hco_info dict
             hco_info_parts = []
-            hco_line = rec.get('hco_line') or rec.get('hco_info', {}).get('line') if isinstance(rec.get('hco_info'), dict) else None
-            hco_passage = rec.get('hco_passage') or rec.get('hco_info', {}).get('passage') if isinstance(rec.get('hco_info'), dict) else None
-            hco_age_val = rec.get('hco_age') or rec.get('hco_info', {}).get('age') if isinstance(rec.get('hco_info'), dict) else None
-            
-            if isinstance(rec.get('hco_info'), dict):
-                hco_dict = rec.get('hco_info')
-                if not hco_line:
-                    hco_line = hco_dict.get('line', '')
-                if not hco_passage:
-                    hco_passage = hco_dict.get('passage', '')
-                if not hco_age_val:
-                    hco_age_val = hco_dict.get('age', '')
-            
-            if hco_line:
-                hco_info_parts.append(str(hco_line))
-            if hco_passage:
-                hco_info_parts.append(f"P{hco_passage}")
-            if hco_age_val:
-                hco_info_parts.append(f"D{hco_age_val}")
+            hco = rec.get('hco_info') or {}
+            if isinstance(hco, dict):
+                if hco.get('line_name'):
+                    hco_info_parts.append(str(hco.get('line_name')))
+                if hco.get('passage'):
+                    hco_info_parts.append(f"P{hco.get('passage')}")
+                if hco.get('age'):
+                    hco_info_parts.append(f"D{hco.get('age')}")
             hco_info = '\n'.join(hco_info_parts) if hco_info_parts else '—'
             
-            # Fusion - check for date or age
-            fusion_date = rec.get('fusion_date') or rec.get('fusion_info', {}).get('date') if isinstance(rec.get('fusion_info'), dict) else None
-            fusion_age_val = rec.get('fusion_age') or rec.get('fusion_info', {}).get('age') if isinstance(rec.get('fusion_info'), dict) else None
-            fusion = str(fusion_date) if fusion_date else (str(fusion_age_val) if fusion_age_val else '—')
+            # Fusion date
+            fusion = rec.get('fusion_date', '') or '—'
             
-            # Drug info - FULL info with concentration and perf time
-            drug_info_raw = rec.get('drug_info', '')
+            # Drug info - from drug_info list of dicts
+            drug_info_raw = rec.get('drug_info', [])
             drug_parts = []
-            if isinstance(drug_info_raw, dict):
-                drug_name = drug_info_raw.get('name', '')
-                drug_conc = drug_info_raw.get('concentration', '')
-                drug_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '') or 'µM'
-                drug_perf_time = drug_info_raw.get('perf_time', '') or drug_info_raw.get('perfusion_time', '')
-                if drug_name:
-                    drug_parts.append(drug_name)
-                    if drug_conc:
-                        drug_parts.append(f"{drug_conc}{drug_unit}")
-                    if drug_perf_time:
-                        drug_parts.append(f"Perf. Time: {drug_perf_time}")
-            elif isinstance(drug_info_raw, list):
+            if isinstance(drug_info_raw, list):
                 for d in drug_info_raw:
                     if isinstance(d, dict):
                         name = d.get('name', '')
                         conc = d.get('concentration', '')
-                        unit = d.get('concentration_unit', '') or d.get('unit', '') or 'µM'
+                        unit = d.get('concentration_unit', '') or 'µM'
+                        perf_time = d.get('perfusion_time', '')
                         if name:
-                            drug_parts.append(f"{name} {conc}{unit}" if conc else name)
-                    elif d:
-                        drug_parts.append(str(d))
+                            drug_str = name
+                            if conc:
+                                drug_str += f" {conc}{unit}"
+                            if perf_time:
+                                drug_str += f"\nPerf: {perf_time}"
+                            drug_parts.append(drug_str)
+            elif isinstance(drug_info_raw, dict):
+                name = drug_info_raw.get('name', '')
+                conc = drug_info_raw.get('concentration', '')
+                unit = drug_info_raw.get('concentration_unit', '') or 'µM'
+                perf_time = drug_info_raw.get('perfusion_time', '')
+                if name:
+                    drug_str = name
+                    if conc:
+                        drug_str += f" {conc}{unit}"
+                    if perf_time:
+                        drug_str += f"\nPerf: {perf_time}"
+                    drug_parts.append(drug_str)
             elif drug_info_raw and str(drug_info_raw).lower() not in ['no', 'none', 'no drug', '—', '-', '']:
                 drug_parts.append(str(drug_info_raw))
             drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
             
-            # Light stim info - FULL info with stim duration and ISI
-            light_info_raw = rec.get('light_stim_info', '') or rec.get('light_info', '')
+            # Light stim info - check has_light_stim and light_stim_info
             light_parts = []
-            if isinstance(light_info_raw, dict):
-                stim_dur = light_info_raw.get('stim_duration', '') or light_info_raw.get('duration', '')
-                isi = light_info_raw.get('isi', '') or light_info_raw.get('ISI', '')
-                if stim_dur:
-                    light_parts.append(f"{stim_dur}s stim" if not str(stim_dur).endswith('s') else f"{stim_dur} stim")
-                if isi:
-                    light_parts.append(f"ISI: {isi}")
-            elif isinstance(light_info_raw, list):
-                for item in light_info_raw:
-                    if item:
-                        light_parts.append(str(item))
-            elif light_info_raw and str(light_info_raw).lower() not in ['no', 'none', 'no light', '—', '-', '']:
-                light_parts.append(str(light_info_raw))
+            if rec.get('has_light_stim'):
+                light_info_raw = rec.get('light_stim_info', '')
+                if isinstance(light_info_raw, dict):
+                    stim_dur = light_info_raw.get('stim_duration', '') or light_info_raw.get('duration', '')
+                    isi = light_info_raw.get('isi', '') or light_info_raw.get('ISI', '')
+                    if stim_dur:
+                        light_parts.append(f"{stim_dur}s stim")
+                    if isi:
+                        light_parts.append(f"ISI: {isi}")
+                elif isinstance(light_info_raw, list):
+                    for item in light_info_raw:
+                        if item:
+                            light_parts.append(str(item))
+                elif light_info_raw:
+                    light_parts.append(str(light_info_raw))
+                if not light_parts:
+                    light_parts.append('Yes')
             light_info = '\n'.join(light_parts) if light_parts else '—'
             
-            # Notes - FULL info
-            notes = rec.get('notes', '') or '—'
+            # Notes
+            notes = rec.get('notes', '') or rec.get('recording_description', '') or '—'
             
             meta_data.append([
                 rec_display,  # Full name
