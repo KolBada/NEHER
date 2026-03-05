@@ -491,7 +491,7 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title - moved 0.2cm lower
             add_page_header(fig2, 'traces')
-            fig2.text(0.08, 0.90, 'Beat Frequency Analysis', ha='left', va='top', fontsize=28, fontweight='bold', 
+            fig2.text(0.08, 0.90, 'BF Evolution', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig2.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig2.transFigure))
             
@@ -800,17 +800,16 @@ def create_nature_pdf(request):
                          color=COLORS['dark'], fontfamily=title_font)
                 fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
                 
-                # Charts positioned below title bar - first trace at 1cm from bar
-                # Moved 1cm higher
+                # Charts positioned below title bar
+                # Moved 0.3cm lower (subtract ~0.011)
                 chart_left = 0.13
                 chart_total_width = 0.77
                 col3_offset = 0.02
                 
                 # Calculate row height based on number of stims
-                # First row top at 0.83, moved 1cm higher = 0.87
                 available_height = 0.73
                 row_height = min(0.14, available_height / max(n_stims, 1))
-                top_margin = 0.87  # Moved 1cm higher
+                top_margin = 0.86  # Moved 0.3cm lower from 0.87
                 
                 for row_idx, (stim_idx, stim_data) in enumerate(valid_stims):
                     viz = stim_data.get('viz', {})
@@ -904,16 +903,16 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title - moved 0.2cm lower
             add_page_header(fig4, 'spontaneous activity')
-            fig4.text(0.08, 0.90, 'Beat Frequency Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+            fig4.text(0.08, 0.90, 'Beat Frequency', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig4.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig4.transFigure))
             
-            # Table section title - moved lower
+            # Table section title - moved 0.7cm higher
             fig4.text(0.08, 0.84, 'Table 1 | Per-Minute Beat Frequency Data', fontsize=11, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
             
-            ax = fig4.add_axes([0.08, 0.1, 0.84, 0.70])
+            ax = fig4.add_axes([0.08, 0.12, 0.84, 0.68])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1037,16 +1036,16 @@ def create_nature_pdf(request):
             
             # Bioptima-style header and title - moved 0.2cm lower
             add_page_header(fig5, 'spontaneous activity')
-            fig5.text(0.08, 0.90, 'Heart Rate Variability Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+            fig5.text(0.08, 0.90, 'Heart Rate Variability', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
             
-            # Table section title - moved lower
-            fig5.text(0.08, 0.84, 'Table 2 | Per-Three Minutes Heart Rate Variability Data', fontsize=11, fontweight='bold', 
+            # Table section title - moved 0.7cm higher
+            fig5.text(0.08, 0.84, 'Table 2 | Per-Three Minutes HRV Data', fontsize=11, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
             
-            ax = fig5.add_axes([0.08, 0.1, 0.84, 0.70])
+            ax = fig5.add_axes([0.08, 0.12, 0.84, 0.68])
             ax.axis('off')
             
             # Get baseline and drug readout windows for highlighting
@@ -1160,16 +1159,16 @@ def create_nature_pdf(request):
                 
                 # Bioptima-style header and title - moved 0.2cm lower
                 add_page_header(fig6, 'light stimulus')
-                fig6.text(0.08, 0.90, 'Heart Rate Adaptation Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+                fig6.text(0.08, 0.90, 'Heart Rate Adaptation', ha='left', va='top', fontsize=28, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig6.transFigure))
                 
-                # Table section title - moved lower
-                fig6.text(0.08, 0.84, 'Table 3 | Per-Stimulus HRA Metrics', fontsize=11, fontweight='bold', 
+                # Table section title - moved 0.7cm higher
+                fig6.text(0.08, 0.84, 'Table 3 | Per-Stimulus HRA Data', fontsize=11, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig6.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig6.transFigure))
                 
-                ax = fig6.add_axes([0.08, 0.1, 0.84, 0.70])
+                ax = fig6.add_axes([0.08, 0.12, 0.84, 0.68])
                 ax.axis('off')
                 
                 # All HRA metrics except beats
@@ -1247,16 +1246,16 @@ def create_nature_pdf(request):
                 
                 # Bioptima-style header and title - moved 0.2cm lower
                 add_page_header(fig7, 'light stimulus')
-                fig7.text(0.08, 0.90, 'Corrected HRV Data', ha='left', va='top', fontsize=28, fontweight='bold', 
+                fig7.text(0.08, 0.90, 'Corrected HRV', ha='left', va='top', fontsize=28, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig7.transFigure))
                 
-                # Table section title - moved lower
-                fig7.text(0.08, 0.84, 'Table 4 | Per-Stimulus Detrended HRV Metrics', fontsize=11, fontweight='bold', 
+                # Table section title - moved 0.7cm higher
+                fig7.text(0.08, 0.84, 'Table 4 | Per-Stimulus Detrended HRV Data', fontsize=11, fontweight='bold', 
                          color=COLORS['dark'], fontfamily=title_font)
                 fig7.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig7.transFigure))
                 
-                ax = fig7.add_axes([0.08, 0.1, 0.84, 0.70])
+                ax = fig7.add_axes([0.08, 0.12, 0.84, 0.68])
                 ax.axis('off')
                 
                 headers = ['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀']
