@@ -1810,35 +1810,31 @@ def create_nature_excel(request):
             for col in range(1, 7):
                 ws_corr.column_dimensions[get_column_letter(col)].width = 14
     
-    # ==================== SHEET 6: PER-BEAT DATA ====================
+    # ==================== SHEET 6: PER-BEAT DATA (kept beats only) ====================
     if request.per_beat_data:
-        ws_beat = wb.create_sheet('Per-Beat')
-        ws_beat.append(['Beat #', 'Time (min)', 'BF (bpm)', 'NN (ms)', 'Status'])
-        for cell in ws_beat[1]:
-            cell.font = header_font
-            cell.fill = emerald_fill
-            cell.border = thin_border
-        
-        for i, beat in enumerate(request.per_beat_data):
-            ws_beat.append([
-                i + 1,
-                round(beat.get('time_min', 0), 4) if beat.get('time_min') is not None else None,
-                round(beat.get('bf_bpm', 0), 1) if beat.get('bf_bpm') is not None else None,
-                round(beat.get('nn_ms', 0), 1) if beat.get('nn_ms') is not None else None,
-                beat.get('status', 'kept'),
-            ])
-            
-            row_num = ws_beat.max_row
-            for cell in ws_beat[row_num]:
+        kept_beats = [b for b in request.per_beat_data if b.get('status') == 'kept']
+        if kept_beats:
+            ws_beat = wb.create_sheet('Per-Beat')
+            ws_beat.append(['Beat #', 'Time (min)', 'BF (bpm)', 'NN (ms)'])
+            for cell in ws_beat[1]:
+                cell.font = header_font
+                cell.fill = emerald_fill
                 cell.border = thin_border
             
-            # Highlight removed beats
-            if beat.get('status') == 'removed':
+            for i, beat in enumerate(kept_beats):
+                ws_beat.append([
+                    i + 1,
+                    round(beat.get('time_min', 0), 4) if beat.get('time_min') is not None else None,
+                    round(beat.get('bf_bpm', 0), 1) if beat.get('bf_bpm') is not None else None,
+                    round(beat.get('nn_ms', 0), 1) if beat.get('nn_ms') is not None else None,
+                ])
+                
+                row_num = ws_beat.max_row
                 for cell in ws_beat[row_num]:
-                    cell.fill = PatternFill(start_color='FEE2E2', end_color='FEE2E2', fill_type='solid')
-        
-        for col in range(1, 6):
-            ws_beat.column_dimensions[get_column_letter(col)].width = 14
+                    cell.border = thin_border
+            
+            for col in range(1, 5):
+                ws_beat.column_dimensions[get_column_letter(col)].width = 14
     
     buf = io.BytesIO()
     wb.save(buf)
