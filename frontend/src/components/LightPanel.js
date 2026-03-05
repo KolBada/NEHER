@@ -780,7 +780,7 @@ function LightPanel({
                           fill={drug.color.fill} 
                           fillOpacity={0.15 + (idx * 0.05)} 
                           stroke="none" 
-                          ifOverflow="extendDomain" 
+                          ifOverflow="hidden" 
                         />
                       ))}
                       {/* Highlight pulse regions - only when light stim is enabled */}
