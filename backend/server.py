@@ -1210,6 +1210,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
         
         # Get drug HRV from hrv_windows
         if drug_hrv_minute is not None and hrv_windows:
+            result['drug_hrv_readout_minute'] = drug_hrv_minute  # Store HRV readout minute
             for w in hrv_windows:
                 if w.get('minute') == drug_hrv_minute:
                     result['drug_ln_rmssd70'] = w.get('ln_rmssd70')
