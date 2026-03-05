@@ -1338,7 +1338,7 @@ def create_nature_pdf(request):
 
 
 def create_nature_excel(request):
-    """Create a clean Excel export matching PDF structure"""
+    """Create a clean Excel export matching PDF structure with multiple sheets"""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
     from openpyxl.utils import get_column_letter
@@ -1350,6 +1350,7 @@ def create_nature_excel(request):
     section_font = Font(bold=True, size=11)
     data_font = Font(size=9)
     bold_data_font = Font(bold=True, size=9)
+    avg_font = Font(bold=True, color='FFFFFF', size=9)
     
     emerald_fill = PatternFill(start_color='10B981', end_color='10B981', fill_type='solid')
     purple_fill = PatternFill(start_color='A855F7', end_color='A855F7', fill_type='solid')
@@ -1357,11 +1358,11 @@ def create_nature_excel(request):
     sky_fill = PatternFill(start_color='0EA5E9', end_color='0EA5E9', fill_type='solid')
     dark_fill = PatternFill(start_color='18181B', end_color='18181B', fill_type='solid')
     gray_fill = PatternFill(start_color='6B7280', end_color='6B7280', fill_type='solid')
+    avg_fill = PatternFill(start_color='F87171', end_color='F87171', fill_type='solid')
     
     baseline_fill = PatternFill(start_color='E0F2FE', end_color='E0F2FE', fill_type='solid')
     drug_fill = PatternFill(start_color='F3E8FF', end_color='F3E8FF', fill_type='solid')
     light_fill = PatternFill(start_color='FEF3C7', end_color='FEF3C7', fill_type='solid')
-    avg_fill = PatternFill(start_color='D1FAE5', end_color='D1FAE5', fill_type='solid')
     
     thin_border = Border(
         left=Side(style='thin', color='E5E7EB'),
@@ -1369,6 +1370,25 @@ def create_nature_excel(request):
         top=Side(style='thin', color='E5E7EB'),
         bottom=Side(style='thin', color='E5E7EB')
     )
+    
+    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    def fmt(val, dec=2):
+        if val is None:
+            return '—'
+        try:
+            if dec == 0:
+                return f"{float(val):.0f}"
+            elif dec == 1:
+                return f"{float(val):.1f}"
+            elif dec == 3:
+                return f"{float(val):.3f}"
+            elif dec == 4:
+                return f"{float(val):.4f}"
+            return f"{float(val):.{dec}f}"
+        except:
+            return '—'
     
     # ==================== SHEET 1: SUMMARY ====================
     ws = wb.active
@@ -1501,7 +1521,6 @@ def create_nature_excel(request):
             perf_start = drug.get('start', 0) or 0
             perf_delay = drug.get('delay', 0) or 0
             perf_time = perf_start + perf_delay  # Default
-            # Try to get HRV readout minute from drug_readout_settings
             if request.drug_readout_settings:
                 settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
                 if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
@@ -1561,13 +1580,9 @@ def create_nature_excel(request):
                 left_row += 1
             if request.light_params.get('interval'):
                 interval_val = request.light_params.get('interval')
-                interval_display_map = {
-                    'decreasing': '60s-30s-20s-10s',
-                    '60': 'Uniform 60s',
-                    '30': 'Uniform 30s',
-                }
-                interval_display = interval_display_map.get(str(interval_val), str(interval_val))
-                ws.cell(row=left_row, column=left_col, value='Inter-stimuli intervals:').font = data_font
+                interval_map = {'decreasing': '60s-30s-20s-10s', '60': 'Uniform 60s', '30': 'Uniform 30s'}
+                interval_display = interval_map.get(str(interval_val), str(interval_val))
+                ws.cell(row=left_row, column=left_col, value='Inter-stim Intervals:').font = data_font
                 ws.cell(row=left_row, column=left_col).fill = light_fill
                 ws.cell(row=left_row, column=left_col+1, value=interval_display).font = bold_data_font
                 ws.cell(row=left_row, column=left_col+1).fill = light_fill
@@ -1618,7 +1633,6 @@ def create_nature_excel(request):
         ws.merge_cells(start_row=right_row, start_column=right_col, end_row=right_row, end_column=right_col+1)
         right_row += 1
         
-        # Get drug readout data (same logic as PDF)
         drug_bf = None
         drug_hrv_data = None
         drug_bf_minute = None
@@ -1643,34 +1657,34 @@ def create_nature_excel(request):
                     drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
                 except (ValueError, TypeError):
                     pass
+            
             if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
                 try:
                     drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
                 except (ValueError, TypeError):
                     pass
         
-        # Find drug BF and HRV data
+        # Find BF at drug readout minute
         if drug_bf_minute is not None and request.per_minute_data:
             for pm in request.per_minute_data:
                 try:
                     minute_str = str(pm.get('minute', ''))
                     minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-                    if minute_num == drug_bf_minute:
+                    if minute_num == int(drug_bf_minute):
                         drug_bf = pm.get('mean_bf')
                         break
                 except (ValueError, TypeError):
                     pass
         
+        # Find HRV at drug readout minute
         if drug_hrv_minute is not None and request.hrv_windows:
             for w in request.hrv_windows:
                 try:
                     w_minute = w.get('minute')
-                    if isinstance(w_minute, (int, float)):
-                        w_minute_num = int(w_minute)
-                    else:
-                        w_minute_str = str(w_minute)
-                        w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
-                    if w_minute_num == drug_hrv_minute:
+                    if w_minute is None:
+                        continue
+                    w_minute_num = int(w_minute) if isinstance(w_minute, (int, float)) else int(str(w_minute).split('-')[0])
+                    if w_minute_num == int(drug_hrv_minute):
                         drug_hrv_data = w
                         if drug_bf is None and w.get('mean_bf'):
                             drug_bf = w.get('mean_bf')
@@ -1708,9 +1722,9 @@ def create_nature_excel(request):
             right_row += 1
         right_row += 1
     
-    # LIGHT READOUT
+    # LIGHT STIMULUS READOUT
     if request.light_enabled and (request.light_response or request.light_metrics_detrended):
-        ws.cell(row=right_row, column=right_col, value='LIGHT READOUT').font = header_font
+        ws.cell(row=right_row, column=right_col, value='LIGHT STIMULUS READOUT').font = header_font
         ws.cell(row=right_row, column=right_col).fill = amber_fill
         ws.merge_cells(start_row=right_row, start_column=right_col, end_row=right_row, end_column=right_col+1)
         right_row += 1
@@ -1724,32 +1738,32 @@ def create_nature_excel(request):
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                 peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
-                amplitude_vals = [r.get('amplitude') for r in valid if r.get('amplitude')]
-                amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
                 ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec') is not None]
                 ttp = np.mean(ttp_vals) if ttp_vals else None
-                ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
-                roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
-                roc = np.mean(roc_vals) if roc_vals else None
                 recovery_bf_vals = [r.get('bf_end') for r in valid if r.get('bf_end')]
                 recovery_bf = np.mean(recovery_bf_vals) if recovery_bf_vals else None
                 recovery_pct_vals = [r.get('bf_end_pct') for r in valid if r.get('bf_end_pct')]
                 recovery_pct = np.mean(recovery_pct_vals) if recovery_pct_vals else None
+                amplitude_vals = [r.get('amplitude') for r in valid if r.get('amplitude')]
+                amplitude = np.mean(amplitude_vals) if amplitude_vals else None
+                roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
+                roc = np.mean(roc_vals) if roc_vals else None
                 
-                metrics = [
+                hra_data = [
                     ('Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'),
                     ('Avg BF:', f"{avg_bf:.1f} bpm"),
                     ('Peak BF:', f"{peak_bf:.1f} bpm"),
                     ('Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—'),
-                    ('Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—'),
-                    ('Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—'),
                     ('TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'),
-                    ('Rate of Change:', f"{roc:.3f} 1/min" if roc else '—'),
+                    ('Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—'),
                     ('Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—'),
                     ('Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—'),
+                    ('Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—'),
+                    ('Rate of Change:', f"{roc:.3f} 1/min" if roc else '—'),
                 ]
                 
-                for label, value in metrics:
+                for label, value in hra_data:
                     ws.cell(row=right_row, column=right_col, value=label).font = data_font
                     ws.cell(row=right_row, column=right_col).fill = light_fill
                     ws.cell(row=right_row, column=right_col+1, value=value).font = bold_data_font
@@ -1759,323 +1773,259 @@ def create_nature_excel(request):
         # Corrected HRV
         if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
             right_row += 1
-            ws.cell(row=right_row, column=right_col, value='Corrected HRV:').font = Font(size=9, italic=True, color='52525B')
+            ws.cell(row=right_row, column=right_col, value='Corrected HRV:').font = Font(size=8, italic=True, color='52525B')
             right_row += 1
+            
             final = request.light_metrics_detrended['final']
+            hrv_data = [
+                ('ln(RMSSD₇₀):', f"{final.get('ln_rmssd70_detrended'):.3f}" if final.get('ln_rmssd70_detrended') else '—'),
+                ('ln(SDNN₇₀):', f"{final.get('ln_sdnn70_detrended'):.3f}" if final.get('ln_sdnn70_detrended') else '—'),
+                ('pNN50₇₀:', f"{final.get('pnn50_detrended'):.1f}%" if final.get('pnn50_detrended') is not None else '—'),
+            ]
             
-            ln_rmssd = final.get('ln_rmssd70_detrended')
-            ws.cell(row=right_row, column=right_col, value='ln(RMSSD₇₀):').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = light_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{ln_rmssd:.3f}" if ln_rmssd else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = light_fill
-            right_row += 1
-            
-            ln_sdnn = final.get('ln_sdnn70_detrended')
-            ws.cell(row=right_row, column=right_col, value='ln(SDNN₇₀):').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = light_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{ln_sdnn:.3f}" if ln_sdnn else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = light_fill
-            right_row += 1
-            
-            pnn50 = final.get('pnn50_detrended')
-            ws.cell(row=right_row, column=right_col, value='pNN50₇₀:').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = light_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{pnn50:.1f}%" if pnn50 is not None else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = light_fill
-            right_row += 1
+            for label, value in hrv_data:
+                ws.cell(row=right_row, column=right_col, value=label).font = data_font
+                ws.cell(row=right_row, column=right_col).fill = light_fill
+                ws.cell(row=right_row, column=right_col+1, value=value).font = bold_data_font
+                ws.cell(row=right_row, column=right_col+1).fill = light_fill
+                right_row += 1
     
     # ==================== SHEET 2: SPONTANEOUS BF ====================
     if request.per_minute_data:
         ws_bf = wb.create_sheet('Spontaneous BF')
-        ws_bf.append(['Window (min)', 'Mean BF (bpm)', 'Mean NN (ms)'])
-        for cell in ws_bf[1]:
+        
+        ws_bf['A1'] = 'Spontaneous Activity - Beat Frequency Data'
+        ws_bf['A1'].font = Font(bold=True, size=12)
+        
+        headers = ['Minute', 'Mean BF (bpm)', 'Std Dev', 'Beat Count', 'Normalized BF (%)']
+        for col, header in enumerate(headers, 1):
+            cell = ws_bf.cell(row=3, column=col, value=header)
             cell.font = header_font
             cell.fill = emerald_fill
             cell.border = thin_border
+            cell.alignment = center_align
         
-        baseline_window = None
-        drug_window = None
+        # Get baseline BF for normalization
+        baseline_bf = None
+        if request.baseline and request.baseline.get('baseline_bf'):
+            baseline_bf = request.baseline.get('baseline_bf')
         
-        if request.baseline_enabled and request.baseline:
-            baseline_range = request.baseline.get('baseline_bf_range')
-            if baseline_range is not None:
-                baseline_range_str = str(baseline_range).replace(' min', '').strip()
-                if '-' in baseline_range_str:
-                    baseline_window = baseline_range_str
-                else:
-                    try:
-                        bmin = int(float(baseline_range_str))
-                        baseline_window = f"{bmin}-{bmin+1}"
-                    except:
-                        pass
-        
-        if request.drug_readout_enabled and request.drug_readout_settings:
-            settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-            if settings_bf not in (None, ''):
-                try:
-                    perf_start = 0
-                    perf_delay = 0
-                    if request.all_drugs and len(request.all_drugs) > 0:
-                        drug = request.all_drugs[0]
-                        perf_start = int(float(drug.get('start', 0) or 0))
-                        perf_delay = int(float(drug.get('delay', 0) or 0))
-                    bf_min = int(float(settings_bf)) + perf_start + perf_delay
-                    drug_window = f"{bf_min}-{bf_min+1}"
-                except:
-                    pass
-        
+        row = 4
         for pm in request.per_minute_data:
-            minute_val = pm.get('minute', '')
-            try:
-                minute_num = int(str(minute_val).split('-')[0]) if '-' in str(minute_val) else int(minute_val)
-                window_str = f"{minute_num}-{minute_num+1}"
-            except (ValueError, TypeError):
-                window_str = str(minute_val)
+            minute = pm.get('minute', '')
+            mean_bf = pm.get('mean_bf')
+            std_dev = pm.get('std_dev')
+            beat_count = pm.get('beat_count')
+            norm_bf = (100 * mean_bf / baseline_bf) if baseline_bf and mean_bf else None
             
-            bf_val = pm.get('mean_bf') or pm.get('avg_bf')
-            nn_val = pm.get('mean_nn') or pm.get('avg_nn')
-            
-            ws_bf.append([
-                window_str,
-                round(bf_val, 1) if bf_val else None,
-                round(nn_val, 1) if nn_val else None,
-            ])
-            
-            row_num = ws_bf.max_row
-            for cell in ws_bf[row_num]:
+            data_row = [minute, fmt(mean_bf, 1), fmt(std_dev, 2), beat_count, fmt(norm_bf, 1)]
+            for col, value in enumerate(data_row, 1):
+                cell = ws_bf.cell(row=row, column=col, value=value)
+                cell.font = data_font
                 cell.border = thin_border
-            if baseline_window and window_str == baseline_window:
-                for cell in ws_bf[row_num]:
-                    cell.fill = baseline_fill
-                    cell.font = bold_data_font
-            elif drug_window and window_str == drug_window:
-                for cell in ws_bf[row_num]:
-                    cell.fill = drug_fill
-                    cell.font = bold_data_font
+                cell.alignment = center_align
+            row += 1
         
-        for col in range(1, 4):
-            ws_bf.column_dimensions[get_column_letter(col)].width = 18
+        for col in range(1, 6):
+            ws_bf.column_dimensions[get_column_letter(col)].width = 15
     
     # ==================== SHEET 3: SPONTANEOUS HRV ====================
     if request.hrv_windows:
         ws_hrv = wb.create_sheet('Spontaneous HRV')
-        ws_hrv.append(['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF'])
-        for cell in ws_hrv[1]:
+        
+        ws_hrv['A1'] = 'Spontaneous Activity - HRV Data'
+        ws_hrv['A1'].font = Font(bold=True, size=12)
+        
+        headers = ['Minute', 'Mean BF (bpm)', 'RMSSD₇₀ (ms)', 'ln(RMSSD₇₀)', 'SDNN₇₀ (ms)', 'ln(SDNN₇₀)', 'pNN50₇₀ (%)']
+        for col, header in enumerate(headers, 1):
+            cell = ws_hrv.cell(row=3, column=col, value=header)
             cell.font = header_font
             cell.fill = emerald_fill
             cell.border = thin_border
+            cell.alignment = center_align
         
-        baseline_minute = None
-        drug_minute = None
-        
-        if request.baseline_enabled and request.baseline:
-            baseline_minute = request.baseline.get('baseline_hrv_minute')
-            if baseline_minute is not None:
-                try:
-                    baseline_minute = int(float(baseline_minute))
-                except:
-                    baseline_minute = None
-        
-        if request.drug_readout_enabled and request.drug_readout_settings:
-            settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-            if settings_hrv not in (None, ''):
-                try:
-                    perf_start = 0
-                    perf_delay = 0
-                    if request.all_drugs and len(request.all_drugs) > 0:
-                        drug = request.all_drugs[0]
-                        perf_start = int(float(drug.get('start', 0) or 0))
-                        perf_delay = int(float(drug.get('delay', 0) or 0))
-                    drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
-                except:
-                    pass
-        
+        row = 4
         for w in request.hrv_windows:
+            minute = w.get('minute', '')
+            mean_bf = w.get('mean_bf')
+            rmssd = w.get('rmssd70')
+            ln_rmssd = w.get('ln_rmssd70')
             sdnn = w.get('sdnn')
             ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-            minute = w.get('minute', 0)
+            pnn50 = w.get('pnn50')
             
-            try:
-                if isinstance(minute, (int, float)):
-                    minute_num = int(minute)
-                else:
-                    minute_str = str(minute)
-                    minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-            except:
-                minute_num = None
-            
-            ws_hrv.append([
-                w.get('window', ''),
-                round(w.get('ln_rmssd70', 0), 3) if w.get('ln_rmssd70') else None,
-                round(w.get('rmssd70', 0), 1) if w.get('rmssd70') else None,
-                round(ln_sdnn, 3) if ln_sdnn else None,
-                round(sdnn, 1) if sdnn else None,
-                round(w.get('pnn50', 0), 1) if w.get('pnn50') is not None else 0,
-                round(w.get('mean_bf', 0), 1) if w.get('mean_bf') else None,
-            ])
-            
-            row_num = ws_hrv.max_row
-            for cell in ws_hrv[row_num]:
+            data_row = [minute, fmt(mean_bf, 1), fmt(rmssd, 2), fmt(ln_rmssd, 3), fmt(sdnn, 2), fmt(ln_sdnn, 3), fmt(pnn50, 1)]
+            for col, value in enumerate(data_row, 1):
+                cell = ws_hrv.cell(row=row, column=col, value=value)
+                cell.font = data_font
                 cell.border = thin_border
-            if baseline_minute is not None and minute_num == baseline_minute:
-                for cell in ws_hrv[row_num]:
-                    cell.fill = baseline_fill
-                    cell.font = bold_data_font
-            elif drug_minute is not None and minute_num == drug_minute:
-                for cell in ws_hrv[row_num]:
-                    cell.fill = drug_fill
-                    cell.font = bold_data_font
+                cell.alignment = center_align
+            row += 1
         
         for col in range(1, 8):
             ws_hrv.column_dimensions[get_column_letter(col)].width = 14
     
     # ==================== SHEET 4: LIGHT HRA ====================
     if request.light_enabled and request.light_response:
-        valid = [r for r in request.light_response if r]
-        if valid:
+        valid_responses = [r for r in request.light_response if r]
+        if valid_responses:
             ws_hra = wb.create_sheet('Light HRA')
-            # Reordered columns with 1st TTP
-            ws_hra.append(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)'])
-            for cell in ws_hra[1]:
+            
+            ws_hra['A1'] = 'Light-Induced Heart Rate Adaptation (HRA) Data'
+            ws_hra['A1'].font = Font(bold=True, size=12)
+            
+            headers = ['Stim #', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+            for col, header in enumerate(headers, 1):
+                cell = ws_hra.cell(row=3, column=col, value=header)
                 cell.font = header_font
                 cell.fill = amber_fill
                 cell.border = thin_border
+                cell.alignment = center_align
             
-            for i, r in enumerate(valid):
-                # For 1st TTP, show 0.0 even if it's 0 or None
-                first_ttp_val = r.get('first_ttp_sec')
-                first_ttp = round(first_ttp_val, 1) if first_ttp_val is not None else 0.0
-                
-                ws_hra.append([
-                    i + 1,
-                    round(r.get('baseline_bf', 0), 1) if r.get('baseline_bf') else None,
-                    round(r.get('avg_bf', 0), 1) if r.get('avg_bf') else None,
-                    round(r.get('peak_bf', 0), 1) if r.get('peak_bf') else None,
-                    round(r.get('peak_norm_pct', 0), 1) if r.get('peak_norm_pct') else None,
-                    first_ttp,  # 1st TTP - always show value
-                    round(r.get('time_to_peak_sec', 0), 1) if r.get('time_to_peak_sec') is not None else None,
-                    round(r.get('bf_end', 0), 1) if r.get('bf_end') else None,
-                    round(r.get('bf_end_pct', 0), 1) if r.get('bf_end_pct') else None,
-                    round(r.get('amplitude', 0), 1) if r.get('amplitude') is not None else None,
-                    round(r.get('rate_of_change', 0), 3) if r.get('rate_of_change') is not None else None,
-                ])
-                for cell in ws_hra[ws_hra.max_row]:
+            row = 4
+            for idx, resp in enumerate(valid_responses, 1):
+                ttp_1st = resp.get('time_to_peak_sec') if idx == 1 else 0.0
+                data_row = [
+                    idx,
+                    fmt(resp.get('baseline_bf'), 1),
+                    fmt(resp.get('avg_bf'), 1),
+                    fmt(resp.get('peak_bf'), 1),
+                    fmt(resp.get('peak_norm_pct'), 1),
+                    fmt(ttp_1st, 1),
+                    fmt(resp.get('time_to_peak_sec'), 1),
+                    fmt(resp.get('bf_end'), 1),
+                    fmt(resp.get('bf_end_pct'), 1),
+                    fmt(resp.get('amplitude'), 1),
+                    fmt(resp.get('rate_of_change'), 4),
+                ]
+                for col, value in enumerate(data_row, 1):
+                    cell = ws_hra.cell(row=row, column=col, value=value)
+                    cell.font = data_font
                     cell.border = thin_border
+                    cell.alignment = center_align
+                    if col >= 2:
+                        cell.fill = light_fill
+                row += 1
             
-            # Add average row
-            if len(valid) > 1:
-                def safe_avg(key):
-                    vals = [r.get(key) for r in valid if r.get(key) is not None]
-                    return np.mean(vals) if vals else None
-                
-                # For 1st TTP avg, include 0 values
-                first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
-                first_ttp_avg = round(np.mean(first_ttp_vals), 1) if first_ttp_vals else 0.0
-                
-                ws_hra.append([
-                    'Avg',
-                    round(safe_avg('baseline_bf'), 1) if safe_avg('baseline_bf') else None,
-                    round(safe_avg('avg_bf'), 1) if safe_avg('avg_bf') else None,
-                    round(safe_avg('peak_bf'), 1) if safe_avg('peak_bf') else None,
-                    round(safe_avg('peak_norm_pct'), 1) if safe_avg('peak_norm_pct') else None,
-                    first_ttp_avg,  # 1st TTP avg - always show value
-                    round(safe_avg('time_to_peak_sec'), 1) if safe_avg('time_to_peak_sec') is not None else None,
-                    round(safe_avg('bf_end'), 1) if safe_avg('bf_end') else None,
-                    round(safe_avg('bf_end_pct'), 1) if safe_avg('bf_end_pct') else None,
-                    round(safe_avg('amplitude'), 1) if safe_avg('amplitude') is not None else None,
-                    round(safe_avg('rate_of_change'), 3) if safe_avg('rate_of_change') is not None else None,
-                ])
-                for cell in ws_hra[ws_hra.max_row]:
-                    cell.fill = light_fill
-                    cell.font = bold_data_font
-                    cell.border = thin_border
+            # Average row
+            baseline_bf_vals = [r.get('baseline_bf') for r in valid_responses if r.get('baseline_bf')]
+            avg_baseline = np.mean(baseline_bf_vals) if baseline_bf_vals else None
+            avg_bf_vals = [r.get('avg_bf') for r in valid_responses if r.get('avg_bf')]
+            avg_avg_bf = np.mean(avg_bf_vals) if avg_bf_vals else None
+            peak_bf_vals = [r.get('peak_bf') for r in valid_responses if r.get('peak_bf')]
+            avg_peak_bf = np.mean(peak_bf_vals) if peak_bf_vals else None
+            peak_norm_vals = [r.get('peak_norm_pct') for r in valid_responses if r.get('peak_norm_pct') is not None]
+            avg_peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
+            ttp_vals = [r.get('time_to_peak_sec') for r in valid_responses if r.get('time_to_peak_sec') is not None]
+            avg_ttp = np.mean(ttp_vals) if ttp_vals else None
+            ttp_1st = valid_responses[0].get('time_to_peak_sec') if valid_responses else None
+            rec_bf_vals = [r.get('bf_end') for r in valid_responses if r.get('bf_end')]
+            avg_rec_bf = np.mean(rec_bf_vals) if rec_bf_vals else None
+            rec_pct_vals = [r.get('bf_end_pct') for r in valid_responses if r.get('bf_end_pct')]
+            avg_rec_pct = np.mean(rec_pct_vals) if rec_pct_vals else None
+            amp_vals = [r.get('amplitude') for r in valid_responses if r.get('amplitude')]
+            avg_amp = np.mean(amp_vals) if amp_vals else None
+            roc_vals = [r.get('rate_of_change') for r in valid_responses if r.get('rate_of_change') is not None]
+            avg_roc = np.mean(roc_vals) if roc_vals else None
+            
+            avg_row = ['Avg', fmt(avg_baseline, 1), fmt(avg_avg_bf, 1), fmt(avg_peak_bf, 1), fmt(avg_peak_norm, 1),
+                      fmt(ttp_1st, 1), fmt(avg_ttp, 1), fmt(avg_rec_bf, 1), fmt(avg_rec_pct, 1), fmt(avg_amp, 1), fmt(avg_roc, 4)]
+            for col, value in enumerate(avg_row, 1):
+                cell = ws_hra.cell(row=row, column=col, value=value)
+                cell.font = avg_font
+                cell.fill = avg_fill
+                cell.border = thin_border
+                cell.alignment = center_align
             
             for col in range(1, 12):
-                ws_hra.column_dimensions[get_column_letter(col)].width = 12
+                ws_hra.column_dimensions[get_column_letter(col)].width = 11
     
     # ==================== SHEET 5: CORRECTED HRV ====================
     if request.light_enabled and request.light_metrics_detrended:
-        per_stim = request.light_metrics_detrended.get('per_stim') or request.light_metrics_detrended.get('per_pulse', [])
-        final = request.light_metrics_detrended.get('final', {})
-        
-        if per_stim or final:
+        per_stim = request.light_metrics_detrended.get('per_stim', [])
+        if per_stim:
             ws_corr = wb.create_sheet('Light Corrected HRV')
-            ws_corr.append(['Stim', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀'])
-            for cell in ws_corr[1]:
+            
+            ws_corr['A1'] = 'Light-Induced Corrected HRV Data'
+            ws_corr['A1'].font = Font(bold=True, size=12)
+            
+            headers = ['Stim #', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀ (%)']
+            for col, header in enumerate(headers, 1):
+                cell = ws_corr.cell(row=3, column=col, value=header)
                 cell.font = header_font
                 cell.fill = amber_fill
                 cell.border = thin_border
+                cell.alignment = center_align
             
-            num_stims = max(5, len(per_stim))
-            for i in range(num_stims):
-                s = per_stim[i] if i < len(per_stim) else None
-                has_data = s and (s.get('ln_rmssd70_detrended') is not None or 
-                                 s.get('rmssd70_detrended') is not None)
-                
-                if has_data:
-                    ws_corr.append([
-                        i + 1,
-                        round(s.get('ln_rmssd70_detrended', 0), 3) if s.get('ln_rmssd70_detrended') is not None else None,
-                        round(s.get('rmssd70_detrended', 0), 3) if s.get('rmssd70_detrended') is not None else None,
-                        round(s.get('ln_sdnn70_detrended', 0), 3) if s.get('ln_sdnn70_detrended') is not None else None,
-                        round(s.get('sdnn_detrended', 0), 3) if s.get('sdnn_detrended') is not None else None,
-                        round(s.get('pnn50_detrended', 0), 1) if s.get('pnn50_detrended') is not None else None,
-                    ])
-                else:
-                    ws_corr.append([i + 1, None, None, None, None, None])
-                
-                for cell in ws_corr[ws_corr.max_row]:
+            row = 4
+            for idx, stim in enumerate(per_stim, 1):
+                data_row = [
+                    idx,
+                    fmt(stim.get('ln_rmssd70_detrended'), 3),
+                    fmt(stim.get('ln_sdnn70_detrended'), 3),
+                    fmt(stim.get('pnn50_detrended'), 1),
+                ]
+                for col, value in enumerate(data_row, 1):
+                    cell = ws_corr.cell(row=row, column=col, value=value)
+                    cell.font = data_font
                     cell.border = thin_border
+                    cell.alignment = center_align
+                    if col >= 2:
+                        cell.fill = light_fill
+                row += 1
             
-            if final:
-                ws_corr.append([
-                    'Median',
-                    round(final.get('ln_rmssd70_detrended', 0), 3) if final.get('ln_rmssd70_detrended') else None,
-                    round(final.get('rmssd70_detrended', 0), 3) if final.get('rmssd70_detrended') else None,
-                    round(final.get('ln_sdnn70_detrended', 0), 3) if final.get('ln_sdnn70_detrended') else None,
-                    round(final.get('sdnn_detrended', 0), 3) if final.get('sdnn_detrended') else None,
-                    round(final.get('pnn50_detrended', 0), 1) if final.get('pnn50_detrended') is not None else None,
-                ])
-                for cell in ws_corr[ws_corr.max_row]:
-                    cell.fill = light_fill
-                    cell.font = bold_data_font
-                    cell.border = thin_border
+            # Median row
+            final = request.light_metrics_detrended.get('final', {})
+            median_row = ['Median', fmt(final.get('ln_rmssd70_detrended'), 3), fmt(final.get('ln_sdnn70_detrended'), 3), fmt(final.get('pnn50_detrended'), 1)]
+            for col, value in enumerate(median_row, 1):
+                cell = ws_corr.cell(row=row, column=col, value=value)
+                cell.font = avg_font
+                cell.fill = avg_fill
+                cell.border = thin_border
+                cell.alignment = center_align
             
-            for col in range(1, 7):
-                ws_corr.column_dimensions[get_column_letter(col)].width = 14
+            for col in range(1, 5):
+                ws_corr.column_dimensions[get_column_letter(col)].width = 15
     
     # ==================== SHEET 6: PER-BEAT DATA (kept beats only) ====================
     if request.per_beat_data:
         kept_beats = [b for b in request.per_beat_data if b.get('status') == 'kept']
         if kept_beats:
             ws_beat = wb.create_sheet('Per-Beat')
-            ws_beat.append(['Beat #', 'Time (min)', 'BF Filtered (bpm)', 'NN Filtered (ms)'])
-            for cell in ws_beat[1]:
+            
+            ws_beat['A1'] = 'Per-Beat Data (Kept Beats Only)'
+            ws_beat['A1'].font = Font(bold=True, size=12)
+            
+            headers = ['Beat #', 'Time (min)', 'BF Filtered (bpm)', 'NN Filtered (ms)']
+            for col, header in enumerate(headers, 1):
+                cell = ws_beat.cell(row=3, column=col, value=header)
                 cell.font = header_font
                 cell.fill = emerald_fill
                 cell.border = thin_border
+                cell.alignment = center_align
             
-            for i, beat in enumerate(kept_beats):
-                ws_beat.append([
-                    i + 1,
+            row = 4
+            for i, beat in enumerate(kept_beats, 1):
+                data_row = [
+                    i,
                     round(beat.get('time_min', 0), 4) if beat.get('time_min') is not None else None,
                     round(beat.get('bf_bpm', 0), 1) if beat.get('bf_bpm') is not None else None,
                     round(beat.get('nn_ms', 0), 1) if beat.get('nn_ms') is not None else None,
-                ])
-                
-                row_num = ws_beat.max_row
-                for cell in ws_beat[row_num]:
+                ]
+                for col, value in enumerate(data_row, 1):
+                    cell = ws_beat.cell(row=row, column=col, value=value)
+                    cell.font = data_font
                     cell.border = thin_border
+                    cell.alignment = center_align
+                row += 1
             
             for col in range(1, 5):
-                ws_beat.column_dimensions[get_column_letter(col)].width = 14
+                ws_beat.column_dimensions[get_column_letter(col)].width = 18
     
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf
-
-
 def create_nature_csv(request):
     """Create a clean CSV export matching PDF structure"""
     import csv

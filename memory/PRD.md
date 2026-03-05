@@ -23,15 +23,16 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
-- 2025-12-05: **New Comparison Excel Export matching PDF structure**:
-  - Created `create_comparison_xlsx` function in `export_utils.py` with 5 sheets:
-    - Summary: Folder overview, age ranges, parameters, averages
-    - Metadata: Table 1 with recording information  
-    - Spontaneous Activity: Tables 2 & 3 (raw and normalized data)
-    - Heart Rate Adaptation: Tables 4 & 5 (HRA and normalized)
-    - Detrended HRV: Table 6 (HRV data)
-  - Same styling and data structure as PDF comparison export
-  - Removed 600+ lines of old inline Excel code from server.py
+- 2025-12-05: **New Single Recording Excel Export matching PDF structure**:
+  - Rewrote `create_nature_excel` function in `export_utils.py` with 6 sheets:
+    - Summary: Recording info, tissue info, drug perfusion, light stim, readouts
+    - Spontaneous BF: Per-minute BF data with normalization
+    - Spontaneous HRV: Per-minute HRV data (RMSSD, SDNN, pNN50)
+    - Light HRA: Per-stimulus HRA data with averages
+    - Light Corrected HRV: Per-stimulus corrected HRV with medians
+    - Per-Beat: **Kept beats only** with Beat #, Time, BF, NN values
+  - Reduced file from ~4600 lines to ~4050 lines by removing duplicate code
+- 2025-12-05: **New Comparison Excel Export matching PDF structure** (5 sheets)
 - 2025-12-05: **Exports now always fetch fresh data from database**
 - 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports
 - 2025-12-04: Fixed PDF Table 4 positioning
