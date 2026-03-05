@@ -2504,7 +2504,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         """Add footer: p. XX | Folder Name | Folder Comparison Report by NEHER"""
         fig.text(0.08, 0.025, f'p. {page_num}', fontsize=10, fontweight='bold', color=COLORS['dark'],
                 fontfamily=body_font)
-        fig.text(0.125, 0.025, f'|  {folder_name}  |  Folder Comparison Report by NEHER', fontsize=10, color=COLORS['gray'],
+        fig.text(0.125, 0.025, f'|  {folder_name}  |  Comparison Report by NEHER', fontsize=10, color=COLORS['gray'],
                 fontfamily=body_font)
     
     def draw_header(fig, x, y, text, color, width=0.38):
@@ -2633,9 +2633,9 @@ def create_comparison_pdf(folder_name, comparison_data):
         y -= 0.015
         
         # Parameters section
-        y = draw_header(fig1, left_x, y, 'PARAMETERS', COLORS['purple'], width=col_width)
+        y = draw_header(fig1, left_x, y, 'PARAMETERS', COLORS['gray'], width=col_width)
         
-        # Drug Used: Parse properly and include concentration unit
+        # Drug Used: Parse properly and include concentration unit in parentheses
         all_drugs = []
         drug_concentration_unit = ''
         for r in recordings:
@@ -2654,9 +2654,9 @@ def create_comparison_pdf(folder_name, comparison_data):
         if all_drugs:
             unique_drugs = list(dict.fromkeys(all_drugs))  # Preserve order, remove duplicates
             drug_text = unique_drugs[0]
-            # Add concentration unit if available
+            # Add concentration unit in parentheses if available
             if drug_concentration_unit:
-                drug_text = f"{drug_text} {drug_concentration_unit}"
+                drug_text = f"{drug_text} ({drug_concentration_unit})"
         else:
             drug_text = '—'
         
@@ -2747,7 +2747,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig2.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig2.transFigure))
         
-        ax2 = fig2.add_axes([0.08, 0.06, 0.84, 0.76])
+        ax2 = fig2.add_axes([0.08, 0.08, 0.84, 0.74])
         ax2.axis('off')
         
         # Full metadata columns - ALL information, use line breaks
@@ -2935,7 +2935,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
         # Second table area (lower half) - within page borders
-        ax3b = fig3.add_axes([0.08, 0.06, 0.84, 0.34])
+        ax3b = fig3.add_axes([0.08, 0.08, 0.84, 0.32])
         ax3b.axis('off')
         
         # Calculate cohort baseline averages for normalization
@@ -3105,7 +3105,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
         # Second table area - within page borders
-        ax4b = fig4.add_axes([0.08, 0.06, 0.84, 0.34])
+        ax4b = fig4.add_axes([0.08, 0.08, 0.84, 0.32])
         ax4b.axis('off')
         
         light_baseline_bfs = [r.get('light_baseline_bf') for r in recordings if r.get('light_baseline_bf') is not None]
@@ -3177,7 +3177,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                  color=COLORS['dark'], fontfamily=title_font)
         fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
         
-        ax5 = fig5.add_axes([0.08, 0.08, 0.84, 0.72])
+        ax5 = fig5.add_axes([0.08, 0.10, 0.84, 0.70])
         ax5.axis('off')
         
         # Only ln(RMSSD), ln(SDNN), pNN50 - remove raw RMSSD and SDNN
