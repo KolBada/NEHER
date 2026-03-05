@@ -630,7 +630,12 @@ def create_nature_pdf(request):
         # ==================== PAGE 3b: LIGHT-INDUCED CORRECTED HRV ANALYSIS ====================
         if request.light_enabled and request.light_metrics_detrended:
             per_stim = request.light_metrics_detrended.get('per_stim', [])
-            valid_stims = [(i, s) for i, s in enumerate(per_stim) if s]
+            # Filter for stims that have actual HRV data
+            valid_stims = [(i, s) for i, s in enumerate(per_stim) if s and (
+                s.get('ln_rmssd70_detrended') is not None or 
+                s.get('ln_sdnn70_detrended') is not None or
+                s.get('pnn50_detrended') is not None
+            )]
             
             if valid_stims:
                 page_num += 1
@@ -701,43 +706,48 @@ def create_nature_pdf(request):
             # Get baseline and drug readout windows for highlighting
             baseline_window = None
             drug_window = None
-            if request.baseline:
-                baseline_range = request.baseline.get('baseline_bf_range', '1-2')
-                # Normalize baseline range to "X-Y" format
-                try:
-                    if '-' in str(baseline_range):
-                        baseline_window = baseline_range
-                    else:
-                        bmin = int(baseline_range)
-                        baseline_window = f"{bmin}-{bmin+1}"
-                except (ValueError, TypeError):
-                    baseline_window = baseline_range
+            
+            # Get baseline window if baseline is enabled
+            if request.baseline_enabled and request.baseline:
+                baseline_range = request.baseline.get('baseline_bf_range')
+                if baseline_range is not None:
+                    # Normalize baseline range to "X-Y" format
+                    try:
+                        baseline_range_str = str(baseline_range)
+                        if '-' in baseline_range_str:
+                            baseline_window = baseline_range_str
+                        else:
+                            bmin = int(float(baseline_range_str))
+                            baseline_window = f"{bmin}-{bmin+1}"
+                    except (ValueError, TypeError):
+                        baseline_window = str(baseline_range)
             
             # Get drug readout window from drug_readout or drug_readout_settings
-            if request.drug_readout:
-                bf_min = request.drug_readout.get('bf_minute')
-                if bf_min is not None:
-                    try:
-                        bf_min = int(bf_min)
-                        drug_window = f"{bf_min}-{bf_min+1}"
-                    except (ValueError, TypeError):
-                        pass
-            
-            # Fallback to drug_readout_settings if needed
-            if drug_window is None and request.drug_readout_settings:
-                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-                if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
-                    try:
-                        perf_start = 0
-                        perf_delay = 0
-                        if request.all_drugs and len(request.all_drugs) > 0:
-                            drug = request.all_drugs[0]
-                            perf_start = int(drug.get('start', 0) or 0)
-                            perf_delay = int(drug.get('delay', 0) or 0)
-                        bf_min = int(float(settings_bf)) + perf_start + perf_delay
-                        drug_window = f"{bf_min}-{bf_min+1}"
-                    except (ValueError, TypeError):
-                        pass
+            if request.drug_readout_enabled:
+                if request.drug_readout:
+                    bf_min = request.drug_readout.get('bf_minute')
+                    if bf_min is not None:
+                        try:
+                            bf_min = int(float(bf_min))
+                            drug_window = f"{bf_min}-{bf_min+1}"
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Fallback to drug_readout_settings if needed
+                if drug_window is None and request.drug_readout_settings:
+                    settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                    if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
+                        try:
+                            perf_start = 0
+                            perf_delay = 0
+                            if request.all_drugs and len(request.all_drugs) > 0:
+                                drug = request.all_drugs[0]
+                                perf_start = int(float(drug.get('start', 0) or 0))
+                                perf_delay = int(float(drug.get('delay', 0) or 0))
+                            bf_min = int(float(settings_bf)) + perf_start + perf_delay
+                            drug_window = f"{bf_min}-{bf_min+1}"
+                        except (ValueError, TypeError):
+                            pass
             
             headers = ['Window (min)', 'Beats', 'Mean BF (bpm)', 'Mean NN (ms)']
             table_data = []
@@ -801,29 +811,40 @@ def create_nature_pdf(request):
             # Get baseline and drug readout windows for highlighting
             baseline_minute = None
             drug_minute = None
-            if request.baseline:
-                baseline_minute = request.baseline.get('baseline_hrv_minute', 0)
-            if request.drug_readout:
-                drug_minute = request.drug_readout.get('hrv_minute')
-                try:
-                    drug_minute = int(drug_minute) if drug_minute is not None else None
-                except (ValueError, TypeError):
-                    drug_minute = None
             
-            # Fallback to drug_readout_settings if needed
-            if drug_minute is None and request.drug_readout_settings:
-                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+            # Get baseline minute if baseline is enabled
+            if request.baseline_enabled and request.baseline:
+                baseline_minute = request.baseline.get('baseline_hrv_minute')
+                if baseline_minute is not None:
                     try:
-                        perf_start = 0
-                        perf_delay = 0
-                        if request.all_drugs and len(request.all_drugs) > 0:
-                            drug = request.all_drugs[0]
-                            perf_start = drug.get('start', 0) or 0
-                            perf_delay = drug.get('delay', 0) or 0
-                        drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                        baseline_minute = int(float(baseline_minute))
                     except (ValueError, TypeError):
-                        pass
+                        baseline_minute = None
+            
+            # Get drug readout minute
+            if request.drug_readout_enabled:
+                if request.drug_readout:
+                    drug_minute = request.drug_readout.get('hrv_minute')
+                    if drug_minute is not None:
+                        try:
+                            drug_minute = int(float(drug_minute))
+                        except (ValueError, TypeError):
+                            drug_minute = None
+                
+                # Fallback to drug_readout_settings if needed
+                if drug_minute is None and request.drug_readout_settings:
+                    settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                    if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                        try:
+                            perf_start = 0
+                            perf_delay = 0
+                            if request.all_drugs and len(request.all_drugs) > 0:
+                                drug = request.all_drugs[0]
+                                perf_start = int(float(drug.get('start', 0) or 0))
+                                perf_delay = int(float(drug.get('delay', 0) or 0))
+                            drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                        except (ValueError, TypeError):
+                            pass
             
             headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF']
             table_data = []
@@ -961,17 +982,22 @@ def create_nature_pdf(request):
                 num_stims = max(5, len(per_stim))
                 for i in range(num_stims):
                     s = per_stim[i] if i < len(per_stim) else None
-                    if s:
+                    # Always show the stim number, check if we have actual HRV data
+                    has_data = s and (s.get('ln_rmssd70_detrended') is not None or 
+                                     s.get('rmssd70_detrended') is not None or
+                                     s.get('ln_sdnn70_detrended') is not None)
+                    
+                    if has_data:
                         table_data.append([
                             str(i + 1),
-                            f"{s.get('ln_rmssd70_detrended', 0):.3f}" if s.get('ln_rmssd70_detrended') else '—',
-                            f"{s.get('rmssd70_detrended', 0):.3f}" if s.get('rmssd70_detrended') else '—',
-                            f"{s.get('ln_sdnn70_detrended', 0):.3f}" if s.get('ln_sdnn70_detrended') else '—',
-                            f"{s.get('sdnn_detrended', 0):.3f}" if s.get('sdnn_detrended') else '—',
+                            f"{s.get('ln_rmssd70_detrended', 0):.3f}" if s.get('ln_rmssd70_detrended') is not None else '—',
+                            f"{s.get('rmssd70_detrended', 0):.3f}" if s.get('rmssd70_detrended') is not None else '—',
+                            f"{s.get('ln_sdnn70_detrended', 0):.3f}" if s.get('ln_sdnn70_detrended') is not None else '—',
+                            f"{s.get('sdnn_detrended', 0):.3f}" if s.get('sdnn_detrended') is not None else '—',
                             f"{s.get('pnn50_detrended', 0):.1f}" if s.get('pnn50_detrended') is not None else '—',
                         ])
                     else:
-                        # Show row even if stim data is empty
+                        # Show stim number even if data is empty/missing
                         table_data.append([str(i + 1), '—', '—', '—', '—', '—'])
                 
                 # Add median row at the end
