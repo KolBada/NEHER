@@ -2836,10 +2836,12 @@ def create_comparison_pdf(folder_name, comparison_data):
             # Fusion date
             fusion = rec.get('fusion_date', '') or '—'
             
-            # Drug info - from drug_info list of dicts
+            # Drug info - from drug_info list of dicts - show ALL information
             drug_info_raw = rec.get('drug_info', [])
+            has_drug = rec.get('has_drug', False)
             drug_parts = []
-            if isinstance(drug_info_raw, list):
+            
+            if has_drug and isinstance(drug_info_raw, list) and drug_info_raw:
                 for d in drug_info_raw:
                     if isinstance(d, dict):
                         name = d.get('name', '')
@@ -2847,9 +2849,10 @@ def create_comparison_pdf(folder_name, comparison_data):
                         unit = d.get('concentration_unit', '') or 'µM'
                         perf_time = d.get('perfusion_time', '')
                         if name:
+                            # Format: "DrugName\nConc: 2µM\nPerf. Time: 5min"
                             drug_str = name
                             if conc:
-                                drug_str += f" {conc}{unit}"
+                                drug_str += f"\n{conc}{unit}"
                             if perf_time:
                                 drug_str += f"\nPerf: {perf_time}"
                             drug_parts.append(drug_str)
@@ -2861,12 +2864,23 @@ def create_comparison_pdf(folder_name, comparison_data):
                 if name:
                     drug_str = name
                     if conc:
-                        drug_str += f" {conc}{unit}"
+                        drug_str += f"\n{conc}{unit}"
                     if perf_time:
                         drug_str += f"\nPerf: {perf_time}"
                     drug_parts.append(drug_str)
             elif drug_info_raw and str(drug_info_raw).lower() not in ['no', 'none', 'no drug', '—', '-', '']:
                 drug_parts.append(str(drug_info_raw))
+            
+            # Also check for separate drug fields
+            if not drug_parts:
+                drug_names = rec.get('drug_names', '')
+                drug_concs = rec.get('drug_concentrations', '')
+                if drug_names and drug_names != '—':
+                    drug_str = drug_names
+                    if drug_concs and drug_concs != '—':
+                        drug_str += f"\n{drug_concs}"
+                    drug_parts.append(drug_str)
+            
             drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
             
             # Light stim info - show all details: stim_duration and isi_structure
