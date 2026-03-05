@@ -1250,10 +1250,12 @@ def extract_comparison_metrics(recording: dict) -> dict:
             # Time to Peak for first stim (from per_stim if available)
             if per_stim and len(per_stim) > 0:
                 result['light_ttp_first'] = per_stim[0].get('time_to_peak_sec')
+                result['light_stim_count'] = len(per_stim)  # Add stim count
         elif per_stim:
             # Fallback: compute from per_stim if mean_metrics not present
             valid_resp = [r for r in per_stim if r is not None and isinstance(r, dict)]
             if valid_resp:
+                result['light_stim_count'] = len(valid_resp)  # Add stim count
                 result['light_baseline_bf'] = light_response.get('baseline_bf') or baseline.get('baseline_bf')
                 
                 avg_bf_vals = [r.get('avg_bf') for r in valid_resp if r.get('avg_bf') is not None]
