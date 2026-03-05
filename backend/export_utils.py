@@ -655,13 +655,30 @@ def create_nature_pdf(request):
                         continue
                     
                     y_pos = top_margin - (row_idx + 1) * row_height
-                    col_width = 0.26
+                    col_width = 0.24
+                    
+                    # Calculate shared Y-axis limits for columns 1 and 2 (NN values)
+                    all_nn_values = list(nn_70) + (list(trend) if trend else [])
+                    nn_min = min(all_nn_values) if all_nn_values else 700
+                    nn_max = max(all_nn_values) if all_nn_values else 1400
+                    nn_margin = (nn_max - nn_min) * 0.1
+                    nn_ylim = (nn_min - nn_margin, nn_max + nn_margin)
+                    
+                    # Calculate Y-axis limits for column 3 (Residuals - centered at 0)
+                    if residual:
+                        res_max = max(abs(min(residual)), abs(max(residual)))
+                        res_ylim = (-res_max * 1.2, res_max * 1.2)
+                    else:
+                        res_ylim = (-100, 100)
                     
                     # Column 1: NN₇₀ (emerald)
-                    ax1 = fig3b.add_axes([0.08, y_pos, col_width, row_height * 0.85])
+                    ax1 = fig3b.add_axes([0.12, y_pos, col_width, row_height * 0.85])
                     ax1.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1)
                     ax1.set_facecolor('white')
-                    ax1.set_ylabel(f'Stim {stim_idx + 1}', fontsize=8, fontweight='bold', rotation=0, labelpad=25, va='center')
+                    ax1.set_ylim(nn_ylim)
+                    # Stim label on the left side with more padding
+                    ax1.text(-0.22, 0.5, f'Stim {stim_idx + 1}', transform=ax1.transAxes, 
+                            fontsize=8, fontweight='bold', va='center', ha='right')
                     if row_idx == 0:
                         ax1.set_title('NN₇₀ (ms)', fontsize=8, fontweight='bold')
                     if row_idx == n_stims - 1:
@@ -671,12 +688,13 @@ def create_nature_pdf(request):
                     ax1.tick_params(axis='both', labelsize=6)
                     ax1.grid(True, alpha=0.3)
                     
-                    # Column 2: NN₇₀ + Trend (emerald + amber)
-                    ax2 = fig3b.add_axes([0.38, y_pos, col_width, row_height * 0.85])
+                    # Column 2: NN₇₀ + Trend (emerald + grey)
+                    ax2 = fig3b.add_axes([0.40, y_pos, col_width, row_height * 0.85])
                     ax2.plot(time_rel, nn_70, color=COLORS['emerald'], linewidth=1, alpha=0.7)
                     if trend:
-                        ax2.plot(time_rel, trend, color=COLORS['amber'], linewidth=1.5)
+                        ax2.plot(time_rel, trend, color='#6b7280', linewidth=1.5)  # Grey color
                     ax2.set_facecolor('white')
+                    ax2.set_ylim(nn_ylim)  # Same Y-axis as column 1
                     if row_idx == 0:
                         ax2.set_title('NN₇₀ + Trend', fontsize=8, fontweight='bold')
                     if row_idx == n_stims - 1:
@@ -687,19 +705,19 @@ def create_nature_pdf(request):
                     ax2.tick_params(axis='both', labelsize=6)
                     ax2.grid(True, alpha=0.3)
                     
-                    # Column 3: Residuals (amber)
+                    # Column 3: Residuals (amber) - centered at 0
                     ax3 = fig3b.add_axes([0.68, y_pos, col_width, row_height * 0.85])
                     if residual:
                         ax3.plot(time_rel, residual, color=COLORS['amber'], linewidth=1)
                         ax3.axhline(y=0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
                     ax3.set_facecolor('white')
+                    ax3.set_ylim(res_ylim)  # Different Y-axis, centered at 0
                     if row_idx == 0:
                         ax3.set_title('Residual (ms)', fontsize=8, fontweight='bold')
                     if row_idx == n_stims - 1:
                         ax3.set_xlabel('Time (s)', fontsize=7)
                     else:
                         ax3.set_xticklabels([])
-                    ax3.set_yticklabels([])
                     ax3.tick_params(axis='both', labelsize=6)
                     ax3.grid(True, alpha=0.3)
                 
