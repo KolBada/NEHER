@@ -1732,7 +1732,7 @@ function App() {
                         step="0.5"
                         value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                       />
                       <span className="text-[9px] text-zinc-500">min, Delay:</span>
                       <Input
@@ -1741,7 +1741,7 @@ function App() {
                         step="0.5"
                         value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                       />
                       <span className="text-[9px] text-zinc-500">min, End:</span>
                       <Input
@@ -1750,7 +1750,7 @@ function App() {
                         step="0.5"
                         value={settings.perfusionEnd ?? ''}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                         placeholder="—"
                       />
                       <span className="text-[9px] text-zinc-500">min</span>
@@ -1788,7 +1788,7 @@ function App() {
                       step="0.5"
                       value={drug.perfusionStart}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                     />
                     <span className="text-[9px] text-zinc-500">min, Delay:</span>
                     <Input
@@ -1796,7 +1796,7 @@ function App() {
                       step="0.5"
                       value={drug.perfusionTime}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                     />
                     <span className="text-[9px] text-zinc-500">min, End:</span>
                     <Input
@@ -1804,7 +1804,7 @@ function App() {
                       step="0.5"
                       value={drug.perfusionEnd ?? ''}
                       onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                      className="h-6 w-12 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2"
+                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-zinc-700 rounded-sm px-2 number-input-white-arrows"
                       placeholder="—"
                     />
                     <span className="text-[9px] text-zinc-500">min</span>
