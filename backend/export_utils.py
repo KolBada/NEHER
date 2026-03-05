@@ -760,7 +760,7 @@ def create_nature_pdf(request):
                         except (ValueError, TypeError):
                             pass
             
-            headers = ['Window (min)', 'Beats', 'Mean BF (bpm)', 'Mean NN (ms)']
+            headers = ['Window (min)', 'Mean BF (bpm)', 'Mean NN (ms)']
             table_data = []
             row_colors = []
             
@@ -773,11 +773,14 @@ def create_nature_pdf(request):
                 except (ValueError, TypeError):
                     window_str = str(minute_val)
                 
+                # Get BF and NN values - support both naming conventions
+                bf_val = pm.get('mean_bf') or pm.get('avg_bf')
+                nn_val = pm.get('mean_nn') or pm.get('avg_nn')
+                
                 table_data.append([
                     window_str,
-                    str(pm.get('beat_count', pm.get('n_beats', 0))),
-                    f"{pm.get('mean_bf', 0):.1f}",
-                    f"{pm.get('mean_nn', 0):.1f}",
+                    f"{bf_val:.1f}" if bf_val else '—',
+                    f"{nn_val:.1f}" if nn_val else '—',
                 ])
                 
                 # Determine row color
@@ -927,35 +930,47 @@ def create_nature_pdf(request):
                 ax = fig6.add_axes([0.05, 0.1, 0.9, 0.8])
                 ax.axis('off')
                 
-                headers = ['Stim', 'Beats', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'TTP (s)']
+                # All HRA metrics except beats
+                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', 'Amplitude', 'BF End', 'Recovery %', 'TTP (s)', 'RoC (1/min)']
                 table_data = []
                 
                 for i, r in enumerate(valid):
                     table_data.append([
                         str(i + 1),
-                        str(r.get('n_beats', 0)),
-                        f"{r.get('baseline_bf', 0):.1f}",
-                        f"{r.get('avg_bf', 0):.1f}",
-                        f"{r.get('peak_bf', 0):.1f}",
+                        f"{r.get('baseline_bf', 0):.1f}" if r.get('baseline_bf') else '—',
+                        f"{r.get('avg_bf', 0):.1f}" if r.get('avg_bf') else '—',
+                        f"{r.get('peak_bf', 0):.1f}" if r.get('peak_bf') else '—',
                         f"{r.get('peak_norm_pct', 0):.1f}" if r.get('peak_norm_pct') else '—',
-                        f"{r.get('time_to_peak_sec', 0):.1f}",
+                        f"{r.get('amplitude', 0):.1f}" if r.get('amplitude') is not None else '—',
+                        f"{r.get('bf_end', 0):.1f}" if r.get('bf_end') else '—',
+                        f"{r.get('bf_end_pct', 0):.1f}" if r.get('bf_end_pct') else '—',
+                        f"{r.get('time_to_peak_sec', 0):.1f}" if r.get('time_to_peak_sec') is not None else '—',
+                        f"{r.get('rate_of_change', 0):.3f}" if r.get('rate_of_change') is not None else '—',
                     ])
                 
                 # Add average row
                 if len(valid) > 1:
-                    table_data.append([
+                    def safe_avg(key):
+                        vals = [r.get(key) for r in valid if r.get(key) is not None]
+                        return np.mean(vals) if vals else None
+                    
+                    avg_row = [
                         'Avg',
-                        '',
-                        f"{np.mean([r.get('baseline_bf', 0) for r in valid]):.1f}",
-                        f"{np.mean([r.get('avg_bf', 0) for r in valid]):.1f}",
-                        f"{np.mean([r.get('peak_bf', 0) for r in valid]):.1f}",
-                        f"{np.mean([r.get('peak_norm_pct', 0) for r in valid if r.get('peak_norm_pct')]):.1f}",
-                        f"{np.mean([r.get('time_to_peak_sec', 0) for r in valid]):.1f}",
-                    ])
+                        f"{safe_avg('baseline_bf'):.1f}" if safe_avg('baseline_bf') else '—',
+                        f"{safe_avg('avg_bf'):.1f}" if safe_avg('avg_bf') else '—',
+                        f"{safe_avg('peak_bf'):.1f}" if safe_avg('peak_bf') else '—',
+                        f"{safe_avg('peak_norm_pct'):.1f}" if safe_avg('peak_norm_pct') else '—',
+                        f"{safe_avg('amplitude'):.1f}" if safe_avg('amplitude') is not None else '—',
+                        f"{safe_avg('bf_end'):.1f}" if safe_avg('bf_end') else '—',
+                        f"{safe_avg('bf_end_pct'):.1f}" if safe_avg('bf_end_pct') else '—',
+                        f"{safe_avg('time_to_peak_sec'):.1f}" if safe_avg('time_to_peak_sec') is not None else '—',
+                        f"{safe_avg('rate_of_change'):.3f}" if safe_avg('rate_of_change') is not None else '—',
+                    ]
+                    table_data.append(avg_row)
                 
                 table = ax.table(cellText=table_data, colLabels=headers, loc='upper center', cellLoc='center')
                 table.auto_set_font_size(False)
-                table.set_fontsize(9)
+                table.set_fontsize(7)  # Smaller font for more columns
                 table.scale(1.0, 1.8)
                 
                 for (row, col), cell in table.get_celld().items():
