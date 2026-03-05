@@ -731,6 +731,49 @@ function App() {
     return () => { cancelled = true; };
   }, [metrics, isValidated, hrvResults, analysisLoading, baselineHrvMinute, baselineBfMinute]);
 
+  // Track previous baseline values to detect changes
+  const prevBaselineRef = useRef({ hrvMinute: baselineHrvMinute, bfMinute: baselineBfMinute });
+  
+  // Auto-recompute HRV when baseline settings change
+  useEffect(() => {
+    // Only run if we have metrics, are validated, have existing HRV results, and baseline changed
+    if (!metrics || !isValidated || !hrvResults || analysisLoading) return;
+    
+    const prevHrv = prevBaselineRef.current.hrvMinute;
+    const prevBf = prevBaselineRef.current.bfMinute;
+    
+    // Check if baseline settings actually changed
+    if (prevHrv === baselineHrvMinute && prevBf === baselineBfMinute) return;
+    
+    // Update ref
+    prevBaselineRef.current = { hrvMinute: baselineHrvMinute, bfMinute: baselineBfMinute };
+    
+    // Recompute HRV with new baseline settings
+    let cancelled = false;
+    
+    const recomputeHrv = async () => {
+      try {
+        const hrvResponse = await api.hrvAnalysis({
+          beat_times_min: metrics.filtered_beat_times_min,
+          bf_filtered: metrics.filtered_bf_bpm,
+          readout_minute: null,
+          baseline_hrv_minute: baselineHrvMinute,
+          baseline_bf_minute: baselineBfMinute,
+        });
+        
+        if (cancelled) return;
+        setHrvResults(hrvResponse.data);
+        setIsModified(true);
+      } catch (err) {
+        console.warn('HRV recomputation failed:', err);
+      }
+    };
+    
+    recomputeHrv();
+    
+    return () => { cancelled = true; };
+  }, [metrics, isValidated, hrvResults, analysisLoading, baselineHrvMinute, baselineBfMinute]);
+
   // Light detect
   const handleDetectPulses = useCallback(async (params) => {
     setAnalysisLoading(true);
