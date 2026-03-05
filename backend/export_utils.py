@@ -189,7 +189,7 @@ def create_nature_pdf(request):
                     y = draw_row(fig1, left_x, y, 'Stims Start:', f"{light_start:.2f} min", TINTS['light'])
             if request.light_params:
                 if request.light_params.get('pulseDuration') is not None:
-                    y = draw_row(fig1, left_x, y, 'Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
+                    y = draw_row(fig1, left_x, y, 'Stim Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
                 if request.light_params.get('interval'):
                     # Map interval values to display labels
                     interval_val = request.light_params.get('interval')
