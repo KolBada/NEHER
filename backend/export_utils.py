@@ -4045,7 +4045,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
         ws3.column_dimensions[get_column_letter(col)].width = 12
     
     # ==================== SHEET 4: HEART RATE ADAPTATION ====================
-    ws4 = wb.create_sheet("Heart Rate Adaptation")
+    ws4 = wb.create_sheet("Light HRA")
     
     # Table 4: Light-Induced HRA Data
     ws4['A1'] = 'Table 4 | Light-Induced HRA Data'
@@ -4172,10 +4172,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
         ws4.column_dimensions[get_column_letter(col)].width = 11
     
     # ==================== SHEET 5: DETRENDED HRV ====================
-    ws5 = wb.create_sheet("Detrended HRV")
+    ws5 = wb.create_sheet("Light Corrected HRV")
     
-    # Table 6: Light-Induced Detrended HRV Data
-    ws5['A1'] = 'Table 6 | Light-Induced Detrended HRV Data'
+    # Table 6: Light-Induced Corrected HRV Data
+    ws5['A1'] = 'Table 6 | Light-Induced Corrected HRV Data'
     ws5['A1'].font = Font(bold=True, size=12)
     
     hrv_headers = ['Recording', 'ln(RMSSD₇₀)', 'ln(SDNN₇₀)', 'pNN50₇₀']
