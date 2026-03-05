@@ -2862,25 +2862,30 @@ def create_comparison_pdf(folder_name, comparison_data):
                 drug_parts.append(str(drug_info_raw))
             drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
             
-            # Light stim info - check has_light_stim and light_stim_info
+            # Light stim info - show all details: stim_duration and isi_structure
             light_parts = []
             if rec.get('has_light_stim'):
+                stim_dur = rec.get('stim_duration', '')
+                isi_struct = rec.get('isi_structure', '')
+                
+                if stim_dur:
+                    light_parts.append(f"{stim_dur}s stim")
+                if isi_struct:
+                    light_parts.append(f"ISI: {isi_struct}")
+                
+                # Also check light_stim_info if present
                 light_info_raw = rec.get('light_stim_info', '')
                 if isinstance(light_info_raw, dict):
-                    stim_dur = light_info_raw.get('stim_duration', '') or light_info_raw.get('duration', '')
-                    isi = light_info_raw.get('isi', '') or light_info_raw.get('ISI', '')
-                    if stim_dur:
-                        light_parts.append(f"{stim_dur}s stim")
-                    if isi:
-                        light_parts.append(f"ISI: {isi}")
+                    if not stim_dur and light_info_raw.get('stim_duration'):
+                        light_parts.append(f"{light_info_raw.get('stim_duration')}s stim")
+                    if not isi_struct and light_info_raw.get('isi'):
+                        light_parts.append(f"ISI: {light_info_raw.get('isi')}")
                 elif isinstance(light_info_raw, list):
                     for item in light_info_raw:
-                        if item:
+                        if item and str(item) not in light_parts:
                             light_parts.append(str(item))
-                elif light_info_raw:
+                elif light_info_raw and str(light_info_raw) not in light_parts:
                     light_parts.append(str(light_info_raw))
-                if not light_parts:
-                    light_parts.append('Yes')
             light_info = '\n'.join(light_parts) if light_parts else '—'
             
             # Notes
