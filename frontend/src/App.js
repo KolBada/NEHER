@@ -294,7 +294,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
               <ReferenceArea 
                 key={`bf-drug-${drug.key}`}
                 x1={drug.perfStart + drug.perfDelay} 
-                x2={drug.perfEnd !== null ? drug.perfEnd : recordingEndMin + 1} 
+                x2={drug.perfEnd !== null ? drug.perfEnd : recordingEndMin} 
                 fill={drug.color.fill} 
                 fillOpacity={0.15 + (idx * 0.05)} 
                 stroke="none" 
