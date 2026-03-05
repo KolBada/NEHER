@@ -185,7 +185,15 @@ def create_nature_pdf(request):
                 if request.light_params.get('pulseDuration') is not None:
                     y = draw_row(fig1, left_x, y, 'Duration:', f"{request.light_params.get('pulseDuration')} sec", TINTS['light'])
                 if request.light_params.get('interval'):
-                    y = draw_row(fig1, left_x, y, 'ISI:', str(request.light_params.get('interval')), TINTS['light'])
+                    # Map interval values to display labels
+                    interval_val = request.light_params.get('interval')
+                    interval_display_map = {
+                        'decreasing': '60s-30s-20s-10s',
+                        '60': 'Uniform 60s',
+                        '30': 'Uniform 30s',
+                    }
+                    interval_display = interval_display_map.get(str(interval_val), str(interval_val))
+                    y = draw_row(fig1, left_x, y, 'Inter-stimuli intervals:', interval_display, TINTS['light'])
         
         # RIGHT COLUMN - READOUTS
         y_right = 0.855
