@@ -1384,7 +1384,55 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     from openpyxl.utils import get_column_letter
     from datetime import datetime
     
-    data = request.comparison_data
+    # ALWAYS fetch fresh data from database to ensure exports are up-to-date
+    folder = await storage.get_folder(db, folder_id)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    recordings_data = []
+    async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
+        recording = {
+            "id": str(rec["_id"]),
+            "name": rec["name"],
+            "filename": rec["filename"],
+            "analysis_state": rec.get("analysis_state", {}),
+        }
+        metrics = extract_comparison_metrics(recording)
+        recordings_data.append(metrics)
+    
+    # Compute age ranges
+    hspo_ages = [r['hspo_age'] for r in recordings_data if r.get('hspo_age') is not None]
+    hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
+    fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
+    
+    # Compute averages
+    spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+                          'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
+    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+    
+    light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+                        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                        'light_amplitude', 'light_roc']
+    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+    
+    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+    
+    # Build fresh comparison data
+    data = {
+        "folder": folder,
+        "summary": {
+            "recording_count": len(recordings_data),
+            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+        },
+        "recordings": recordings_data,
+        "spontaneous_averages": spontaneous_averages,
+        "light_hra_averages": light_hra_averages,
+        "light_hrv_averages": light_hrv_averages,
+    }
+    
     recordings = data.get('recordings', [])
     summary = data.get('summary', {})
     
@@ -2030,7 +2078,56 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
 @api_router.post("/folders/{folder_id}/export/pdf")
 async def export_folder_comparison_pdf(folder_id: str, request: FolderComparisonExportRequest):
     """Export folder comparison data to PDF using the new Nature-style format."""
-    output = export_utils.create_comparison_pdf(request.folder_name, request.comparison_data)
+    # ALWAYS fetch fresh data from database to ensure exports are up-to-date
+    folder = await storage.get_folder(db, folder_id)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    recordings_data = []
+    async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
+        recording = {
+            "id": str(rec["_id"]),
+            "name": rec["name"],
+            "filename": rec["filename"],
+            "analysis_state": rec.get("analysis_state", {}),
+        }
+        metrics = extract_comparison_metrics(recording)
+        recordings_data.append(metrics)
+    
+    # Compute age ranges
+    hspo_ages = [r['hspo_age'] for r in recordings_data if r.get('hspo_age') is not None]
+    hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
+    fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
+    
+    # Compute averages
+    spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+                          'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
+    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+    
+    light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+                        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                        'light_amplitude', 'light_roc']
+    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+    
+    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+    
+    # Build fresh comparison data
+    comparison_data = {
+        "folder": folder,
+        "summary": {
+            "recording_count": len(recordings_data),
+            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+        },
+        "recordings": recordings_data,
+        "spontaneous_averages": spontaneous_averages,
+        "light_hra_averages": light_hra_averages,
+        "light_hrv_averages": light_hrv_averages,
+    }
+    
+    output = export_utils.create_comparison_pdf(request.folder_name, comparison_data)
     filename = f"{request.folder_name}_comparison.pdf".replace(' ', '_')
     
     return StreamingResponse(

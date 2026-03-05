@@ -23,6 +23,10 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
+- 2025-12-05: **Exports now always fetch fresh data from database**:
+  - Comparison PDF/Excel exports fetch latest recordings data on each export (not from frontend state)
+  - This ensures exports always reflect current database state after updates/deletes/adds
+  - Single recording exports continue to use current app state (which is up-to-date with UI)
 - 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports:
   - **Frontend (FolderComparison.js)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
   - **Comparison PDF (export_utils.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
