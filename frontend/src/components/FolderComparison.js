@@ -748,7 +748,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       const lightDisplay = rec.has_light_stim ? (
                         <div className="text-[10px] leading-tight">
                           {rec.light_stim_count && <div>{rec.light_stim_count} stim</div>}
-                          <div>{rec.stim_duration}s</div>
+                          <div className="text-zinc-500">{rec.stim_duration}s</div>
                           {rec.isi_structure && (
                             <div className="text-zinc-500">
                               <InfoTip text="Inter-Stimuli Interval">ISI</InfoTip>: {rec.isi_structure}
