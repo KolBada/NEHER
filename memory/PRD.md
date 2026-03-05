@@ -1,71 +1,88 @@
-# NEHER - Electrophysiology Analysis Application
+# NEHER - Cardiac Electrophysiology Analysis Platform
 
 ## Original Problem Statement
-Build a production-ready web application, **NEHER**, for electrophysiology analysis of sharp-electrode extracellular ABF recordings. The application must support uploading `.abf` files, filtering the voltage trace, detecting beats, and performing detailed analysis with persistent storage in MongoDB.
+Build a production-ready web application for electrophysiology analysis of sharp-electrode extracellular ABF recordings. The application supports uploading `.abf` files, filtering voltage traces, detecting beats, and performing detailed analysis with persistent storage in MongoDB.
 
-## Core Workflow
-Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysis sessions from folders
+## Core Features
+1. **ABF File Processing:** Upload and analyze `.abf` files up to 200MB using chunked uploads
+2. **Beat Detection:** Automatic detection with manual editing capabilities
+3. **Spontaneous Activity Analysis:** BF & HRV metrics with baseline/drug readouts
+4. **Light Stimulation Analysis:** Pulse detection and HRV response analysis
+5. **Folder Comparison:** Aggregated analysis across multiple recordings
+6. **Export:** PDF, Excel, CSV exports for single recordings and comparisons
 
-## Key Features Implemented
-- ABF file upload and processing
-- Voltage trace visualization with unified zoom
-- Beat detection and editing
-- Spontaneous Activity analysis
-- Light Stimulation analysis
-- Drug analysis
-- Folder organization with collapsible Sections
-- PDF and Excel exports with professional formatting
-- Comparison view for folder aggregation
-
-## Technical Stack
-- **Frontend:** React, Tailwind CSS, shadcn/ui, Recharts, lucide-react
-- **Backend:** FastAPI (Python), Matplotlib, openpyxl
+## Tech Stack
+- **Frontend:** React, Tailwind CSS, shadcn/ui, Recharts
+- **Backend:** FastAPI (Python), pyABF
 - **Database:** MongoDB
+- **Deployment:** Kubernetes
 
-## Recent Changes (December 2025)
-- 2025-12-05: **New Single Recording Excel Export matching PDF structure**:
-  - Rewrote `create_nature_excel` function in `export_utils.py` with 6 sheets:
-    - Summary: Recording info, tissue info, drug perfusion, light stim, readouts
-    - Spontaneous BF: Per-minute BF data with normalization
-    - Spontaneous HRV: Per-minute HRV data (RMSSD, SDNN, pNN50)
-    - Light HRA: Per-stimulus HRA data with averages
-    - Light Corrected HRV: Per-stimulus corrected HRV with medians
-    - Per-Beat: **Kept beats only** with Beat #, Time, BF, NN values
-  - Reduced file from ~4600 lines to ~4050 lines by removing duplicate code
-- 2025-12-05: **New Comparison Excel Export matching PDF structure** (5 sheets)
-- 2025-12-05: **Exports now always fetch fresh data from database**
-- 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports
-- 2025-12-04: Fixed PDF Table 4 positioning
-- Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
+## What's Been Implemented
 
-## Pending Issues
-### P0 (High Priority)
-- Section Drag-and-Drop partially broken in `HomeBrowser.js` (recurring issue)
+### March 5, 2026
+- **Fixed Spontaneous Activity Bug:** Automatic HRV computation after validation
+  - Modified `handleValidate` in App.js to call `hrvAnalysis` and `perMinuteMetrics` automatically
+  - Enhanced button visibility in AnalysisPanel.js with CSS fixes
+- **Previous Session:** Fixed "Perf. Time" display, refactored comparison exports, redesigned Excel exports
 
-### P1 (Medium Priority)
-- PDF data table positioning refinements (if needed)
-- Drug readout input values not clearing
-- BF/NN charts data visibility on new recordings
+### Previous Sessions
+- Complete ABF file upload with chunked upload for large files
+- Beat detection and validation workflow
+- HRV analysis with baseline and drug readouts
+- Light stimulation detection and analysis
+- Folder/Section organization system
+- PDF, Excel, CSV exports for all data types
+- Synchronized zoom across charts
 
-### P2 (Lower Priority)
+## Known Issues (Prioritized Backlog)
+
+### P0 - Critical
+- **Section Drag-and-Drop Bug** (`HomeBrowser.js`): Sections at the bottom of the list cannot be dragged. Multiple fix attempts have failed.
+
+### P1 - High Priority
+- Drug readout input values not clearing properly
 - Beat Frequency chart brush not interactive
-- Brush/slider in TraceViewer.js resets on data changes
-- Cannot delete beat if activeDot is on it
-- Extend synchronized zoom to more tabs
+- Brush/slider zoom state resets on data changes
+- Cannot delete a beat if activeDot is on it
 
-## Backlog / Future
-- Component refactoring (App.js, HomeBrowser.js, AnalysisPanel.js)
-- Cohort Normalization functionality
-- Batch Processing for multiple ABF files
-- export_utils.py refactoring (3000+ lines, should be modularized)
+### P2 - Medium Priority
+- Extend synchronized zoom to Spontaneous Activity and Light Stimulus tabs
+- Refactor large components (App.js ~1900 lines, export_utils.py ~4000 lines)
 
-## Key Files
-- `/app/backend/export_utils.py` - PDF/Excel export logic
-- `/app/frontend/src/components/HomeBrowser.js` - Section/folder management
-- `/app/backend/server.py` - FastAPI routes
-- `/app/backend/analysis.py` - Analysis algorithms
+### P3 - Low Priority/Future
+- Add Cohort Normalization functionality
+- Implement Batch Processing for multiple files
+- Add more chart types for analysis visualization
+
+## Code Architecture
+```
+/app
+├── backend/
+│   ├── server.py        # FastAPI endpoints
+│   ├── analysis.py      # Beat detection & HRV computation
+│   └── export_utils.py  # PDF, Excel, CSV generation
+└── frontend/
+    ├── src/
+    │   ├── App.js           # Main state management
+    │   ├── api.js           # API client
+    │   └── components/
+    │       ├── AnalysisPanel.js     # Spontaneous Activity tab
+    │       ├── HomeBrowser.js       # Folder/Section navigation
+    │       ├── FolderComparison.js  # Comparison view
+    │       └── ...
+```
+
+## Key API Endpoints
+- `POST /api/upload/init|chunk|complete` - Chunked file upload
+- `POST /api/compute-metrics` - Beat validation
+- `POST /api/hrv-analysis` - HRV computation
+- `POST /api/per-minute-metrics` - Per-minute BF metrics
+- `POST /api/light-detect` - Light pulse detection
+- `GET /api/folders/{id}/comparison` - Folder comparison data
+- `POST /api/folders/{id}/export/pdf|xlsx` - Comparison exports
+- `POST /api/export/pdf|xlsx|csv` - Single recording exports
 
 ## Database Schema
-- `sections`: {_id, name, order, expanded}
-- `folders`: {_id, name, section_id, color}
-- `recordings`: {_id, name, folder_id, abf_file_path, analysis_state}
+- **sections:** `{_id, name, order, expanded}`
+- **folders:** `{_id, name, section_id, color, created_at, updated_at}`
+- **recordings:** `{_id, name, folder_id, filename, analysis_state, created_at, updated_at}`
