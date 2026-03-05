@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Brush, ReferenceArea
 } from 'recharts';
-import { Loader2, Info, RotateCcw, Plus, Minus, BarChart3 } from 'lucide-react';
+import { Loader2, Info, RotateCcw, Plus, Minus, BarChart3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -660,6 +660,29 @@ function AnalysisPanel({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              
+              {/* Compute BF & HRV Button */}
+              <div className="ml-auto">
+                <Button
+                  onClick={onComputeHRV}
+                  disabled={analysisLoading || !metrics}
+                  size="sm"
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-7 px-3"
+                  data-testid="compute-hrv-btn"
+                >
+                  {analysisLoading ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      Computing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Compute BF & HRV
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -603,37 +603,17 @@ function App() {
       setMetrics(data);
       setIsValidated(true);
       
+      // Clear previous HRV/BF results - user must click "Compute BF & HRV" to recalculate
+      setHrvResults(null);
+      setPerMinuteData(null);
+
       toast.success(`Validated — ${data.n_kept} beats kept, ${data.n_removed} filtered`);
-      
-      // Automatically compute HRV and per-minute data after validation
-      try {
-        const hrvData = await api.hrvAnalysis({
-          beat_times_min: data.filtered_beat_times_min,
-          bf_filtered: data.filtered_bf_bpm,
-          readout_minute: baselineHrvMinute,
-          baseline_hrv_minute: baselineHrvMinute,
-          baseline_bf_minute: baselineBfMinute,
-        });
-        setHrvResults(hrvData.data);
-        
-        // Also compute per-minute BF metrics
-        const pmData = await api.perMinuteMetrics({
-          beat_times_min: data.filtered_beat_times_min,
-          bf_bpm: data.filtered_bf_bpm,
-          nn_ms: data.filtered_nn_ms || [],
-          search_range_sec: 20,
-        });
-        setPerMinuteData(pmData.data);
-      } catch (hrvErr) {
-        console.error('Auto HRV computation failed:', hrvErr);
-        // Don't show error toast - validation succeeded, HRV can be computed later
-      }
     } catch (err) {
       toast.error('Validation failed: ' + (err.response?.data?.detail || err.message));
     } finally {
       setAnalysisLoading(false);
     }
-  }, [beats, filterParams, baselineHrvMinute, baselineBfMinute]);
+  }, [beats, filterParams]);
 
   // Unvalidate - allow re-editing beats
   // Keep metrics/BF chart visible as reference until new detection
