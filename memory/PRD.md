@@ -23,11 +23,14 @@ Upload -> Analyze (Spontaneous, Light Stim, Drug) -> Export -> Save/Load analysi
 - **Database:** MongoDB
 
 ## Recent Changes (December 2025)
-- 2025-12-05: Fixed "Perf. Time" data consistency across all exports:
-  - **Frontend (FolderComparison.js)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks (handles `0` correctly)
+- 2025-12-05: Fixed "Perf. Time" data consistency across ALL exports:
+  - **Frontend (FolderComparison.js)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
   - **Comparison PDF (export_utils.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
   - **Comparison Excel (server.py)**: Fixed to use `drug_hrv_readout_minute` with explicit null checks
-  - Root cause: Both JavaScript `||` and Python `or` operators treat `0` as falsy, causing fallback to `bf_readout_time`
+  - **Single Recording PDF (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
+  - **Single Recording Excel (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
+  - **Single Recording CSV (export_utils.py)**: Updated to use HRV readout minute from `drug_readout_settings`
+  - Root cause: Both JavaScript `||` and Python `or` operators treat `0` as falsy, causing fallback to wrong values
 - 2025-12-04: Fixed PDF Table 4 positioning (`loc='top'` -> `loc='upper center'`)
 - Previous: Exhaustive redesign of single-recording PDF export with bioptima aesthetic
 

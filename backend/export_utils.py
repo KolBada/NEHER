@@ -256,8 +256,18 @@ def create_nature_pdf(request):
                     y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", TINTS['drug'], width=col_width)
                 y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", TINTS['drug'], width=col_width)
                 y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", TINTS['drug'], width=col_width)
-                # Calculate and show Perf. Time (start + delay)
-                perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
+                # Perf. Time = HRV readout minute if available, otherwise start + delay
+                perf_start = drug.get('start', 0) or 0
+                perf_delay = drug.get('delay', 0) or 0
+                perf_time = perf_start + perf_delay  # Default
+                # Try to get HRV readout minute from drug_readout_settings
+                if request.drug_readout_settings:
+                    settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                    if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                        try:
+                            perf_time = int(float(settings_hrv)) + perf_start + perf_delay
+                        except (ValueError, TypeError):
+                            pass
                 y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'], width=col_width)
                 perf_end = drug.get('end')
                 y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', TINTS['drug'], width=col_width)
@@ -1487,7 +1497,18 @@ def create_nature_excel(request):
             ws.cell(row=left_row, column=left_col+1, value=f"{drug.get('delay', 0)} min").font = bold_data_font
             ws.cell(row=left_row, column=left_col+1).fill = drug_fill
             left_row += 1
-            perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
+            # Perf. Time = HRV readout minute if available, otherwise start + delay
+            perf_start = drug.get('start', 0) or 0
+            perf_delay = drug.get('delay', 0) or 0
+            perf_time = perf_start + perf_delay  # Default
+            # Try to get HRV readout minute from drug_readout_settings
+            if request.drug_readout_settings:
+                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                    try:
+                        perf_time = int(float(settings_hrv)) + perf_start + perf_delay
+                    except (ValueError, TypeError):
+                        pass
             ws.cell(row=left_row, column=left_col, value='Perf. Time:').font = data_font
             ws.cell(row=left_row, column=left_col).fill = drug_fill
             ws.cell(row=left_row, column=left_col+1, value=f"{perf_time} min").font = bold_data_font
@@ -2119,7 +2140,18 @@ def create_nature_csv(request):
                 writer.writerow(['Concentration', f"{drug.get('concentration')}µM"])
             writer.writerow(['Perf. Start', f"{drug.get('start', 0)} min"])
             writer.writerow(['Perf. Delay', f"{drug.get('delay', 0)} min"])
-            perf_time = (drug.get('start', 0) or 0) + (drug.get('delay', 0) or 0)
+            # Perf. Time = HRV readout minute if available, otherwise start + delay
+            perf_start = drug.get('start', 0) or 0
+            perf_delay = drug.get('delay', 0) or 0
+            perf_time = perf_start + perf_delay  # Default
+            # Try to get HRV readout minute from drug_readout_settings
+            if request.drug_readout_settings:
+                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
+                    try:
+                        perf_time = int(float(settings_hrv)) + perf_start + perf_delay
+                    except (ValueError, TypeError):
+                        pass
             writer.writerow(['Perf. Time', f"{perf_time} min"])
             perf_end = drug.get('end')
             writer.writerow(['Perf. End', f"{perf_end} min" if perf_end is not None else '—'])
