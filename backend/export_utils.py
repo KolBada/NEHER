@@ -345,8 +345,35 @@ def create_nature_pdf(request):
             
             # Override with user settings if available (these are stored as strings sometimes)
             if request.drug_readout_settings:
-                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                # New structure: per-drug settings in perDrug object
+                per_drug = request.drug_readout_settings.get('perDrug', {})
+                
+                # Get first drug's settings
+                first_drug_key = None
+                first_drug_settings = {}
+                if request.all_drugs and len(request.all_drugs) > 0:
+                    # Try to find the matching drug key (might be lowercase)
+                    first_drug_name = request.all_drugs[0].get('name', '').lower().replace(' ', '_').replace('-', '_')
+                    for key in per_drug.keys():
+                        if key.lower() == first_drug_name or key.lower().replace('_', '') == first_drug_name.replace('_', ''):
+                            first_drug_key = key
+                            first_drug_settings = per_drug.get(key, {})
+                            break
+                    # Also try direct match with known drug keys
+                    for key in ['tetrodotoxin', 'isoproterenol', 'carbachol', 'propranolol', 'ivabradine', 'acetylcholine']:
+                        if key in per_drug:
+                            first_drug_key = key
+                            first_drug_settings = per_drug.get(key, {})
+                            break
+                
+                settings_bf = first_drug_settings.get('bfReadoutMinute')
+                settings_hrv = first_drug_settings.get('hrvReadoutMinute')
+                
+                # Fallback to old structure for backwards compatibility
+                if settings_bf is None:
+                    settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                if settings_hrv is None:
+                    settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
                 
                 # Get perfusion params for calculation
                 perf_start = 0

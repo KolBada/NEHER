@@ -354,7 +354,6 @@ function AnalysisPanel({
 
   // Calculate readouts for ALL drugs
   const allDrugReadouts = useMemo(() => {
-    if (!enableHrvReadout && !enableBfReadout) return [];
     if (!selectedDrugs || selectedDrugs.length === 0) return [];
     
     const colorSchemes = [
@@ -371,13 +370,31 @@ function AnalysisPanel({
       const perDrugSettings = drugReadoutSettings?.perDrug?.[drugKey] || {};
       const colors = colorSchemes[idx % colorSchemes.length];
       
+      // Per-drug enable state (fallback to global for first drug)
+      const isDrugEnabled = idx === 0 
+        ? (enableHrvReadout || enableBfReadout) 
+        : (perDrugSettings.enabled ?? false);
+      
+      if (!isDrugEnabled) {
+        return {
+          drugKey,
+          drugName,
+          colors,
+          hrvData: null,
+          hrvActualMinute: 0,
+          bfData: null,
+          bfActualMinute: 0,
+          hasData: false,
+        };
+      }
+      
       const perfusionStart = settings.perfusionStart ?? 3;
       const perfusionTime = settings.perfusionTime ?? 3;
       
       // Calculate HRV readout
       let hrvData = null;
       let hrvActualMinute = 0;
-      if (enableHrvReadout && hrvResults?.windows) {
+      if (hrvResults?.windows) {
         const baseMinute = parseInt(perDrugSettings.hrvReadoutMinute) || 0;
         hrvActualMinute = baseMinute + perfusionStart + perfusionTime;
         hrvData = hrvResults.windows.find(w => w.minute === hrvActualMinute) || null;
@@ -386,7 +403,7 @@ function AnalysisPanel({
       // Calculate BF readout
       let bfData = null;
       let bfActualMinute = 0;
-      if (enableBfReadout && perMinuteData) {
+      if (perMinuteData) {
         const baseMinute = parseInt(perDrugSettings.bfReadoutMinute) || 0;
         bfActualMinute = baseMinute + perfusionStart + perfusionTime;
         bfData = perMinuteData.find(r => r.minute === bfActualMinute) || null;
@@ -796,16 +813,20 @@ function AnalysisPanel({
 
             {/* Drug readout controls - one box per drug, horizontally arranged */}
             {selectedDrugs && selectedDrugs.length > 0 ? (
-              <div className="flex flex-row flex-wrap gap-2">
+              <div className="flex flex-row flex-wrap gap-4">
                 {selectedDrugs.map((drugKey, idx) => {
                   const drugConfig = DRUG_CONFIG?.[drugKey] || {};
                   const drugName = drugConfig.name || drugKey;
                   const settings = drugSettings?.[drugKey] || {};
                   
                   // Get per-drug readout settings
-                  const perDrugSettings = drugReadoutSettings?.perDrug?.[drugKey] || { hrvReadoutMinute: '', bfReadoutMinute: '' };
+                  const perDrugSettings = drugReadoutSettings?.perDrug?.[drugKey] || { hrvReadoutMinute: '', bfReadoutMinute: '', enabled: false };
                   const hrvReadoutValue = perDrugSettings.hrvReadoutMinute ?? '';
                   const bfReadoutValue = perDrugSettings.bfReadoutMinute ?? '';
+                  // Per-drug enable state (fallback to global for first drug for backwards compatibility)
+                  const isDrugEnabled = idx === 0 
+                    ? (enableHrvReadout || enableBfReadout) 
+                    : (perDrugSettings.enabled ?? false);
                   
                   // Color schemes matching the top bar badges
                   const colorSchemes = [
@@ -833,88 +854,87 @@ function AnalysisPanel({
                     });
                   };
                   
+                  // Toggle handler for per-drug enable
+                  const toggleDrugEnabled = () => {
+                    if (idx === 0) {
+                      // First drug uses global toggle
+                      const isCurrentlyOn = enableHrvReadout || enableBfReadout;
+                      onDrugReadoutSettingsChange?.({
+                        ...drugReadoutSettings,
+                        enableHrvReadout: !isCurrentlyOn,
+                        enableBfReadout: !isCurrentlyOn,
+                      });
+                    } else {
+                      // Other drugs use per-drug enable
+                      updatePerDrugSetting('enabled', !isDrugEnabled);
+                    }
+                  };
+                  
                   return (
                     <div key={drugKey} className={`p-3 rounded-sm border transition-all duration-200 w-[340px] ${
-                      (enableHrvReadout || enableBfReadout) 
+                      isDrugEnabled 
                         ? `${colors.bg} ${colors.border}` 
                         : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
                     }`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <p className={`text-[9px] uppercase tracking-wider font-bold ${(enableHrvReadout || enableBfReadout) ? colors.text : 'text-zinc-400'}`}>
+                          <p className={`text-[9px] uppercase tracking-wider font-bold ${isDrugEnabled ? colors.text : 'text-zinc-400'}`}>
                             Drug Readout
                           </p>
-                          <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${(enableHrvReadout || enableBfReadout) ? colors.badge : 'border-zinc-600 bg-zinc-800/30 text-zinc-400'}`}>
+                          <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${isDrugEnabled ? colors.badge : 'border-zinc-600 bg-zinc-800/30 text-zinc-400'}`}>
                             {drugName}
                           </Badge>
                         </div>
-                        {idx === 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid="drug-readout-toggle"
-                            onClick={() => {
-                              const isCurrentlyOn = enableHrvReadout || enableBfReadout;
-                              if (!isCurrentlyOn) {
-                                onDrugReadoutSettingsChange?.({
-                                  ...drugReadoutSettings,
-                                  enableHrvReadout: true,
-                                  enableBfReadout: true,
-                                });
-                              } else {
-                                onDrugReadoutSettingsChange?.({
-                                  ...drugReadoutSettings,
-                                  enableHrvReadout: false,
-                                  enableBfReadout: false,
-                                });
-                              }
-                            }}
-                            className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                              (enableHrvReadout || enableBfReadout) 
-                                ? `${colors.bg} ${colors.textLight} hover:opacity-80` 
-                                : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                            }`}
-                          >
-                            {(enableHrvReadout || enableBfReadout) ? 'ON' : 'OFF'}
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          data-testid={`drug-readout-toggle-${idx}`}
+                          onClick={toggleDrugEnabled}
+                          className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                            isDrugEnabled 
+                              ? `${colors.bg} ${colors.textLight} hover:opacity-80` 
+                              : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                          }`}
+                        >
+                          {isDrugEnabled ? 'ON' : 'OFF'}
+                        </Button>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                           <Input
                             type="number"
                             value={hrvReadoutValue}
                             onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
-                            disabled={!(enableHrvReadout || enableBfReadout)}
-                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${(enableHrvReadout || enableBfReadout) ? colors.border : 'border-zinc-800'}`}
+                            disabled={!isDrugEnabled}
+                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
                             placeholder="12"
                           />
-                          <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                          {(enableHrvReadout || enableBfReadout) && String(hrvReadoutValue).trim() !== '' && (
+                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                          {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
                               Readout: {parseInt(hrvReadoutValue || 0) + perfStart + perfDelay}-{parseInt(hrvReadoutValue || 0) + perfStart + perfDelay + 3}min
                             </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
+                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                           <Input
                             type="number"
                             value={bfReadoutValue}
                             onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
-                            disabled={!(enableHrvReadout || enableBfReadout)}
-                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${(enableHrvReadout || enableBfReadout) ? colors.border : 'border-zinc-800'}`}
+                            disabled={!isDrugEnabled}
+                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
                             placeholder="14"
                           />
-                          <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                          {(enableHrvReadout || enableBfReadout) && String(bfReadoutValue).trim() !== '' && (
+                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                          {isDrugEnabled && String(bfReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
                               Readout: {parseInt(bfReadoutValue || 0) + perfStart + perfDelay}-{parseInt(bfReadoutValue || 0) + perfStart + perfDelay + 1}min
                             </Badge>
                           )}
                         </div>
-                        <div className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                        <div className={`text-[8px] mt-2 ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
                           <div className="flex items-center gap-1">
                             <span>Input = Perf. Time</span>
                           </div>
@@ -1009,7 +1029,7 @@ function AnalysisPanel({
 
             {/* Drug readout metrics - one row per drug */}
             {allDrugReadouts.filter(d => d.hasData).length > 0 && (
-              <div className="space-y-4 mt-4">
+              <div className="space-y-6 mt-4">
                 {allDrugReadouts.filter(d => d.hasData).map((drugReadout, idx) => (
                   <div key={drugReadout.drugKey} className="space-y-2">
                     <div className="flex items-center gap-2">
