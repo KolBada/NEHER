@@ -65,9 +65,24 @@ function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 
       bg: 'bg-purple-950/30 border-purple-800',
       label: 'text-purple-400',
       value: 'text-purple-100'
+    },
+    'purple-light': {
+      bg: 'bg-purple-900/30 border-purple-700',
+      label: 'text-purple-300',
+      value: 'text-purple-100'
+    },
+    violet: {
+      bg: 'bg-violet-950/30 border-violet-800',
+      label: 'text-violet-400',
+      value: 'text-violet-100'
+    },
+    'violet-light': {
+      bg: 'bg-violet-900/30 border-violet-700',
+      label: 'text-violet-300',
+      value: 'text-violet-100'
     }
   };
-  const colors = highlight ? colorClasses[highlightColor] : { bg: 'bg-zinc-900/50 border-zinc-800', label: 'text-zinc-500', value: 'text-zinc-100' };
+  const colors = highlight ? (colorClasses[highlightColor] || colorClasses.purple) : { bg: 'bg-zinc-900/50 border-zinc-800', label: 'text-zinc-500', value: 'text-zinc-100' };
   
   const labelContent = tooltip ? (
     <InfoTip text={tooltip}>{label}</InfoTip>
@@ -336,6 +351,59 @@ function AnalysisPanel({
       actualMinute: actualMinute,
     };
   }, [perMinuteData, drugReadoutSettings, enableBfReadout, selectedDrugs, drugSettings]);
+
+  // Calculate readouts for ALL drugs
+  const allDrugReadouts = useMemo(() => {
+    if (!enableHrvReadout && !enableBfReadout) return [];
+    if (!selectedDrugs || selectedDrugs.length === 0) return [];
+    
+    const colorSchemes = [
+      { bg: 'bg-purple-950/20', border: 'border-purple-500', text: 'text-purple-400', highlight: 'purple' },
+      { bg: 'bg-purple-900/20', border: 'border-purple-400', text: 'text-purple-300', highlight: 'purple-light' },
+      { bg: 'bg-violet-950/20', border: 'border-violet-600', text: 'text-violet-400', highlight: 'violet' },
+      { bg: 'bg-violet-900/20', border: 'border-violet-500', text: 'text-violet-300', highlight: 'violet-light' },
+    ];
+    
+    return selectedDrugs.map((drugKey, idx) => {
+      const drugConfig = DRUG_CONFIG?.[drugKey] || {};
+      const drugName = drugConfig.name || drugKey;
+      const settings = drugSettings?.[drugKey] || {};
+      const perDrugSettings = drugReadoutSettings?.perDrug?.[drugKey] || {};
+      const colors = colorSchemes[idx % colorSchemes.length];
+      
+      const perfusionStart = settings.perfusionStart ?? 3;
+      const perfusionTime = settings.perfusionTime ?? 3;
+      
+      // Calculate HRV readout
+      let hrvData = null;
+      let hrvActualMinute = 0;
+      if (enableHrvReadout && hrvResults?.windows) {
+        const baseMinute = parseInt(perDrugSettings.hrvReadoutMinute) || 0;
+        hrvActualMinute = baseMinute + perfusionStart + perfusionTime;
+        hrvData = hrvResults.windows.find(w => w.minute === hrvActualMinute) || null;
+      }
+      
+      // Calculate BF readout
+      let bfData = null;
+      let bfActualMinute = 0;
+      if (enableBfReadout && perMinuteData) {
+        const baseMinute = parseInt(perDrugSettings.bfReadoutMinute) || 0;
+        bfActualMinute = baseMinute + perfusionStart + perfusionTime;
+        bfData = perMinuteData.find(r => r.minute === bfActualMinute) || null;
+      }
+      
+      return {
+        drugKey,
+        drugName,
+        colors,
+        hrvData,
+        hrvActualMinute,
+        bfData,
+        bfActualMinute,
+        hasData: hrvData || bfData,
+      };
+    });
+  }, [selectedDrugs, drugSettings, drugReadoutSettings, enableHrvReadout, enableBfReadout, hrvResults, perMinuteData]);
 
   // Build array of all drugs with their settings and colors - MUST be before early return
   const DRUG_PURPLE_COLORS = [
@@ -851,7 +919,7 @@ function AnalysisPanel({
                             <span>Input = Perf. Time</span>
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
-                            <span>Drug Readout Time Range =</span>
+                            <span>Drug Readout Time Range = Perf. Start + Perf. Delay + Perf. Time</span>
                             {idx === 0 && (
                               <TooltipProvider delayDuration={100}>
                                 <Tooltip>
@@ -869,7 +937,6 @@ function AnalysisPanel({
                               </TooltipProvider>
                             )}
                           </div>
-                          <div className="text-[7px] mt-0.5">Perf. Start + Perf. Delay + Perf. Time</div>
                         </div>
                       </div>
                     </div>
@@ -940,61 +1007,66 @@ function AnalysisPanel({
               </div>
             )}
 
-            {/* Drug readout - same size as baseline when enabled */}
-            {(hrvReadout?.data || bfReadout?.data) && (
-              <div className="space-y-2 mt-4">
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-purple-500">
-                    Drug Readout Metrics
-                  </p>
-                  {selectedDrugs?.length > 0 && (
-                    <Badge variant="outline" className="text-[8px] border-purple-700 text-purple-400">
-                      Perf. Start + Perf. Delay + Perf. Time
-                    </Badge>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {bfReadout?.data && (
-                    <MetricCard 
-                      label="Mean BF" 
-                      sublabel={`@${bfReadout.actualMinute}-${bfReadout.actualMinute + 1}min`}
-                      value={bfReadout.data.avg_bf} 
-                      unit="bpm"
-                      highlight
-                      highlightColor="purple"
-                      tooltip="Beat Frequency (bpm)"
-                    />
-                  )}
-                  {hrvReadout?.data && (
-                    <>
-                      <MetricCard 
-                        label="ln(RMSSD₇₀)" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
-                        value={hrvReadout.data.ln_rmssd70}
-                        highlight
-                        highlightColor="purple"
-                        tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
-                      />
-                      <MetricCard 
-                        label="ln(SDNN₇₀)" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
-                        value={hrvReadout.data.sdnn ? Math.log(hrvReadout.data.sdnn) : null}
-                        highlight
-                        highlightColor="purple"
-                        tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
-                      />
-                      <MetricCard 
-                        label="pNN50₇₀" 
-                        sublabel={`@${hrvReadout.actualMinute}-${hrvReadout.actualMinute + 3}min`}
-                        value={hrvReadout.data.pnn50} 
-                        unit="%"
-                        highlight
-                        highlightColor="purple"
-                        tooltip="% of successive NN > 50ms (normalized to 70 bpm)"
-                      />
-                    </>
-                  )}
-                </div>
+            {/* Drug readout metrics - one row per drug */}
+            {allDrugReadouts.filter(d => d.hasData).length > 0 && (
+              <div className="space-y-4 mt-4">
+                {allDrugReadouts.filter(d => d.hasData).map((drugReadout, idx) => (
+                  <div key={drugReadout.drugKey} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-[10px] uppercase tracking-wider font-bold ${drugReadout.colors.text}`}>
+                        Drug Readout Metrics
+                      </p>
+                      <Badge variant="outline" className={`text-[8px] ${drugReadout.colors.border} ${drugReadout.colors.text}`}>
+                        Perf. Start + Perf. Delay + Perf. Time
+                      </Badge>
+                      <Badge variant="outline" className={`text-[8px] ${drugReadout.colors.border} ${drugReadout.colors.text} font-medium`}>
+                        {drugReadout.drugName}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {drugReadout.bfData && (
+                        <MetricCard 
+                          label="Mean BF" 
+                          sublabel={`@${drugReadout.bfActualMinute}-${drugReadout.bfActualMinute + 1}min`}
+                          value={drugReadout.bfData.avg_bf} 
+                          unit="bpm"
+                          highlight
+                          highlightColor={drugReadout.colors.highlight}
+                          tooltip="Beat Frequency (bpm)"
+                        />
+                      )}
+                      {drugReadout.hrvData && (
+                        <>
+                          <MetricCard 
+                            label="ln(RMSSD₇₀)" 
+                            sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
+                            value={drugReadout.hrvData.ln_rmssd70}
+                            highlight
+                            highlightColor={drugReadout.colors.highlight}
+                            tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
+                          />
+                          <MetricCard 
+                            label="ln(SDNN₇₀)" 
+                            sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
+                            value={drugReadout.hrvData.sdnn ? Math.log(drugReadout.hrvData.sdnn) : null}
+                            highlight
+                            highlightColor={drugReadout.colors.highlight}
+                            tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
+                          />
+                          <MetricCard 
+                            label="pNN50₇₀" 
+                            sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
+                            value={drugReadout.hrvData.pnn50} 
+                            unit="%"
+                            highlight
+                            highlightColor={drugReadout.colors.highlight}
+                            tooltip="% of successive NN > 50ms (normalized to 70 bpm)"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
