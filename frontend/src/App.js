@@ -1493,7 +1493,7 @@ function App() {
       <Toaster theme="dark" position="top-right" />
 
       {/* Header */}
-      <header className="sticky top-0 z-20 backdrop-blur-md bg-zinc-950/80 border-b border-zinc-800 px-4 py-2"
+      <header className="sticky top-0 z-20 bg-black border-b border-zinc-800 px-4 py-2"
               data-testid="app-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
