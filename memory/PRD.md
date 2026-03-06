@@ -19,7 +19,16 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
-### March 6, 2026
+### March 6, 2026 (Session 2)
+- **Bug Fixes for Readout Controls:**
+  - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup, allowing decimal inputs like 0.5, 1.5 to correctly find the corresponding minute window
+  - **Per-Drug Perfusion Time in Comparison:** Backend `server.py` now includes `perf_time` in `per_drug_metrics` for each drug
+  - **UI Label Update:** Changed "Readout:" to "Readout Time Range:" in baseline and drug readout sections
+  - **Removed Leading Zeros:** Time range displays now show "1-2min" instead of "01-02min"
+  - **Wider Input Fields:** Increased readout input width from `w-14` to `w-16` to accommodate decimal values like 2.5
+  - **Comparison Metadata Fix:** Frontend `FolderComparison.js` now displays per-drug perfusion time from `per_drug_metrics` instead of using global value
+
+### March 6, 2026 (Session 1)
 - **Multi-File Fusion Feature:**
   - **Backend:** Added new `/api/upload/fuse` endpoint that accepts up to 5 ABF files and concatenates them into a single recording
   - **Backend:** Validates max 5 files limit, rejects non-.abf files, returns `fused_from` array and `is_fused: true` flag
