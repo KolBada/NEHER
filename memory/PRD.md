@@ -20,6 +20,18 @@ Build a production-ready web application for electrophysiology analysis of sharp
 ## What's Been Implemented
 
 ### March 6, 2026
+- **Multi-File Fusion Feature:**
+  - **Backend:** Added new `/api/upload/fuse` endpoint that accepts up to 5 ABF files and concatenates them into a single recording
+  - **Backend:** Validates max 5 files limit, rejects non-.abf files, returns `fused_from` array and `is_fused: true` flag
+  - **Frontend:** Updated `FileUpload.js` with:
+    - FUSION MODE badge when multiple files selected
+    - File count indicator (X / 5 files)
+    - Drag-and-drop reordering of files
+    - Move up/down buttons for precise ordering
+    - GripVertical drag handles
+  - **API:** Updated `api.js` with `fusedUpload` function that posts to `/api/upload/fuse`
+  - **Testing:** All 11 backend tests passed for fusion upload
+
 - **Multi-Drug Readout Feature Complete:**
   - **UI Spacing:** Changed margin between drug readout metrics rows from `mt-6` to `mt-4` (30% reduction)
   - **UI Default Values:** Changed drug readout input placeholders from "12"/"14" to "0" for HRV/BF
