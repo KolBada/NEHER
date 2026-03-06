@@ -787,21 +787,6 @@ function AnalysisPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={baselineHrvMinute}
-                    onChange={(e) => onBaselineHrvMinuteChange(parseFloat(e.target.value) || 0)}
-                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
-                    disabled={!baselineEnabled}
-                  />
-                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-700 text-zinc-500'}`}>
-                    Readout Time Range: {baselineHrvMinute}-{baselineHrvMinute + 3}min
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
                   <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                   <Input
                     type="number"
@@ -813,7 +798,22 @@ function AnalysisPanel({
                   />
                   <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                   <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-700 text-zinc-500'}`}>
-                    Readout Time Range: {baselineBfMinute}-{baselineBfMinute + 1}min
+                    Readout: {String(Math.floor(baselineBfMinute)).padStart(2, '0')}-{String(Math.floor(baselineBfMinute) + 1).padStart(2, '0')}min
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    value={baselineHrvMinute}
+                    onChange={(e) => onBaselineHrvMinuteChange(parseFloat(e.target.value) || 0)}
+                    className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
+                    disabled={!baselineEnabled}
+                  />
+                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-700 text-zinc-500'}`}>
+                    Readout: {String(Math.floor(baselineHrvMinute)).padStart(2, '0')}-{String(Math.floor(baselineHrvMinute) + 3).padStart(2, '0')}min
                   </Badge>
                 </div>
                 <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
@@ -913,24 +913,6 @@ function AnalysisPanel({
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            value={hrvReadoutValue}
-                            onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
-                            disabled={!isDrugEnabled}
-                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
-                            placeholder="0"
-                          />
-                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                          {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
-                            <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay}-{parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay + 3}min
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
                           <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                           <Input
                             type="number"
@@ -944,7 +926,25 @@ function AnalysisPanel({
                           <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                           {isDrugEnabled && String(bfReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseFloat(bfReadoutValue || 0) + perfStart + perfDelay}-{parseFloat(bfReadoutValue || 0) + perfStart + perfDelay + 1}min
+                              Readout: {String(Math.floor(parseFloat(bfReadoutValue || 0) + perfStart + perfDelay)).padStart(2, '0')}-{String(Math.floor(parseFloat(bfReadoutValue || 0) + perfStart + perfDelay + 1)).padStart(2, '0')}min
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            value={hrvReadoutValue}
+                            onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
+                            disabled={!isDrugEnabled}
+                            className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
+                            placeholder="0"
+                          />
+                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                          {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
+                            <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
+                              Readout: {String(Math.floor(parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay)).padStart(2, '0')}-{String(Math.floor(parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay + 3)).padStart(2, '0')}min
                             </Badge>
                           )}
                         </div>
