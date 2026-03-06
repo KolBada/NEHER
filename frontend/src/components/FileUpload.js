@@ -246,11 +246,6 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
     <div className="flex items-center justify-center min-h-[70vh]" data-testid="upload-page">
       <Card className="w-full max-w-2xl bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardContent className="p-8">
-          {/* Developer credit - top right */}
-          <div className="text-right mb-4">
-            <p className="text-sm text-zinc-400" style={{ fontFamily: 'Arial, sans-serif' }}>by Kolia H. Badarello</p>
-          </div>
-          
           {/* Title row: NEHER on left, tagline on right */}
           <div className="flex items-baseline justify-between">
             <h1 className="text-4xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
