@@ -1489,7 +1489,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100">
+    <div className="min-h-screen bg-[#121214] text-zinc-100">
       <Toaster theme="dark" position="top-right" />
 
       {/* Header */}
