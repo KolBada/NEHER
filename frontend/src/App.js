@@ -1700,9 +1700,9 @@ function App() {
         </div>
       </header>
 
-      {/* Per-drug settings bar - only shown when drugs are selected */}
+      {/* Per-drug settings - only shown when drugs are selected */}
       {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-        <div className="border-b border-zinc-800 bg-zinc-950/50 px-4 py-1.5">
+        <div className="px-4 py-1.5">
           <ScrollArea className="max-h-[150px]">
             <div className="space-y-2">
               {/* Predefined drugs with settings */}
