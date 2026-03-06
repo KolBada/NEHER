@@ -1706,56 +1706,64 @@ function App() {
           <ScrollArea className="max-h-[150px]">
             <div className="space-y-2">
               {/* Predefined drugs with settings */}
-              {selectedDrugs.map(drugKey => {
+              {selectedDrugs.map((drugKey, idx) => {
                 const config = DRUG_CONFIG[drugKey];
                 const settings = drugSettings[drugKey] || {};
+                // Color schemes matching the top bar badges
+                const colorSchemes = [
+                  { border: 'border-purple-500/50', text: 'text-purple-400', textLight: 'text-purple-300', separator: 'bg-purple-500/30', icon: 'text-purple-400/60', label: 'text-purple-400/70' },
+                  { border: 'border-purple-400/50', text: 'text-purple-300', textLight: 'text-purple-200', separator: 'bg-purple-400/30', icon: 'text-purple-300/60', label: 'text-purple-300/70' },
+                  { border: 'border-violet-600/50', text: 'text-violet-400', textLight: 'text-violet-300', separator: 'bg-violet-600/30', icon: 'text-violet-400/60', label: 'text-violet-400/70' },
+                  { border: 'border-violet-500/50', text: 'text-violet-300', textLight: 'text-violet-200', separator: 'bg-violet-500/30', icon: 'text-violet-300/60', label: 'text-violet-300/70' },
+                ];
+                const colors = colorSchemes[idx % colorSchemes.length];
                 return (
-                  <div key={drugKey} className="flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50 relative z-10">
-                    <span className="text-[10px] font-medium text-purple-400 w-24">{config.name}</span>
+                  <div key={drugKey} className={`flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border ${colors.border} relative z-10`}>
+                    <span className={`text-[10px] font-medium ${colors.text} w-24`}>{config.name}</span>
                     <div className="flex items-center gap-1">
                       <Input
                         data-testid={`drug-${drugKey}-concentration`}
                         type="text"
                         value={settings.concentration !== undefined ? settings.concentration : config.defaultConc}
                         onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
-                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2"
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
                       />
-                      <span className="text-[9px] text-purple-400/70">µM</span>
+                      <span className={`text-[9px] ${colors.label}`}>µM</span>
                     </div>
-                    <Separator orientation="vertical" className="h-4 bg-purple-500/30" />
+                    <Separator orientation="vertical" className={`h-4 ${colors.separator}`} />
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-purple-400/60" />
-                      <span className="text-[9px] text-purple-400/70">Start:</span>
+                      <Clock className={`w-3 h-3 ${colors.icon}`} />
+                      <span className={`text-[9px] ${colors.label}`}>Start:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-start`}
                         type="number"
                         step="0.5"
                         value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
                       />
-                      <span className="text-[9px] text-purple-400/70">min, Delay:</span>
+                      <span className={`text-[9px] ${colors.label}`}>min, Delay:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-time`}
                         type="number"
                         step="0.5"
                         value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
                       />
-                      <span className="text-[9px] text-purple-400/70">min, End:</span>
+                      <span className={`text-[9px] ${colors.label}`}>min, End:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-end`}
                         type="number"
                         step="0.5"
                         value={settings.perfusionEnd ?? ''}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
                         placeholder="—"
                       />
-                      <span className="text-[9px] text-purple-400/70">min</span>
+                      <span className={`text-[9px] ${colors.label}`}>min</span>
                     </div>
-                    <Badge variant="outline" className="text-[8px] border-purple-500/50 text-purple-400/80">
+                    <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
                       Perf.Time: BF@{config.bfReadout ?? 'peak'}min HRV@{config.hrvReadout ?? 'peak'}min
                     </Badge>
                   </div>
@@ -1763,62 +1771,73 @@ function App() {
               })}
               
               {/* Other drugs */}
-              {otherDrugs.map(drug => (
-                <div key={drug.id} className="flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50">
-                  <Input
-                    value={drug.name}
-                    onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
-                    className="h-6 w-24 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2"
-                    placeholder="Drug name"
-                  />
-                  <div className="flex items-center gap-1">
+              {otherDrugs.map((drug, idx) => {
+                // Continue color index from predefined drugs
+                const colorIdx = selectedDrugs.length + idx;
+                const colorSchemes = [
+                  { border: 'border-purple-500/50', text: 'text-purple-400', textLight: 'text-purple-300', separator: 'bg-purple-500/30', icon: 'text-purple-400/60', label: 'text-purple-400/70' },
+                  { border: 'border-purple-400/50', text: 'text-purple-300', textLight: 'text-purple-200', separator: 'bg-purple-400/30', icon: 'text-purple-300/60', label: 'text-purple-300/70' },
+                  { border: 'border-violet-600/50', text: 'text-violet-400', textLight: 'text-violet-300', separator: 'bg-violet-600/30', icon: 'text-violet-400/60', label: 'text-violet-400/70' },
+                  { border: 'border-violet-500/50', text: 'text-violet-300', textLight: 'text-violet-200', separator: 'bg-violet-500/30', icon: 'text-violet-300/60', label: 'text-violet-300/70' },
+                ];
+                const colors = colorSchemes[colorIdx % colorSchemes.length];
+                return (
+                  <div key={drug.id} className={`flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border ${colors.border}`}>
                     <Input
-                      value={drug.concentration}
-                      onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
-                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2"
+                      value={drug.name}
+                      onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
+                      className={`h-6 w-24 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
+                      placeholder="Drug name"
                     />
-                    <span className="text-[9px] text-purple-400/70">µM</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={drug.concentration}
+                        onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
+                      />
+                      <span className={`text-[9px] ${colors.label}`}>µM</span>
+                    </div>
+                    <Separator orientation="vertical" className={`h-4 ${colors.separator}`} />
+                    <div className="flex items-center gap-1">
+                      <Clock className={`w-3 h-3 ${colors.icon}`} />
+                      <span className={`text-[9px] ${colors.label}`}>Start:</span>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={drug.perfusionStart}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                      />
+                      <span className={`text-[9px] ${colors.label}`}>min, Delay:</span>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={drug.perfusionTime}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                      />
+                      <span className={`text-[9px] ${colors.label}`}>min, End:</span>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={drug.perfusionEnd ?? ''}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
+                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        placeholder="—"
+                      />
+                      <span className={`text-[9px] ${colors.label}`}>min</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-5 w-5 p-0 ${colors.label} hover:text-red-400`}
+                      onClick={() => removeOtherDrug(drug.id)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
                   </div>
-                  <Separator orientation="vertical" className="h-4 bg-purple-500/30" />
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-purple-400/60" />
-                    <span className="text-[9px] text-purple-400/70">Start:</span>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      value={drug.perfusionStart}
-                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
-                    />
-                    <span className="text-[9px] text-purple-400/70">min, Delay:</span>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      value={drug.perfusionTime}
-                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
-                    />
-                    <span className="text-[9px] text-purple-400/70">min, End:</span>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      value={drug.perfusionEnd ?? ''}
-                      onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                      className="h-6 w-14 text-[9px] font-data bg-zinc-950 border-purple-500/50 text-purple-300 rounded-sm px-2 number-input-white-arrows"
-                      placeholder="—"
-                    />
-                    <span className="text-[9px] text-purple-400/70">min</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 p-0 text-purple-400/70 hover:text-red-400"
-                    onClick={() => removeOtherDrug(drug.id)}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         </div>
