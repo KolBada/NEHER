@@ -1,0 +1,71 @@
+{
+  "summary": "Backend-only testing of PDF export with multiple drug readouts. All 18 tests PASSED. Verified: (1) PDF export creates separate DRUG READOUT sections for each enabled drug, (2) Mean BF calculation uses correct per-drug readout minute settings (input + perf_start + perf_delay), (3) Per-Minute BF table highlights drug readout rows with light purple (#e8d5f5) and bold text, (4) Per-Three Minutes HRV table highlights drug readout rows with light purple (#e8d5f5) and bold text.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_pdf_multi_drug_export.py",
+    "/app/test_reports/pytest/pytest_results_iter15.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "export_utils.py lines 330-441: Multi-drug readout section correctly loops through all_drugs and creates separate DRUG READOUT header for each enabled drug",
+    "export_utils.py lines 378-392: BF and HRV readout minutes correctly calculated as: input + perf_start + perf_delay",
+    "export_utils.py lines 394-426: BF lookup searches per_minute_data first, falls back to hrv_windows if not found",
+    "export_utils.py lines 944-985: BF table drug_windows array collects windows from ALL enabled drugs",
+    "export_utils.py lines 1073-1114: HRV table drug_minutes array collects minutes from ALL enabled drugs",
+    "export_utils.py lines 1029-1031 and 1164-1166: Both tables apply TINTS['drug'] (#e8d5f5) background + bold text for highlighted rows",
+    "Code correctly handles first drug using global enable flags (enableHrvReadout/enableBfReadout) while subsequent drugs use per-drug enabled flag"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_pdf_multi_drug_export.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (18/18 tests passed)",
+    "frontend": "N/A (backend-only testing)"
+  },
+
+  "seed_data_creation": "Created mock test data with 2 drugs (Tetrodotoxin + Acetylcholine), 20 minutes of per_minute_data, 18 hrv_windows",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "PDF export multi-drug feature fully tested and working. Test file at /app/backend/tests/test_pdf_multi_drug_export.py can be reused for regression testing. Key test scenarios covered: multi-drug readouts, single drug disabled, all drugs disabled, out-of-range minutes, missing settings, drug name case matching.",
+
+  "features_verified": {
+    "pdf_export_multi_drug_readouts": "PASS - Separate DRUG READOUT sections created for each enabled drug in perDrug settings",
+    "mean_bf_per_drug_settings": "PASS - BF calculated at correct minute: bfReadoutMinute + perf_start + perf_delay",
+    "hrv_per_drug_settings": "PASS - HRV calculated at correct minute: hrvReadoutMinute + perf_start + perf_delay", 
+    "bf_table_highlighting": "PASS - Drug readout rows highlighted with light purple (#e8d5f5) and bold text",
+    "hrv_table_highlighting": "PASS - Drug readout rows highlighted with light purple (#e8d5f5) and bold text",
+    "edge_cases": "PASS - Handles empty data, out-of-range minutes, missing settings, drug name case variations"
+  },
+
+  "test_results": {
+    "tests_executed": 18,
+    "tests_passed": 18,
+    "tests_failed": 0,
+    "test_categories": {
+      "API_endpoint": "2 tests",
+      "multi_drug_sections": "3 tests",
+      "mean_bf_calculation": "2 tests",
+      "table_highlighting": "3 tests",
+      "edge_cases": "5 tests",
+      "data_integrity": "2 tests",
+      "response_headers": "1 test"
+    }
+  }
+}

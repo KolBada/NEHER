@@ -327,154 +327,118 @@ def create_nature_pdf(request):
             y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['baseline'], width=col_width)
             y_right -= section_gap
         
-        # DRUG READOUT - show even without baseline
+        # DRUG READOUT - show for each enabled drug (like Drug Perfusion shows multiple drugs)
         if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
-            y_right = draw_header(fig1, right_x, y_right, 'DRUG READOUT', COLORS['purple'], width=col_width)
-            
-            drug_bf = None
-            drug_hrv_data = None
-            
-            # Get drug readout minutes - check both drug_readout and drug_readout_settings
-            drug_bf_minute = None
-            drug_hrv_minute = None
-            
-            # First try to get from drug_readout (calculated values)
-            if request.drug_readout:
-                drug_bf_minute = request.drug_readout.get('bf_minute')
-                drug_hrv_minute = request.drug_readout.get('hrv_minute')
-            
-            # Override with user settings if available (these are stored as strings sometimes)
+            per_drug_settings = {}
             if request.drug_readout_settings:
-                # New structure: per-drug settings in perDrug object
-                per_drug = request.drug_readout_settings.get('perDrug', {})
-                
-                # Get first drug's settings
-                first_drug_key = None
-                first_drug_settings = {}
-                if request.all_drugs and len(request.all_drugs) > 0:
-                    # Try to find the matching drug key (might be lowercase)
-                    first_drug_name = request.all_drugs[0].get('name', '').lower().replace(' ', '_').replace('-', '_')
-                    for key in per_drug.keys():
-                        if key.lower() == first_drug_name or key.lower().replace('_', '') == first_drug_name.replace('_', ''):
-                            first_drug_key = key
-                            first_drug_settings = per_drug.get(key, {})
-                            break
-                    # Also try direct match with known drug keys
-                    for key in ['tetrodotoxin', 'isoproterenol', 'carbachol', 'propranolol', 'ivabradine', 'acetylcholine']:
-                        if key in per_drug:
-                            first_drug_key = key
-                            first_drug_settings = per_drug.get(key, {})
-                            break
-                
-                settings_bf = first_drug_settings.get('bfReadoutMinute')
-                settings_hrv = first_drug_settings.get('hrvReadoutMinute')
-                
-                # Fallback to old structure for backwards compatibility
-                if settings_bf is None:
-                    settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-                if settings_hrv is None:
-                    settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-                
-                # Get perfusion params for calculation
-                perf_start = 0
-                perf_delay = 0
-                if request.all_drugs and len(request.all_drugs) > 0:
-                    drug = request.all_drugs[0]
-                    perf_start = drug.get('start', 0) or 0
-                    perf_delay = drug.get('delay', 0) or 0
-                
-                # If user has enabled BF readout and provided a minute
-                if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
-                    try:
-                        drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
-                    except (ValueError, TypeError):
-                        pass
-                
-                # If user has enabled HRV readout and provided a minute
-                if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
-                    try:
-                        drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
-                    except (ValueError, TypeError):
-                        pass
+                per_drug_settings = request.drug_readout_settings.get('perDrug', {})
             
-            # Convert to int for comparison
-            try:
-                drug_bf_minute = int(drug_bf_minute) if drug_bf_minute is not None else None
-            except (ValueError, TypeError):
+            # Process each drug
+            for drug_idx, drug in enumerate(request.all_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+                
+                # Get this drug's perfusion params
+                perf_start = drug.get('start', 0) or 0
+                perf_delay = drug.get('delay', 0) or 0
+                
+                # Find matching per-drug settings
+                drug_settings = {}
+                for key in per_drug_settings.keys():
+                    if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                        drug_settings = per_drug_settings.get(key, {})
+                        break
+                
+                # Check if this drug's readout is enabled
+                # First drug uses global enable flags, others use per-drug enabled flag
+                is_enabled = False
+                if drug_idx == 0:
+                    if request.drug_readout_settings:
+                        is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                    else:
+                        is_enabled = True  # Fallback if settings not available
+                else:
+                    is_enabled = drug_settings.get('enabled', False)
+                
+                if not is_enabled:
+                    continue
+                
+                # Draw header for this drug's readout
+                y_right = draw_header(fig1, right_x, y_right, f'DRUG READOUT', COLORS['purple'], width=col_width)
+                
+                # Add drug name as first row
+                y_right = draw_row(fig1, right_x, y_right, 'Drug:', drug_name, TINTS['drug'], width=col_width)
+                
+                drug_bf = None
+                drug_hrv_data = None
                 drug_bf_minute = None
-                
-            try:
-                drug_hrv_minute = int(drug_hrv_minute) if drug_hrv_minute is not None else None
-            except (ValueError, TypeError):
                 drug_hrv_minute = None
-            
-            # Find BF at drug readout minute - check both per_minute_data and hrv_windows
-            if drug_bf_minute is not None and request.per_minute_data:
-                for pm in request.per_minute_data:
+                
+                # Get readout minutes from per-drug settings
+                settings_bf = drug_settings.get('bfReadoutMinute')
+                settings_hrv = drug_settings.get('hrvReadoutMinute')
+                
+                # Calculate actual readout minutes (input + perf_start + perf_delay)
+                if settings_bf not in (None, ''):
                     try:
-                        minute_str = str(pm.get('minute', ''))
-                        minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-                        if minute_num == drug_bf_minute:
-                            drug_bf = pm.get('mean_bf')
-                            break
+                        drug_bf_minute = int(float(settings_bf)) + int(perf_start) + int(perf_delay)
                     except (ValueError, TypeError):
                         pass
-            
-            # Find HRV at drug readout minute
-            if drug_hrv_minute is not None and request.hrv_windows:
-                for w in request.hrv_windows:
+                
+                if settings_hrv not in (None, ''):
                     try:
-                        w_minute = w.get('minute')
-                        # Handle different minute formats
-                        if w_minute is None:
-                            continue
-                        if isinstance(w_minute, (int, float)):
-                            w_minute_num = int(w_minute)
-                        else:
-                            w_minute_str = str(w_minute)
-                            w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
-                        
-                        if w_minute_num == drug_hrv_minute:
-                            drug_hrv_data = w
-                            # If BF not found in per_minute_data, get it from HRV window
-                            if drug_bf is None and w.get('mean_bf'):
-                                drug_bf = w.get('mean_bf')
-                            break
+                        drug_hrv_minute = int(float(settings_hrv)) + int(perf_start) + int(perf_delay)
                     except (ValueError, TypeError):
                         pass
-            
-            # Fallback: if BF still not found but HRV minute matches BF minute, use HRV window's BF
-            if drug_bf is None and drug_bf_minute is not None and request.hrv_windows:
-                for w in request.hrv_windows:
-                    try:
-                        w_minute = w.get('minute')
-                        if w_minute is None:
-                            continue
-                        if isinstance(w_minute, (int, float)):
-                            w_minute_num = int(w_minute)
-                        else:
-                            w_minute_str = str(w_minute)
-                            w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
-                        
-                        if w_minute_num == drug_bf_minute and w.get('mean_bf'):
-                            drug_bf = w.get('mean_bf')
-                            break
-                    except (ValueError, TypeError):
-                        pass
-            
-            # Always show drug metrics if available
-            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'], width=col_width)
-            if drug_hrv_data:
-                ln_rmssd = drug_hrv_data.get('ln_rmssd70')
-                y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['drug'], width=col_width)
-                sdnn = drug_hrv_data.get('sdnn')
-                ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-                y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['drug'], width=col_width)
-                pnn50 = drug_hrv_data.get('pnn50')
-                y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['drug'], width=col_width)
-            else:
-                y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'], width=col_width)
-            y_right -= section_gap
+                
+                # Find BF at drug readout minute
+                if drug_bf_minute is not None and request.per_minute_data:
+                    for pm in request.per_minute_data:
+                        try:
+                            minute_str = str(pm.get('minute', ''))
+                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                            if minute_num == drug_bf_minute:
+                                drug_bf = pm.get('mean_bf') or pm.get('avg_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Find HRV at drug readout minute
+                if drug_hrv_minute is not None and request.hrv_windows:
+                    for w in request.hrv_windows:
+                        try:
+                            w_minute = w.get('minute')
+                            if w_minute is None:
+                                continue
+                            if isinstance(w_minute, (int, float)):
+                                w_minute_num = int(w_minute)
+                            else:
+                                w_minute_str = str(w_minute)
+                                w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                            
+                            if w_minute_num == drug_hrv_minute:
+                                drug_hrv_data = w
+                                # If BF not found in per_minute_data, get it from HRV window
+                                if drug_bf is None and w.get('mean_bf'):
+                                    drug_bf = w.get('mean_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Show drug metrics
+                y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'], width=col_width)
+                if drug_hrv_data:
+                    ln_rmssd = drug_hrv_data.get('ln_rmssd70')
+                    y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['drug'], width=col_width)
+                    sdnn = drug_hrv_data.get('sdnn')
+                    ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+                    y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['drug'], width=col_width)
+                    pnn50 = drug_hrv_data.get('pnn50')
+                    y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['drug'], width=col_width)
+                else:
+                    y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'], width=col_width)
+                
+                y_right -= section_gap
         
         # LIGHT STIMULUS READOUT - all HRA metrics
         if request.light_enabled and (request.light_response or request.light_metrics_detrended):
@@ -950,7 +914,7 @@ def create_nature_pdf(request):
             
             # Get baseline and drug readout windows for highlighting
             baseline_window = None
-            drug_window = None
+            drug_windows = []  # Support multiple drug readout windows
             
             # Get baseline window if baseline is enabled
             if request.baseline_enabled and request.baseline:
@@ -977,31 +941,46 @@ def create_nature_pdf(request):
                         except (ValueError, TypeError):
                             pass
             
-            # Get drug readout window from drug_readout_settings (user override) or drug_readout (calculated)
-            if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
-                # First try user-specified override from drug_readout_settings
+            # Get drug readout windows for ALL enabled drugs
+            if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+                per_drug_settings = {}
                 if request.drug_readout_settings:
-                    settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                    per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+                
+                for drug_idx, drug in enumerate(request.all_drugs):
+                    drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                    drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+                    
+                    # Get this drug's perfusion params
+                    perf_start = drug.get('start', 0) or 0
+                    perf_delay = drug.get('delay', 0) or 0
+                    
+                    # Find matching per-drug settings
+                    drug_settings = {}
+                    for key in per_drug_settings.keys():
+                        if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                            drug_settings = per_drug_settings.get(key, {})
+                            break
+                    
+                    # Check if this drug's readout is enabled
+                    is_enabled = False
+                    if drug_idx == 0:
+                        if request.drug_readout_settings:
+                            is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                        else:
+                            is_enabled = True
+                    else:
+                        is_enabled = drug_settings.get('enabled', False)
+                    
+                    if not is_enabled:
+                        continue
+                    
+                    # Get BF readout minute
+                    settings_bf = drug_settings.get('bfReadoutMinute')
                     if settings_bf not in (None, ''):
                         try:
-                            perf_start = 0
-                            perf_delay = 0
-                            if request.all_drugs and len(request.all_drugs) > 0:
-                                drug = request.all_drugs[0]
-                                perf_start = int(float(drug.get('start', 0) or 0))
-                                perf_delay = int(float(drug.get('delay', 0) or 0))
-                            bf_min = int(float(settings_bf)) + perf_start + perf_delay
-                            drug_window = f"{bf_min}-{bf_min+1}"
-                        except (ValueError, TypeError):
-                            pass
-                
-                # Fallback to calculated drug_readout if no user override
-                if drug_window is None and request.drug_readout:
-                    bf_min = request.drug_readout.get('bf_minute')
-                    if bf_min is not None:
-                        try:
-                            bf_min = int(float(bf_min))
-                            drug_window = f"{bf_min}-{bf_min+1}"
+                            bf_min = int(float(settings_bf)) + int(perf_start) + int(perf_delay)
+                            drug_windows.append(f"{bf_min}-{bf_min+1}")
                         except (ValueError, TypeError):
                             pass
             
@@ -1031,7 +1010,7 @@ def create_nature_pdf(request):
                 # Determine row color
                 if baseline_window and window_str == baseline_window:
                     row_colors.append(TINTS['baseline'])
-                elif drug_window and window_str == drug_window:
+                elif window_str in drug_windows:
                     row_colors.append(TINTS['drug'])
                 else:
                     row_colors.append(None)
@@ -1080,7 +1059,7 @@ def create_nature_pdf(request):
             
             # Get baseline and drug readout windows for highlighting
             baseline_minute = None
-            drug_minute = None
+            drug_minutes = []  # Support multiple drug readout minutes
             
             # Get baseline minute if baseline is enabled
             if request.baseline_enabled and request.baseline:
@@ -1091,31 +1070,48 @@ def create_nature_pdf(request):
                     except (ValueError, TypeError):
                         baseline_minute = None
             
-            # Get drug readout minute from drug_readout_settings (user override) or drug_readout (calculated)
-            if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
-                # First try user-specified override from drug_readout_settings
+            # Get drug readout minutes for ALL enabled drugs
+            if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+                per_drug_settings = {}
                 if request.drug_readout_settings:
-                    settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                    per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+                
+                for drug_idx, drug in enumerate(request.all_drugs):
+                    drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                    drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+                    
+                    # Get this drug's perfusion params
+                    perf_start = drug.get('start', 0) or 0
+                    perf_delay = drug.get('delay', 0) or 0
+                    
+                    # Find matching per-drug settings
+                    drug_settings = {}
+                    for key in per_drug_settings.keys():
+                        if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                            drug_settings = per_drug_settings.get(key, {})
+                            break
+                    
+                    # Check if this drug's readout is enabled
+                    is_enabled = False
+                    if drug_idx == 0:
+                        if request.drug_readout_settings:
+                            is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                        else:
+                            is_enabled = True
+                    else:
+                        is_enabled = drug_settings.get('enabled', False)
+                    
+                    if not is_enabled:
+                        continue
+                    
+                    # Get HRV readout minute
+                    settings_hrv = drug_settings.get('hrvReadoutMinute')
                     if settings_hrv not in (None, ''):
                         try:
-                            perf_start = 0
-                            perf_delay = 0
-                            if request.all_drugs and len(request.all_drugs) > 0:
-                                drug = request.all_drugs[0]
-                                perf_start = int(float(drug.get('start', 0) or 0))
-                                perf_delay = int(float(drug.get('delay', 0) or 0))
-                            drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                            hrv_min = int(float(settings_hrv)) + int(perf_start) + int(perf_delay)
+                            drug_minutes.append(hrv_min)
                         except (ValueError, TypeError):
                             pass
-                
-                # Fallback to calculated drug_readout if no user override
-                if drug_minute is None and request.drug_readout:
-                    drug_minute = request.drug_readout.get('hrv_minute')
-                    if drug_minute is not None:
-                        try:
-                            drug_minute = int(float(drug_minute))
-                        except (ValueError, TypeError):
-                            drug_minute = None
             
             headers = ['Window', 'ln(RMSSD₇₀)', 'RMSSD₇₀', 'ln(SDNN₇₀)', 'SDNN', 'pNN50₇₀', 'BF']
             table_data = []
@@ -1149,7 +1145,7 @@ def create_nature_pdf(request):
                 # Determine row color
                 if baseline_minute is not None and minute_num == baseline_minute:
                     row_colors.append(TINTS['baseline'])
-                elif drug_minute is not None and minute_num == drug_minute:
+                elif minute_num in drug_minutes:
                     row_colors.append(TINTS['drug'])
                 else:
                     row_colors.append(None)
