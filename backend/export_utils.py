@@ -3188,12 +3188,22 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig1.text(right_x + 0.01, y_right, 'Heart Rate Adaptation (HRA)', fontsize=7, fontstyle='italic', color='#71717a')
         y_right -= 0.018
         y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'TTP (Avg):', f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', fmt(hra_averages.get('light_roc'), 4), TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Peak %:', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], width=col_width)
+        # Format TTP values to show 0.0 instead of —
+        ttp_first = hra_averages.get('light_ttp_first')
+        ttp_first_str = f"{ttp_first:.1f}" if ttp_first is not None else "0.0"
+        y_right = draw_row(fig1, right_x, y_right, 'TTP 1st:', f"{ttp_first_str} s", TINTS['light'], width=col_width)
+        ttp_avg = hra_averages.get('light_ttp_avg')
+        ttp_avg_str = f"{ttp_avg:.1f}" if ttp_avg is not None else "0.0"
+        y_right = draw_row(fig1, right_x, y_right, 'TTP Avg:', f"{ttp_avg_str} s", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Rec. BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Rec. %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Amp.:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
+        roc = hra_averages.get('light_roc')
+        roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
+        y_right = draw_row(fig1, right_x, y_right, 'RoC:', roc_str, TINTS['light'], width=col_width)
         y_right -= 0.008
         
         fig1.text(right_x + 0.01, y_right, 'Corrected HRV', fontsize=7, fontstyle='italic', color='#71717a')
@@ -4280,28 +4290,47 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
+    ws1[f'D{r}'] = 'Avg BF:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
     ws1[f'D{r}'] = 'Peak BF:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Peak (Norm.):'
+    ws1[f'D{r}'] = 'Peak %:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_norm'), 1)}%"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Amplitude:'
+    # Format TTP values to show 0.0 instead of —
+    ttp_first = hra_averages.get('light_ttp_first')
+    ttp_first_str = f"{ttp_first:.1f}" if ttp_first is not None else "0.0"
+    ws1[f'D{r}'] = 'TTP 1st:'
+    ws1[f'E{r}'] = f"{ttp_first_str} s"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ttp_avg = hra_averages.get('light_ttp_avg')
+    ttp_avg_str = f"{ttp_avg:.1f}" if ttp_avg is not None else "0.0"
+    ws1[f'D{r}'] = 'TTP Avg:'
+    ws1[f'E{r}'] = f"{ttp_avg_str} s"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Rec. BF:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Rec. %:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Amp.:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'TTP (Avg):'
-    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s"
-    ws1[f'E{r}'].fill = light_fill
-    r += 1
-    ws1[f'D{r}'] = 'Rate of Change:'
-    ws1[f'E{r}'] = fmt(hra_averages.get('light_roc'), 4)
-    ws1[f'E{r}'].fill = light_fill
-    r += 1
-    ws1[f'D{r}'] = 'Recovery %:'
-    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
+    roc = hra_averages.get('light_roc')
+    roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
+    ws1[f'D{r}'] = 'RoC:'
+    ws1[f'E{r}'] = roc_str
     ws1[f'E{r}'].fill = light_fill
     
     r += 2
@@ -4453,7 +4482,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
     
     first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
     
-    ws3 = wb.create_sheet("Spontaneous Activity")
+    # Truncate drug name if sheet name would exceed 31 chars (Excel limit)
+    # "Spontaneous Activity ()" = 24 chars, leaving 7 chars for drug name
+    drug_name_for_sheet = first_drug_name[:7] if len(first_drug_name) > 7 else first_drug_name
+    ws3 = wb.create_sheet(f"Spontaneous Activity ({drug_name_for_sheet})")
     
     # Table 2.a: Drug-induced BF and HRV Data (First Drug)
     ws3['A1'] = f'Table 2.a | Drug-induced BF and HRV Data ({first_drug_name})'
@@ -4607,7 +4639,9 @@ def create_comparison_xlsx(folder_name, comparison_data):
     if len(unique_drug_names) > 1:
         second_drug_name = unique_drug_names[1]
         
-        ws3b = wb.create_sheet("Spontaneous Activity 2")
+        # Truncate drug name if sheet name would exceed 31 chars (Excel limit)
+        drug2_name_for_sheet = second_drug_name[:7] if len(second_drug_name) > 7 else second_drug_name
+        ws3b = wb.create_sheet(f"Spontaneous Activity ({drug2_name_for_sheet})")
         
         # Table 2.b: Drug-induced BF and HRV Data (Second Drug)
         ws3b['A1'] = f'Table 2.b | Drug-induced BF and HRV Data ({second_drug_name})'
