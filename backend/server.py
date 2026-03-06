@@ -1414,31 +1414,127 @@ def extract_comparison_metrics(recording: dict) -> dict:
     result['baseline_enabled'] = baseline_enabled
     
     # Spontaneous Activity - Drug metrics
+    # Now supports multiple drugs via perDrug settings
     drug_readout = state.get('drugReadoutSettings') or state.get('drug_readout', {})
     hrv_windows = hrv_results.get('windows', [])
     per_minute_data = state.get('perMinuteData') or state.get('per_minute_data', [])
+    selected_drugs = state.get('selectedDrugs', [])
+    drug_settings_all = state.get('drugSettings', {})
     
+    # Initialize default drug metrics (for first drug)
     result['drug_bf'] = None
     result['drug_ln_rmssd70'] = None
     result['drug_ln_sdnn70'] = None
     result['drug_pnn50'] = None
     
-    if drug_readout and (drug_readout.get('enableHrvReadout') or drug_readout.get('enableBfReadout')):
+    # Store per-drug metrics for multiple drugs
+    result['per_drug_metrics'] = []
+    
+    # Get perDrug settings
+    per_drug_settings = drug_readout.get('perDrug', {}) if drug_readout else {}
+    
+    # Process each drug
+    for drug_idx, drug_key in enumerate(selected_drugs):
+        drug_settings = drug_settings_all.get(drug_key, {})
+        drug_name = drug_settings.get('name', drug_key.replace('_', ' ').title())
+        perf_start = drug_settings.get('perfusionStart', 3) or 0
+        perf_delay = drug_settings.get('perfusionTime', 3) or 0
+        
+        # Get per-drug readout settings
+        this_drug_readout = per_drug_settings.get(drug_key, {})
+        
+        # Check if this drug's readout is enabled
+        is_enabled = False
+        if drug_idx == 0:
+            is_enabled = drug_readout.get('enableHrvReadout') or drug_readout.get('enableBfReadout')
+        else:
+            is_enabled = this_drug_readout.get('enabled', False)
+        
+        if not is_enabled:
+            continue
+        
+        drug_bf_minute_str = this_drug_readout.get('bfReadoutMinute')
+        drug_hrv_minute_str = this_drug_readout.get('hrvReadoutMinute')
+        
+        # Calculate actual minutes (input + perf_start + perf_delay)
+        drug_bf_minute = None
+        drug_hrv_minute = None
+        try:
+            if drug_bf_minute_str not in (None, ''):
+                drug_bf_minute = int(float(drug_bf_minute_str) + float(perf_start) + float(perf_delay))
+        except (ValueError, TypeError):
+            pass
+        try:
+            if drug_hrv_minute_str not in (None, ''):
+                drug_hrv_minute = int(float(drug_hrv_minute_str) + float(perf_start) + float(perf_delay))
+        except (ValueError, TypeError):
+            pass
+        
+        drug_metrics = {
+            'drug_key': drug_key,
+            'drug_name': drug_name,
+            'drug_bf': None,
+            'drug_ln_rmssd70': None,
+            'drug_ln_sdnn70': None,
+            'drug_pnn50': None,
+        }
+        
+        # Get drug BF from per_minute_data
+        if drug_bf_minute is not None and per_minute_data:
+            for pm in per_minute_data:
+                minute_val = pm.get('minute', '0')
+                try:
+                    minute_num = int(str(minute_val).split('-')[0])
+                    if minute_num == drug_bf_minute:
+                        drug_metrics['drug_bf'] = pm.get('avg_bf') or pm.get('mean_bf')
+                        break
+                except (ValueError, TypeError, AttributeError):
+                    pass
+        
+        # Get drug HRV from hrv_windows
+        if drug_hrv_minute is not None and hrv_windows:
+            for w in hrv_windows:
+                if w.get('minute') == drug_hrv_minute:
+                    drug_metrics['drug_ln_rmssd70'] = w.get('ln_rmssd70')
+                    sdnn = w.get('sdnn')
+                    drug_metrics['drug_ln_sdnn70'] = np.log(sdnn) if sdnn and sdnn > 0 else None
+                    drug_metrics['drug_pnn50'] = w.get('pnn50')
+                    break
+        
+        result['per_drug_metrics'].append(drug_metrics)
+        
+        # Set first drug metrics as default (backwards compatibility)
+        if drug_idx == 0 or (result['drug_bf'] is None and drug_metrics['drug_bf'] is not None):
+            result['drug_bf'] = drug_metrics['drug_bf']
+            result['drug_ln_rmssd70'] = drug_metrics['drug_ln_rmssd70']
+            result['drug_ln_sdnn70'] = drug_metrics['drug_ln_sdnn70']
+            result['drug_pnn50'] = drug_metrics['drug_pnn50']
+    
+    # Fallback to old logic if no drugs processed via perDrug
+    if not result['per_drug_metrics'] and drug_readout and (drug_readout.get('enableHrvReadout') or drug_readout.get('enableBfReadout')):
         # Frontend uses 'bfReadoutMinute' and 'hrvReadoutMinute' (as strings)
         drug_bf_minute_str = drug_readout.get('bfReadoutMinute') or drug_readout.get('bfMinute') or drug_readout.get('bf_minute')
         drug_hrv_minute_str = drug_readout.get('hrvReadoutMinute') or drug_readout.get('hrvMinute') or drug_readout.get('hrv_minute')
         
-        # Convert to int
+        # Get perfusion start/delay from first drug
+        perf_start = 0
+        perf_delay = 0
+        if selected_drugs and drug_settings_all:
+            first_drug = drug_settings_all.get(selected_drugs[0], {})
+            perf_start = first_drug.get('perfusionStart', 3) or 0
+            perf_delay = first_drug.get('perfusionTime', 3) or 0
+        
+        # Convert to int with perfusion offset
         drug_bf_minute = None
         drug_hrv_minute = None
         try:
-            if drug_bf_minute_str is not None:
-                drug_bf_minute = int(drug_bf_minute_str)
+            if drug_bf_minute_str not in (None, ''):
+                drug_bf_minute = int(float(drug_bf_minute_str) + float(perf_start) + float(perf_delay))
         except (ValueError, TypeError):
             pass
         try:
-            if drug_hrv_minute_str is not None:
-                drug_hrv_minute = int(drug_hrv_minute_str)
+            if drug_hrv_minute_str not in (None, ''):
+                drug_hrv_minute = int(float(drug_hrv_minute_str) + float(perf_start) + float(perf_delay))
         except (ValueError, TypeError):
             pass
         

@@ -531,17 +531,16 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
         </div>
         
         {/* Title row: NEHER on left, tagline on right */}
-        <div className="flex items-baseline justify-between mb-8">
-          <div className="flex flex-col">
-            <h1 className="text-5xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
-              NEHER
-            </h1>
-            <div className="w-full h-0.5 bg-white mt-1"></div>
-          </div>
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-5xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
+            NEHER
+          </h1>
           <p className="text-2xl text-white font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
             Cardiac Electrophysiology Analysis Platform
           </p>
         </div>
+        {/* White line spanning full width */}
+        <div className="w-full h-0.5 bg-white mt-2 mb-8"></div>
 
         {/* New Analysis Card */}
         <Card 
