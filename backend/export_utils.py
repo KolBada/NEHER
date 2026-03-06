@@ -251,9 +251,7 @@ def create_nature_pdf(request):
             y -= section_gap
             y = draw_header(fig1, left_x, y, 'DRUG PERFUSION', COLORS['purple'], width=col_width)
             
-            # Small gap between header and first drug box
-            header_to_box_gap = 0.002
-            y -= header_to_box_gap
+            # No gap between header and first drug box - they should be adjacent
             
             for idx, drug in enumerate(request.all_drugs):
                 # Add small white space gap between drug boxes
