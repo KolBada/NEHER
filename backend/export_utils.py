@@ -3407,12 +3407,12 @@ def create_comparison_pdf(folder_name, comparison_data):
         fig3.patch.set_facecolor('white')
         
         add_page_header(fig3, 'spontaneous activity')
-        fig3.text(0.08, 0.90, f'Spontaneous Activity ({first_drug_name})', ha='left', va='top', fontsize=28, fontweight='bold', 
+        fig3.text(0.08, 0.90, 'Spontaneous Activity', ha='left', va='top', fontsize=28, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
         
-        # Table 2: Drug-induced BF and HRV Data
-        fig3.text(0.08, 0.84, 'Table 2 | Drug-induced BF and HRV Data', fontsize=10, fontweight='bold', 
+        # Table 2.a: Drug-induced BF and HRV Data (First Drug)
+        fig3.text(0.08, 0.84, f'Table 2.a | Drug-induced BF and HRV Data ({first_drug_name})', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
@@ -3476,8 +3476,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        # Table 3: Drug-induced BF and HRV Normalized Data
-        fig3.text(0.08, 0.44, 'Table 3 | Drug-induced BF and HRV Normalized Data', fontsize=10, fontweight='bold', 
+        # Table 3.a: Drug-induced BF and HRV Normalized Data (First Drug)
+        fig3.text(0.08, 0.44, f'Table 3.a | Drug-induced BF and HRV Normalized Data ({first_drug_name})', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
@@ -3583,12 +3583,12 @@ def create_comparison_pdf(folder_name, comparison_data):
             fig3b.patch.set_facecolor('white')
             
             add_page_header(fig3b, 'spontaneous activity')
-            fig3b.text(0.08, 0.90, f'Spontaneous Activity ({second_drug_name})', ha='left', va='top', fontsize=28, fontweight='bold', 
+            fig3b.text(0.08, 0.90, 'Spontaneous Activity', ha='left', va='top', fontsize=28, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
             
-            # Table 2b: Drug-induced BF and HRV Data (Second Drug)
-            fig3b.text(0.08, 0.84, f'Table 2 | Drug-induced BF and HRV Data ({second_drug_name})', fontsize=10, fontweight='bold', 
+            # Table 2.b: Drug-induced BF and HRV Data (Second Drug)
+            fig3b.text(0.08, 0.84, f'Table 2.b | Drug-induced BF and HRV Data ({second_drug_name})', fontsize=10, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3b.transFigure))
             
@@ -3670,8 +3670,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                             cell.set_facecolor('white')
                         cell.set_text_props(fontfamily=body_font)
             
-            # Table 3b: Drug-induced BF and HRV Normalized Data (Second Drug)
-            fig3b.text(0.08, 0.44, f'Table 3 | Drug-induced BF and HRV Normalized Data ({second_drug_name})', fontsize=10, fontweight='bold', 
+            # Table 3.b: Drug-induced BF and HRV Normalized Data (Second Drug)
+            fig3b.text(0.08, 0.44, f'Table 3.b | Drug-induced BF and HRV Normalized Data ({second_drug_name})', fontsize=10, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3b.transFigure))
             
@@ -4453,10 +4453,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
     
     first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
     
-    ws3 = wb.create_sheet(f"Spontaneous Activity ({first_drug_name[:20]})")
+    ws3 = wb.create_sheet("Spontaneous Activity")
     
-    # Table 2: Drug-induced BF and HRV Data
-    ws3['A1'] = f'Table 2 | Drug-induced BF and HRV Data ({first_drug_name})'
+    # Table 2.a: Drug-induced BF and HRV Data (First Drug)
+    ws3['A1'] = f'Table 2.a | Drug-induced BF and HRV Data ({first_drug_name})'
     ws3['A1'].font = Font(bold=True, size=12)
     
     spont_headers = ['Rec', 'Base BF', 'Base RMSSD', 'Base SDNN', 'Base pNN50', 
@@ -4512,8 +4512,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
         cell.border = thin_border
     row += 2
     
-    # Table 3: Drug-induced BF and HRV Normalized Data
-    ws3[f'A{row}'] = f'Table 3 | Drug-induced BF and HRV Normalized Data ({first_drug_name})'
+    # Table 3.a: Drug-induced BF and HRV Normalized Data (First Drug)
+    ws3[f'A{row}'] = f'Table 3.a | Drug-induced BF and HRV Normalized Data ({first_drug_name})'
     ws3[f'A{row}'].font = Font(bold=True, size=12)
     row += 2
     
@@ -4607,10 +4607,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
     if len(unique_drug_names) > 1:
         second_drug_name = unique_drug_names[1]
         
-        ws3b = wb.create_sheet(f"Spontaneous Activity ({second_drug_name[:20]})")
+        ws3b = wb.create_sheet("Spontaneous Activity 2")
         
-        # Table 2: Drug-induced BF and HRV Data (Second Drug)
-        ws3b['A1'] = f'Table 2 | Drug-induced BF and HRV Data ({second_drug_name})'
+        # Table 2.b: Drug-induced BF and HRV Data (Second Drug)
+        ws3b['A1'] = f'Table 2.b | Drug-induced BF and HRV Data ({second_drug_name})'
         ws3b['A1'].font = Font(bold=True, size=12)
         
         spont_headers_2 = ['Rec', 'Base BF', 'Base RMSSD', 'Base SDNN', 'Base pNN50', 
@@ -4684,8 +4684,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
             cell.border = thin_border
         row += 2
         
-        # Table 3: Drug-induced BF and HRV Normalized Data (Second Drug)
-        ws3b[f'A{row}'] = f'Table 3 | Drug-induced BF and HRV Normalized Data ({second_drug_name})'
+        # Table 3.b: Drug-induced BF and HRV Normalized Data (Second Drug)
+        ws3b[f'A{row}'] = f'Table 3.b | Drug-induced BF and HRV Normalized Data ({second_drug_name})'
         ws3b[f'A{row}'].font = Font(bold=True, size=12)
         row += 2
         
