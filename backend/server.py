@@ -460,6 +460,249 @@ async def upload_files(files: List[UploadFile] = File(...)):
     return {'session_id': session_id, 'files': result_files}
 
 
+@api_router.post("/upload/fuse")
+async def fuse_and_upload_files(files: List[UploadFile] = File(...)):
+    """
+    Upload multiple ABF files and fuse them into a single recording.
+    Files are concatenated in the order they are received.
+    Maximum 5 files can be fused together.
+    """
+    import pyabf
+    import gc
+    
+    MAX_FILES = 5
+    
+    if len(files) > MAX_FILES:
+        raise HTTPException(400, f"Maximum {MAX_FILES} files can be fused together. Got {len(files)}.")
+    
+    if len(files) < 1:
+        raise HTTPException(400, "At least one file is required.")
+    
+    # If only one file, use the regular upload logic
+    if len(files) == 1:
+        uploaded = files[0]
+        fname = uploaded.filename or ''
+        if not fname.lower().endswith('.abf'):
+            raise HTTPException(400, f"Only .abf files are supported. Got: '{fname}'.")
+        
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = {}
+        file_id = str(uuid.uuid4())
+        
+        content = await uploaded.read()
+        tmp_path = None
+        
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.abf', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            del content
+            gc.collect()
+            
+            try:
+                abf = pyabf.ABF(tmp_path)
+            except Exception as parse_err:
+                logging.error(f"Failed to parse ABF file '{fname}': {parse_err}")
+                raise HTTPException(400, f"Failed to parse ABF file '{fname}': {str(parse_err)}")
+            
+            abf.setSweep(0, channel=0)
+            trace = abf.sweepY.copy().astype(np.float64)
+            times = abf.sweepX.copy().astype(np.float64)
+            sample_rate = abf.dataRate
+            
+            # Handle multi-sweep
+            if abf.sweepCount > 1:
+                all_traces = [trace]
+                all_times = [times]
+                offset = times[-1] + 1.0 / sample_rate
+                for sw in range(1, abf.sweepCount):
+                    abf.setSweep(sw, channel=0)
+                    all_traces.append(abf.sweepY.copy().astype(np.float64))
+                    sw_times = abf.sweepX.copy().astype(np.float64) + offset
+                    all_times.append(sw_times)
+                    offset = sw_times[-1] + 1.0 / sample_rate
+                trace = np.concatenate(all_traces)
+                times = np.concatenate(all_times)
+                del all_traces, all_times
+                gc.collect()
+            
+            sessions[session_id][file_id] = {
+                'filename': uploaded.filename,
+                'trace': trace,
+                'times': times,
+                'sample_rate': sample_rate,
+            }
+            
+            dec_times, dec_voltages = analysis.decimate_trace(times, trace)
+            beat_indices = analysis.detect_beats(trace, sample_rate)
+            beat_times_sec = [float(times[i]) for i in beat_indices if i < len(times)]
+            beat_voltages = [float(trace[i]) for i in beat_indices if i < len(trace)]
+            
+            signal_stats = {
+                'min': float(np.min(trace)),
+                'max': float(np.max(trace)),
+                'mean': float(np.mean(trace)),
+                'std': float(np.std(trace))
+            }
+            
+            return {
+                'session_id': session_id,
+                'files': [{
+                    'file_id': file_id,
+                    'filename': uploaded.filename,
+                    'sample_rate': sample_rate,
+                    'duration_sec': float(len(trace) / sample_rate),
+                    'n_samples': len(trace),
+                    'n_channels': abf.channelCount,
+                    'n_sweeps': abf.sweepCount,
+                    'trace_times': dec_times,
+                    'trace_voltages': dec_voltages,
+                    'beats': [{'time_sec': t, 'voltage': v} for t, v in zip(beat_times_sec, beat_voltages)],
+                    'signal_stats': signal_stats,
+                    'n_beats_detected': len(beat_indices),
+                    'fused_from': [uploaded.filename]
+                }]
+            }
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+            gc.collect()
+    
+    # Multiple files - fuse them together
+    session_id = str(uuid.uuid4())
+    sessions[session_id] = {}
+    file_id = str(uuid.uuid4())
+    
+    all_traces = []
+    all_times = []
+    fused_filenames = []
+    sample_rate = None
+    time_offset = 0.0
+    
+    for i, uploaded in enumerate(files):
+        fname = uploaded.filename or f'file_{i}.abf'
+        if not fname.lower().endswith('.abf'):
+            raise HTTPException(400, f"Only .abf files are supported. Got: '{fname}'.")
+        
+        fused_filenames.append(fname)
+        content = await uploaded.read()
+        tmp_path = None
+        
+        try:
+            with tempfile.NamedTemporaryFile(suffix='.abf', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            del content
+            gc.collect()
+            
+            try:
+                abf = pyabf.ABF(tmp_path)
+            except Exception as parse_err:
+                logging.error(f"Failed to parse ABF file '{fname}': {parse_err}")
+                raise HTTPException(400, f"Failed to parse ABF file '{fname}': {str(parse_err)}")
+            
+            abf.setSweep(0, channel=0)
+            trace = abf.sweepY.copy().astype(np.float64)
+            times = abf.sweepX.copy().astype(np.float64)
+            file_sample_rate = abf.dataRate
+            
+            # Check sample rate consistency
+            if sample_rate is None:
+                sample_rate = file_sample_rate
+            elif abs(sample_rate - file_sample_rate) > 0.1:
+                logging.warning(f"Sample rate mismatch: file {i+1} has {file_sample_rate} Hz vs {sample_rate} Hz. Using first file's rate.")
+            
+            # Handle multi-sweep within this file
+            if abf.sweepCount > 1:
+                file_traces = [trace]
+                file_times = [times]
+                sweep_offset = times[-1] + 1.0 / file_sample_rate
+                for sw in range(1, abf.sweepCount):
+                    abf.setSweep(sw, channel=0)
+                    file_traces.append(abf.sweepY.copy().astype(np.float64))
+                    sw_times = abf.sweepX.copy().astype(np.float64) + sweep_offset
+                    file_times.append(sw_times)
+                    sweep_offset = sw_times[-1] + 1.0 / file_sample_rate
+                trace = np.concatenate(file_traces)
+                times = np.concatenate(file_times)
+                del file_traces, file_times
+                gc.collect()
+            
+            # Apply time offset for fusion
+            times = times + time_offset
+            
+            all_traces.append(trace)
+            all_times.append(times)
+            
+            # Update offset for next file - add small gap (1 sample)
+            time_offset = times[-1] + 1.0 / sample_rate
+            
+            logging.info(f"Loaded file {i+1}/{len(files)} '{fname}': {len(trace)} samples, ends at {times[-1]:.2f}s")
+            
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+    
+    # Concatenate all traces
+    fused_trace = np.concatenate(all_traces)
+    fused_times = np.concatenate(all_times)
+    del all_traces, all_times
+    gc.collect()
+    
+    # Generate fused filename
+    base_names = [fn.replace('.abf', '') for fn in fused_filenames]
+    fused_filename = '_'.join(base_names[:2]) + (f'_+{len(base_names)-2}more' if len(base_names) > 2 else '') + '_FUSED.abf'
+    
+    sessions[session_id][file_id] = {
+        'filename': fused_filename,
+        'trace': fused_trace,
+        'times': fused_times,
+        'sample_rate': sample_rate,
+        'fused_from': fused_filenames,
+    }
+    
+    # Decimate and detect beats
+    dec_times, dec_voltages = analysis.decimate_trace(fused_times, fused_trace)
+    beat_indices = analysis.detect_beats(fused_trace, sample_rate)
+    beat_times_sec = [float(fused_times[i]) for i in beat_indices if i < len(fused_times)]
+    beat_voltages = [float(fused_trace[i]) for i in beat_indices if i < len(fused_trace)]
+    
+    signal_stats = {
+        'min': float(np.min(fused_trace)),
+        'max': float(np.max(fused_trace)),
+        'mean': float(np.mean(fused_trace)),
+        'std': float(np.std(fused_trace))
+    }
+    
+    logging.info(f"Fused {len(files)} files into '{fused_filename}': {len(fused_trace)} samples, {len(beat_indices)} beats, duration {fused_times[-1]:.2f}s")
+    
+    return {
+        'session_id': session_id,
+        'files': [{
+            'file_id': file_id,
+            'filename': fused_filename,
+            'sample_rate': sample_rate,
+            'duration_sec': float(len(fused_trace) / sample_rate),
+            'n_samples': len(fused_trace),
+            'n_channels': 1,
+            'n_sweeps': len(files),
+            'trace_times': dec_times,
+            'trace_voltages': dec_voltages,
+            'beats': [{'time_sec': t, 'voltage': v} for t, v in zip(beat_times_sec, beat_voltages)],
+            'signal_stats': signal_stats,
+            'n_beats_detected': len(beat_indices),
+            'fused_from': fused_filenames,
+            'is_fused': True
+        }]
+    }
+
+
 @api_router.post("/detect-beats")
 async def detect_beats_endpoint(request: DetectBeatsRequest):
     session = sessions.get(request.session_id)

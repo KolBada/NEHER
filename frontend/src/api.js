@@ -89,35 +89,85 @@ const regularUpload = async (formData, onUploadProgress, maxRetries = 3) => {
   throw lastError;
 };
 
-// Smart upload - ALWAYS use chunked upload to avoid proxy limits
-const smartUpload = async (files, onUploadProgress) => {
-  // Always use chunked upload to avoid 520 errors from proxy body size limits
-  const results = [];
+// Chunked upload for large files with fusion support
+const chunkedUploadFuse = async (files, onProgress) => {
+  // For single file, just use regular chunked upload
+  if (files.length === 1) {
+    return chunkedUpload(files[0], onProgress);
+  }
+  
+  // For multiple files, upload each file using chunked upload then fuse on server
+  // We need to upload each file individually first, then combine
+  const uploadedFiles = [];
   let totalSize = files.reduce((sum, f) => sum + f.size, 0);
   let uploadedSize = 0;
   
   for (const file of files) {
-    const response = await chunkedUpload(file, (progress) => {
-      if (onUploadProgress) {
+    await chunkedUpload(file, (progress) => {
+      if (onProgress) {
         const currentTotal = uploadedSize + progress.loaded;
-        onUploadProgress({ loaded: currentTotal, total: totalSize });
+        onProgress({
+          loaded: currentTotal,
+          total: totalSize,
+          percent: Math.round((currentTotal / totalSize) * 100)
+        });
       }
     });
     uploadedSize += file.size;
-    results.push(response.data);
+    uploadedFiles.push(file.name);
   }
   
-  // Combine results
-  if (results.length === 1) {
-    return { data: results[0] };
-  }
-  // Merge multiple file results
-  return {
-    data: {
-      session_id: results[0].session_id,
-      files: results.flatMap(r => r.files)
+  // Now call the fuse endpoint to combine
+  // Note: For now, we use the direct FormData approach for fusion
+  // since chunked upload doesn't support fusion yet
+  throw new Error('Use direct upload for fusion');
+};
+
+// Fused upload - upload multiple files and fuse them
+const fusedUpload = async (files, onUploadProgress) => {
+  const formData = new FormData();
+  files.forEach(f => formData.append('files', f));
+  
+  return axios.post(`${API_URL}/upload/fuse`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 600000, // 10 minutes for fusion
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    onUploadProgress: onUploadProgress,
+  });
+};
+
+// Smart upload - uses fuse endpoint for multiple files, chunked for large single files
+const smartUpload = async (files, onUploadProgress) => {
+  // For multiple files, use the fuse endpoint
+  if (files.length > 1) {
+    // Check total size - if too large, show error
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 100 * 1024 * 1024) {
+      // For very large combined files, use chunked uploads then combine
+      // For now, we'll try direct upload and fall back to error
+      console.log(`Fusing ${files.length} files, total size: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
     }
-  };
+    
+    try {
+      return await fusedUpload(files, onUploadProgress);
+    } catch (error) {
+      // If fusion fails due to size, inform user
+      if (error.response?.status === 413 || error.message?.includes('too large')) {
+        throw new Error('Combined file size is too large. Please use smaller files or fewer files.');
+      }
+      throw error;
+    }
+  }
+  
+  // For single file, always use chunked upload to avoid proxy limits
+  const file = files[0];
+  const response = await chunkedUpload(file, (progress) => {
+    if (onUploadProgress) {
+      onUploadProgress({ loaded: progress.loaded, total: progress.total });
+    }
+  });
+  return { data: response.data };
 };
 
 const api = {

@@ -1,14 +1,19 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FileAudio, X, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileAudio, X, Loader2, AlertCircle, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+
+const MAX_FILES_FOR_FUSION = 5;
 
 export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileProgress, setFileProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
+  const [draggedFileIndex, setDraggedFileIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
   const dragCounter = useRef(0);
   const fileInputRef = useRef(null);
 
@@ -92,6 +97,14 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
         
         const filesToAdd = abfFiles.length > 0 ? abfFiles : droppedFiles;
         
+        // Check max files limit
+        const totalFiles = selectedFiles.length + filesToAdd.length;
+        if (totalFiles > MAX_FILES_FOR_FUSION) {
+          setUploadError(`Maximum ${MAX_FILES_FOR_FUSION} files can be combined. You have ${selectedFiles.length} files, trying to add ${filesToAdd.length}.`);
+          e.dataTransfer.clearData();
+          return;
+        }
+        
         // Process files one by one to avoid memory issues
         const processedFiles = [];
         for (const file of filesToAdd) {
@@ -107,13 +120,23 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
       
       e.dataTransfer.clearData();
     }
-  }, []);
+  }, [selectedFiles.length]);
 
   const handleFileSelect = useCallback(async (e) => {
     setUploadError(null);
     const files = Array.from(e.target.files);
     
     if (files.length > 0) {
+      // Check max files limit
+      const totalFiles = selectedFiles.length + files.length;
+      if (totalFiles > MAX_FILES_FOR_FUSION) {
+        setUploadError(`Maximum ${MAX_FILES_FOR_FUSION} files can be combined. You have ${selectedFiles.length} files, trying to add ${files.length}.`);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+      
       try {
         // Process files one by one
         const processedFiles = [];
@@ -132,7 +155,7 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [selectedFiles.length]);
 
   const removeFile = useCallback((idx) => {
     setSelectedFiles(prev => {
@@ -145,6 +168,65 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
       });
       return prev.filter((_, i) => i !== idx);
     });
+  }, []);
+
+  // Move file up in the list
+  const moveFileUp = useCallback((idx) => {
+    if (idx <= 0) return;
+    setSelectedFiles(prev => {
+      const newFiles = [...prev];
+      [newFiles[idx - 1], newFiles[idx]] = [newFiles[idx], newFiles[idx - 1]];
+      return newFiles;
+    });
+  }, []);
+
+  // Move file down in the list
+  const moveFileDown = useCallback((idx) => {
+    setSelectedFiles(prev => {
+      if (idx >= prev.length - 1) return prev;
+      const newFiles = [...prev];
+      [newFiles[idx], newFiles[idx + 1]] = [newFiles[idx + 1], newFiles[idx]];
+      return newFiles;
+    });
+  }, []);
+
+  // Drag and drop reordering handlers for file list
+  const handleFileDragStart = useCallback((e, idx) => {
+    setDraggedFileIndex(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', idx.toString());
+  }, []);
+
+  const handleFileDragOver = useCallback((e, idx) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(idx);
+  }, []);
+
+  const handleFileDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleFileDrop = useCallback((e, targetIdx) => {
+    e.preventDefault();
+    const sourceIdx = draggedFileIndex;
+    
+    if (sourceIdx !== null && sourceIdx !== targetIdx) {
+      setSelectedFiles(prev => {
+        const newFiles = [...prev];
+        const [removed] = newFiles.splice(sourceIdx, 1);
+        newFiles.splice(targetIdx, 0, removed);
+        return newFiles;
+      });
+    }
+    
+    setDraggedFileIndex(null);
+    setDragOverIndex(null);
+  }, [draggedFileIndex]);
+
+  const handleFileDragEnd = useCallback(() => {
+    setDraggedFileIndex(null);
+    setDragOverIndex(null);
   }, []);
 
   const handleUpload = useCallback(() => {
@@ -214,21 +296,87 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
 
           {selectedFiles.length > 0 && (
             <div className="mt-6 space-y-2 animate-slide-up">
+              {/* Fusion mode indicator */}
+              {selectedFiles.length > 1 && (
+                <div className="flex items-center gap-2 p-3 bg-purple-950/30 border border-purple-800/50 rounded-sm mb-3">
+                  <Badge className="bg-purple-600 text-white text-[10px]">FUSION MODE</Badge>
+                  <span className="text-xs text-purple-300">
+                    {selectedFiles.length} recordings will be combined in order shown below
+                  </span>
+                </div>
+              )}
+              
+              {/* File count indicator */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-zinc-500">
+                  {selectedFiles.length} / {MAX_FILES_FOR_FUSION} files {selectedFiles.length > 1 && '(drag to reorder)'}
+                </span>
+                {selectedFiles.length > 1 && (
+                  <span className="text-[10px] text-zinc-600">
+                    Order: Recording 1 → Recording {selectedFiles.length}
+                  </span>
+                )}
+              </div>
+              
               {selectedFiles.map((f, i) => (
                 <div
-                  key={i}
-                  className="flex flex-col p-3 bg-zinc-900/50 border border-zinc-800 rounded-sm"
+                  key={`${f.name}-${i}`}
+                  draggable={selectedFiles.length > 1}
+                  onDragStart={(e) => handleFileDragStart(e, i)}
+                  onDragOver={(e) => handleFileDragOver(e, i)}
+                  onDragLeave={handleFileDragLeave}
+                  onDrop={(e) => handleFileDrop(e, i)}
+                  onDragEnd={handleFileDragEnd}
+                  className={`flex flex-col p-3 bg-zinc-900/50 border rounded-sm transition-all ${
+                    dragOverIndex === i 
+                      ? 'border-purple-500 bg-purple-950/20' 
+                      : draggedFileIndex === i 
+                        ? 'border-zinc-600 opacity-50' 
+                        : 'border-zinc-800'
+                  } ${selectedFiles.length > 1 ? 'cursor-move' : ''}`}
                   data-testid={`selected-file-${i}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                      {selectedFiles.length > 1 && (
+                        <div className="flex items-center gap-1">
+                          <GripVertical className="w-3 h-3 text-zinc-600" />
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-zinc-700 text-zinc-400">
+                            {i + 1}
+                          </Badge>
+                        </div>
+                      )}
                       <FileAudio className="w-4 h-4 text-zinc-400" />
                       <span className="text-xs font-data text-zinc-300">{f.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-500 font-data">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-zinc-500 font-data mr-2">
                         {formatFileSize(f.size)}
                       </span>
+                      {selectedFiles.length > 1 && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                            onClick={(e) => { e.stopPropagation(); moveFileUp(i); }}
+                            disabled={i === 0}
+                            data-testid={`move-up-${i}`}
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                            onClick={(e) => { e.stopPropagation(); moveFileDown(i); }}
+                            disabled={i === selectedFiles.length - 1}
+                            data-testid={`move-down-${i}`}
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -258,8 +406,10 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
+                    {selectedFiles.length > 1 ? 'Fusing & Processing...' : 'Processing...'}
                   </span>
+                ) : selectedFiles.length > 1 ? (
+                  `Fuse & Analyze ${selectedFiles.length} recordings`
                 ) : (
                   `Analyze ${selectedFiles.length} file(s)`
                 )}
