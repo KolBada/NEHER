@@ -230,7 +230,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
   const isZoomed = zoomDomain !== null;
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm" data-testid="bf-chart">
+    <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm" data-testid="bf-chart">
       <div className="p-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-400">Beat Frequency (Filtered) - bpm vs min</span>
@@ -1827,7 +1827,7 @@ function App() {
       {/* Main content */}
       <main className="p-4 md:p-6 pt-2">
         <Tabs defaultValue="trace" className="w-full">
-          <TabsList className="bg-zinc-900/50 border border-zinc-800 rounded-sm h-9 mb-4"
+          <TabsList className="bg-[#0c0c0e] border border-zinc-800 rounded-sm h-9 mb-4"
                     data-testid="main-tabs">
             <TabsTrigger value="trace" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
                          data-testid="tab-trace">
