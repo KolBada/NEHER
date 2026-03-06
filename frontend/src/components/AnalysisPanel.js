@@ -790,7 +790,7 @@ function AnalysisPanel({
                   <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                   <Input
                     type="number"
-                    step="0.5"
+                    step="1"
                     value={baselineBfMinute}
                     onChange={(e) => onBaselineBfMinuteChange(parseFloat(e.target.value) || 1)}
                     className="w-16 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
@@ -805,7 +805,7 @@ function AnalysisPanel({
                   <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                   <Input
                     type="number"
-                    step="0.5"
+                    step="1"
                     value={baselineHrvMinute}
                     onChange={(e) => onBaselineHrvMinuteChange(parseFloat(e.target.value) || 0)}
                     className="w-16 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
@@ -916,7 +916,7 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                           <Input
                             type="number"
-                            step="0.5"
+                            step="1"
                             value={bfReadoutValue}
                             onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
@@ -934,7 +934,7 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                           <Input
                             type="number"
-                            step="0.5"
+                            step="1"
                             value={hrvReadoutValue}
                             onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
