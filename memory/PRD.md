@@ -21,11 +21,18 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ### March 6, 2026
 - **Multi-Drug Readout Feature Complete:**
-  - **UI Spacing:** Added `mt-10` margin between drug readout metrics rows in `AnalysisPanel.js` to improve visual separation
-  - **PDF Multi-Drug Readouts:** Modified `export_utils.py` to loop through ALL enabled drugs and create separate "DRUG READOUT" sections (like Drug Perfusion)
-  - **PDF Mean BF Fix:** Each drug's Mean BF now correctly uses its own per-drug `bfReadoutMinute + perf_start + perf_delay`
-  - **PDF Table Highlighting:** Per-Minute BF table and Per-Three Minutes HRV table now highlight ALL drug readout rows with light purple (#e8d5f5) and bold text
-  - **Testing:** All 18 backend tests passed for multi-drug PDF export
+  - **UI Spacing:** Changed margin between drug readout metrics rows from `mt-10` to `mt-6` for better visual balance
+  - **Decimal Minute Support:** All readout minute inputs now accept decimal values (0.5, 1.5, 2.5, etc.) with `step="0.5"` attribute and `parseFloat()` parsing
+  - **PDF Multi-Drug Readouts:** Single "DRUG READOUT" header with per-drug colored boxes (like Drug Perfusion)
+  - **PDF BF Evolution Legend:** Each drug now shows in legend as "[drug name] perfusion" with unique colors
+  - **Consistent Per-Drug Colors:** Added `DRUG_COLORS` array with 4 purple shades used consistently across:
+    - Drug Perfusion section
+    - Drug Readout section
+    - BF Evolution chart regions and legend
+    - Per-Minute BF table row highlighting
+    - Per-Three Minutes HRV table row highlighting
+  - **Color scheme:** Drug 1=#F3E8FF, Drug 2=#EDE9FE, Drug 3=#E9D5FF, Drug 4=#DDD6FE
+  - **Testing:** All 23 backend tests passed for per-drug colors and decimal support
 
 ### March 5, 2026
 - **Fixed Spontaneous Activity Bug:** Automatic HRV computation after validation
