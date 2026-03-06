@@ -22,9 +22,18 @@ COLORS = {
 
 TINTS = {
     'baseline': '#E0F2FE',     # Light blue
-    'drug': '#F3E8FF',         # Light purple
+    'drug': '#F3E8FF',         # Light purple (default)
     'light': '#FEF3C7',        # Light amber
 }
+
+# Per-drug colors - different purple shades for each drug index
+# Used consistently across PDF: Drug Perfusion, Drug Readout, BF Evolution, Tables
+DRUG_COLORS = [
+    {'tint': '#F3E8FF', 'solid': '#a855f7', 'name': 'purple'},      # Drug 1 - Light purple
+    {'tint': '#EDE9FE', 'solid': '#8b5cf6', 'name': 'violet'},      # Drug 2 - Light violet
+    {'tint': '#E9D5FF', 'solid': '#c084fc', 'name': 'fuchsia'},     # Drug 3 - Light fuchsia
+    {'tint': '#DDD6FE', 'solid': '#a78bfa', 'name': 'indigo'},      # Drug 4 - Light indigo
+]
 
 
 def add_page_footer(fig, page_num, total_pages=None):
@@ -258,14 +267,18 @@ def create_nature_pdf(request):
                 if idx > 0:
                     y -= 0.004  # Gap between drug boxes
                 
+                # Get per-drug color
+                drug_color = DRUG_COLORS[idx % len(DRUG_COLORS)]
+                drug_tint = drug_color['tint']
+                
                 # Draw all rows for this drug with the tinted background
                 drug_name = drug.get('name', 'Drug')
-                y = draw_row(fig1, left_x, y, 'Drug:', drug_name, TINTS['drug'], width=col_width)
+                y = draw_row(fig1, left_x, y, 'Drug:', drug_name, drug_tint, width=col_width)
                 
                 if drug.get('concentration'):
-                    y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", TINTS['drug'], width=col_width)
-                y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", TINTS['drug'], width=col_width)
-                y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", TINTS['drug'], width=col_width)
+                    y = draw_row(fig1, left_x, y, 'Concentration:', f"{drug.get('concentration')}µM", drug_tint, width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{drug.get('start', 0)} min", drug_tint, width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. Delay:', f"{drug.get('delay', 0)} min", drug_tint, width=col_width)
                 # Perf. Time = HRV readout minute if available, otherwise start + delay
                 perf_start = drug.get('start', 0) or 0
                 perf_delay = drug.get('delay', 0) or 0
@@ -278,9 +291,9 @@ def create_nature_pdf(request):
                             perf_time = int(float(settings_hrv)) + perf_start + perf_delay
                         except (ValueError, TypeError):
                             pass
-                y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'], width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", drug_tint, width=col_width)
                 perf_end = drug.get('end')
-                y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', TINTS['drug'], width=col_width)
+                y = draw_row(fig1, left_x, y, 'Perf. End:', f"{perf_end} min" if perf_end is not None else '—', drug_tint, width=col_width)
         
         # LIGHT STIMULATION
         if request.light_enabled:
@@ -327,20 +340,17 @@ def create_nature_pdf(request):
             y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['baseline'], width=col_width)
             y_right -= section_gap
         
-        # DRUG READOUT - show for each enabled drug (like Drug Perfusion shows multiple drugs)
+        # DRUG READOUT - single header, one box per enabled drug (like Drug Perfusion)
         if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
             per_drug_settings = {}
             if request.drug_readout_settings:
                 per_drug_settings = request.drug_readout_settings.get('perDrug', {})
             
-            # Process each drug
+            # First check if any drugs have readouts enabled
+            enabled_drugs = []
             for drug_idx, drug in enumerate(request.all_drugs):
                 drug_name = drug.get('name', f'Drug {drug_idx + 1}')
                 drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
-                
-                # Get this drug's perfusion params
-                perf_start = drug.get('start', 0) or 0
-                perf_delay = drug.get('delay', 0) or 0
                 
                 # Find matching per-drug settings
                 drug_settings = {}
@@ -350,93 +360,109 @@ def create_nature_pdf(request):
                         break
                 
                 # Check if this drug's readout is enabled
-                # First drug uses global enable flags, others use per-drug enabled flag
                 is_enabled = False
                 if drug_idx == 0:
                     if request.drug_readout_settings:
                         is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
                     else:
-                        is_enabled = True  # Fallback if settings not available
+                        is_enabled = True
                 else:
                     is_enabled = drug_settings.get('enabled', False)
                 
-                if not is_enabled:
-                    continue
+                if is_enabled:
+                    enabled_drugs.append((drug_idx, drug, drug_settings))
+            
+            # Only draw section if at least one drug has readouts enabled
+            if enabled_drugs:
+                y_right = draw_header(fig1, right_x, y_right, 'DRUG READOUT', COLORS['purple'], width=col_width)
                 
-                # Draw header for this drug's readout
-                y_right = draw_header(fig1, right_x, y_right, f'DRUG READOUT', COLORS['purple'], width=col_width)
-                
-                # Add drug name as first row
-                y_right = draw_row(fig1, right_x, y_right, 'Drug:', drug_name, TINTS['drug'], width=col_width)
-                
-                drug_bf = None
-                drug_hrv_data = None
-                drug_bf_minute = None
-                drug_hrv_minute = None
-                
-                # Get readout minutes from per-drug settings
-                settings_bf = drug_settings.get('bfReadoutMinute')
-                settings_hrv = drug_settings.get('hrvReadoutMinute')
-                
-                # Calculate actual readout minutes (input + perf_start + perf_delay)
-                if settings_bf not in (None, ''):
-                    try:
-                        drug_bf_minute = int(float(settings_bf)) + int(perf_start) + int(perf_delay)
-                    except (ValueError, TypeError):
-                        pass
-                
-                if settings_hrv not in (None, ''):
-                    try:
-                        drug_hrv_minute = int(float(settings_hrv)) + int(perf_start) + int(perf_delay)
-                    except (ValueError, TypeError):
-                        pass
-                
-                # Find BF at drug readout minute
-                if drug_bf_minute is not None and request.per_minute_data:
-                    for pm in request.per_minute_data:
+                # Process each enabled drug
+                for enabled_idx, (drug_idx, drug, drug_settings) in enumerate(enabled_drugs):
+                    drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                    
+                    # Get this drug's perfusion params
+                    perf_start = drug.get('start', 0) or 0
+                    perf_delay = drug.get('delay', 0) or 0
+                    
+                    # Get per-drug color (use original drug index for consistent colors)
+                    drug_color = DRUG_COLORS[drug_idx % len(DRUG_COLORS)]
+                    drug_tint = drug_color['tint']
+                    
+                    # Add small gap between drug boxes (but not before first one)
+                    if enabled_idx > 0:
+                        y_right -= 0.004
+                    
+                    drug_bf = None
+                    drug_hrv_data = None
+                    drug_bf_minute = None
+                    drug_hrv_minute = None
+                    
+                    # Get readout minutes from per-drug settings
+                    settings_bf = drug_settings.get('bfReadoutMinute')
+                    settings_hrv = drug_settings.get('hrvReadoutMinute')
+                    
+                    # Calculate actual readout minutes (input + perf_start + perf_delay)
+                    # Support decimal inputs by using float then floor for lookup
+                    if settings_bf not in (None, ''):
                         try:
-                            minute_str = str(pm.get('minute', ''))
-                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-                            if minute_num == drug_bf_minute:
-                                drug_bf = pm.get('mean_bf') or pm.get('avg_bf')
-                                break
+                            drug_bf_minute = int(float(settings_bf) + float(perf_start) + float(perf_delay))
                         except (ValueError, TypeError):
                             pass
-                
-                # Find HRV at drug readout minute
-                if drug_hrv_minute is not None and request.hrv_windows:
-                    for w in request.hrv_windows:
+                    
+                    if settings_hrv not in (None, ''):
                         try:
-                            w_minute = w.get('minute')
-                            if w_minute is None:
-                                continue
-                            if isinstance(w_minute, (int, float)):
-                                w_minute_num = int(w_minute)
-                            else:
-                                w_minute_str = str(w_minute)
-                                w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
-                            
-                            if w_minute_num == drug_hrv_minute:
-                                drug_hrv_data = w
-                                # If BF not found in per_minute_data, get it from HRV window
-                                if drug_bf is None and w.get('mean_bf'):
-                                    drug_bf = w.get('mean_bf')
-                                break
+                            drug_hrv_minute = int(float(settings_hrv) + float(perf_start) + float(perf_delay))
                         except (ValueError, TypeError):
                             pass
-                
-                # Show drug metrics
-                y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', TINTS['drug'], width=col_width)
-                if drug_hrv_data:
-                    ln_rmssd = drug_hrv_data.get('ln_rmssd70')
-                    y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', TINTS['drug'], width=col_width)
-                    sdnn = drug_hrv_data.get('sdnn')
-                    ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-                    y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', TINTS['drug'], width=col_width)
-                    pnn50 = drug_hrv_data.get('pnn50')
-                    y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', TINTS['drug'], width=col_width)
-                else:
-                    y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', TINTS['drug'], width=col_width)
+                    
+                    # Find BF at drug readout minute
+                    if drug_bf_minute is not None and request.per_minute_data:
+                        for pm in request.per_minute_data:
+                            try:
+                                minute_str = str(pm.get('minute', ''))
+                                minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                                if minute_num == drug_bf_minute:
+                                    drug_bf = pm.get('mean_bf') or pm.get('avg_bf')
+                                    break
+                            except (ValueError, TypeError):
+                                pass
+                    
+                    # Find HRV at drug readout minute
+                    if drug_hrv_minute is not None and request.hrv_windows:
+                        for w in request.hrv_windows:
+                            try:
+                                w_minute = w.get('minute')
+                                if w_minute is None:
+                                    continue
+                                if isinstance(w_minute, (int, float)):
+                                    w_minute_num = int(w_minute)
+                                else:
+                                    w_minute_str = str(w_minute)
+                                    w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                                
+                                if w_minute_num == drug_hrv_minute:
+                                    drug_hrv_data = w
+                                    if drug_bf is None and w.get('mean_bf'):
+                                        drug_bf = w.get('mean_bf')
+                                    break
+                            except (ValueError, TypeError):
+                                pass
+                    
+                    # Draw drug name row
+                    y_right = draw_row(fig1, right_x, y_right, 'Drug:', drug_name, drug_tint, width=col_width)
+                    
+                    # Show drug metrics with per-drug color
+                    y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{drug_bf:.1f} bpm" if drug_bf else '—', drug_tint, width=col_width)
+                    if drug_hrv_data:
+                        ln_rmssd = drug_hrv_data.get('ln_rmssd70')
+                        y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', f"{ln_rmssd:.3f}" if ln_rmssd else '—', drug_tint, width=col_width)
+                        sdnn = drug_hrv_data.get('sdnn')
+                        ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+                        y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', f"{ln_sdnn:.3f}" if ln_sdnn else '—', drug_tint, width=col_width)
+                        pnn50 = drug_hrv_data.get('pnn50')
+                        y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{pnn50:.1f}%" if pnn50 is not None else '—', drug_tint, width=col_width)
+                    else:
+                        y_right = draw_row(fig1, right_x, y_right, 'HRV:', 'No data at readout', drug_tint, width=col_width)
                 
                 y_right -= section_gap
         
@@ -632,12 +658,13 @@ def create_nature_pdf(request):
                 ax1.set_title('Beat Frequency (Filtered)', fontsize=10, fontweight='bold', pad=6)
                 ax1.set_xlim(0, time_max * 1.05)
                 
-                # Add drug regions with legend
+                # Add drug regions with per-drug colors
                 if request.all_drugs:
-                    for drug in request.all_drugs:
+                    for idx, drug in enumerate(request.all_drugs):
                         start = drug.get('start', 0) + drug.get('delay', 0)
                         end = drug.get('end') if drug.get('end') else time_max * 1.1
-                        ax1.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
+                        drug_color = DRUG_COLORS[idx % len(DRUG_COLORS)]
+                        ax1.axvspan(start, end, alpha=0.15, color=drug_color['solid'])
                 
                 # Add light stim regions with legend
                 if request.light_enabled and request.light_pulses:
@@ -651,7 +678,10 @@ def create_nature_pdf(request):
                 handles = [Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['emerald'], 
                                   markersize=6, alpha=0.7, label='Filtered BF')]
                 if request.all_drugs:
-                    handles.append(mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion'))
+                    for idx, drug in enumerate(request.all_drugs):
+                        drug_name = drug.get('name', f'Drug {idx+1}')
+                        drug_color = DRUG_COLORS[idx % len(DRUG_COLORS)]
+                        handles.append(mpatches.Patch(color=drug_color['solid'], alpha=0.3, label=f'{drug_name} perfusion'))
                 if request.light_enabled and request.light_pulses:
                     handles.append(mpatches.Patch(color=COLORS['amber'], alpha=0.3, label='Light Stim'))
                 ax1.legend(handles=handles, loc='upper right', fontsize=7, framealpha=0.9)
@@ -669,12 +699,13 @@ def create_nature_pdf(request):
                     ax2.set_xlim(0, time_max * 1.05)
                     ax2.set_ylim(0, 200)
                     
-                    # Add drug regions
+                    # Add drug regions with per-drug colors
                     if request.all_drugs:
-                        for drug in request.all_drugs:
+                        for idx, drug in enumerate(request.all_drugs):
                             start = drug.get('start', 0) + drug.get('delay', 0)
                             end = drug.get('end') if drug.get('end') else time_max * 1.1
-                            ax2.axvspan(start, end, alpha=0.15, color=COLORS['purple'])
+                            drug_color = DRUG_COLORS[idx % len(DRUG_COLORS)]
+                            ax2.axvspan(start, end, alpha=0.15, color=drug_color['solid'])
                     
                     # Add light stim regions
                     if request.light_enabled and request.light_pulses:
@@ -691,7 +722,10 @@ def create_nature_pdf(request):
                         Line2D([0], [0], color='#dc2626', linestyle='--', linewidth=1, label=legend_label)
                     ]
                     if request.all_drugs:
-                        handles2.append(mpatches.Patch(color=COLORS['purple'], alpha=0.3, label='Drug Perfusion'))
+                        for idx, drug in enumerate(request.all_drugs):
+                            drug_name = drug.get('name', f'Drug {idx+1}')
+                            drug_color = DRUG_COLORS[idx % len(DRUG_COLORS)]
+                            handles2.append(mpatches.Patch(color=drug_color['solid'], alpha=0.3, label=f'{drug_name} perfusion'))
                     if request.light_enabled and request.light_pulses:
                         handles2.append(mpatches.Patch(color=COLORS['amber'], alpha=0.3, label='Light Stim'))
                     ax2.legend(handles=handles2, loc='upper right', fontsize=7, framealpha=0.9)
@@ -914,7 +948,6 @@ def create_nature_pdf(request):
             
             # Get baseline and drug readout windows for highlighting
             baseline_window = None
-            drug_windows = []  # Support multiple drug readout windows
             
             # Get baseline window if baseline is enabled
             if request.baseline_enabled and request.baseline:
@@ -941,7 +974,9 @@ def create_nature_pdf(request):
                         except (ValueError, TypeError):
                             pass
             
-            # Get drug readout windows for ALL enabled drugs
+            # Get drug readout windows for ALL enabled drugs with their colors
+            # Store as dict: window_str -> drug_index for per-drug coloring
+            drug_window_colors = {}  # window_str -> drug_idx
             if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
                 per_drug_settings = {}
                 if request.drug_readout_settings:
@@ -979,8 +1014,9 @@ def create_nature_pdf(request):
                     settings_bf = drug_settings.get('bfReadoutMinute')
                     if settings_bf not in (None, ''):
                         try:
-                            bf_min = int(float(settings_bf)) + int(perf_start) + int(perf_delay)
-                            drug_windows.append(f"{bf_min}-{bf_min+1}")
+                            bf_min = int(float(settings_bf) + float(perf_start) + float(perf_delay))
+                            window_str = f"{bf_min}-{bf_min+1}"
+                            drug_window_colors[window_str] = drug_idx
                         except (ValueError, TypeError):
                             pass
             
@@ -1007,11 +1043,13 @@ def create_nature_pdf(request):
                     f"{nn_val:.1f}" if nn_val else '—',
                 ])
                 
-                # Determine row color
+                # Determine row color with per-drug colors
                 if baseline_window and window_str == baseline_window:
                     row_colors.append(TINTS['baseline'])
-                elif window_str in drug_windows:
-                    row_colors.append(TINTS['drug'])
+                elif window_str in drug_window_colors:
+                    drug_idx = drug_window_colors[window_str]
+                    drug_color = DRUG_COLORS[drug_idx % len(DRUG_COLORS)]
+                    row_colors.append(drug_color['tint'])
                 else:
                     row_colors.append(None)
             
@@ -1057,9 +1095,8 @@ def create_nature_pdf(request):
             ax = fig5.add_axes([0.08, 0.10, 0.84, 0.72])
             ax.axis('off')
             
-            # Get baseline and drug readout windows for highlighting
+            # Get baseline and drug readout minutes for highlighting
             baseline_minute = None
-            drug_minutes = []  # Support multiple drug readout minutes
             
             # Get baseline minute if baseline is enabled
             if request.baseline_enabled and request.baseline:
@@ -1070,7 +1107,9 @@ def create_nature_pdf(request):
                     except (ValueError, TypeError):
                         baseline_minute = None
             
-            # Get drug readout minutes for ALL enabled drugs
+            # Get drug readout minutes for ALL enabled drugs with their colors
+            # Store as dict: minute -> drug_idx for per-drug coloring
+            drug_minute_colors = {}  # minute -> drug_idx
             if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
                 per_drug_settings = {}
                 if request.drug_readout_settings:
@@ -1108,8 +1147,8 @@ def create_nature_pdf(request):
                     settings_hrv = drug_settings.get('hrvReadoutMinute')
                     if settings_hrv not in (None, ''):
                         try:
-                            hrv_min = int(float(settings_hrv)) + int(perf_start) + int(perf_delay)
-                            drug_minutes.append(hrv_min)
+                            hrv_min = int(float(settings_hrv) + float(perf_start) + float(perf_delay))
+                            drug_minute_colors[hrv_min] = drug_idx
                         except (ValueError, TypeError):
                             pass
             
@@ -1142,11 +1181,13 @@ def create_nature_pdf(request):
                     f"{w.get('mean_bf', 0):.1f}" if w.get('mean_bf') else '—',
                 ])
                 
-                # Determine row color
+                # Determine row color with per-drug colors
                 if baseline_minute is not None and minute_num == baseline_minute:
                     row_colors.append(TINTS['baseline'])
-                elif minute_num in drug_minutes:
-                    row_colors.append(TINTS['drug'])
+                elif minute_num in drug_minute_colors:
+                    drug_idx = drug_minute_colors[minute_num]
+                    drug_color = DRUG_COLORS[drug_idx % len(DRUG_COLORS)]
+                    row_colors.append(drug_color['tint'])
                 else:
                     row_colors.append(None)
             

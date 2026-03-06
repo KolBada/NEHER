@@ -313,7 +313,7 @@ function AnalysisPanel({
     // Get HRV readout minute from first drug's per-drug settings
     const firstDrugKey = selectedDrugs?.[0];
     const perDrugSettings = drugReadoutSettings?.perDrug?.[firstDrugKey] || {};
-    const baseMinute = parseInt(perDrugSettings.hrvReadoutMinute) || 0;
+    const baseMinute = parseFloat(perDrugSettings.hrvReadoutMinute) || 0;
     let actualMinute = baseMinute;
     
     if (firstDrugKey) {
@@ -323,8 +323,11 @@ function AnalysisPanel({
       actualMinute = baseMinute + perfusionStart + perfusionTime;
     }
     
+    // For HRV lookup, use floor since windows are at integer minutes
+    const hrvLookupMinute = Math.floor(actualMinute);
+    
     return {
-      data: hrvResults.windows.find(w => w.minute === actualMinute) || null,
+      data: hrvResults.windows.find(w => w.minute === hrvLookupMinute) || null,
       requestedMinute: baseMinute,
       actualMinute: actualMinute,
     };
@@ -335,7 +338,7 @@ function AnalysisPanel({
     // Get BF readout minute from first drug's per-drug settings
     const firstDrugKey = selectedDrugs?.[0];
     const perDrugSettings = drugReadoutSettings?.perDrug?.[firstDrugKey] || {};
-    const baseMinute = parseInt(perDrugSettings.bfReadoutMinute) || 0;
+    const baseMinute = parseFloat(perDrugSettings.bfReadoutMinute) || 0;
     let actualMinute = baseMinute;
     
     if (firstDrugKey) {
@@ -345,8 +348,11 @@ function AnalysisPanel({
       actualMinute = baseMinute + perfusionStart + perfusionTime;
     }
     
+    // For BF lookup, use floor since data is at integer minutes
+    const bfLookupMinute = Math.floor(actualMinute);
+    
     return {
-      data: perMinuteData.find(r => r.minute === actualMinute) || null,
+      data: perMinuteData.find(r => r.minute === bfLookupMinute) || null,
       requestedMinute: baseMinute,
       actualMinute: actualMinute,
     };
@@ -391,22 +397,26 @@ function AnalysisPanel({
       const perfusionStart = settings.perfusionStart ?? 3;
       const perfusionTime = settings.perfusionTime ?? 3;
       
-      // Calculate HRV readout
+      // Calculate HRV readout - support decimal minutes (e.g., 1.5)
       let hrvData = null;
       let hrvActualMinute = 0;
       if (hrvResults?.windows) {
-        const baseMinute = parseInt(perDrugSettings.hrvReadoutMinute) || 0;
+        const baseMinute = parseFloat(perDrugSettings.hrvReadoutMinute) || 0;
         hrvActualMinute = baseMinute + perfusionStart + perfusionTime;
-        hrvData = hrvResults.windows.find(w => w.minute === hrvActualMinute) || null;
+        // For HRV lookup, use floor since windows are at integer minutes
+        const hrvLookupMinute = Math.floor(hrvActualMinute);
+        hrvData = hrvResults.windows.find(w => w.minute === hrvLookupMinute) || null;
       }
       
-      // Calculate BF readout
+      // Calculate BF readout - support decimal minutes (e.g., 1.5)
       let bfData = null;
       let bfActualMinute = 0;
       if (perMinuteData) {
-        const baseMinute = parseInt(perDrugSettings.bfReadoutMinute) || 0;
+        const baseMinute = parseFloat(perDrugSettings.bfReadoutMinute) || 0;
         bfActualMinute = baseMinute + perfusionStart + perfusionTime;
-        bfData = perMinuteData.find(r => r.minute === bfActualMinute) || null;
+        // For BF lookup, use floor since data is at integer minutes
+        const bfLookupMinute = Math.floor(bfActualMinute);
+        bfData = perMinuteData.find(r => r.minute === bfLookupMinute) || null;
       }
       
       return {
@@ -780,8 +790,9 @@ function AnalysisPanel({
                   <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                   <Input
                     type="number"
+                    step="0.5"
                     value={baselineHrvMinute}
-                    onChange={(e) => onBaselineHrvMinuteChange(parseInt(e.target.value) || 0)}
+                    onChange={(e) => onBaselineHrvMinuteChange(parseFloat(e.target.value) || 0)}
                     className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
                     disabled={!baselineEnabled}
                   />
@@ -794,8 +805,9 @@ function AnalysisPanel({
                   <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                   <Input
                     type="number"
+                    step="0.5"
                     value={baselineBfMinute}
-                    onChange={(e) => onBaselineBfMinuteChange(parseInt(e.target.value) || 1)}
+                    onChange={(e) => onBaselineBfMinuteChange(parseFloat(e.target.value) || 1)}
                     className="w-14 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
                     disabled={!baselineEnabled}
                   />
@@ -904,6 +916,7 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                           <Input
                             type="number"
+                            step="0.5"
                             value={hrvReadoutValue}
                             onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
@@ -913,7 +926,7 @@ function AnalysisPanel({
                           <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                           {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseInt(hrvReadoutValue || 0) + perfStart + perfDelay}-{parseInt(hrvReadoutValue || 0) + perfStart + perfDelay + 3}min
+                              Readout: {parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay}-{parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay + 3}min
                             </Badge>
                           )}
                         </div>
@@ -921,6 +934,7 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                           <Input
                             type="number"
+                            step="0.5"
                             value={bfReadoutValue}
                             onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
@@ -930,7 +944,7 @@ function AnalysisPanel({
                           <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                           {isDrugEnabled && String(bfReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseInt(bfReadoutValue || 0) + perfStart + perfDelay}-{parseInt(bfReadoutValue || 0) + perfStart + perfDelay + 1}min
+                              Readout: {parseFloat(bfReadoutValue || 0) + perfStart + perfDelay}-{parseFloat(bfReadoutValue || 0) + perfStart + perfDelay + 1}min
                             </Badge>
                           )}
                         </div>
@@ -1031,7 +1045,7 @@ function AnalysisPanel({
             {allDrugReadouts.filter(d => d.hasData).length > 0 && (
               <div className="space-y-0 mt-4">
                 {allDrugReadouts.filter(d => d.hasData).map((drugReadout, idx) => (
-                  <div key={drugReadout.drugKey} className={`space-y-2 ${idx > 0 ? 'mt-10' : ''}`}>
+                  <div key={drugReadout.drugKey} className={`space-y-2 ${idx > 0 ? 'mt-6' : ''}`}>
                     <div className="flex items-center gap-2">
                       <p className={`text-[10px] uppercase tracking-wider font-bold ${drugReadout.colors.text}`}>
                         Drug Readout Metrics

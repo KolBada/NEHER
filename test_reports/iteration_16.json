@@ -1,0 +1,78 @@
+{
+  "summary": "Backend-only testing of PDF export per-drug colors and decimal minute support. All 23 tests PASSED. Verified: (1) DRUG_COLORS array properly defined with 4 different purple shades, (2) Drug Perfusion section uses per-drug colors (#F3E8FF, #EDE9FE, etc.), (3) Drug Readout section has ONE header with multiple drug boxes in per-drug colors, (4) BF Evolution legend shows each drug individually as '[drug name] perfusion', (5) BF Evolution chart drug regions use per-drug solid colors, (6) BF table highlights use per-drug tint colors, (7) HRV table highlights use per-drug tint colors, (8) Backend supports decimal minute inputs (0.5, 1.5, 2.5, etc.) for BF and HRV readouts.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_pdf_per_drug_colors.py",
+    "/app/test_reports/pytest/pytest_results_iter16.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "export_utils.py lines 31-36: DRUG_COLORS array correctly defined with 4 entries: #F3E8FF (purple), #EDE9FE (violet), #E9D5FF (fuchsia), #DDD6FE (indigo)",
+    "export_utils.py lines 265-296: Drug Perfusion section uses DRUG_COLORS[idx % len(DRUG_COLORS)]['tint'] for per-drug coloring",
+    "export_utils.py lines 343-467: Drug Readout section has single header 'DRUG READOUT' with multiple drug boxes using per-drug colors",
+    "export_utils.py lines 661-667: BF Evolution chart drug regions use DRUG_COLORS[idx]['solid'] for per-drug region overlays",
+    "export_utils.py lines 680-684: BF Evolution legend shows each drug as '[drug_name] perfusion' with per-drug colors",
+    "export_utils.py lines 1046-1054: BF table (Table 1) uses drug_window_colors dict mapping window_str to drug_idx for per-drug highlighting",
+    "export_utils.py lines 1184-1192: HRV table (Table 2) uses drug_minute_colors dict mapping minute to drug_idx for per-drug highlighting",
+    "export_utils.py lines 406-416: Decimal minute inputs supported via float() conversion then int() floor for data lookup"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_pdf_per_drug_colors.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (23/23 tests passed)",
+    "frontend": "N/A (backend-only testing)"
+  },
+
+  "seed_data_creation": "Created mock test data with 2 drugs (Tetrodotoxin + Acetylcholine) with decimal minute inputs (1.5, 2.5, 3.5, 4.5), also created 4-drug and 5-drug test scenarios to verify color wraparound",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "PDF export per-drug colors feature fully tested and working. Test file at /app/backend/tests/test_pdf_per_drug_colors.py covers: DRUG_COLORS definition unit tests, decimal minute support, 2/4/5 drug scenarios, color wraparound. Key color assignments: Drug 1 = #F3E8FF (tint) / #a855f7 (solid), Drug 2 = #EDE9FE (tint) / #8b5cf6 (solid), Drug 3 = #E9D5FF (tint) / #c084fc (solid), Drug 4 = #DDD6FE (tint) / #a78bfa (solid).",
+
+  "features_verified": {
+    "drug_colors_definition": "PASS - DRUG_COLORS array has 4 entries with tint, solid, name keys",
+    "drug_perfusion_per_drug_colors": "PASS - Each drug in Drug Perfusion section uses different tint color",
+    "drug_readout_single_header": "PASS - Single 'DRUG READOUT' header with multiple drug boxes",
+    "drug_readout_per_drug_colors": "PASS - Each drug box uses its index-based color from DRUG_COLORS",
+    "bf_evolution_per_drug_regions": "PASS - Chart drug regions use per-drug solid colors with 0.15 alpha",
+    "bf_evolution_per_drug_legend": "PASS - Legend shows '[drug_name] perfusion' for each drug",
+    "bf_table_per_drug_highlighting": "PASS - Drug readout rows use per-drug tint colors",
+    "hrv_table_per_drug_highlighting": "PASS - Drug readout rows use per-drug tint colors",
+    "decimal_minute_support": "PASS - Backend accepts 0.5, 1.5, 2.5 etc. and floors for lookup",
+    "color_wraparound": "PASS - More than 4 drugs wraps back to first color"
+  },
+
+  "test_results": {
+    "tests_executed": 23,
+    "tests_passed": 23,
+    "tests_failed": 0,
+    "test_categories": {
+      "DRUG_COLORS_unit_tests": "5 tests",
+      "two_drug_API_tests": "2 tests",
+      "decimal_minute_support": "4 tests",
+      "four_drug_tests": "2 tests",
+      "drug_perfusion_section": "1 test",
+      "drug_readout_section": "1 test",
+      "bf_evolution_chart": "2 tests",
+      "table_highlighting": "3 tests",
+      "edge_cases": "3 tests"
+    }
+  }
+}
