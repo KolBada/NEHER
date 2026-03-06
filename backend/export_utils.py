@@ -251,14 +251,14 @@ def create_nature_pdf(request):
             y -= section_gap
             y = draw_header(fig1, left_x, y, 'DRUG PERFUSION', COLORS['purple'], width=col_width)
             
-            # Gap between header and first drug box (store for reference)
-            header_to_box_gap = 0.004  # Small gap after header before first drug box
+            # Small gap between header and first drug box
+            header_to_box_gap = 0.002
             y -= header_to_box_gap
             
             for idx, drug in enumerate(request.all_drugs):
-                # Add white space gap between drug boxes (same gap as between header and first box)
+                # Add small white space gap between drug boxes
                 if idx > 0:
-                    y -= header_to_box_gap * 2  # Gap between drug boxes
+                    y -= 0.004  # Gap between drug boxes
                 
                 # Draw all rows for this drug with the tinted background
                 drug_name = drug.get('name', 'Drug')
