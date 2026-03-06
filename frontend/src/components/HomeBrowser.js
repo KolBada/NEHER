@@ -525,12 +525,28 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
   if (view === 'home') {
     return (
       <div className="p-6 max-w-4xl mx-auto" data-testid="home-browser">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            NEHER
-          </h1>
-          <p className="text-sm text-zinc-500">Cardiac Electrophysiology Analysis Platform</p>
-          <p className="text-[10px] text-zinc-600 mt-1">developed by Kolia H. Badarello</p>
+        <div className="text-center mb-10">
+          {/* Main title with gradient accent */}
+          <div className="relative inline-block">
+            <h1 
+              className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 mb-2" 
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              NEHER
+            </h1>
+            {/* Subtle animated underline accent */}
+            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-emerald-500/0 via-emerald-500/80 to-emerald-500/0 rounded-full"></div>
+          </div>
+          
+          {/* Tagline with refined typography */}
+          <p className="text-sm text-zinc-400 tracking-wide mt-4 font-light">
+            Cardiac Electrophysiology Analysis Platform
+          </p>
+          
+          {/* Developer credit - subtle and elegant */}
+          <p className="text-[10px] text-zinc-600 mt-2 tracking-widest uppercase">
+            by Kolia H. Badarello
+          </p>
         </div>
 
         {/* New Analysis Card */}
