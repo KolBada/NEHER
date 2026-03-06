@@ -246,16 +246,22 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
     <div className="flex items-center justify-center min-h-[70vh]" data-testid="upload-page">
       <Card className="w-full max-w-2xl bg-[#0c0c0e] border-zinc-800 rounded-sm">
         <CardContent className="p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-semibold tracking-tight text-zinc-100 mb-1"
-                style={{ fontFamily: 'Manrope, sans-serif' }}>
-              {appName}
+          {/* Developer credit - top right */}
+          <div className="text-right mb-4">
+            <p className="text-sm text-zinc-400" style={{ fontFamily: 'Arial, sans-serif' }}>by Kolia H. Badarello</p>
+          </div>
+          
+          {/* Title row: NEHER on left, tagline on right */}
+          <div className="flex items-baseline justify-between">
+            <h1 className="text-4xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
+              NEHER
             </h1>
-            <p className="text-sm text-zinc-500">
+            <p className="text-lg text-white font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
               Cardiac Electrophysiology Analysis Platform
             </p>
-            <p className="text-[10px] text-zinc-600 mt-1">developed by Kolia H. Badarello</p>
           </div>
+          {/* White line spanning full width */}
+          <div className="w-full h-0.5 bg-white mt-2 mb-8"></div>
 
           {uploadError && (
             <div className="mb-4 p-3 bg-red-950/30 border border-red-800 rounded-sm flex items-center gap-2 text-red-400 text-xs">
@@ -267,7 +273,7 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
           <div
             data-testid="file-dropzone"
             className={`border-2 border-dashed ${
-              dragActive ? 'border-cyan-500 bg-cyan-950/20' : 'border-zinc-700 hover:border-zinc-600'
+              dragActive ? 'border-emerald-500 bg-emerald-950/20' : 'border-emerald-700/60 hover:border-emerald-600'
             } rounded-sm p-12 text-center cursor-pointer transition-colors`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -275,11 +281,11 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-10 h-10 mx-auto mb-4 text-zinc-500" />
+            <Upload className="w-10 h-10 mx-auto mb-4 text-emerald-500" />
             <p className="text-base font-medium text-zinc-300">
               Drop .abf files here
             </p>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="text-xs text-emerald-600 mt-2">
               or click to browse &middot; Supports files up to 200MB
             </p>
             <input

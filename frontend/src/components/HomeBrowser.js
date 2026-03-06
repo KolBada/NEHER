@@ -544,19 +544,19 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
 
         {/* New Analysis Card */}
         <Card 
-          className="bg-gradient-to-br from-zinc-800/30 to-zinc-900/50 border-zinc-600/50 rounded-sm mb-6 cursor-pointer hover:border-zinc-500 transition-colors"
+          className="bg-gradient-to-br from-emerald-900/30 to-emerald-950/50 border-emerald-600/50 rounded-sm mb-6 cursor-pointer hover:border-emerald-500 transition-colors"
           onClick={onNewAnalysis}
           data-testid="new-analysis-card"
         >
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-zinc-700/50 flex items-center justify-center">
-              <Plus className="w-6 h-6 text-zinc-400" />
+            <div className="w-12 h-12 rounded-full bg-emerald-700/50 flex items-center justify-center">
+              <Plus className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
               <h3 className="text-lg font-medium text-zinc-100">New Analysis</h3>
-              <p className="text-sm text-zinc-500">Drop a new .abf file to start analysis</p>
+              <p className="text-sm text-emerald-400/70">Drop a new .abf file to start analysis</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-zinc-600 ml-auto" />
+            <ChevronRight className="w-5 h-5 text-emerald-600 ml-auto" />
           </CardContent>
         </Card>
 
