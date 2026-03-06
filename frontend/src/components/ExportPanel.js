@@ -182,7 +182,7 @@ export default function ExportPanel({
                     </div>
                   )}
                   {originalFilename && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between py-1">
                       <span>Original File</span>
                       <span className="text-zinc-300">{originalFilename}</span>
                     </div>
@@ -190,13 +190,7 @@ export default function ExportPanel({
                   {recordingDate && (
                     <div className="flex justify-between">
                       <span>Recording Date</span>
-                      <span className="text-cyan-400">{recordingDate}</span>
-                    </div>
-                  )}
-                  {drugUsed && (
-                    <div className="flex justify-between">
-                      <span>Drug Used</span>
-                      <span className="text-purple-400">{drugUsed}</span>
+                      <span className="text-zinc-200">{recordingDate}</span>
                     </div>
                   )}
                   <Separator className="bg-zinc-800 my-1" />
