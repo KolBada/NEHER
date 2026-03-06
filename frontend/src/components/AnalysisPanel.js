@@ -132,24 +132,9 @@ function AnalysisPanel({
   baselineBfMinute, onBaselineBfMinuteChange
 }) {
   // Use drugReadoutSettings from props, with local fallbacks for backwards compatibility
-  const hrvReadoutMinute = drugReadoutSettings?.hrvReadoutMinute ?? '';
-  const bfReadoutMinute = drugReadoutSettings?.bfReadoutMinute ?? '';
+  // Use drugReadoutSettings from parent via callback
   const enableHrvReadout = drugReadoutSettings?.enableHrvReadout ?? false;
   const enableBfReadout = drugReadoutSettings?.enableBfReadout ?? false;
-  
-  // Update functions that call parent callback
-  const setHrvReadoutMinute = (val) => {
-    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, hrvReadoutMinute: val });
-  };
-  const setBfReadoutMinute = (val) => {
-    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, bfReadoutMinute: val });
-  };
-  const setEnableHrvReadout = (val) => {
-    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, enableHrvReadout: val });
-  };
-  const setEnableBfReadout = (val) => {
-    onDrugReadoutSettingsChange?.({ ...drugReadoutSettings, enableBfReadout: val });
-  };
 
   // Zoom state for charts (shared across all charts)
   const [zoomDomain, setZoomDomain] = useState(null);
@@ -310,12 +295,13 @@ function AnalysisPanel({
   // Get specific readouts - use calculated drug readout time
   const hrvReadout = useMemo(() => {
     if (!enableHrvReadout || !hrvResults?.windows) return null;
-    // Calculate actual readout minute: base + perfusion start + perfusion time
-    const baseMinute = parseInt(hrvReadoutMinute) || 0;
+    // Get HRV readout minute from first drug's per-drug settings
+    const firstDrugKey = selectedDrugs?.[0];
+    const perDrugSettings = drugReadoutSettings?.perDrug?.[firstDrugKey] || {};
+    const baseMinute = parseInt(perDrugSettings.hrvReadoutMinute) || 0;
     let actualMinute = baseMinute;
     
-    if (selectedDrugs?.length > 0) {
-      const firstDrugKey = selectedDrugs[0];
+    if (firstDrugKey) {
       const settings = drugSettings?.[firstDrugKey] || {};
       const perfusionStart = settings.perfusionStart ?? 3;
       const perfusionTime = settings.perfusionTime ?? 3;
@@ -327,16 +313,17 @@ function AnalysisPanel({
       requestedMinute: baseMinute,
       actualMinute: actualMinute,
     };
-  }, [hrvResults, hrvReadoutMinute, enableHrvReadout, selectedDrugs, drugSettings]);
+  }, [hrvResults, drugReadoutSettings, enableHrvReadout, selectedDrugs, drugSettings]);
 
   const bfReadout = useMemo(() => {
     if (!enableBfReadout || !perMinuteData) return null;
-    // Calculate actual readout minute: base + perfusion start + perfusion time
-    const baseMinute = parseInt(bfReadoutMinute) || 0;
+    // Get BF readout minute from first drug's per-drug settings
+    const firstDrugKey = selectedDrugs?.[0];
+    const perDrugSettings = drugReadoutSettings?.perDrug?.[firstDrugKey] || {};
+    const baseMinute = parseInt(perDrugSettings.bfReadoutMinute) || 0;
     let actualMinute = baseMinute;
     
-    if (selectedDrugs?.length > 0) {
-      const firstDrugKey = selectedDrugs[0];
+    if (firstDrugKey) {
       const settings = drugSettings?.[firstDrugKey] || {};
       const perfusionStart = settings.perfusionStart ?? 3;
       const perfusionTime = settings.perfusionTime ?? 3;
@@ -348,7 +335,7 @@ function AnalysisPanel({
       requestedMinute: baseMinute,
       actualMinute: actualMinute,
     };
-  }, [perMinuteData, bfReadoutMinute, enableBfReadout, selectedDrugs, drugSettings]);
+  }, [perMinuteData, drugReadoutSettings, enableBfReadout, selectedDrugs, drugSettings]);
 
   // Build array of all drugs with their settings and colors - MUST be before early return
   const DRUG_PURPLE_COLORS = [
@@ -739,13 +726,18 @@ function AnalysisPanel({
               </div>
             </div>
 
-            {/* Drug readout controls - one box per drug */}
+            {/* Drug readout controls - one box per drug, horizontally arranged */}
             {selectedDrugs && selectedDrugs.length > 0 ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-row flex-wrap gap-2">
                 {selectedDrugs.map((drugKey, idx) => {
                   const drugConfig = DRUG_CONFIG?.[drugKey] || {};
                   const drugName = drugConfig.name || drugKey;
                   const settings = drugSettings?.[drugKey] || {};
+                  
+                  // Get per-drug readout settings
+                  const perDrugSettings = drugReadoutSettings?.perDrug?.[drugKey] || { hrvReadoutMinute: '', bfReadoutMinute: '' };
+                  const hrvReadoutValue = perDrugSettings.hrvReadoutMinute ?? '';
+                  const bfReadoutValue = perDrugSettings.bfReadoutMinute ?? '';
                   
                   // Color schemes matching the top bar badges
                   const colorSchemes = [
@@ -758,6 +750,20 @@ function AnalysisPanel({
                   
                   const perfStart = settings.perfusionStart ?? 3;
                   const perfDelay = settings.perfusionTime ?? 3;
+                  
+                  // Handler to update per-drug readout settings
+                  const updatePerDrugSetting = (field, value) => {
+                    onDrugReadoutSettingsChange?.({
+                      ...drugReadoutSettings,
+                      perDrug: {
+                        ...drugReadoutSettings?.perDrug,
+                        [drugKey]: {
+                          ...perDrugSettings,
+                          [field]: value,
+                        }
+                      }
+                    });
+                  };
                   
                   return (
                     <div key={drugKey} className={`p-3 rounded-sm border transition-all duration-200 w-[340px] ${
@@ -786,8 +792,6 @@ function AnalysisPanel({
                                   ...drugReadoutSettings,
                                   enableHrvReadout: true,
                                   enableBfReadout: true,
-                                  hrvReadoutMinute: '',
-                                  bfReadoutMinute: '',
                                 });
                               } else {
                                 onDrugReadoutSettingsChange?.({
@@ -812,16 +816,16 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
                           <Input
                             type="number"
-                            value={hrvReadoutMinute}
-                            onChange={(e) => setHrvReadoutMinute(e.target.value)}
+                            value={hrvReadoutValue}
+                            onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
                             disabled={!(enableHrvReadout || enableBfReadout)}
                             className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${(enableHrvReadout || enableBfReadout) ? colors.border : 'border-zinc-800'}`}
                             placeholder="12"
                           />
                           <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                          {(enableHrvReadout || enableBfReadout) && String(hrvReadoutMinute).trim() !== '' && (
+                          {(enableHrvReadout || enableBfReadout) && String(hrvReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseInt(hrvReadoutMinute || 0) + perfStart + perfDelay}-{parseInt(hrvReadoutMinute || 0) + perfStart + perfDelay + 3}min
+                              Readout: {parseInt(hrvReadoutValue || 0) + perfStart + perfDelay}-{parseInt(hrvReadoutValue || 0) + perfStart + perfDelay + 3}min
                             </Badge>
                           )}
                         </div>
@@ -829,26 +833,26 @@ function AnalysisPanel({
                           <Label className={`text-[9px] w-8 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
                           <Input
                             type="number"
-                            value={bfReadoutMinute}
-                            onChange={(e) => setBfReadoutMinute(e.target.value)}
+                            value={bfReadoutValue}
+                            onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
                             disabled={!(enableHrvReadout || enableBfReadout)}
                             className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${(enableHrvReadout || enableBfReadout) ? colors.border : 'border-zinc-800'}`}
                             placeholder="14"
                           />
                           <span className={`text-[9px] ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                          {(enableHrvReadout || enableBfReadout) && String(bfReadoutMinute).trim() !== '' && (
+                          {(enableHrvReadout || enableBfReadout) && String(bfReadoutValue).trim() !== '' && (
                             <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                              Readout: {parseInt(bfReadoutMinute || 0) + perfStart + perfDelay}-{parseInt(bfReadoutMinute || 0) + perfStart + perfDelay + 1}min
+                              Readout: {parseInt(bfReadoutValue || 0) + perfStart + perfDelay}-{parseInt(bfReadoutValue || 0) + perfStart + perfDelay + 1}min
                             </Badge>
                           )}
                         </div>
-                        {idx === 0 && (
-                          <div className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                            <div className="flex items-center gap-1">
-                              <span>Input = Perf. Time</span>
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span>Drug Readout Time Range = Perf. Start + Perf. Delay + Perf. Time</span>
+                        <div className={`text-[8px] mt-2 ${(enableHrvReadout || enableBfReadout) ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                          <div className="flex items-center gap-1">
+                            <span>Input = Perf. Time</span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span>Drug Readout Time Range =</span>
+                            {idx === 0 && (
                               <TooltipProvider delayDuration={100}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -857,15 +861,16 @@ function AnalysisPanel({
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
-                                    <p className="mb-1"><strong>Perf. Start:</strong> Time point at which drug perfusion begins (relative to recording start)</p>
-                                    <p className="mb-1"><strong>Perf. Delay:</strong> Transit time for drug to reach the target tissue from the perfusion system</p>
-                                    <p><strong>Perf. Time:</strong> Duration required for drug effect to manifest after tissue exposure</p>
+                                    <p className="mb-1"><strong>Perf. Start:</strong> Time point at which drug perfusion begins</p>
+                                    <p className="mb-1"><strong>Perf. Delay:</strong> Transit time for drug to reach tissue</p>
+                                    <p><strong>Perf. Time:</strong> Duration for drug effect to manifest</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                            </div>
+                            )}
                           </div>
-                        )}
+                          <div className="text-[7px] mt-0.5">Perf. Start + Perf. Delay + Perf. Time</div>
+                        </div>
                       </div>
                     </div>
                   );

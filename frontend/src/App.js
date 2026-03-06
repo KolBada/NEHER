@@ -462,10 +462,10 @@ function App() {
   
   // Drug readout settings (for Spontaneous Activity)
   const [drugReadoutSettings, setDrugReadoutSettings] = useState({
-    hrvReadoutMinute: '',
-    bfReadoutMinute: '',
     enableHrvReadout: false,
     enableBfReadout: false,
+    // Per-drug readout settings (keyed by drug key)
+    perDrug: {},
   });
 
   // Light
@@ -1177,10 +1177,9 @@ function App() {
     setDrugSettings({});
     setOtherDrugs([]);
     setDrugReadoutSettings({
-      hrvReadoutMinute: '',
-      bfReadoutMinute: '',
       enableHrvReadout: false,
       enableBfReadout: false,
+      perDrug: {},
     });
     setLightEnabled(true);
     setBaselineEnabled(true);
