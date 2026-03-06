@@ -1702,7 +1702,7 @@ function App() {
 
       {/* Per-drug settings - only shown when drugs are selected */}
       {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-        <div className="px-4 pt-3 pb-1">
+        <div className="px-4 md:px-6 pt-3 pb-1">
           <ScrollArea className="max-h-[150px]">
             <div className="space-y-2">
               {/* Predefined drugs with settings */}
@@ -1710,7 +1710,7 @@ function App() {
                 const config = DRUG_CONFIG[drugKey];
                 const settings = drugSettings[drugKey] || {};
                 return (
-                  <div key={drugKey} className="flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50 relative z-10">
+                  <div key={drugKey} className="inline-flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50 relative z-10">
                     <span className="text-[10px] font-medium text-purple-400 w-24">{config.name}</span>
                     <div className="flex items-center gap-1">
                       <Input
@@ -1764,7 +1764,7 @@ function App() {
               
               {/* Other drugs */}
               {otherDrugs.map(drug => (
-                <div key={drug.id} className="flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50">
+                <div key={drug.id} className="inline-flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border border-purple-500/50">
                   <Input
                     value={drug.name}
                     onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
