@@ -3074,10 +3074,16 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         y = draw_row(fig1, left_x, y, 'Drug Used:', drug_text, width=col_width)
         
-        # Add additional drug lines if more than one
+        # Add additional drug lines if more than one - WITH unit
         if all_drugs and len(set(all_drugs)) > 1:
             unique_drugs = list(dict.fromkeys(all_drugs))
             for drug in unique_drugs[1:3]:  # Show up to 3 drugs total
+                # Add unit to drug if it has concentration in parentheses
+                if drug_concentration_unit:
+                    match = re.search(r'\(([^)]+)\)$', drug)
+                    if match:
+                        conc_value = match.group(1)
+                        drug = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug)
                 y = draw_row(fig1, left_x, y, '', drug, width=col_width)
         
         # Light Stim: Check if any recording has stim_duration and isi_structure
@@ -3122,12 +3128,59 @@ def create_comparison_pdf(folder_name, comparison_data):
         y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%", TINTS['baseline'], width=col_width)
         y_right -= 0.008
         
-        fig1.text(right_x + 0.01, y_right, 'Drug Readout', fontsize=7, fontstyle='italic', color='#71717a')
+        # Get unique drugs from recordings for per-drug readouts
+        unique_drug_names = []
+        for rec in recordings:
+            drug_info = rec.get('drug_info', [])
+            if isinstance(drug_info, list):
+                for d in drug_info:
+                    if d.get('name') and d.get('name') not in unique_drug_names:
+                        unique_drug_names.append(d.get('name'))
+        
+        # First drug readout with drug name
+        first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+        fig1.text(right_x + 0.01, y_right, f'Drug Readout ({first_drug_name})', fontsize=7, fontstyle='italic', color='#71717a')
         y_right -= 0.018
         y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{fmt(spont_averages.get('drug_bf'), 1)} bpm", TINTS['drug'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', fmt(spont_averages.get('drug_ln_rmssd70'), 3), TINTS['drug'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', fmt(spont_averages.get('drug_ln_sdnn70'), 3), TINTS['drug'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{fmt(spont_averages.get('drug_pnn50'), 1)}%", TINTS['drug'], width=col_width)
+        
+        # Second drug readout if exists
+        if len(unique_drug_names) > 1:
+            second_drug_name = unique_drug_names[1]
+            y_right -= 0.008
+            fig1.text(right_x + 0.01, y_right, f'Drug Readout ({second_drug_name})', fontsize=7, fontstyle='italic', color='#71717a')
+            y_right -= 0.018
+            
+            # Calculate averages for second drug from per_drug_metrics
+            drug2_bfs = []
+            drug2_rmssds = []
+            drug2_sdnns = []
+            drug2_pnn50s = []
+            for rec in recordings:
+                pdm = rec.get('per_drug_metrics', [])
+                if len(pdm) > 1:
+                    m = pdm[1]
+                    if m.get('drug_bf') is not None:
+                        drug2_bfs.append(m['drug_bf'])
+                    if m.get('drug_ln_rmssd70') is not None:
+                        drug2_rmssds.append(m['drug_ln_rmssd70'])
+                    if m.get('drug_ln_sdnn70') is not None:
+                        drug2_sdnns.append(m['drug_ln_sdnn70'])
+                    if m.get('drug_pnn50') is not None:
+                        drug2_pnn50s.append(m['drug_pnn50'])
+            
+            drug2_avg_bf = sum(drug2_bfs) / len(drug2_bfs) if drug2_bfs else None
+            drug2_avg_rmssd = sum(drug2_rmssds) / len(drug2_rmssds) if drug2_rmssds else None
+            drug2_avg_sdnn = sum(drug2_sdnns) / len(drug2_sdnns) if drug2_sdnns else None
+            drug2_avg_pnn50 = sum(drug2_pnn50s) / len(drug2_pnn50s) if drug2_pnn50s else None
+            
+            y_right = draw_row(fig1, right_x, y_right, 'Mean BF:', f"{fmt(drug2_avg_bf, 1)} bpm", TINTS['drug'], width=col_width)
+            y_right = draw_row(fig1, right_x, y_right, 'ln(RMSSD₇₀):', fmt(drug2_avg_rmssd, 3), TINTS['drug'], width=col_width)
+            y_right = draw_row(fig1, right_x, y_right, 'ln(SDNN₇₀):', fmt(drug2_avg_sdnn, 3), TINTS['drug'], width=col_width)
+            y_right = draw_row(fig1, right_x, y_right, 'pNN50₇₀:', f"{fmt(drug2_avg_pnn50, 1)}%", TINTS['drug'], width=col_width)
+        
         y_right -= 0.015
         
         y_right = draw_header(fig1, right_x, y_right, 'LIGHT STIMULUS', COLORS['amber'], width=col_width)
@@ -3338,12 +3391,23 @@ def create_comparison_pdf(folder_name, comparison_data):
         pdf.savefig(fig2)
         plt.close(fig2)
         
-        # ==================== PAGE 3: SPONTANEOUS ACTIVITY + NORMALIZED ====================
+        # ==================== PAGE 3: SPONTANEOUS ACTIVITY + NORMALIZED (First Drug) ====================
+        # Get unique drugs from recordings
+        unique_drug_names = []
+        for rec in recordings:
+            drug_info = rec.get('drug_info', [])
+            if isinstance(drug_info, list):
+                for d in drug_info:
+                    if d.get('name') and d.get('name') not in unique_drug_names:
+                        unique_drug_names.append(d.get('name'))
+        
+        first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+        
         fig3 = plt.figure(figsize=(8.5, 11))
         fig3.patch.set_facecolor('white')
         
         add_page_header(fig3, 'spontaneous activity')
-        fig3.text(0.08, 0.90, 'Spontaneous Activity', ha='left', va='top', fontsize=28, fontweight='bold', 
+        fig3.text(0.08, 0.90, f'Spontaneous Activity ({first_drug_name})', ha='left', va='top', fontsize=28, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
         
@@ -3510,6 +3574,188 @@ def create_comparison_pdf(folder_name, comparison_data):
         add_page_footer(fig3, 3, total_pages)
         pdf.savefig(fig3)
         plt.close(fig3)
+        
+        # ==================== PAGE 3B: SPONTANEOUS ACTIVITY + NORMALIZED (Second Drug) ====================
+        if len(unique_drug_names) > 1:
+            second_drug_name = unique_drug_names[1]
+            
+            fig3b = plt.figure(figsize=(8.5, 11))
+            fig3b.patch.set_facecolor('white')
+            
+            add_page_header(fig3b, 'spontaneous activity')
+            fig3b.text(0.08, 0.90, f'Spontaneous Activity ({second_drug_name})', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3b.transFigure))
+            
+            # Table 2b: Drug-induced BF and HRV Data (Second Drug)
+            fig3b.text(0.08, 0.84, f'Table 2 | Drug-induced BF and HRV Data ({second_drug_name})', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3b.transFigure))
+            
+            ax3b_a = fig3b.add_axes([0.08, 0.48, 0.84, 0.34])
+            ax3b_a.axis('off')
+            
+            spont_headers_2 = ['Rec', 'Base BF', 'Base\nRMSSD', 'Base\nSDNN', 'Base\npNN50', 
+                            f'{second_drug_name}\nBF', f'{second_drug_name}\nRMSSD', f'{second_drug_name}\nSDNN', f'{second_drug_name}\npNN50']
+            spont_data_2 = []
+            
+            # Calculate second drug averages
+            drug2_bfs = []
+            drug2_rmssds = []
+            drug2_sdnns = []
+            drug2_pnn50s = []
+            
+            for rec in recordings:
+                # Get second drug metrics from per_drug_metrics
+                pdm = rec.get('per_drug_metrics', [])
+                drug2_metrics = pdm[1] if len(pdm) > 1 else {}
+                
+                spont_data_2.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(rec.get('baseline_bf'), 1),
+                    fmt(rec.get('baseline_ln_rmssd70'), 3),
+                    fmt(rec.get('baseline_ln_sdnn70'), 3),
+                    fmt(rec.get('baseline_pnn50'), 1),
+                    fmt(drug2_metrics.get('drug_bf'), 1),
+                    fmt(drug2_metrics.get('drug_ln_rmssd70'), 3),
+                    fmt(drug2_metrics.get('drug_ln_sdnn70'), 3),
+                    fmt(drug2_metrics.get('drug_pnn50'), 1),
+                ])
+                
+                if drug2_metrics.get('drug_bf') is not None:
+                    drug2_bfs.append(drug2_metrics['drug_bf'])
+                if drug2_metrics.get('drug_ln_rmssd70') is not None:
+                    drug2_rmssds.append(drug2_metrics['drug_ln_rmssd70'])
+                if drug2_metrics.get('drug_ln_sdnn70') is not None:
+                    drug2_sdnns.append(drug2_metrics['drug_ln_sdnn70'])
+                if drug2_metrics.get('drug_pnn50') is not None:
+                    drug2_pnn50s.append(drug2_metrics['drug_pnn50'])
+            
+            # Add average row for second drug
+            spont_data_2.append([
+                'Avg',
+                fmt(spont_averages.get('baseline_bf'), 1),
+                fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
+                fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
+                fmt(spont_averages.get('baseline_pnn50'), 1),
+                fmt(sum(drug2_bfs) / len(drug2_bfs) if drug2_bfs else None, 1),
+                fmt(sum(drug2_rmssds) / len(drug2_rmssds) if drug2_rmssds else None, 3),
+                fmt(sum(drug2_sdnns) / len(drug2_sdnns) if drug2_sdnns else None, 3),
+                fmt(sum(drug2_pnn50s) / len(drug2_pnn50s) if drug2_pnn50s else None, 1),
+            ])
+            
+            if spont_data_2:
+                table3b_a = ax3b_a.table(cellText=spont_data_2, colLabels=spont_headers_2, loc='upper center', cellLoc='center',
+                                    colWidths=[0.08, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115])
+                table3b_a.auto_set_font_size(False)
+                font_size_2 = 6 if len(recordings) <= 10 else 5
+                table3b_a.set_fontsize(font_size_2)
+                row_scale_2 = 1.6 if len(recordings) <= 8 else 1.3
+                table3b_a.scale(1.0, row_scale_2)
+                
+                for (row, col), cell in table3b_a.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['emerald'])
+                    elif row == len(spont_data_2):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        if 1 <= col <= 4:
+                            cell.set_facecolor(TINTS['baseline'])
+                        elif 5 <= col <= 8:
+                            cell.set_facecolor(TINTS['drug'])
+                        else:
+                            cell.set_facecolor('white')
+                        cell.set_text_props(fontfamily=body_font)
+            
+            # Table 3b: Drug-induced BF and HRV Normalized Data (Second Drug)
+            fig3b.text(0.08, 0.44, f'Table 3 | Drug-induced BF and HRV Normalized Data ({second_drug_name})', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3b.transFigure))
+            
+            ax3b_b = fig3b.add_axes([0.08, 0.06, 0.84, 0.36])
+            ax3b_b.axis('off')
+            
+            norm_headers_2 = ['Rec', 'Base\nBF%', 'Base\nRMSSD%', 'Base\nSDNN%', 'Base\npNN50%',
+                           f'{second_drug_name}\nBF%', f'{second_drug_name}\nRMSSD%', f'{second_drug_name}\nSDNN%', f'{second_drug_name}\npNN50%']
+            norm_data_2 = []
+            norm_sums_2 = {'base_bf': [], 'base_rmssd': [], 'base_sdnn': [], 'base_pnn50': [],
+                        'drug_bf': [], 'drug_rmssd': [], 'drug_sdnn': [], 'drug_pnn50': []}
+            
+            for rec in recordings:
+                has_baseline = rec.get('baseline_bf') is not None
+                pdm = rec.get('per_drug_metrics', [])
+                drug2_metrics = pdm[1] if len(pdm) > 1 else {}
+                
+                if has_baseline:
+                    n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
+                    n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
+                    n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
+                    n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
+                    n_drug_bf = norm_val(drug2_metrics.get('drug_bf'), avg_bf)
+                    n_drug_rmssd = norm_val(drug2_metrics.get('drug_ln_rmssd70'), avg_rmssd)
+                    n_drug_sdnn = norm_val(drug2_metrics.get('drug_ln_sdnn70'), avg_sdnn)
+                    n_drug_pnn50 = norm_val(drug2_metrics.get('drug_pnn50'), avg_pnn50)
+                else:
+                    n_base_bf = n_base_rmssd = n_base_sdnn = n_base_pnn50 = None
+                    n_drug_bf = n_drug_rmssd = n_drug_sdnn = n_drug_pnn50 = None
+                
+                norm_data_2.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(n_base_bf, 1), fmt(n_base_rmssd, 1), fmt(n_base_sdnn, 1), fmt(n_base_pnn50, 1),
+                    fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
+                ])
+                
+                if has_baseline:
+                    for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
+                                    ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
+                                    ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
+                                    ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                        if val is not None:
+                            norm_sums_2[key].append(val)
+            
+            # Add average row
+            norm_data_2.append([
+                'Avg',
+                fmt(sum(norm_sums_2['base_bf']) / len(norm_sums_2['base_bf']) if norm_sums_2['base_bf'] else None, 1),
+                fmt(sum(norm_sums_2['base_rmssd']) / len(norm_sums_2['base_rmssd']) if norm_sums_2['base_rmssd'] else None, 1),
+                fmt(sum(norm_sums_2['base_sdnn']) / len(norm_sums_2['base_sdnn']) if norm_sums_2['base_sdnn'] else None, 1),
+                fmt(sum(norm_sums_2['base_pnn50']) / len(norm_sums_2['base_pnn50']) if norm_sums_2['base_pnn50'] else None, 1),
+                fmt(sum(norm_sums_2['drug_bf']) / len(norm_sums_2['drug_bf']) if norm_sums_2['drug_bf'] else None, 1),
+                fmt(sum(norm_sums_2['drug_rmssd']) / len(norm_sums_2['drug_rmssd']) if norm_sums_2['drug_rmssd'] else None, 1),
+                fmt(sum(norm_sums_2['drug_sdnn']) / len(norm_sums_2['drug_sdnn']) if norm_sums_2['drug_sdnn'] else None, 1),
+                fmt(sum(norm_sums_2['drug_pnn50']) / len(norm_sums_2['drug_pnn50']) if norm_sums_2['drug_pnn50'] else None, 1),
+            ])
+            
+            if norm_data_2:
+                table3b_b = ax3b_b.table(cellText=norm_data_2, colLabels=norm_headers_2, loc='upper center', cellLoc='center',
+                                    colWidths=[0.08, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115, 0.115])
+                table3b_b.auto_set_font_size(False)
+                table3b_b.set_fontsize(font_size_2)
+                table3b_b.scale(1.0, row_scale_2)
+                
+                for (row, col), cell in table3b_b.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['emerald'])
+                    elif row == len(norm_data_2):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        if 1 <= col <= 4:
+                            cell.set_facecolor(TINTS['baseline'])
+                        elif 5 <= col <= 8:
+                            cell.set_facecolor(TINTS['drug'])
+                        else:
+                            cell.set_facecolor('white')
+                        cell.set_text_props(fontfamily=body_font)
+            
+            add_page_footer(fig3b, 4, total_pages)
+            pdf.savefig(fig3b)
+            plt.close(fig3b)
         
         # ==================== PAGE 4: LIGHT HRA + NORMALIZED ====================
         fig4 = plt.figure(figsize=(8.5, 11))
@@ -3910,6 +4156,20 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'B{row}'] = drug_text
     row += 1
     
+    # Add additional drug lines if more than one - WITH unit
+    if all_drugs and len(set(all_drugs)) > 1:
+        unique_drugs = list(dict.fromkeys(all_drugs))
+        for drug in unique_drugs[1:3]:  # Show up to 3 drugs total
+            # Add unit to drug if it has concentration in parentheses
+            if drug_concentration_unit:
+                match = re.search(r'\(([^)]+)\)$', drug)
+                if match:
+                    conc_value = match.group(1)
+                    drug = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug)
+            ws1[f'A{row}'] = ''
+            ws1[f'B{row}'] = drug
+            row += 1
+    
     # Light Stim
     light_used = any(r.get('has_light_stim') or r.get('stim_duration') for r in recordings)
     ws1[f'A{row}'] = 'Light Stim:'
@@ -3937,7 +4197,17 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1['E8'] = f"{fmt(spont_averages.get('baseline_pnn50'), 1)}%"
     ws1['E8'].fill = baseline_fill
     
-    ws1['D10'] = 'Drug Readout'
+    # Get unique drugs from recordings for per-drug readouts
+    unique_drug_names = []
+    for rec in recordings:
+        drug_info = rec.get('drug_info', [])
+        if isinstance(drug_info, list):
+            for d in drug_info:
+                if d.get('name') and d.get('name') not in unique_drug_names:
+                    unique_drug_names.append(d.get('name'))
+    
+    first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+    ws1['D10'] = f'Drug Readout ({first_drug_name})'
     ws1['D10'].font = Font(italic=True, size=8, color='71717A')
     ws1['D11'] = 'Mean BF:'
     ws1['E11'] = f"{fmt(spont_averages.get('drug_bf'), 1)} bpm"
@@ -3952,47 +4222,103 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1['E14'] = f"{fmt(spont_averages.get('drug_pnn50'), 1)}%"
     ws1['E14'].fill = drug_fill
     
+    # Second drug readout row offset
+    second_drug_row_start = 16
+    if len(unique_drug_names) > 1:
+        second_drug_name = unique_drug_names[1]
+        ws1['D16'] = f'Drug Readout ({second_drug_name})'
+        ws1['D16'].font = Font(italic=True, size=8, color='71717A')
+        
+        # Calculate averages for second drug from per_drug_metrics
+        drug2_bfs = []
+        drug2_rmssds = []
+        drug2_sdnns = []
+        drug2_pnn50s = []
+        for rec in recordings:
+            pdm = rec.get('per_drug_metrics', [])
+            if len(pdm) > 1:
+                m = pdm[1]
+                if m.get('drug_bf') is not None:
+                    drug2_bfs.append(m['drug_bf'])
+                if m.get('drug_ln_rmssd70') is not None:
+                    drug2_rmssds.append(m['drug_ln_rmssd70'])
+                if m.get('drug_ln_sdnn70') is not None:
+                    drug2_sdnns.append(m['drug_ln_sdnn70'])
+                if m.get('drug_pnn50') is not None:
+                    drug2_pnn50s.append(m['drug_pnn50'])
+        
+        drug2_avg_bf = sum(drug2_bfs) / len(drug2_bfs) if drug2_bfs else None
+        drug2_avg_rmssd = sum(drug2_rmssds) / len(drug2_rmssds) if drug2_rmssds else None
+        drug2_avg_sdnn = sum(drug2_sdnns) / len(drug2_sdnns) if drug2_sdnns else None
+        drug2_avg_pnn50 = sum(drug2_pnn50s) / len(drug2_pnn50s) if drug2_pnn50s else None
+        
+        ws1['D17'] = 'Mean BF:'
+        ws1['E17'] = f"{fmt(drug2_avg_bf, 1)} bpm"
+        ws1['E17'].fill = drug_fill
+        ws1['D18'] = 'ln(RMSSD₇₀):'
+        ws1['E18'] = fmt(drug2_avg_rmssd, 3)
+        ws1['E18'].fill = drug_fill
+        ws1['D19'] = 'ln(SDNN₇₀):'
+        ws1['E19'] = fmt(drug2_avg_sdnn, 3)
+        ws1['E19'].fill = drug_fill
+        ws1['D20'] = 'pNN50₇₀:'
+        ws1['E20'] = f"{fmt(drug2_avg_pnn50, 1)}%"
+        ws1['E20'].fill = drug_fill
+        second_drug_row_start = 22
+    
     # Light Stimulus Averages
-    ws1[f'D16'] = 'LIGHT STIMULUS'
-    ws1[f'D16'].font = header_font
-    ws1[f'D16'].fill = amber_fill
-    ws1.merge_cells('D16:E16')
+    ws1[f'D{second_drug_row_start}'] = 'LIGHT STIMULUS'
+    ws1[f'D{second_drug_row_start}'].font = header_font
+    ws1[f'D{second_drug_row_start}'].fill = amber_fill
+    ws1.merge_cells(f'D{second_drug_row_start}:E{second_drug_row_start}')
     
-    ws1['D17'] = 'Heart Rate Adaptation (HRA)'
-    ws1['D17'].font = Font(italic=True, size=8, color='71717A')
-    ws1['D18'] = 'Baseline BF:'
-    ws1['E18'] = f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm"
-    ws1['E18'].fill = light_fill
-    ws1['D19'] = 'Peak BF:'
-    ws1['E19'] = f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm"
-    ws1['E19'].fill = light_fill
-    ws1['D20'] = 'Peak (Norm.):'
-    ws1['E20'] = f"{fmt(hra_averages.get('light_peak_norm'), 1)}%"
-    ws1['E20'].fill = light_fill
-    ws1['D21'] = 'Amplitude:'
-    ws1['E21'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
-    ws1['E21'].fill = light_fill
-    ws1['D22'] = 'TTP (Avg):'
-    ws1['E22'] = f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s"
-    ws1['E22'].fill = light_fill
-    ws1['D23'] = 'Rate of Change:'
-    ws1['E23'] = fmt(hra_averages.get('light_roc'), 4)
-    ws1['E23'].fill = light_fill
-    ws1['D24'] = 'Recovery %:'
-    ws1['E24'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
-    ws1['E24'].fill = light_fill
+    r = second_drug_row_start + 1
+    ws1[f'D{r}'] = 'Heart Rate Adaptation (HRA)'
+    ws1[f'D{r}'].font = Font(italic=True, size=8, color='71717A')
+    r += 1
+    ws1[f'D{r}'] = 'Baseline BF:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Peak BF:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Peak (Norm.):'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_norm'), 1)}%"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Amplitude:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'TTP (Avg):'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_ttp_avg'), 1)} s"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Rate of Change:'
+    ws1[f'E{r}'] = fmt(hra_averages.get('light_roc'), 4)
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Recovery %:'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
+    ws1[f'E{r}'].fill = light_fill
     
-    ws1['D26'] = 'Corrected HRV'
-    ws1['D26'].font = Font(italic=True, size=8, color='71717A')
-    ws1['D27'] = 'ln(RMSSD₇₀):'
-    ws1['E27'] = fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3)
-    ws1['E27'].fill = light_fill
-    ws1['D28'] = 'ln(SDNN₇₀):'
-    ws1['E28'] = fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3)
-    ws1['E28'].fill = light_fill
-    ws1['D29'] = 'pNN50₇₀:'
-    ws1['E29'] = f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%"
-    ws1['E29'].fill = light_fill
+    r += 2
+    ws1[f'D{r}'] = 'Corrected HRV'
+    ws1[f'D{r}'].font = Font(italic=True, size=8, color='71717A')
+    r += 1
+    ws1[f'D{r}'] = 'ln(RMSSD₇₀):'
+    ws1[f'E{r}'] = fmt(hrv_averages.get('light_hrv_ln_rmssd70'), 3)
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'ln(SDNN₇₀):'
+    ws1[f'E{r}'] = fmt(hrv_averages.get('light_hrv_ln_sdnn70'), 3)
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'pNN50₇₀:'
+    ws1[f'E{r}'] = f"{fmt(hrv_averages.get('light_hrv_pnn50'), 1)}%"
+    ws1[f'E{r}'].fill = light_fill
     
     # Set column widths
     ws1.column_dimensions['A'].width = 15
@@ -4052,17 +4378,27 @@ def create_comparison_xlsx(folder_name, comparison_data):
         has_drug = rec.get('has_drug', False)
         drug_hrv_readout = rec.get('drug_hrv_readout_minute')
         drug_parts = []
+        per_drug_metrics = rec.get('per_drug_metrics', [])
         
         if has_drug and isinstance(drug_info_raw, list) and drug_info_raw:
-            for d in drug_info_raw:
+            for drug_idx, d in enumerate(drug_info_raw):
                 if isinstance(d, dict):
                     name = d.get('name', '')
                     conc = d.get('concentration', '')
                     unit = d.get('concentration_unit', '') or 'µM'
-                    if drug_hrv_readout is not None:
-                        perf_time = drug_hrv_readout
-                    else:
-                        perf_time = d.get('perfusion_time', '') or d.get('bf_readout_time', '')
+                    
+                    # Get perf_time from per_drug_metrics for each drug
+                    perf_time = None
+                    if drug_idx < len(per_drug_metrics):
+                        perf_time = per_drug_metrics[drug_idx].get('perf_time')
+                    
+                    # Fallback to global or individual drug settings
+                    if perf_time is None:
+                        if drug_hrv_readout is not None:
+                            perf_time = drug_hrv_readout
+                        else:
+                            perf_time = d.get('perfusion_time', '') or d.get('bf_readout_time', '')
+                    
                     if name:
                         drug_str = name
                         if conc:
@@ -4105,11 +4441,22 @@ def create_comparison_xlsx(folder_name, comparison_data):
     for col, width in enumerate([25, 12, 15, 12, 10, 18, 20, 20], 1):
         ws2.column_dimensions[get_column_letter(col)].width = width
     
-    # ==================== SHEET 3: SPONTANEOUS ACTIVITY ====================
-    ws3 = wb.create_sheet("Spontaneous Activity")
+    # ==================== SHEET 3: SPONTANEOUS ACTIVITY (First Drug) ====================
+    # Get unique drugs from recordings
+    unique_drug_names = []
+    for rec in recordings:
+        drug_info = rec.get('drug_info', [])
+        if isinstance(drug_info, list):
+            for d in drug_info:
+                if d.get('name') and d.get('name') not in unique_drug_names:
+                    unique_drug_names.append(d.get('name'))
+    
+    first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+    
+    ws3 = wb.create_sheet(f"Spontaneous Activity ({first_drug_name[:20]})")
     
     # Table 2: Drug-induced BF and HRV Data
-    ws3['A1'] = 'Table 2 | Drug-induced BF and HRV Data'
+    ws3['A1'] = f'Table 2 | Drug-induced BF and HRV Data ({first_drug_name})'
     ws3['A1'].font = Font(bold=True, size=12)
     
     spont_headers = ['Rec', 'Base BF', 'Base RMSSD', 'Base SDNN', 'Base pNN50', 
@@ -4166,7 +4513,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
     row += 2
     
     # Table 3: Drug-induced BF and HRV Normalized Data
-    ws3[f'A{row}'] = 'Table 3 | Drug-induced BF and HRV Normalized Data'
+    ws3[f'A{row}'] = f'Table 3 | Drug-induced BF and HRV Normalized Data ({first_drug_name})'
     ws3[f'A{row}'].font = Font(bold=True, size=12)
     row += 2
     
@@ -4255,6 +4602,170 @@ def create_comparison_xlsx(folder_name, comparison_data):
     # Set column widths
     for col in range(1, 10):
         ws3.column_dimensions[get_column_letter(col)].width = 12
+    
+    # ==================== SHEET 3B: SPONTANEOUS ACTIVITY (Second Drug) ====================
+    if len(unique_drug_names) > 1:
+        second_drug_name = unique_drug_names[1]
+        
+        ws3b = wb.create_sheet(f"Spontaneous Activity ({second_drug_name[:20]})")
+        
+        # Table 2: Drug-induced BF and HRV Data (Second Drug)
+        ws3b['A1'] = f'Table 2 | Drug-induced BF and HRV Data ({second_drug_name})'
+        ws3b['A1'].font = Font(bold=True, size=12)
+        
+        spont_headers_2 = ['Rec', 'Base BF', 'Base RMSSD', 'Base SDNN', 'Base pNN50', 
+                        f'{second_drug_name} BF', f'{second_drug_name} RMSSD', f'{second_drug_name} SDNN', f'{second_drug_name} pNN50']
+        for col, header in enumerate(spont_headers_2, 1):
+            cell = ws3b.cell(row=3, column=col, value=header)
+            cell.font = header_font
+            cell.fill = emerald_fill
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        # Calculate second drug averages
+        drug2_bfs = []
+        drug2_rmssds = []
+        drug2_sdnns = []
+        drug2_pnn50s = []
+        
+        row = 4
+        for rec in recordings:
+            pdm = rec.get('per_drug_metrics', [])
+            drug2_metrics = pdm[1] if len(pdm) > 1 else {}
+            
+            data_row = [
+                extract_short_name(rec.get('name', '')),
+                fmt(rec.get('baseline_bf'), 1),
+                fmt(rec.get('baseline_ln_rmssd70'), 3),
+                fmt(rec.get('baseline_ln_sdnn70'), 3),
+                fmt(rec.get('baseline_pnn50'), 1),
+                fmt(drug2_metrics.get('drug_bf'), 1),
+                fmt(drug2_metrics.get('drug_ln_rmssd70'), 3),
+                fmt(drug2_metrics.get('drug_ln_sdnn70'), 3),
+                fmt(drug2_metrics.get('drug_pnn50'), 1),
+            ]
+            for col, value in enumerate(data_row, 1):
+                cell = ws3b.cell(row=row, column=col, value=value)
+                cell.font = data_font
+                cell.alignment = center_align
+                cell.border = thin_border
+                if 2 <= col <= 5:
+                    cell.fill = baseline_fill
+                elif 6 <= col <= 9:
+                    cell.fill = drug_fill
+            row += 1
+            
+            if drug2_metrics.get('drug_bf') is not None:
+                drug2_bfs.append(drug2_metrics['drug_bf'])
+            if drug2_metrics.get('drug_ln_rmssd70') is not None:
+                drug2_rmssds.append(drug2_metrics['drug_ln_rmssd70'])
+            if drug2_metrics.get('drug_ln_sdnn70') is not None:
+                drug2_sdnns.append(drug2_metrics['drug_ln_sdnn70'])
+            if drug2_metrics.get('drug_pnn50') is not None:
+                drug2_pnn50s.append(drug2_metrics['drug_pnn50'])
+        
+        # Average row
+        avg_row = [
+            'Avg',
+            fmt(spont_averages.get('baseline_bf'), 1),
+            fmt(spont_averages.get('baseline_ln_rmssd70'), 3),
+            fmt(spont_averages.get('baseline_ln_sdnn70'), 3),
+            fmt(spont_averages.get('baseline_pnn50'), 1),
+            fmt(sum(drug2_bfs) / len(drug2_bfs) if drug2_bfs else None, 1),
+            fmt(sum(drug2_rmssds) / len(drug2_rmssds) if drug2_rmssds else None, 3),
+            fmt(sum(drug2_sdnns) / len(drug2_sdnns) if drug2_sdnns else None, 3),
+            fmt(sum(drug2_pnn50s) / len(drug2_pnn50s) if drug2_pnn50s else None, 1),
+        ]
+        for col, value in enumerate(avg_row, 1):
+            cell = ws3b.cell(row=row, column=col, value=value)
+            cell.font = avg_font
+            cell.fill = avg_fill
+            cell.alignment = center_align
+            cell.border = thin_border
+        row += 2
+        
+        # Table 3: Drug-induced BF and HRV Normalized Data (Second Drug)
+        ws3b[f'A{row}'] = f'Table 3 | Drug-induced BF and HRV Normalized Data ({second_drug_name})'
+        ws3b[f'A{row}'].font = Font(bold=True, size=12)
+        row += 2
+        
+        norm_headers_2 = ['Rec', 'Base BF%', 'Base RMSSD%', 'Base SDNN%', 'Base pNN50%',
+                       f'{second_drug_name} BF%', f'{second_drug_name} RMSSD%', f'{second_drug_name} SDNN%', f'{second_drug_name} pNN50%']
+        for col, header in enumerate(norm_headers_2, 1):
+            cell = ws3b.cell(row=row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = emerald_fill
+            cell.alignment = center_align
+            cell.border = thin_border
+        row += 1
+        
+        norm_sums_2 = {'base_bf': [], 'base_rmssd': [], 'base_sdnn': [], 'base_pnn50': [],
+                    'drug_bf': [], 'drug_rmssd': [], 'drug_sdnn': [], 'drug_pnn50': []}
+        
+        for rec in recordings:
+            has_baseline = rec.get('baseline_bf') is not None
+            pdm = rec.get('per_drug_metrics', [])
+            drug2_metrics = pdm[1] if len(pdm) > 1 else {}
+            
+            if has_baseline:
+                n_base_bf = norm_val(rec.get('baseline_bf'), avg_bf)
+                n_base_rmssd = norm_val(rec.get('baseline_ln_rmssd70'), avg_rmssd)
+                n_base_sdnn = norm_val(rec.get('baseline_ln_sdnn70'), avg_sdnn)
+                n_base_pnn50 = norm_val(rec.get('baseline_pnn50'), avg_pnn50)
+                n_drug_bf = norm_val(drug2_metrics.get('drug_bf'), avg_bf)
+                n_drug_rmssd = norm_val(drug2_metrics.get('drug_ln_rmssd70'), avg_rmssd)
+                n_drug_sdnn = norm_val(drug2_metrics.get('drug_ln_sdnn70'), avg_sdnn)
+                n_drug_pnn50 = norm_val(drug2_metrics.get('drug_pnn50'), avg_pnn50)
+            else:
+                n_base_bf = n_base_rmssd = n_base_sdnn = n_base_pnn50 = None
+                n_drug_bf = n_drug_rmssd = n_drug_sdnn = n_drug_pnn50 = None
+            
+            data_row = [
+                extract_short_name(rec.get('name', '')),
+                fmt(n_base_bf, 1), fmt(n_base_rmssd, 1), fmt(n_base_sdnn, 1), fmt(n_base_pnn50, 1),
+                fmt(n_drug_bf, 1), fmt(n_drug_rmssd, 1), fmt(n_drug_sdnn, 1), fmt(n_drug_pnn50, 1),
+            ]
+            for col, value in enumerate(data_row, 1):
+                cell = ws3b.cell(row=row, column=col, value=value)
+                cell.font = data_font
+                cell.alignment = center_align
+                cell.border = thin_border
+                if 2 <= col <= 5:
+                    cell.fill = baseline_fill
+                elif 6 <= col <= 9:
+                    cell.fill = drug_fill
+            
+            if has_baseline:
+                for key, val in [('base_bf', n_base_bf), ('base_rmssd', n_base_rmssd), 
+                                ('base_sdnn', n_base_sdnn), ('base_pnn50', n_base_pnn50),
+                                ('drug_bf', n_drug_bf), ('drug_rmssd', n_drug_rmssd),
+                                ('drug_sdnn', n_drug_sdnn), ('drug_pnn50', n_drug_pnn50)]:
+                    if val is not None:
+                        norm_sums_2[key].append(val)
+            row += 1
+        
+        # Normalized average row
+        norm_avg_row = [
+            'Avg',
+            fmt(sum(norm_sums_2['base_bf']) / len(norm_sums_2['base_bf']) if norm_sums_2['base_bf'] else None, 1),
+            fmt(sum(norm_sums_2['base_rmssd']) / len(norm_sums_2['base_rmssd']) if norm_sums_2['base_rmssd'] else None, 1),
+            fmt(sum(norm_sums_2['base_sdnn']) / len(norm_sums_2['base_sdnn']) if norm_sums_2['base_sdnn'] else None, 1),
+            fmt(sum(norm_sums_2['base_pnn50']) / len(norm_sums_2['base_pnn50']) if norm_sums_2['base_pnn50'] else None, 1),
+            fmt(sum(norm_sums_2['drug_bf']) / len(norm_sums_2['drug_bf']) if norm_sums_2['drug_bf'] else None, 1),
+            fmt(sum(norm_sums_2['drug_rmssd']) / len(norm_sums_2['drug_rmssd']) if norm_sums_2['drug_rmssd'] else None, 1),
+            fmt(sum(norm_sums_2['drug_sdnn']) / len(norm_sums_2['drug_sdnn']) if norm_sums_2['drug_sdnn'] else None, 1),
+            fmt(sum(norm_sums_2['drug_pnn50']) / len(norm_sums_2['drug_pnn50']) if norm_sums_2['drug_pnn50'] else None, 1),
+        ]
+        for col, value in enumerate(norm_avg_row, 1):
+            cell = ws3b.cell(row=row, column=col, value=value)
+            cell.font = avg_font
+            cell.fill = avg_fill
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        # Set column widths
+        for col in range(1, 10):
+            ws3b.column_dimensions[get_column_letter(col)].width = 12
     
     # ==================== SHEET 4: HEART RATE ADAPTATION ====================
     ws4 = wb.create_sheet("Light HRA")
