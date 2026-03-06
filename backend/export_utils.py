@@ -3190,20 +3190,20 @@ def create_comparison_pdf(folder_name, comparison_data):
         y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Peak %:', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], width=col_width)
         # Format TTP values to show 0.0 instead of —
         ttp_first = hra_averages.get('light_ttp_first')
         ttp_first_str = f"{ttp_first:.1f}" if ttp_first is not None else "0.0"
-        y_right = draw_row(fig1, right_x, y_right, 'TTP 1st:', f"{ttp_first_str} s", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_first_str} s", TINTS['light'], width=col_width)
         ttp_avg = hra_averages.get('light_ttp_avg')
         ttp_avg_str = f"{ttp_avg:.1f}" if ttp_avg is not None else "0.0"
-        y_right = draw_row(fig1, right_x, y_right, 'TTP Avg:', f"{ttp_avg_str} s", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Rec. BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Rec. %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Amp.:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp_avg_str} s", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
         roc = hra_averages.get('light_roc')
         roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
-        y_right = draw_row(fig1, right_x, y_right, 'RoC:', roc_str, TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', roc_str, TINTS['light'], width=col_width)
         y_right -= 0.008
         
         fig1.text(right_x + 0.01, y_right, 'Corrected HRV', fontsize=7, fontstyle='italic', color='#71717a')
@@ -4298,38 +4298,38 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Peak %:'
+    ws1[f'D{r}'] = 'Peak (Norm.):'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_peak_norm'), 1)}%"
     ws1[f'E{r}'].fill = light_fill
     r += 1
     # Format TTP values to show 0.0 instead of —
     ttp_first = hra_averages.get('light_ttp_first')
     ttp_first_str = f"{ttp_first:.1f}" if ttp_first is not None else "0.0"
-    ws1[f'D{r}'] = 'TTP 1st:'
+    ws1[f'D{r}'] = 'TTP (1st Stim):'
     ws1[f'E{r}'] = f"{ttp_first_str} s"
     ws1[f'E{r}'].fill = light_fill
     r += 1
     ttp_avg = hra_averages.get('light_ttp_avg')
     ttp_avg_str = f"{ttp_avg:.1f}" if ttp_avg is not None else "0.0"
-    ws1[f'D{r}'] = 'TTP Avg:'
+    ws1[f'D{r}'] = 'Time to Peak:'
     ws1[f'E{r}'] = f"{ttp_avg_str} s"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Rec. BF:'
+    ws1[f'D{r}'] = 'Recovery BF:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Rec. %:'
+    ws1[f'D{r}'] = 'Recovery %:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Amp.:'
+    ws1[f'D{r}'] = 'Amplitude:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
     roc = hra_averages.get('light_roc')
     roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
-    ws1[f'D{r}'] = 'RoC:'
+    ws1[f'D{r}'] = 'Rate of Change:'
     ws1[f'E{r}'] = roc_str
     ws1[f'E{r}'].fill = light_fill
     
