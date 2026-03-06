@@ -506,7 +506,10 @@ def create_nature_pdf(request):
             # Corrected HRV
             if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
                 y_right -= 0.008
-                fig1.text(right_x, y_right, 'Corrected HRV:', fontsize=7, fontstyle='italic', color='#52525b')
+                # Get LOESS span from the detrended data
+                loess_frac = request.light_metrics_detrended.get('loess_frac_used', 0.25)
+                loess_pct = int(loess_frac * 100)
+                fig1.text(right_x, y_right, f'Corrected HRV (LOESS Span: {loess_pct}%):', fontsize=7, fontstyle='italic', color='#52525b')
                 y_right -= 0.020  # Line height for small text
                 final = request.light_metrics_detrended['final']
                 ln_rmssd = final.get('ln_rmssd70_detrended')
@@ -1885,7 +1888,10 @@ def create_nature_excel(request):
         # Corrected HRV
         if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
             right_row += 1
-            ws.cell(row=right_row, column=right_col, value='Corrected HRV:').font = Font(size=8, italic=True, color='52525B')
+            # Get LOESS span from the detrended data
+            loess_frac = request.light_metrics_detrended.get('loess_frac_used', 0.25)
+            loess_pct = int(loess_frac * 100)
+            ws.cell(row=right_row, column=right_col, value=f'Corrected HRV (LOESS Span: {loess_pct}%):').font = Font(size=8, italic=True, color='52525B')
             right_row += 1
             
             final = request.light_metrics_detrended['final']
@@ -2632,7 +2638,10 @@ def create_nature_csv(request):
         # Corrected HRV
         if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
             writer.writerow([])
-            writer.writerow(['--- Corrected HRV ---'])
+            # Get LOESS span from the detrended data
+            loess_frac = request.light_metrics_detrended.get('loess_frac_used', 0.25)
+            loess_pct = int(loess_frac * 100)
+            writer.writerow([f'--- Corrected HRV (LOESS Span: {loess_pct}%) ---'])
             final = request.light_metrics_detrended['final']
             ln_rmssd = final.get('ln_rmssd70_detrended')
             writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
