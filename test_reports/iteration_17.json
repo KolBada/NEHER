@@ -1,0 +1,80 @@
+{
+  "summary": "Backend-only testing of Excel and CSV export with per-drug colors and multi-drug readout support. All 29 tests PASSED. Verified: (1) Excel drug_fills array with 4 PatternFill objects matching DRUG_COLORS tints (F3E8FF, EDE9FE, E9D5FF, DDD6FE), (2) Excel Drug Perfusion section uses per-drug fill colors, (3) Excel Drug Readout section has single header with multiple drug blocks using per-drug colors, (4) CSV Drug Readout section outputs data for each enabled drug with drug name, (5) CSV per-drug readout uses correct per-drug settings (bfReadoutMinute, hrvReadoutMinute).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_excel_csv_per_drug_colors.py",
+    "/app/test_reports/pytest/pytest_results_iter17.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "export_utils.py lines 1428-1433: drug_fills array correctly defined with 4 PatternFill objects matching DRUG_COLORS tints",
+    "export_utils.py lines 1559-1613: Drug Perfusion Excel section uses drug_fills[idx % len(drug_fills)] for per-drug coloring",
+    "export_utils.py lines 1700-1835: Drug Readout Excel section has single header with loops through enabled_drugs using per-drug fills",
+    "export_utils.py lines 1756-1770: Per-drug settings (bfReadoutMinute, hrvReadoutMinute) correctly read from perDrug dict for each drug",
+    "export_utils.py lines 2440-2552: CSV Drug Readout section outputs 'Drug, [drug_name]' row for each enabled drug with metrics",
+    "export_utils.py lines 2491-2505: CSV uses per-drug bfReadoutMinute and hrvReadoutMinute settings correctly",
+    "AnalysisPanel.js line 1048: Drug readout metrics rows use mt-4 spacing (30% reduction from mt-6)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_excel_csv_per_drug_colors.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (29/29 tests passed)",
+    "frontend": "N/A (backend-only testing requested)"
+  },
+
+  "seed_data_creation": "Created mock test data with 2 drugs (Tetrodotoxin start=3, delay=0 + Acetylcholine start=6, delay=0) with per-drug settings (tetrodotoxin: hrvReadoutMinute=2, bfReadoutMinute=1, acetylcholine: hrvReadoutMinute=4, bfReadoutMinute=3). Also created 4-drug and 5-drug test scenarios to verify all colors and wraparound.",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Excel and CSV export per-drug colors feature fully tested. Test file at /app/backend/tests/test_excel_csv_per_drug_colors.py covers: Excel export API at /api/export/xlsx, CSV export API at /api/export/csv, 2/4/5 drug scenarios, per-drug settings verification, disabled drug exclusion. Excel drug_fills array colors: Drug 1=F3E8FF, Drug 2=EDE9FE, Drug 3=E9D5FF, Drug 4=DDD6FE (matching PDF DRUG_COLORS tints).",
+
+  "features_verified": {
+    "excel_drug_fills_array": "PASS - 4 PatternFill objects defined matching DRUG_COLORS",
+    "excel_drug_perfusion_per_drug_colors": "PASS - Each drug uses different fill color",
+    "excel_drug_readout_single_header": "PASS - Single 'DRUG READOUT' header with multiple drug blocks",
+    "excel_drug_readout_per_drug_colors": "PASS - Each drug block uses its index-based color",
+    "excel_per_drug_settings": "PASS - Uses correct bfReadoutMinute and hrvReadoutMinute per drug",
+    "csv_drug_readout_section": "PASS - Has '=== DRUG READOUT ===' header",
+    "csv_per_drug_drug_rows": "PASS - 'Drug, Tetrodotoxin' and 'Drug, Acetylcholine' rows present",
+    "csv_per_drug_metrics": "PASS - Mean BF and HRV metrics for each enabled drug",
+    "csv_per_drug_settings": "PASS - Uses correct per-drug readout minutes",
+    "csv_disabled_drug_excluded": "PASS - Disabled drug not in Drug Readout section",
+    "color_wraparound": "PASS - 5+ drugs wraps back to first color",
+    "frontend_spacing_mt4": "VERIFIED - AnalysisPanel.js uses mt-4 for drug readout metrics"
+  },
+
+  "test_results": {
+    "tests_executed": 29,
+    "tests_passed": 29,
+    "tests_failed": 0,
+    "test_categories": {
+      "excel_drug_fills_definition": "2 tests",
+      "excel_export_two_drugs": "2 tests",
+      "excel_drug_perfusion_section": "2 tests",
+      "excel_drug_readout_section": "3 tests",
+      "csv_export_two_drugs": "2 tests",
+      "csv_drug_readout_section": "5 tests",
+      "csv_per_drug_settings": "3 tests",
+      "csv_four_drugs": "2 tests",
+      "edge_cases": "6 tests",
+      "consistency": "2 tests"
+    }
+  }
+}

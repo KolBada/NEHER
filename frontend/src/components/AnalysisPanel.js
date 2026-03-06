@@ -1045,7 +1045,7 @@ function AnalysisPanel({
             {allDrugReadouts.filter(d => d.hasData).length > 0 && (
               <div className="space-y-0 mt-4">
                 {allDrugReadouts.filter(d => d.hasData).map((drugReadout, idx) => (
-                  <div key={drugReadout.drugKey} className={`space-y-2 ${idx > 0 ? 'mt-6' : ''}`}>
+                  <div key={drugReadout.drugKey} className={`space-y-2 ${idx > 0 ? 'mt-4' : ''}`}>
                     <div className="flex items-center gap-2">
                       <p className={`text-[10px] uppercase tracking-wider font-bold ${drugReadout.colors.text}`}>
                         Drug Readout Metrics

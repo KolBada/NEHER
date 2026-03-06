@@ -1424,6 +1424,14 @@ def create_nature_excel(request):
     drug_fill = PatternFill(start_color='F3E8FF', end_color='F3E8FF', fill_type='solid')
     light_fill = PatternFill(start_color='FEF3C7', end_color='FEF3C7', fill_type='solid')
     
+    # Per-drug fills matching DRUG_COLORS from PDF export
+    drug_fills = [
+        PatternFill(start_color='F3E8FF', end_color='F3E8FF', fill_type='solid'),  # Drug 1 - Light purple
+        PatternFill(start_color='EDE9FE', end_color='EDE9FE', fill_type='solid'),  # Drug 2 - Light violet
+        PatternFill(start_color='E9D5FF', end_color='E9D5FF', fill_type='solid'),  # Drug 3 - Light fuchsia
+        PatternFill(start_color='DDD6FE', end_color='DDD6FE', fill_type='solid'),  # Drug 4 - Light indigo
+    ]
+    
     thin_border = Border(
         left=Side(style='thin', color='E5E7EB'),
         right=Side(style='thin', color='E5E7EB'),
@@ -1555,27 +1563,30 @@ def create_nature_excel(request):
         ws.merge_cells(start_row=left_row, start_column=left_col, end_row=left_row, end_column=left_col+1)
         left_row += 1
         
-        for drug in request.all_drugs:
+        for idx, drug in enumerate(request.all_drugs):
+            # Get per-drug fill color
+            current_drug_fill = drug_fills[idx % len(drug_fills)]
+            
             ws.cell(row=left_row, column=left_col, value='Drug:').font = data_font
-            ws.cell(row=left_row, column=left_col).fill = drug_fill
+            ws.cell(row=left_row, column=left_col).fill = current_drug_fill
             ws.cell(row=left_row, column=left_col+1, value=drug.get('name', 'Drug')).font = bold_data_font
-            ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+            ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
             left_row += 1
             if drug.get('concentration'):
                 ws.cell(row=left_row, column=left_col, value='Concentration:').font = data_font
-                ws.cell(row=left_row, column=left_col).fill = drug_fill
+                ws.cell(row=left_row, column=left_col).fill = current_drug_fill
                 ws.cell(row=left_row, column=left_col+1, value=f"{drug.get('concentration')}µM").font = bold_data_font
-                ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+                ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
                 left_row += 1
             ws.cell(row=left_row, column=left_col, value='Perf. Start:').font = data_font
-            ws.cell(row=left_row, column=left_col).fill = drug_fill
+            ws.cell(row=left_row, column=left_col).fill = current_drug_fill
             ws.cell(row=left_row, column=left_col+1, value=f"{drug.get('start', 0)} min").font = bold_data_font
-            ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+            ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
             left_row += 1
             ws.cell(row=left_row, column=left_col, value='Perf. Delay:').font = data_font
-            ws.cell(row=left_row, column=left_col).fill = drug_fill
+            ws.cell(row=left_row, column=left_col).fill = current_drug_fill
             ws.cell(row=left_row, column=left_col+1, value=f"{drug.get('delay', 0)} min").font = bold_data_font
-            ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+            ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
             left_row += 1
             # Perf. Time = HRV readout minute if available, otherwise start + delay
             perf_start = drug.get('start', 0) or 0
@@ -1589,15 +1600,15 @@ def create_nature_excel(request):
                     except (ValueError, TypeError):
                         pass
             ws.cell(row=left_row, column=left_col, value='Perf. Time:').font = data_font
-            ws.cell(row=left_row, column=left_col).fill = drug_fill
+            ws.cell(row=left_row, column=left_col).fill = current_drug_fill
             ws.cell(row=left_row, column=left_col+1, value=f"{perf_time} min").font = bold_data_font
-            ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+            ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
             left_row += 1
             perf_end = drug.get('end')
             ws.cell(row=left_row, column=left_col, value='Perf. End:').font = data_font
-            ws.cell(row=left_row, column=left_col).fill = drug_fill
+            ws.cell(row=left_row, column=left_col).fill = current_drug_fill
             ws.cell(row=left_row, column=left_col+1, value=f"{perf_end} min" if perf_end is not None else '—').font = bold_data_font
-            ws.cell(row=left_row, column=left_col+1).fill = drug_fill
+            ws.cell(row=left_row, column=left_col+1).fill = current_drug_fill
             left_row += 1
         left_row += 1
     
@@ -1686,101 +1697,142 @@ def create_nature_excel(request):
         ws.cell(row=right_row, column=right_col+1).fill = baseline_fill
         right_row += 2
     
-    # DRUG READOUT
+    # DRUG READOUT - single header, one block per enabled drug (like Drug Perfusion)
     if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
-        ws.cell(row=right_row, column=right_col, value='DRUG READOUT').font = header_font
-        ws.cell(row=right_row, column=right_col).fill = purple_fill
-        ws.merge_cells(start_row=right_row, start_column=right_col, end_row=right_row, end_column=right_col+1)
-        right_row += 1
-        
-        drug_bf = None
-        drug_hrv_data = None
-        drug_bf_minute = None
-        drug_hrv_minute = None
-        
-        if request.drug_readout:
-            drug_bf_minute = request.drug_readout.get('bf_minute')
-            drug_hrv_minute = request.drug_readout.get('hrv_minute')
-        
+        per_drug_settings = {}
         if request.drug_readout_settings:
-            settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-            settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-            perf_start = 0
-            perf_delay = 0
-            if request.all_drugs and len(request.all_drugs) > 0:
-                drug = request.all_drugs[0]
+            per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+        
+        # First check if any drugs have readouts enabled
+        enabled_drugs = []
+        for drug_idx, drug in enumerate(request.all_drugs):
+            drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+            drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+            
+            # Find matching per-drug settings
+            drug_settings = {}
+            for key in per_drug_settings.keys():
+                if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                    drug_settings = per_drug_settings.get(key, {})
+                    break
+            
+            # Check if this drug's readout is enabled
+            is_enabled = False
+            if drug_idx == 0:
+                if request.drug_readout_settings:
+                    is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                else:
+                    is_enabled = True
+            else:
+                is_enabled = drug_settings.get('enabled', False)
+            
+            if is_enabled:
+                enabled_drugs.append((drug_idx, drug, drug_settings))
+        
+        # Only draw section if at least one drug has readouts enabled
+        if enabled_drugs:
+            ws.cell(row=right_row, column=right_col, value='DRUG READOUT').font = header_font
+            ws.cell(row=right_row, column=right_col).fill = purple_fill
+            ws.merge_cells(start_row=right_row, start_column=right_col, end_row=right_row, end_column=right_col+1)
+            right_row += 1
+            
+            # Process each enabled drug
+            for enabled_idx, (drug_idx, drug, drug_settings) in enumerate(enabled_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                
+                # Get per-drug fill color (use original drug index for consistent colors)
+                current_drug_fill = drug_fills[drug_idx % len(drug_fills)]
+                
+                # Get this drug's perfusion params
                 perf_start = drug.get('start', 0) or 0
                 perf_delay = drug.get('delay', 0) or 0
-            
-            if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
-                try:
-                    drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
-                except (ValueError, TypeError):
-                    pass
-            
-            if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
-                try:
-                    drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
-                except (ValueError, TypeError):
-                    pass
-        
-        # Find BF at drug readout minute
-        if drug_bf_minute is not None and request.per_minute_data:
-            for pm in request.per_minute_data:
-                try:
-                    minute_str = str(pm.get('minute', ''))
-                    minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-                    if minute_num == int(drug_bf_minute):
-                        drug_bf = pm.get('mean_bf')
-                        break
-                except (ValueError, TypeError):
-                    pass
-        
-        # Find HRV at drug readout minute
-        if drug_hrv_minute is not None and request.hrv_windows:
-            for w in request.hrv_windows:
-                try:
-                    w_minute = w.get('minute')
-                    if w_minute is None:
-                        continue
-                    w_minute_num = int(w_minute) if isinstance(w_minute, (int, float)) else int(str(w_minute).split('-')[0])
-                    if w_minute_num == int(drug_hrv_minute):
-                        drug_hrv_data = w
-                        if drug_bf is None and w.get('mean_bf'):
-                            drug_bf = w.get('mean_bf')
-                        break
-                except (ValueError, TypeError):
-                    pass
-        
-        ws.cell(row=right_row, column=right_col, value='Mean BF:').font = data_font
-        ws.cell(row=right_row, column=right_col).fill = drug_fill
-        ws.cell(row=right_row, column=right_col+1, value=f"{drug_bf:.1f} bpm" if drug_bf else '—').font = bold_data_font
-        ws.cell(row=right_row, column=right_col+1).fill = drug_fill
-        right_row += 1
-        
-        if drug_hrv_data:
-            ln_rmssd = drug_hrv_data.get('ln_rmssd70')
-            ws.cell(row=right_row, column=right_col, value='ln(RMSSD₇₀):').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = drug_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{ln_rmssd:.3f}" if ln_rmssd else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = drug_fill
+                
+                drug_bf = None
+                drug_hrv_data = None
+                drug_bf_minute = None
+                drug_hrv_minute = None
+                
+                # Get readout minutes from per-drug settings
+                settings_bf = drug_settings.get('bfReadoutMinute')
+                settings_hrv = drug_settings.get('hrvReadoutMinute')
+                
+                # Calculate actual readout minutes (input + perf_start + perf_delay)
+                if settings_bf not in (None, ''):
+                    try:
+                        drug_bf_minute = int(float(settings_bf) + float(perf_start) + float(perf_delay))
+                    except (ValueError, TypeError):
+                        pass
+                
+                if settings_hrv not in (None, ''):
+                    try:
+                        drug_hrv_minute = int(float(settings_hrv) + float(perf_start) + float(perf_delay))
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Find BF at drug readout minute
+                if drug_bf_minute is not None and request.per_minute_data:
+                    for pm in request.per_minute_data:
+                        try:
+                            minute_str = str(pm.get('minute', ''))
+                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                            if minute_num == drug_bf_minute:
+                                drug_bf = pm.get('mean_bf') or pm.get('avg_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Find HRV at drug readout minute
+                if drug_hrv_minute is not None and request.hrv_windows:
+                    for w in request.hrv_windows:
+                        try:
+                            w_minute = w.get('minute')
+                            if w_minute is None:
+                                continue
+                            w_minute_num = int(w_minute) if isinstance(w_minute, (int, float)) else int(str(w_minute).split('-')[0])
+                            if w_minute_num == drug_hrv_minute:
+                                drug_hrv_data = w
+                                if drug_bf is None and w.get('mean_bf'):
+                                    drug_bf = w.get('mean_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Write drug name row
+                ws.cell(row=right_row, column=right_col, value='Drug:').font = data_font
+                ws.cell(row=right_row, column=right_col).fill = current_drug_fill
+                ws.cell(row=right_row, column=right_col+1, value=drug_name).font = bold_data_font
+                ws.cell(row=right_row, column=right_col+1).fill = current_drug_fill
+                right_row += 1
+                
+                ws.cell(row=right_row, column=right_col, value='Mean BF:').font = data_font
+                ws.cell(row=right_row, column=right_col).fill = current_drug_fill
+                ws.cell(row=right_row, column=right_col+1, value=f"{drug_bf:.1f} bpm" if drug_bf else '—').font = bold_data_font
+                ws.cell(row=right_row, column=right_col+1).fill = current_drug_fill
+                right_row += 1
+                
+                if drug_hrv_data:
+                    ln_rmssd = drug_hrv_data.get('ln_rmssd70')
+                    ws.cell(row=right_row, column=right_col, value='ln(RMSSD₇₀):').font = data_font
+                    ws.cell(row=right_row, column=right_col).fill = current_drug_fill
+                    ws.cell(row=right_row, column=right_col+1, value=f"{ln_rmssd:.3f}" if ln_rmssd else '—').font = bold_data_font
+                    ws.cell(row=right_row, column=right_col+1).fill = current_drug_fill
+                    right_row += 1
+                    
+                    sdnn = drug_hrv_data.get('sdnn')
+                    ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+                    ws.cell(row=right_row, column=right_col, value='ln(SDNN₇₀):').font = data_font
+                    ws.cell(row=right_row, column=right_col).fill = current_drug_fill
+                    ws.cell(row=right_row, column=right_col+1, value=f"{ln_sdnn:.3f}" if ln_sdnn else '—').font = bold_data_font
+                    ws.cell(row=right_row, column=right_col+1).fill = current_drug_fill
+                    right_row += 1
+                    
+                    pnn50 = drug_hrv_data.get('pnn50')
+                    ws.cell(row=right_row, column=right_col, value='pNN50₇₀:').font = data_font
+                    ws.cell(row=right_row, column=right_col).fill = current_drug_fill
+                    ws.cell(row=right_row, column=right_col+1, value=f"{pnn50:.1f}%" if pnn50 is not None else '—').font = bold_data_font
+                    ws.cell(row=right_row, column=right_col+1).fill = current_drug_fill
+                    right_row += 1
             right_row += 1
-            
-            sdnn = drug_hrv_data.get('sdnn')
-            ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-            ws.cell(row=right_row, column=right_col, value='ln(SDNN₇₀):').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = drug_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{ln_sdnn:.3f}" if ln_sdnn else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = drug_fill
-            right_row += 1
-            
-            pnn50 = drug_hrv_data.get('pnn50')
-            ws.cell(row=right_row, column=right_col, value='pNN50₇₀:').font = data_font
-            ws.cell(row=right_row, column=right_col).fill = drug_fill
-            ws.cell(row=right_row, column=right_col+1, value=f"{pnn50:.1f}%" if pnn50 is not None else '—').font = bold_data_font
-            ws.cell(row=right_row, column=right_col+1).fill = drug_fill
-            right_row += 1
-        right_row += 1
     
     # LIGHT STIMULUS READOUT
     if request.light_enabled and (request.light_response or request.light_metrics_detrended):
@@ -2386,78 +2438,118 @@ def create_nature_csv(request):
         writer.writerow([])
     
     # ==================== DRUG READOUT ====================
+    # Single header, one block per enabled drug (like Drug Perfusion)
     if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
-        writer.writerow(['=== DRUG READOUT ==='])
-        
-        # Get drug readout data (same logic as PDF/Excel)
-        drug_bf = None
-        drug_hrv_data = None
-        drug_bf_minute = None
-        drug_hrv_minute = None
-        
-        if request.drug_readout:
-            drug_bf_minute = request.drug_readout.get('bf_minute')
-            drug_hrv_minute = request.drug_readout.get('hrv_minute')
-        
+        per_drug_settings = {}
         if request.drug_readout_settings:
-            settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
-            settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
-            perf_start = 0
-            perf_delay = 0
-            if request.all_drugs and len(request.all_drugs) > 0:
-                drug = request.all_drugs[0]
+            per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+        
+        # First check if any drugs have readouts enabled
+        enabled_drugs = []
+        for drug_idx, drug in enumerate(request.all_drugs):
+            drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+            drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+            
+            # Find matching per-drug settings
+            drug_settings = {}
+            for key in per_drug_settings.keys():
+                if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                    drug_settings = per_drug_settings.get(key, {})
+                    break
+            
+            # Check if this drug's readout is enabled
+            is_enabled = False
+            if drug_idx == 0:
+                if request.drug_readout_settings:
+                    is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                else:
+                    is_enabled = True
+            else:
+                is_enabled = drug_settings.get('enabled', False)
+            
+            if is_enabled:
+                enabled_drugs.append((drug_idx, drug, drug_settings))
+        
+        # Only write section if at least one drug has readouts enabled
+        if enabled_drugs:
+            writer.writerow(['=== DRUG READOUT ==='])
+            
+            # Process each enabled drug
+            for enabled_idx, (drug_idx, drug, drug_settings) in enumerate(enabled_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                
+                # Get this drug's perfusion params
                 perf_start = drug.get('start', 0) or 0
                 perf_delay = drug.get('delay', 0) or 0
-            
-            if request.drug_readout_settings.get('enableBfReadout') and settings_bf not in (None, ''):
-                try:
-                    drug_bf_minute = int(float(settings_bf)) + perf_start + perf_delay
-                except (ValueError, TypeError):
-                    pass
-            if request.drug_readout_settings.get('enableHrvReadout') and settings_hrv not in (None, ''):
-                try:
-                    drug_hrv_minute = int(float(settings_hrv)) + perf_start + perf_delay
-                except (ValueError, TypeError):
-                    pass
-        
-        if drug_bf_minute is not None and request.per_minute_data:
-            for pm in request.per_minute_data:
-                try:
-                    minute_str = str(pm.get('minute', ''))
-                    minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
-                    if minute_num == drug_bf_minute:
-                        drug_bf = pm.get('mean_bf')
-                        break
-                except (ValueError, TypeError):
-                    pass
-        
-        if drug_hrv_minute is not None and request.hrv_windows:
-            for w in request.hrv_windows:
-                try:
-                    w_minute = w.get('minute')
-                    if isinstance(w_minute, (int, float)):
-                        w_minute_num = int(w_minute)
-                    else:
-                        w_minute_str = str(w_minute)
-                        w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
-                    if w_minute_num == drug_hrv_minute:
-                        drug_hrv_data = w
-                        if drug_bf is None and w.get('mean_bf'):
-                            drug_bf = w.get('mean_bf')
-                        break
-                except (ValueError, TypeError):
-                    pass
-        
-        writer.writerow(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf else '—'])
-        if drug_hrv_data:
-            ln_rmssd = drug_hrv_data.get('ln_rmssd70')
-            writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
-            sdnn = drug_hrv_data.get('sdnn')
-            ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
-            writer.writerow(['ln(SDNN70)', f"{ln_sdnn:.3f}" if ln_sdnn else '—'])
-            pnn50 = drug_hrv_data.get('pnn50')
-            writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
-        writer.writerow([])
+                
+                drug_bf = None
+                drug_hrv_data = None
+                drug_bf_minute = None
+                drug_hrv_minute = None
+                
+                # Get readout minutes from per-drug settings
+                settings_bf = drug_settings.get('bfReadoutMinute')
+                settings_hrv = drug_settings.get('hrvReadoutMinute')
+                
+                # Calculate actual readout minutes (input + perf_start + perf_delay)
+                if settings_bf not in (None, ''):
+                    try:
+                        drug_bf_minute = int(float(settings_bf) + float(perf_start) + float(perf_delay))
+                    except (ValueError, TypeError):
+                        pass
+                
+                if settings_hrv not in (None, ''):
+                    try:
+                        drug_hrv_minute = int(float(settings_hrv) + float(perf_start) + float(perf_delay))
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Find BF at drug readout minute
+                if drug_bf_minute is not None and request.per_minute_data:
+                    for pm in request.per_minute_data:
+                        try:
+                            minute_str = str(pm.get('minute', ''))
+                            minute_num = int(minute_str.split('-')[0]) if '-' in minute_str else int(float(minute_str))
+                            if minute_num == drug_bf_minute:
+                                drug_bf = pm.get('mean_bf') or pm.get('avg_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Find HRV at drug readout minute
+                if drug_hrv_minute is not None and request.hrv_windows:
+                    for w in request.hrv_windows:
+                        try:
+                            w_minute = w.get('minute')
+                            if w_minute is None:
+                                continue
+                            if isinstance(w_minute, (int, float)):
+                                w_minute_num = int(w_minute)
+                            else:
+                                w_minute_str = str(w_minute)
+                                w_minute_num = int(w_minute_str.split('-')[0]) if '-' in w_minute_str else int(float(w_minute_str))
+                            if w_minute_num == drug_hrv_minute:
+                                drug_hrv_data = w
+                                if drug_bf is None and w.get('mean_bf'):
+                                    drug_bf = w.get('mean_bf')
+                                break
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Write drug data
+                if enabled_idx > 0:
+                    writer.writerow([])  # Blank row between drugs
+                writer.writerow(['Drug', drug_name])
+                writer.writerow(['Mean BF', f"{drug_bf:.1f} bpm" if drug_bf else '—'])
+                if drug_hrv_data:
+                    ln_rmssd = drug_hrv_data.get('ln_rmssd70')
+                    writer.writerow(['ln(RMSSD70)', f"{ln_rmssd:.3f}" if ln_rmssd else '—'])
+                    sdnn = drug_hrv_data.get('sdnn')
+                    ln_sdnn = np.log(sdnn) if sdnn and sdnn > 0 else None
+                    writer.writerow(['ln(SDNN70)', f"{ln_sdnn:.3f}" if ln_sdnn else '—'])
+                    pnn50 = drug_hrv_data.get('pnn50')
+                    writer.writerow(['pNN50_70', f"{pnn50:.1f}%" if pnn50 is not None else '—'])
+            writer.writerow([])
     
     # ==================== LIGHT READOUT ====================
     if request.light_enabled and (request.light_response or request.light_metrics_detrended):
