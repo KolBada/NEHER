@@ -1477,6 +1477,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
             'drug_ln_rmssd70': None,
             'drug_ln_sdnn70': None,
             'drug_pnn50': None,
+            'perf_time': drug_bf_minute_str,  # Store the input perfusion time for metadata display
         }
         
         # Get drug BF from per_minute_data

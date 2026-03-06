@@ -815,16 +815,27 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         </div>
                       ) : '—';
                       
-                      // Format drug info
+                      // Format drug info - use per_drug_metrics for perfusion time when available
                       const drugDisplay = rec.has_drug && rec.drug_info?.length > 0 ? (
                         <div className="text-[10px] leading-tight">
-                          {rec.drug_info.map((drug, i) => (
-                            <div key={i} className="mb-1">
-                              <div className="font-medium">{drug.name}</div>
-                              {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
-                              {(rec.drug_hrv_readout_minute !== null && rec.drug_hrv_readout_minute !== undefined ? true : drug.bf_readout_time !== null && drug.bf_readout_time !== undefined) && <div className="text-zinc-500">Perf. Time: {rec.drug_hrv_readout_minute !== null && rec.drug_hrv_readout_minute !== undefined ? rec.drug_hrv_readout_minute : drug.bf_readout_time}min</div>}
-                            </div>
-                          ))}
+                          {rec.drug_info.map((drug, i) => {
+                            // Try to get perf_time from per_drug_metrics first
+                            const perDrugData = rec.per_drug_metrics?.find(dm => 
+                              dm.drug_name === drug.name || 
+                              dm.drug_key === drug.name?.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+                            );
+                            const perfTime = perDrugData?.perf_time ?? drug.bf_readout_time;
+                            
+                            return (
+                              <div key={i} className="mb-1">
+                                <div className="font-medium">{drug.name}</div>
+                                {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
+                                {perfTime !== null && perfTime !== undefined && perfTime !== '' && (
+                                  <div className="text-zinc-500">Perf. Time: {perfTime}min</div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : <span className="text-zinc-500">No drug</span>;
                       

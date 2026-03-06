@@ -1056,9 +1056,12 @@ def compute_baseline_metrics(beat_times_min_list, bf_filtered_list, hrv_windows=
     # HRV baseline: Use pre-computed sliding window value directly (MANDATORY - no recomputation)
     # This ensures numerical equality between baseline display and table value
     hrv_found = False
+    # Convert to int for lookup since windows are stored at integer minutes
+    # This allows decimal minute inputs (e.g., 0.5) to still find window at minute 0
+    hrv_minute_lookup = int(hrv_minute)
     if hrv_windows:
         for w in hrv_windows:
-            if w.get('minute') == hrv_minute:
+            if w.get('minute') == hrv_minute_lookup:
                 result['baseline_rmssd70'] = w.get('rmssd70')
                 result['baseline_ln_rmssd70'] = w.get('ln_rmssd70')
                 result['baseline_sdnn'] = w.get('sdnn')

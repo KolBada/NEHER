@@ -1,0 +1,72 @@
+{
+  "summary": "Tested all 4 bug fixes for NEHER electrophysiology analysis app. All fixes verified working: (1) decimal minute HRV lookup uses int() conversion in analysis.py, (2) comparison metadata shows per-drug Perf. Time, (3) 'Readout Time Range:' label replaced old format, (4) input width increased to w-16.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_bug_fixes_iter20.py",
+    "/app/test_reports/pytest/pytest_results_iter20.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "analysis.py line 1061: hrv_minute_lookup = int(hrv_minute) - correctly handles decimal inputs like 0.5 by converting to int for window lookup",
+    "server.py line 1480: per_drug_metrics includes 'perf_time' field for each drug",
+    "FolderComparison.js lines 818-835: metadata display correctly fetches perf_time from per_drug_metrics for each drug",
+    "AnalysisPanel.js lines 796,811,923,941: w-16 class on readout inputs (increased from w-14) for decimal number display",
+    "AnalysisPanel.js lines 801,816,929,947: 'Readout Time Range:' label with Math.floor() to avoid leading zeros"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_bug_fixes_iter20.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (4/4 tests passed)",
+    "frontend": "100% (all UI tests passed via Playwright)"
+  },
+
+  "test_credentials": "",
+  "seed_data_creation": "Used existing test folder: 69a77b6d5549a8d937e5adf4 (H9 NeuCarS + Light Stimulus under Propranolol)",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Bug fixes tested: (1) analysis.py int(hrv_minute) conversion at line 1061, (2) server.py per_drug_metrics includes perf_time at line 1480, (3) FolderComparison.js displays per-drug perf_time, (4) AnalysisPanel.js uses w-16 input width and 'Readout Time Range:' label without leading zeros",
+
+  "features_verified": {
+    "decimal_minute_hrv_lookup": "PASS - analysis.py uses int(hrv_minute) for window lookup, allowing decimal inputs like 0.5",
+    "per_drug_perf_time_in_comparison": "PASS - comparison API returns perf_time in per_drug_metrics for each drug",
+    "readout_time_range_label": "PASS - 'Readout Time Range:' label shown in UI (replaced old 'Readout:' format)",
+    "no_leading_zeros_in_time_range": "PASS - Time ranges show '1-2min', '0-3min' without leading zeros",
+    "input_width_for_decimals": "PASS - w-16 class on readout inputs provides adequate width for decimal values",
+    "step_attribute_for_decimals": "PASS - step='0.5' attribute allows decimal input"
+  },
+
+  "test_results": {
+    "tests_executed": 4,
+    "tests_passed": 4,
+    "tests_failed": 0,
+    "test_categories": {
+      "code_review": "1 test (decimal minute fix verification)",
+      "api_comparison_metadata": "2 tests (per_drug_metrics with perf_time)",
+      "api_health": "1 test"
+    },
+    "playwright_tests": {
+      "metadata_perf_time_display": "PASS - 'Perf. Time: 1min' visible in comparison metadata",
+      "readout_time_range_label": "PASS - 'Readout Time Range: 1-2min' and 'Readout Time Range: 0-3min' visible",
+      "no_leading_zeros": "PASS - Time ranges properly formatted without leading zeros",
+      "input_field_widths": "PASS - w-16 class found on readout inputs"
+    }
+  }
+}
