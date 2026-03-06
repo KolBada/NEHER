@@ -1923,7 +1923,6 @@ def create_nature_excel(request):
         
         # Get baseline and drug readout windows for highlighting
         baseline_window = None
-        drug_window = None
         
         # Get baseline window
         if request.baseline_enabled and request.baseline:
@@ -1948,29 +1947,49 @@ def create_nature_excel(request):
                     except (ValueError, TypeError):
                         pass
         
-        # Get drug readout window
-        if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
+        # Get drug readout windows for ALL enabled drugs with their colors
+        # Store as dict: window_str -> drug_idx for per-drug coloring
+        drug_window_colors = {}  # window_str -> drug_idx
+        if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+            per_drug_settings = {}
             if request.drug_readout_settings:
-                settings_bf = request.drug_readout_settings.get('bfReadoutMinute')
+                per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+            
+            for drug_idx, drug in enumerate(request.all_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+                
+                # Get this drug's perfusion params
+                perf_start = drug.get('start', 0) or 0
+                perf_delay = drug.get('delay', 0) or 0
+                
+                # Find matching per-drug settings
+                drug_settings = {}
+                for key in per_drug_settings.keys():
+                    if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                        drug_settings = per_drug_settings.get(key, {})
+                        break
+                
+                # Check if this drug's readout is enabled
+                is_enabled = False
+                if drug_idx == 0:
+                    if request.drug_readout_settings:
+                        is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                    else:
+                        is_enabled = True
+                else:
+                    is_enabled = drug_settings.get('enabled', False)
+                
+                if not is_enabled:
+                    continue
+                
+                # Get BF readout minute
+                settings_bf = drug_settings.get('bfReadoutMinute')
                 if settings_bf not in (None, ''):
                     try:
-                        perf_start = 0
-                        perf_delay = 0
-                        if request.all_drugs and len(request.all_drugs) > 0:
-                            drug = request.all_drugs[0]
-                            perf_start = int(float(drug.get('start', 0) or 0))
-                            perf_delay = int(float(drug.get('delay', 0) or 0))
-                        bf_min = int(float(settings_bf)) + perf_start + perf_delay
-                        drug_window = f"{bf_min}-{bf_min+1}"
-                    except (ValueError, TypeError):
-                        pass
-            
-            if drug_window is None and request.drug_readout:
-                bf_min = request.drug_readout.get('bf_minute')
-                if bf_min is not None:
-                    try:
-                        bf_min = int(float(bf_min))
-                        drug_window = f"{bf_min}-{bf_min+1}"
+                        bf_min = int(float(settings_bf) + float(perf_start) + float(perf_delay))
+                        window_str = f"{bf_min}-{bf_min+1}"
+                        drug_window_colors[window_str] = drug_idx
                     except (ValueError, TypeError):
                         pass
         
@@ -2001,7 +2020,7 @@ def create_nature_excel(request):
             
             # Determine if this row should be highlighted
             is_baseline = baseline_window and window_str == baseline_window
-            is_drug = drug_window and window_str == drug_window
+            is_drug = window_str in drug_window_colors
             
             for col, value in enumerate(data_row, 1):
                 cell = ws_bf.cell(row=row, column=col, value=value)
@@ -2011,7 +2030,8 @@ def create_nature_excel(request):
                 if is_baseline:
                     cell.fill = baseline_fill
                 elif is_drug:
-                    cell.fill = drug_fill
+                    drug_idx = drug_window_colors[window_str]
+                    cell.fill = drug_fills[drug_idx % len(drug_fills)]
             row += 1
         
         for col in range(1, 4):
@@ -2038,7 +2058,6 @@ def create_nature_excel(request):
         
         # Get baseline and drug readout minutes for highlighting
         baseline_minute = None
-        drug_minute = None
         
         if request.baseline_enabled and request.baseline:
             baseline_minute = request.baseline.get('baseline_hrv_minute')
@@ -2048,28 +2067,50 @@ def create_nature_excel(request):
                 except (ValueError, TypeError):
                     baseline_minute = None
         
-        if request.drug_readout_enabled or request.drug_readout or request.drug_readout_settings:
+        # Get drug readout minutes for ALL enabled drugs with their colors
+        # Store as dict: minute -> drug_idx for per-drug coloring
+        drug_minute_colors = {}  # minute -> drug_idx
+        if request.drug_readout_enabled and request.all_drugs and len(request.all_drugs) > 0:
+            per_drug_settings = {}
             if request.drug_readout_settings:
-                settings_hrv = request.drug_readout_settings.get('hrvReadoutMinute')
+                per_drug_settings = request.drug_readout_settings.get('perDrug', {})
+            
+            for drug_idx, drug in enumerate(request.all_drugs):
+                drug_name = drug.get('name', f'Drug {drug_idx + 1}')
+                drug_name_key = drug_name.lower().replace(' ', '_').replace('-', '_')
+                
+                # Get this drug's perfusion params
+                perf_start = drug.get('start', 0) or 0
+                perf_delay = drug.get('delay', 0) or 0
+                
+                # Find matching per-drug settings
+                drug_settings = {}
+                for key in per_drug_settings.keys():
+                    if key.lower() == drug_name_key or key.lower().replace('_', '') == drug_name_key.replace('_', ''):
+                        drug_settings = per_drug_settings.get(key, {})
+                        break
+                
+                # Check if this drug's readout is enabled
+                is_enabled = False
+                if drug_idx == 0:
+                    if request.drug_readout_settings:
+                        is_enabled = request.drug_readout_settings.get('enableHrvReadout') or request.drug_readout_settings.get('enableBfReadout')
+                    else:
+                        is_enabled = True
+                else:
+                    is_enabled = drug_settings.get('enabled', False)
+                
+                if not is_enabled:
+                    continue
+                
+                # Get HRV readout minute
+                settings_hrv = drug_settings.get('hrvReadoutMinute')
                 if settings_hrv not in (None, ''):
                     try:
-                        perf_start = 0
-                        perf_delay = 0
-                        if request.all_drugs and len(request.all_drugs) > 0:
-                            drug = request.all_drugs[0]
-                            perf_start = int(float(drug.get('start', 0) or 0))
-                            perf_delay = int(float(drug.get('delay', 0) or 0))
-                        drug_minute = int(float(settings_hrv)) + perf_start + perf_delay
+                        hrv_min = int(float(settings_hrv) + float(perf_start) + float(perf_delay))
+                        drug_minute_colors[hrv_min] = drug_idx
                     except (ValueError, TypeError):
                         pass
-            
-            if drug_minute is None and request.drug_readout:
-                drug_minute = request.drug_readout.get('hrv_minute')
-                if drug_minute is not None:
-                    try:
-                        drug_minute = int(float(drug_minute))
-                    except (ValueError, TypeError):
-                        drug_minute = None
         
         row = 5
         for w in request.hrv_windows:
@@ -2106,7 +2147,7 @@ def create_nature_excel(request):
             
             # Determine if this row should be highlighted
             is_baseline = baseline_minute is not None and minute_num == baseline_minute
-            is_drug = drug_minute is not None and minute_num == drug_minute
+            is_drug = minute_num in drug_minute_colors
             
             for col, value in enumerate(data_row, 1):
                 cell = ws_hrv.cell(row=row, column=col, value=value)
@@ -2116,7 +2157,8 @@ def create_nature_excel(request):
                 if is_baseline:
                     cell.fill = baseline_fill
                 elif is_drug:
-                    cell.fill = drug_fill
+                    drug_idx = drug_minute_colors[minute_num]
+                    cell.fill = drug_fills[drug_idx % len(drug_fills)]
             row += 1
         
         for col in range(1, 8):

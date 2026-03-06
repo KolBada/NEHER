@@ -921,7 +921,7 @@ function AnalysisPanel({
                             onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
                             className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
-                            placeholder="12"
+                            placeholder="0"
                           />
                           <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                           {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
@@ -939,7 +939,7 @@ function AnalysisPanel({
                             onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
                             className={`w-14 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
-                            placeholder="14"
+                            placeholder="0"
                           />
                           <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
                           {isDrugEnabled && String(bfReadoutValue).trim() !== '' && (
