@@ -298,9 +298,9 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
             <div className="mt-6 space-y-2 animate-slide-up">
               {/* Fusion mode indicator */}
               {selectedFiles.length > 1 && (
-                <div className="flex items-center gap-2 p-3 bg-purple-950/30 border border-purple-800/50 rounded-sm mb-3">
-                  <Badge className="bg-purple-600 text-white text-[10px]">FUSION MODE</Badge>
-                  <span className="text-xs text-purple-300">
+                <div className="flex items-center gap-2 p-3 bg-emerald-950/30 border border-emerald-800/50 rounded-sm mb-3">
+                  <Badge className="bg-emerald-600 text-white text-[10px]">FUSION MODE</Badge>
+                  <span className="text-xs text-emerald-300">
                     {selectedFiles.length} recordings will be combined in order shown below
                   </span>
                 </div>

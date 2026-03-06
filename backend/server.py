@@ -655,9 +655,12 @@ async def fuse_and_upload_files(files: List[UploadFile] = File(...)):
     del all_traces, all_times
     gc.collect()
     
-    # Generate fused filename
-    base_names = [fn.replace('.abf', '') for fn in fused_filenames]
-    fused_filename = '_'.join(base_names[:2]) + (f'_+{len(base_names)-2}more' if len(base_names) > 2 else '') + '_FUSED.abf'
+    # Generate fused filename - [name1]_[name2].abf (without _FUSED suffix)
+    base_names = [fn.replace('.abf', '').replace('.ABF', '') for fn in fused_filenames]
+    if len(base_names) <= 2:
+        fused_filename = '_'.join(base_names) + '.abf'
+    else:
+        fused_filename = '_'.join(base_names[:2]) + f'_+{len(base_names)-2}more.abf'
     
     sessions[session_id][file_id] = {
         'filename': fused_filename,
