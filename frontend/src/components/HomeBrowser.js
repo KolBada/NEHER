@@ -527,15 +527,18 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
       <div className="p-6 max-w-4xl mx-auto" data-testid="home-browser">
         {/* Developer credit - top right */}
         <div className="text-right mb-4">
-          <p className="text-sm text-zinc-400 italic">by Kolia H. Badarello</p>
+          <p className="text-sm text-zinc-400" style={{ fontFamily: 'Arial, sans-serif' }}>by Kolia H. Badarello</p>
         </div>
         
         {/* Title row: NEHER on left, tagline on right */}
         <div className="flex items-baseline justify-between mb-8">
-          <h1 className="text-4xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            NEHER
-          </h1>
-          <p className="text-xl text-zinc-400 italic font-light" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <div className="flex flex-col">
+            <h1 className="text-5xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
+              NEHER
+            </h1>
+            <div className="w-full h-0.5 bg-white mt-1"></div>
+          </div>
+          <p className="text-2xl text-white font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
             Cardiac Electrophysiology Analysis Platform
           </p>
         </div>
