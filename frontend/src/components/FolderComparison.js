@@ -42,6 +42,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [comparisonData, setComparisonData] = useState(null);
   const [spontNormExpanded, setSpontNormExpanded] = useState({});  // Object keyed by drug key
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
+  // Track excluded recordings for normalized calculations (keyed by recording id)
+  const [spontExcludedRecordings, setSpontExcludedRecordings] = useState({});  // { drugKey: { recordingId: true } }
+  const [lightExcludedRecordings, setLightExcludedRecordings] = useState({});  // { recordingId: true }
 
   useEffect(() => {
     loadComparisonData();
@@ -246,17 +249,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return 100 * val / baseAvg;
     };
     
-    const mean = (arr) => {
-      const valid = arr.filter(v => v !== null && v !== undefined);
-      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
-    };
-    
     const result = {};
     uniqueDrugs.forEach(drug => {
       // Compute normalized values for this drug
       const normalizedData = recs.map(rec => {
         const drugMetrics = getDrugMetrics(rec, drug.key, uniqueDrugs);
         return {
+          id: rec.id,
           name: rec.name,
           norm_baseline_bf: normalize(rec.baseline_bf, cb.avg_baseline_bf),
           norm_baseline_ln_rmssd: normalize(rec.baseline_ln_rmssd70, cb.avg_baseline_ln_rmssd),
@@ -272,22 +271,44 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       // Sort alphabetically
       const sorted = [...normalizedData].sort((a, b) => a.name.localeCompare(b.name));
       
-      // Compute averages
-      const averages = {
-        norm_baseline_bf: mean(normalizedData.map(r => r.norm_baseline_bf)),
-        norm_baseline_ln_rmssd: mean(normalizedData.map(r => r.norm_baseline_ln_rmssd)),
-        norm_baseline_ln_sdnn: mean(normalizedData.map(r => r.norm_baseline_ln_sdnn)),
-        norm_baseline_pnn50: mean(normalizedData.map(r => r.norm_baseline_pnn50)),
-        norm_drug_bf: mean(normalizedData.map(r => r.norm_drug_bf)),
-        norm_drug_ln_rmssd: mean(normalizedData.map(r => r.norm_drug_ln_rmssd)),
-        norm_drug_ln_sdnn: mean(normalizedData.map(r => r.norm_drug_ln_sdnn)),
-        norm_drug_pnn50: mean(normalizedData.map(r => r.norm_drug_pnn50)),
-      };
-      
-      result[drug.key] = { data: sorted, averages };
+      result[drug.key] = { data: sorted };
     });
     return result;
   }, [comparisonData, cohortBaselines, uniqueDrugs, getDrugMetrics]);
+
+  // Compute per-drug normalized averages (respecting exclusions)
+  const perDrugNormalizedAverages = useMemo(() => {
+    if (!perDrugNormalized || !uniqueDrugs.length) return {};
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    const result = {};
+    uniqueDrugs.forEach(drug => {
+      const drugData = perDrugNormalized[drug.key]?.data || [];
+      const excluded = spontExcludedRecordings[drug.key] || {};
+      
+      // Filter out excluded recordings
+      const includedData = drugData.filter(r => !excluded[r.id]);
+      
+      result[drug.key] = {
+        averages: {
+          norm_baseline_bf: mean(includedData.map(r => r.norm_baseline_bf)),
+          norm_baseline_ln_rmssd: mean(includedData.map(r => r.norm_baseline_ln_rmssd)),
+          norm_baseline_ln_sdnn: mean(includedData.map(r => r.norm_baseline_ln_sdnn)),
+          norm_baseline_pnn50: mean(includedData.map(r => r.norm_baseline_pnn50)),
+          norm_drug_bf: mean(includedData.map(r => r.norm_drug_bf)),
+          norm_drug_ln_rmssd: mean(includedData.map(r => r.norm_drug_ln_rmssd)),
+          norm_drug_ln_sdnn: mean(includedData.map(r => r.norm_drug_ln_sdnn)),
+          norm_drug_pnn50: mean(includedData.map(r => r.norm_drug_pnn50)),
+        },
+        includedCount: includedData.length,
+      };
+    });
+    return result;
+  }, [perDrugNormalized, uniqueDrugs, spontExcludedRecordings]);
 
   // Compute normalized light HRA values (using same cohort baseline BF)
   const normalizedLightHRA = useMemo(() => {
@@ -308,6 +329,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     };
     
     return recs.map(rec => ({
+      id: rec.id,
       name: rec.name,
       norm_baseline_bf: normalize(rec.light_baseline_bf),
       norm_avg_bf: normalize(rec.light_avg_bf),
@@ -315,6 +337,27 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       norm_recovery_bf: normalize(rec.light_recovery_bf),
     }));
   }, [comparisonData]);
+
+  // Compute normalized light HRA averages (respecting exclusions)
+  const normalizedLightHRAAverages = useMemo(() => {
+    if (!normalizedLightHRA.length) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    // Filter out excluded recordings
+    const includedData = normalizedLightHRA.filter(r => !lightExcludedRecordings[r.id]);
+    
+    return {
+      norm_baseline_bf: mean(includedData.map(r => r.norm_baseline_bf)),
+      norm_avg_bf: mean(includedData.map(r => r.norm_avg_bf)),
+      norm_peak_bf: mean(includedData.map(r => r.norm_peak_bf)),
+      norm_recovery_bf: mean(includedData.map(r => r.norm_recovery_bf)),
+      includedCount: includedData.length,
+    };
+  }, [normalizedLightHRA, lightExcludedRecordings]);
 
   // Compute normalized light HRA folder averages
   const normalizedLightHRAAverages = useMemo(() => {
@@ -596,6 +639,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-zinc-800">
+                            <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                             <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                             <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(RMSSD) (%)</th>
@@ -608,30 +652,54 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {(perDrugNormalized[drug.key]?.data || []).map((rec, idx) => (
-                            <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                              <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_rmssd, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_sdnn, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_pnn50, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_rmssd, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_sdnn, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_pnn50, 1)}</td>
-                            </tr>
-                          ))}
+                          {(perDrugNormalized[drug.key]?.data || []).map((rec, idx) => {
+                            const isExcluded = spontExcludedRecordings[drug.key]?.[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-2">
+                                  <button
+                                    onClick={() => {
+                                      setSpontExcludedRecordings(prev => ({
+                                        ...prev,
+                                        [drug.key]: {
+                                          ...(prev[drug.key] || {}),
+                                          [rec.id]: !prev[drug.key]?.[rec.id]
+                                        }
+                                      }));
+                                    }}
+                                    className={`w-5 h-5 rounded text-[9px] font-medium transition-all ${
+                                      isExcluded 
+                                        ? 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600' 
+                                        : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
+                                    }`}
+                                  >
+                                    {isExcluded ? 'OFF' : 'ON'}
+                                  </button>
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_rmssd, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_ln_sdnn, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_pnn50, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_rmssd, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_ln_sdnn, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug_pnn50, 1)}</td>
+                              </tr>
+                            );
+                          })}
                           {/* Folder Average Row */}
                           <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
-                            <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={(perDrugNormalized[drug.key]?.data || []).length})</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_baseline_bf, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_baseline_ln_rmssd, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_baseline_ln_sdnn, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_baseline_pnn50, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_drug_bf, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_drug_ln_rmssd, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_drug_ln_sdnn, 1)}</td>
-                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalized[drug.key]?.averages?.norm_drug_pnn50, 1)}</td>
+                            <td className="py-3 px-2"></td>
+                            <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={perDrugNormalizedAverages[drug.key]?.includedCount || 0})</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_ln_rmssd, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_ln_sdnn, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_pnn50, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_drug_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_drug_ln_rmssd, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_drug_ln_sdnn, 1)}</td>
+                            <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_drug_pnn50, 1)}</td>
                           </tr>
                         </tbody>
                       </table>
