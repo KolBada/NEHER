@@ -459,6 +459,7 @@ function App() {
   const [baselineEnabled, setBaselineEnabled] = useState(true);
   const [baselineHrvMinute, setBaselineHrvMinute] = useState(0);  // Baseline HRV readout minute
   const [baselineBfMinute, setBaselineBfMinute] = useState(1);    // Baseline BF readout minute
+  const [baselineCardiacArrest, setBaselineCardiacArrest] = useState(false);  // Cardiac arrest for baseline
   
   // Drug readout settings (for Spontaneous Activity)
   const [drugReadoutSettings, setDrugReadoutSettings] = useState({
@@ -1067,6 +1068,7 @@ function App() {
       light_stim_count: lightEnabled && lightPulses ? lightPulses.length : 0,
       light_params: lightEnabled ? lightParams : null,  // Light stimulation parameters
       baseline_enabled: baselineEnabled,
+      baseline_cardiac_arrest: baselineCardiacArrest,
       drug_readout_enabled: drugReadoutSettings?.enableHrvReadout || drugReadoutSettings?.enableBfReadout || false,
       drug_readout_settings: drugReadoutSettings,
       summary: Object.keys(summary).length > 0 ? summary : null,
@@ -1117,7 +1119,7 @@ function App() {
       })(),
       recording_description: recordingDescription || null,
     };
-  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, fusionDate, recordingDescription, baselineEnabled, drugReadoutSettings]);
+  }, [metrics, hrvResults, lightHrv, lightHrvDetrended, lightResponse, activeFile, recordingName, selectedDrugs, drugSettings, otherDrugs, lightEnabled, perMinuteData, lightPulses, recordingDate, organoidInfo, fusionDate, recordingDescription, baselineEnabled, baselineCardiacArrest, drugReadoutSettings]);
 
   // Exports
   const handleExportCsv = useCallback(async () => {
@@ -1302,6 +1304,9 @@ function App() {
         
         // Restore baseline enabled (default to true for backward compatibility)
         setBaselineEnabled(state.baselineEnabled !== false);
+        
+        // Restore baseline cardiac arrest setting
+        setBaselineCardiacArrest(state.baselineCardiacArrest === true);
         
         // Restore baseline minute settings
         setBaselineHrvMinute(state.baselineHrvMinute ?? 0);
@@ -1939,6 +1944,8 @@ function App() {
               onBaselineHrvMinuteChange={handleBaselineHrvMinuteChange}
               baselineBfMinute={baselineBfMinute}
               onBaselineBfMinuteChange={handleBaselineBfMinuteChange}
+              baselineCardiacArrest={baselineCardiacArrest}
+              onBaselineCardiacArrestChange={setBaselineCardiacArrest}
               analysisLoading={analysisLoading}
               filterSettings={filterParams}
               hasDrug={hasDrug}

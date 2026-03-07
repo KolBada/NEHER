@@ -144,7 +144,8 @@ function AnalysisPanel({
   drugReadoutSettings, onDrugReadoutSettingsChange,
   baselineEnabled, onBaselineEnabledChange,
   baselineHrvMinute, onBaselineHrvMinuteChange,
-  baselineBfMinute, onBaselineBfMinuteChange
+  baselineBfMinute, onBaselineBfMinuteChange,
+  baselineCardiacArrest, onBaselineCardiacArrestChange
 }) {
   // Use drugReadoutSettings from props, with local fallbacks for backwards compatibility
   // Use drugReadoutSettings from parent via callback
@@ -428,9 +429,10 @@ function AnalysisPanel({
         bfData,
         bfActualMinute,
         hasData: hrvData || bfData,
+        cardiacArrest: perDrugSettings.cardiacArrest === true,
       };
     });
-  }, [selectedDrugs, drugSettings, drugReadoutSettings, enableHrvReadout, enableBfReadout, hrvResults, perMinuteData]);
+  }, [selectedDrugs, drugSettings, drugReadoutSettings, enableHrvReadout, enableBfReadout, hrvResults, perMinuteData, DRUG_CONFIG]);
 
   // Build array of all drugs with their settings and colors - MUST be before early return
   const DRUG_PURPLE_COLORS = [
@@ -819,6 +821,22 @@ function AnalysisPanel({
                 <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
                   Input = Baseline Readout Start Time
                 </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="baseline-cardiac-arrest"
+                    checked={baselineCardiacArrest}
+                    onChange={(e) => onBaselineCardiacArrestChange(e.target.checked)}
+                    disabled={!baselineEnabled}
+                    className="w-3 h-3 rounded border-zinc-600 bg-zinc-900 text-red-500 focus:ring-red-500 focus:ring-offset-0"
+                  />
+                  <Label 
+                    htmlFor="baseline-cardiac-arrest" 
+                    className={`text-[9px] ${baselineEnabled ? (baselineCardiacArrest ? 'text-red-400' : 'text-zinc-400') : 'text-zinc-600'} cursor-pointer`}
+                  >
+                    Cardiac Arrest
+                  </Label>
+                </div>
                 <div className="h-[6px]"></div>
               </div>
             </div>
@@ -971,6 +989,22 @@ function AnalysisPanel({
                               </TooltipProvider>
                             )}
                           </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <input
+                              type="checkbox"
+                              id={`drug-cardiac-arrest-${drugKey}`}
+                              checked={perDrugSettings.cardiacArrest === true}
+                              onChange={(e) => updatePerDrugSetting('cardiacArrest', e.target.checked)}
+                              disabled={!isDrugEnabled}
+                              className="w-3 h-3 rounded border-zinc-600 bg-zinc-900 text-red-500 focus:ring-red-500 focus:ring-offset-0"
+                            />
+                            <Label 
+                              htmlFor={`drug-cardiac-arrest-${drugKey}`} 
+                              className={`text-[9px] ${isDrugEnabled ? (perDrugSettings.cardiacArrest ? 'text-red-400' : 'text-zinc-400') : 'text-zinc-600'} cursor-pointer`}
+                            >
+                              Cardiac Arrest
+                            </Label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1003,14 +1037,14 @@ function AnalysisPanel({
             {/* Baseline - prominent */}
             {baselineEnabled && baseline && (
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-500">
-                  Baseline Readout Metrics
+                <p className={`text-[10px] uppercase tracking-wider font-bold ${baselineCardiacArrest ? 'text-red-400' : 'text-cyan-500'}`}>
+                  Baseline Readout Metrics {baselineCardiacArrest && <span className="text-red-400">(Cardiac Arrest)</span>}
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <MetricCard 
                     label="Mean BF" 
                     sublabel={`@${baselineBfMinute}-${baselineBfMinute+1}min`}
-                    value={baseline.baseline_bf} 
+                    value={baselineCardiacArrest ? 0 : baseline.baseline_bf} 
                     unit="bpm"
                     highlight
                     tooltip="Beat Frequency (bpm)"
@@ -1018,21 +1052,21 @@ function AnalysisPanel({
                   <MetricCard 
                     label="ln(RMSSD₇₀)" 
                     sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
-                    value={baseline.baseline_ln_rmssd70}
+                    value={baselineCardiacArrest ? null : baseline.baseline_ln_rmssd70}
                     highlight
                     tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
                   />
                   <MetricCard 
                     label="ln(SDNN₇₀)" 
                     sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
-                    value={baseline.baseline_sdnn ? Math.log(baseline.baseline_sdnn) : null}
+                    value={baselineCardiacArrest ? null : (baseline.baseline_sdnn ? Math.log(baseline.baseline_sdnn) : null)}
                     highlight
                     tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
                   />
                   <MetricCard 
                     label="pNN50₇₀" 
                     sublabel={`@${baselineHrvMinute}-${baselineHrvMinute+3}min`}
-                    value={baseline.baseline_pnn50} 
+                    value={baselineCardiacArrest ? null : baseline.baseline_pnn50} 
                     unit="%"
                     highlight
                     tooltip="% of successive NN > 50ms (normalized to 70 bpm)"
@@ -1047,8 +1081,8 @@ function AnalysisPanel({
                 {allDrugReadouts.filter(d => d.hasData).map((drugReadout, idx) => (
                   <div key={drugReadout.drugKey} className={`space-y-2 ${idx > 0 ? 'mt-4' : ''}`}>
                     <div className="flex items-center gap-2">
-                      <p className={`text-[10px] uppercase tracking-wider font-bold ${drugReadout.colors.text}`}>
-                        Drug Readout Metrics
+                      <p className={`text-[10px] uppercase tracking-wider font-bold ${drugReadout.cardiacArrest ? 'text-red-400' : drugReadout.colors.text}`}>
+                        Drug Readout Metrics {drugReadout.cardiacArrest && <span className="text-red-400">(Cardiac Arrest)</span>}
                       </p>
                       <Badge variant="outline" className={`text-[8px] ${drugReadout.colors.border} ${drugReadout.colors.text}`}>
                         Perf. Start + Perf. Delay + Perf. Time
@@ -1062,7 +1096,7 @@ function AnalysisPanel({
                         <MetricCard 
                           label="Mean BF" 
                           sublabel={`@${drugReadout.bfActualMinute}-${drugReadout.bfActualMinute + 1}min`}
-                          value={drugReadout.bfData.avg_bf} 
+                          value={drugReadout.cardiacArrest ? 0 : drugReadout.bfData.avg_bf} 
                           unit="bpm"
                           highlight
                           highlightColor={drugReadout.colors.highlight}
@@ -1074,7 +1108,7 @@ function AnalysisPanel({
                           <MetricCard 
                             label="ln(RMSSD₇₀)" 
                             sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
-                            value={drugReadout.hrvData.ln_rmssd70}
+                            value={drugReadout.cardiacArrest ? null : drugReadout.hrvData.ln_rmssd70}
                             highlight
                             highlightColor={drugReadout.colors.highlight}
                             tooltip="Root Mean Square of Successive Differences (normalized to 70 bpm)"
@@ -1082,7 +1116,7 @@ function AnalysisPanel({
                           <MetricCard 
                             label="ln(SDNN₇₀)" 
                             sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
-                            value={drugReadout.hrvData.sdnn ? Math.log(drugReadout.hrvData.sdnn) : null}
+                            value={drugReadout.cardiacArrest ? null : (drugReadout.hrvData.sdnn ? Math.log(drugReadout.hrvData.sdnn) : null)}
                             highlight
                             highlightColor={drugReadout.colors.highlight}
                             tooltip="Standard Deviation of NN intervals (normalized to 70 bpm)"
@@ -1090,7 +1124,7 @@ function AnalysisPanel({
                           <MetricCard 
                             label="pNN50₇₀" 
                             sublabel={`@${drugReadout.hrvActualMinute}-${drugReadout.hrvActualMinute + 3}min`}
-                            value={drugReadout.hrvData.pnn50} 
+                            value={drugReadout.cardiacArrest ? null : drugReadout.hrvData.pnn50} 
                             unit="%"
                             highlight
                             highlightColor={drugReadout.colors.highlight}
