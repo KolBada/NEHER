@@ -1398,13 +1398,22 @@ def extract_comparison_metrics(recording: dict) -> dict:
     
     # Check if baseline is enabled (default True for backward compatibility)
     baseline_enabled = state.get('baselineEnabled', True)
+    # Check for baseline cardiac arrest
+    baseline_cardiac_arrest = state.get('baselineCardiacArrest', False)
     
     if baseline_enabled:
-        result['baseline_bf'] = baseline.get('baseline_bf')
-        result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
-        baseline_sdnn = baseline.get('baseline_sdnn')
-        result['baseline_ln_sdnn70'] = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
-        result['baseline_pnn50'] = baseline.get('baseline_pnn50')
+        if baseline_cardiac_arrest:
+            # Cardiac arrest: BF = 0, HRV metrics = None (will display as —)
+            result['baseline_bf'] = 0
+            result['baseline_ln_rmssd70'] = None
+            result['baseline_ln_sdnn70'] = None
+            result['baseline_pnn50'] = None
+        else:
+            result['baseline_bf'] = baseline.get('baseline_bf')
+            result['baseline_ln_rmssd70'] = baseline.get('baseline_ln_rmssd70')
+            baseline_sdnn = baseline.get('baseline_sdnn')
+            result['baseline_ln_sdnn70'] = np.log(baseline_sdnn) if baseline_sdnn and baseline_sdnn > 0 else None
+            result['baseline_pnn50'] = baseline.get('baseline_pnn50')
     else:
         result['baseline_bf'] = None
         result['baseline_ln_rmssd70'] = None
@@ -1412,6 +1421,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
         result['baseline_pnn50'] = None
     
     result['baseline_enabled'] = baseline_enabled
+    result['baseline_cardiac_arrest'] = baseline_cardiac_arrest
     
     # Spontaneous Activity - Drug metrics
     # Now supports multiple drugs via perDrug settings
@@ -1478,29 +1488,35 @@ def extract_comparison_metrics(recording: dict) -> dict:
             'drug_ln_sdnn70': None,
             'drug_pnn50': None,
             'perf_time': drug_bf_minute_str,  # Store the input perfusion time for metadata display
+            'cardiac_arrest': this_drug_readout.get('cardiacArrest', False),  # Store cardiac arrest flag
         }
         
-        # Get drug BF from per_minute_data
-        if drug_bf_minute is not None and per_minute_data:
-            for pm in per_minute_data:
-                minute_val = pm.get('minute', '0')
-                try:
-                    minute_num = int(str(minute_val).split('-')[0])
-                    if minute_num == drug_bf_minute:
-                        drug_metrics['drug_bf'] = pm.get('avg_bf') or pm.get('mean_bf')
+        # Check for cardiac arrest - if true, set BF to 0 and HRV to None
+        if this_drug_readout.get('cardiacArrest', False):
+            drug_metrics['drug_bf'] = 0
+            # HRV metrics remain None (will display as —)
+        else:
+            # Get drug BF from per_minute_data
+            if drug_bf_minute is not None and per_minute_data:
+                for pm in per_minute_data:
+                    minute_val = pm.get('minute', '0')
+                    try:
+                        minute_num = int(str(minute_val).split('-')[0])
+                        if minute_num == drug_bf_minute:
+                            drug_metrics['drug_bf'] = pm.get('avg_bf') or pm.get('mean_bf')
+                            break
+                    except (ValueError, TypeError, AttributeError):
+                        pass
+            
+            # Get drug HRV from hrv_windows
+            if drug_hrv_minute is not None and hrv_windows:
+                for w in hrv_windows:
+                    if w.get('minute') == drug_hrv_minute:
+                        drug_metrics['drug_ln_rmssd70'] = w.get('ln_rmssd70')
+                        sdnn = w.get('sdnn')
+                        drug_metrics['drug_ln_sdnn70'] = np.log(sdnn) if sdnn and sdnn > 0 else None
+                        drug_metrics['drug_pnn50'] = w.get('pnn50')
                         break
-                except (ValueError, TypeError, AttributeError):
-                    pass
-        
-        # Get drug HRV from hrv_windows
-        if drug_hrv_minute is not None and hrv_windows:
-            for w in hrv_windows:
-                if w.get('minute') == drug_hrv_minute:
-                    drug_metrics['drug_ln_rmssd70'] = w.get('ln_rmssd70')
-                    sdnn = w.get('sdnn')
-                    drug_metrics['drug_ln_sdnn70'] = np.log(sdnn) if sdnn and sdnn > 0 else None
-                    drug_metrics['drug_pnn50'] = w.get('pnn50')
-                    break
         
         result['per_drug_metrics'].append(drug_metrics)
         

@@ -905,6 +905,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         </div>
                       ) : <span className="text-zinc-500">No Light Stim</span>;
                       
+                      // Check for cardiac arrest flags
+                      const hasBaselineCardiacArrest = rec.baseline_cardiac_arrest;
+                      const drugCardiacArrests = rec.per_drug_metrics?.filter(dm => dm.cardiac_arrest) || [];
+                      
                       return (
                         <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top">
                           <td className="py-2 px-1.5">
@@ -917,7 +921,30 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <td className="py-2 px-1.5 text-zinc-300">{rec.fusion_date || '—'}</td>
                           <td className="py-2 px-1.5 text-zinc-300 bg-purple-950/5">{drugDisplay}</td>
                           <td className="py-2 px-1.5 text-zinc-300 bg-amber-950/5">{lightDisplay}</td>
-                          <td className="py-2 px-1.5 text-zinc-400 text-[10px] max-w-[150px] truncate">{rec.recording_description || '—'}</td>
+                          <td className="py-2 px-1.5 text-[10px] max-w-[200px]">
+                            <div className="space-y-1">
+                              {(hasBaselineCardiacArrest || drugCardiacArrests.length > 0) && (
+                                <div className="flex flex-wrap gap-1">
+                                  {hasBaselineCardiacArrest && (
+                                    <span className="px-1.5 py-0.5 bg-red-600/30 border border-red-500/50 text-red-300 text-[9px] rounded font-medium">
+                                      Cardiac Arrest (Baseline)
+                                    </span>
+                                  )}
+                                  {drugCardiacArrests.map((dm, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-red-600/30 border border-red-500/50 text-red-300 text-[9px] rounded font-medium">
+                                      Cardiac Arrest ({dm.drug_name})
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {rec.recording_description && (
+                                <div className="text-zinc-400 truncate">{rec.recording_description}</div>
+                              )}
+                              {!hasBaselineCardiacArrest && drugCardiacArrests.length === 0 && !rec.recording_description && (
+                                <span className="text-zinc-500">—</span>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

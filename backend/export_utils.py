@@ -3362,8 +3362,18 @@ def create_comparison_pdf(folder_name, comparison_data):
                     light_parts.append(str(light_info_raw))
             light_info = '\n'.join(light_parts) if light_parts else '—'
             
-            # Notes
-            notes = rec.get('notes', '') or rec.get('recording_description', '') or '—'
+            # Notes - include cardiac arrest indicators
+            notes_parts = []
+            if rec.get('baseline_cardiac_arrest'):
+                notes_parts.append("[CARDIAC ARREST - Baseline]")
+            per_drug_metrics = rec.get('per_drug_metrics', [])
+            for dm in per_drug_metrics:
+                if dm.get('cardiac_arrest'):
+                    notes_parts.append(f"[CARDIAC ARREST - {dm.get('drug_name', 'Drug')}]")
+            orig_notes = rec.get('notes', '') or rec.get('recording_description', '')
+            if orig_notes:
+                notes_parts.append(orig_notes)
+            notes = '\n'.join(notes_parts) if notes_parts else '—'
             
             meta_data.append([
                 rec_display,  # Full name
@@ -4451,8 +4461,19 @@ def create_comparison_xlsx(folder_name, comparison_data):
                 light_parts.append(f"ISI: {isi_struct}")
         light_info = '\n'.join(light_parts) if light_parts else '—'
         
-        # Notes
-        notes = rec.get('notes', '') or '—'
+        # Notes - include cardiac arrest indicators
+        notes_parts = []
+        if rec.get('baseline_cardiac_arrest'):
+            notes_parts.append("[CARDIAC ARREST - Baseline]")
+        per_drug_metrics = rec.get('per_drug_metrics', [])
+        for dm in per_drug_metrics:
+            if dm.get('cardiac_arrest'):
+                notes_parts.append(f"[CARDIAC ARREST - {dm.get('drug_name', 'Drug')}]")
+        if rec.get('notes'):
+            notes_parts.append(rec.get('notes'))
+        elif rec.get('recording_description'):
+            notes_parts.append(rec.get('recording_description'))
+        notes = '\n'.join(notes_parts) if notes_parts else '—'
         
         data_row = [rec_display, rec.get('recording_date', '—'), hspo_info, hco_info,
                     rec.get('fusion_date', '—'), drug_info, light_info, notes]
