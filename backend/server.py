@@ -1214,6 +1214,7 @@ class FolderComparisonExportRequest(BaseModel):
     folder_id: str
     folder_name: str
     comparison_data: dict
+    excluded_recording_ids: list = []  # List of recording IDs to exclude from export
 
 
 def extract_comparison_metrics(recording: dict) -> dict:
@@ -1743,10 +1744,17 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     
+    # Get list of excluded recording IDs
+    excluded_ids = set(request.excluded_recording_ids or [])
+    
     recordings_data = []
     async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
+        rec_id = str(rec["_id"])
+        # Skip excluded recordings
+        if rec_id in excluded_ids:
+            continue
         recording = {
-            "id": str(rec["_id"]),
+            "id": rec_id,
             "name": rec["name"],
             "filename": rec["filename"],
             "analysis_state": rec.get("analysis_state", {}),
@@ -1806,10 +1814,17 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     
+    # Get list of excluded recording IDs
+    excluded_ids = set(request.excluded_recording_ids or [])
+    
     recordings_data = []
     async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
+        rec_id = str(rec["_id"])
+        # Skip excluded recordings
+        if rec_id in excluded_ids:
+            continue
         recording = {
-            "id": str(rec["_id"]),
+            "id": rec_id,
             "name": rec["name"],
             "filename": rec["filename"],
             "analysis_state": rec.get("analysis_state", {}),

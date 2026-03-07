@@ -36,15 +36,39 @@ function InfoTip({ text, children }) {
   );
 }
 
+// Toggle button component for recording inclusion/exclusion
+function RecordingToggle({ isExcluded, onToggle, testId }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`w-6 h-5 rounded text-[9px] font-medium transition-all ${
+        isExcluded 
+          ? 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600' 
+          : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
+      }`}
+      data-testid={testId}
+    >
+      {isExcluded ? 'OFF' : 'ON'}
+    </button>
+  );
+}
+
 export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
   const [spontNormExpanded, setSpontNormExpanded] = useState({});  // Object keyed by drug key
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
-  // Track excluded recordings for normalized calculations (keyed by recording id)
-  const [spontExcludedRecordings, setSpontExcludedRecordings] = useState({});  // { drugKey: { recordingId: true } }
-  const [lightExcludedRecordings, setLightExcludedRecordings] = useState({});  // { recordingId: true }
+  // Global excluded recordings - applies to ALL tables and exports
+  const [excludedRecordings, setExcludedRecordings] = useState({});  // { recordingId: true }
+  
+  // Toggle a recording's inclusion/exclusion (global)
+  const toggleRecording = useCallback((recordingId) => {
+    setExcludedRecordings(prev => ({
+      ...prev,
+      [recordingId]: !prev[recordingId]
+    }));
+  }, []);
 
   useEffect(() => {
     loadComparisonData();
@@ -66,10 +90,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     if (!comparisonData) return;
     setExporting(true);
     try {
+      // Get list of excluded recording IDs
+      const excludedIds = Object.keys(excludedRecordings).filter(id => excludedRecordings[id]);
       const { data } = await api.exportFolderComparisonXlsx(folder.id, {
         folder_id: folder.id,
         folder_name: folder.name,
         comparison_data: comparisonData,
+        excluded_recording_ids: excludedIds,
       });
       downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}_comparison.xlsx`);
       toast.success('Excel export downloaded');
@@ -84,10 +111,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     if (!comparisonData) return;
     setExporting(true);
     try {
+      // Get list of excluded recording IDs
+      const excludedIds = Object.keys(excludedRecordings).filter(id => excludedRecordings[id]);
       const { data } = await api.exportFolderComparisonPdf(folder.id, {
         folder_id: folder.id,
         folder_name: folder.name,
         comparison_data: comparisonData,
+        excluded_recording_ids: excludedIds,
       });
       downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}_comparison.pdf`);
       toast.success('PDF export downloaded');
@@ -110,10 +140,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return val || '—';
   };
 
-  // Compute cohort baseline averages for normalization
+  // Compute cohort baseline averages for normalization (excluding excluded recordings)
   const cohortBaselines = useMemo(() => {
     if (!comparisonData?.recordings) return null;
-    const recs = comparisonData.recordings;
+    // Filter out excluded recordings
+    const recs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
     
     // Helper to compute mean ignoring null/undefined
     const mean = (arr) => {
@@ -127,7 +158,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       avg_baseline_ln_sdnn: mean(recs.map(r => r.baseline_ln_sdnn70)),
       avg_baseline_pnn50: mean(recs.map(r => r.baseline_pnn50)),
     };
-  }, [comparisonData]);
+  }, [comparisonData, excludedRecordings]);
 
   // Compute normalized spontaneous activity values
   const normalizedSpontaneous = useMemo(() => {
@@ -216,7 +247,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return null;
   }, []);
 
-  // Compute per-drug averages
+  // Compute per-drug averages (respecting exclusions)
   const perDrugAverages = useMemo(() => {
     if (!comparisonData?.recordings || !uniqueDrugs.length) return {};
     const mean = (arr) => {
@@ -224,9 +255,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
     };
     
+    // Filter out excluded recordings
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    
     const result = {};
     uniqueDrugs.forEach(drug => {
-      const metricsForDrug = comparisonData.recordings.map(rec => getDrugMetrics(rec, drug.key, uniqueDrugs)).filter(Boolean);
+      const metricsForDrug = includedRecs.map(rec => getDrugMetrics(rec, drug.key, uniqueDrugs)).filter(Boolean);
       result[drug.key] = {
         avg_bf: mean(metricsForDrug.map(m => m.drug_bf)),
         avg_ln_rmssd70: mean(metricsForDrug.map(m => m.drug_ln_rmssd70)),
@@ -235,11 +269,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       };
     });
     return result;
-  }, [comparisonData, uniqueDrugs, getDrugMetrics]);
+  }, [comparisonData, uniqueDrugs, getDrugMetrics, excludedRecordings]);
 
   // Compute per-drug normalized spontaneous activity values
   const perDrugNormalized = useMemo(() => {
-    if (!comparisonData?.recordings || !cohortBaselines || !uniqueDrugs.length) return {};
+    if (!comparisonData?.recordings || !cohortBaselines) return {};
     const recs = comparisonData.recordings;
     const cb = cohortBaselines;
     
@@ -249,8 +283,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return 100 * val / baseAvg;
     };
     
+    // Use uniqueDrugs if available, otherwise use a default
+    const drugsToProcess = uniqueDrugs.length > 0 ? uniqueDrugs : [{ key: 'default', name: 'Drug' }];
+    
     const result = {};
-    uniqueDrugs.forEach(drug => {
+    drugsToProcess.forEach(drug => {
       // Compute normalized values for this drug
       const normalizedData = recs.map(rec => {
         const drugMetrics = getDrugMetrics(rec, drug.key, uniqueDrugs);
@@ -276,22 +313,24 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return result;
   }, [comparisonData, cohortBaselines, uniqueDrugs, getDrugMetrics]);
 
-  // Compute per-drug normalized averages (respecting exclusions)
+  // Compute per-drug normalized averages (respecting global exclusions)
   const perDrugNormalizedAverages = useMemo(() => {
-    if (!perDrugNormalized || !uniqueDrugs.length) return {};
+    if (!perDrugNormalized) return {};
     
     const mean = (arr) => {
       const valid = arr.filter(v => v !== null && v !== undefined);
       return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
     };
     
+    // Use uniqueDrugs if available, otherwise use a default
+    const drugsToProcess = uniqueDrugs.length > 0 ? uniqueDrugs : [{ key: 'default', name: 'Drug' }];
+    
     const result = {};
-    uniqueDrugs.forEach(drug => {
+    drugsToProcess.forEach(drug => {
       const drugData = perDrugNormalized[drug.key]?.data || [];
-      const excluded = spontExcludedRecordings[drug.key] || {};
       
-      // Filter out excluded recordings
-      const includedData = drugData.filter(r => !excluded[r.id]);
+      // Filter out excluded recordings using global exclusion state
+      const includedData = drugData.filter(r => !excludedRecordings[r.id]);
       
       result[drug.key] = {
         averages: {
@@ -308,15 +347,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       };
     });
     return result;
-  }, [perDrugNormalized, uniqueDrugs, spontExcludedRecordings]);
+  }, [perDrugNormalized, uniqueDrugs, excludedRecordings]);
 
-  // Compute normalized light HRA values (using same cohort baseline BF)
+  // Compute normalized light HRA values (using cohort baseline BF from included recordings)
   const normalizedLightHRA = useMemo(() => {
     if (!comparisonData?.recordings) return [];
     const recs = comparisonData.recordings;
     
-    // Calculate the average of light_baseline_bf values for Light HRA normalization
-    const lightBaselineBFs = recs
+    // Calculate the average of light_baseline_bf values for Light HRA normalization (from included recordings only)
+    const includedRecs = recs.filter(r => !excludedRecordings[r.id]);
+    const lightBaselineBFs = includedRecs
       .map(r => r.light_baseline_bf)
       .filter(v => v !== null && v !== undefined);
     const avgLightBaselineBF = lightBaselineBFs.length > 0 
@@ -336,9 +376,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       norm_peak_bf: normalize(rec.light_peak_bf),
       norm_recovery_bf: normalize(rec.light_recovery_bf),
     }));
-  }, [comparisonData]);
+  }, [comparisonData, excludedRecordings]);
 
-  // Compute normalized light HRA averages (respecting exclusions)
+  // Compute normalized light HRA averages (respecting global exclusions)
   const normalizedLightHRAAverages = useMemo(() => {
     if (!normalizedLightHRA.length) return null;
     
@@ -347,8 +387,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
     };
     
-    // Filter out excluded recordings
-    const includedData = normalizedLightHRA.filter(r => !lightExcludedRecordings[r.id]);
+    // Filter out excluded recordings using global exclusion state
+    const includedData = normalizedLightHRA.filter(r => !excludedRecordings[r.id]);
     
     return {
       norm_baseline_bf: mean(includedData.map(r => r.norm_baseline_bf)),
@@ -357,28 +397,85 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       norm_recovery_bf: mean(includedData.map(r => r.norm_recovery_bf)),
       includedCount: includedData.length,
     };
-  }, [normalizedLightHRA, lightExcludedRecordings]);
+  }, [normalizedLightHRA, excludedRecordings]);
 
-  // Compute normalized light HRA folder averages
-  const normalizedLightHRAAverages = useMemo(() => {
-    if (!normalizedLightHRA.length) return null;
-    const mean = (arr) => {
-      const valid = arr.filter(v => v !== null && v !== undefined);
-      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
-    };
-    return {
-      norm_baseline_bf: mean(normalizedLightHRA.map(r => r.norm_baseline_bf)),
-      norm_avg_bf: mean(normalizedLightHRA.map(r => r.norm_avg_bf)),
-      norm_peak_bf: mean(normalizedLightHRA.map(r => r.norm_peak_bf)),
-      norm_recovery_bf: mean(normalizedLightHRA.map(r => r.norm_recovery_bf)),
-    };
-  }, [normalizedLightHRA]);
-
-  // Sort recordings alphabetically by name
+  // Sort recordings alphabetically by name (all recordings for display)
   const sortedRecordings = useMemo(() => {
     if (!comparisonData?.recordings) return [];
     return [...comparisonData.recordings].sort((a, b) => a.name.localeCompare(b.name));
   }, [comparisonData]);
+
+  // Get included recordings count
+  const includedRecordingsCount = useMemo(() => {
+    if (!comparisonData?.recordings) return 0;
+    return comparisonData.recordings.filter(r => !excludedRecordings[r.id]).length;
+  }, [comparisonData, excludedRecordings]);
+
+  // Compute spontaneous averages for included recordings only
+  const computedSpontaneousAverages = useMemo(() => {
+    if (!comparisonData?.recordings) return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      baseline_bf: mean(includedRecs.map(r => r.baseline_bf)),
+      baseline_ln_rmssd70: mean(includedRecs.map(r => r.baseline_ln_rmssd70)),
+      baseline_ln_sdnn70: mean(includedRecs.map(r => r.baseline_ln_sdnn70)),
+      baseline_pnn50: mean(includedRecs.map(r => r.baseline_pnn50)),
+      drug_bf: mean(includedRecs.map(r => r.drug_bf)),
+      drug_ln_rmssd70: mean(includedRecs.map(r => r.drug_ln_rmssd70)),
+      drug_ln_sdnn70: mean(includedRecs.map(r => r.drug_ln_sdnn70)),
+      drug_pnn50: mean(includedRecs.map(r => r.drug_pnn50)),
+    };
+  }, [comparisonData, excludedRecordings]);
+
+  // Compute light HRA averages for included recordings only
+  const computedLightHRAAverages = useMemo(() => {
+    if (!comparisonData?.recordings) return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      light_baseline_bf: mean(includedRecs.map(r => r.light_baseline_bf)),
+      light_avg_bf: mean(includedRecs.map(r => r.light_avg_bf)),
+      light_peak_bf: mean(includedRecs.map(r => r.light_peak_bf)),
+      light_peak_norm: mean(includedRecs.map(r => r.light_peak_norm)),
+      light_ttp_first: mean(includedRecs.map(r => r.light_ttp_first)),
+      light_ttp_avg: mean(includedRecs.map(r => r.light_ttp_avg)),
+      light_recovery_bf: mean(includedRecs.map(r => r.light_recovery_bf)),
+      light_recovery_pct: mean(includedRecs.map(r => r.light_recovery_pct)),
+      light_amplitude: mean(includedRecs.map(r => r.light_amplitude)),
+      light_roc: mean(includedRecs.map(r => r.light_roc)),
+    };
+  }, [comparisonData, excludedRecordings]);
+
+  // Compute light HRV averages for included recordings only
+  const computedLightHRVAverages = useMemo(() => {
+    if (!comparisonData?.recordings) return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      light_hrv_ln_rmssd70: mean(includedRecs.map(r => r.light_hrv_ln_rmssd70)),
+      light_hrv_ln_sdnn70: mean(includedRecs.map(r => r.light_hrv_ln_sdnn70)),
+      light_hrv_pnn50: mean(includedRecs.map(r => r.light_hrv_pnn50)),
+    };
+  }, [comparisonData, excludedRecordings]);
 
   // Sort normalized spontaneous data alphabetically
   const sortedNormalizedSpontaneous = useMemo(() => {
@@ -560,6 +657,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800">
+                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                         <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                         <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
                           <InfoTip text="Mean Beat Frequency during minute 1-2 of recording (without drug or stimuli)">Baseline BF</InfoTip>
@@ -581,6 +679,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     </thead>
                     <tbody>
                       {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
                         const drugMetrics = uniqueDrugs.length > 0 ? getDrugMetrics(rec, drug.key, uniqueDrugs) : {
                           drug_bf: rec.drug_bf,
                           drug_ln_rmssd70: rec.drug_ln_rmssd70,
@@ -588,7 +687,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           drug_pnn50: rec.drug_pnn50,
                         };
                         return (
-                          <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-spont-${rec.id}`}
+                              />
+                            </td>
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_bf, 1)}</td>
                             <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_ln_rmssd70, 3)}</td>
@@ -603,15 +709,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       })}
                       {/* Average Row */}
                       <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
-                        <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_bf, 1)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_rmssd70, 3)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_ln_sdnn70, 3)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(spontaneous_averages?.averages?.baseline_pnn50, 1)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_bf ?? spontaneous_averages?.averages?.drug_bf, 1)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_ln_rmssd70 ?? spontaneous_averages?.averages?.drug_ln_rmssd70, 3)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_ln_sdnn70 ?? spontaneous_averages?.averages?.drug_ln_sdnn70, 3)}</td>
-                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_pnn50 ?? spontaneous_averages?.averages?.drug_pnn50, 1)}</td>
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(computedSpontaneousAverages?.baseline_bf, 1)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(computedSpontaneousAverages?.baseline_ln_rmssd70, 3)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(computedSpontaneousAverages?.baseline_ln_sdnn70, 3)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(computedSpontaneousAverages?.baseline_pnn50, 1)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_bf ?? computedSpontaneousAverages?.drug_bf, 1)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_ln_rmssd70 ?? computedSpontaneousAverages?.drug_ln_rmssd70, 3)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_ln_sdnn70 ?? computedSpontaneousAverages?.drug_ln_sdnn70, 3)}</td>
+                        <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugAverages[drug.key]?.avg_pnn50 ?? computedSpontaneousAverages?.drug_pnn50, 1)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -639,7 +746,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-zinc-800">
-                            <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
+                            <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                             <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                             <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(RMSSD) (%)</th>
@@ -653,28 +760,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         </thead>
                         <tbody>
                           {(perDrugNormalized[drug.key]?.data || []).map((rec, idx) => {
-                            const isExcluded = spontExcludedRecordings[drug.key]?.[rec.id];
+                            const isExcluded = excludedRecordings[rec.id];
                             return (
                               <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
-                                <td className="py-2 px-2">
-                                  <button
-                                    onClick={() => {
-                                      setSpontExcludedRecordings(prev => ({
-                                        ...prev,
-                                        [drug.key]: {
-                                          ...(prev[drug.key] || {}),
-                                          [rec.id]: !prev[drug.key]?.[rec.id]
-                                        }
-                                      }));
-                                    }}
-                                    className={`w-5 h-5 rounded text-[9px] font-medium transition-all ${
-                                      isExcluded 
-                                        ? 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600' 
-                                        : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
-                                    }`}
-                                  >
-                                    {isExcluded ? 'OFF' : 'ON'}
-                                  </button>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-spont-norm-${rec.id}`}
+                                  />
                                 </td>
                                 <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                                 <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
@@ -690,7 +784,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           })}
                           {/* Folder Average Row */}
                           <tr className="bg-purple-950/60 font-bold border-t-2 border-purple-500">
-                            <td className="py-3 px-2"></td>
+                            <td className="py-3 px-1"></td>
                             <td className="py-3 px-2 text-purple-300 text-xs">Folder Average (n={perDrugNormalizedAverages[drug.key]?.includedCount || 0})</td>
                             <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-purple-100 text-xs">{formatValue(perDrugNormalizedAverages[drug.key]?.averages?.norm_baseline_ln_rmssd, 1)}</td>
@@ -724,6 +818,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800">
+                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                         <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Mean Beat Frequency from -2 to -1 min before first light stimulation">Baseline BF</InfoTip>
@@ -758,34 +853,45 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedRecordings?.map((rec, idx) => (
-                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                          <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_avg, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_bf, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
-                          <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
-                        </tr>
-                      ))}
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-hra-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_avg, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
+                          </tr>
+                        );
+                      })}
                       {/* Average Row */}
                       <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
-                        <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_baseline_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_avg_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_peak_norm, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_first, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_ttp_avg, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_bf, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_recovery_pct, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_amplitude, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(light_hra_averages?.averages?.light_roc, 4)}</td>
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_baseline_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_avg_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_norm, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_ttp_first, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_ttp_avg, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_amplitude, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_roc, 4)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -813,6 +919,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b border-zinc-800">
+                            <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                             <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                             <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Avg BF (%)</th>
@@ -821,18 +928,29 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {sortedNormalizedLightHRA.map((rec, idx) => (
-                            <tr key={idx} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                              <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
-                              <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
-                            </tr>
-                          ))}
+                          {sortedNormalizedLightHRA.map((rec, idx) => {
+                            const isExcluded = excludedRecordings[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-hra-norm-${rec.id}`}
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
+                              </tr>
+                            );
+                          })}
                           {/* Folder Average Row */}
                           <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
-                            <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={sortedNormalizedLightHRA.length})</td>
+                            <td className="py-3 px-1"></td>
+                            <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={normalizedLightHRAAverages?.includedCount || 0})</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
@@ -856,6 +974,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800">
+                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                         <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
                         <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
                         <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(SDNN<sub>70</sub>) corr.</th>
@@ -863,20 +982,31 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedRecordings?.map((rec, idx) => (
-                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                          <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
-                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_rmssd70, 3)}</td>
-                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_sdnn70, 3)}</td>
-                          <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_pnn50, 1)}</td>
-                        </tr>
-                      ))}
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-hrv-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_rmssd70, 3)}</td>
+                            <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_ln_sdnn70, 3)}</td>
+                            <td className="py-2 px-3 text-center text-zinc-300">{formatValue(rec.light_hrv_pnn50, 1)}</td>
+                          </tr>
+                        );
+                      })}
                       {/* Average Row */}
                       <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
-                        <td className="py-3 px-3 text-amber-300 text-xs">Folder Average (n={sortedRecordings?.length || 0})</td>
-                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_rmssd70, 3)}</td>
-                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_ln_sdnn70, 3)}</td>
-                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(light_hrv_averages?.averages?.light_hrv_pnn50, 1)}</td>
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-3 text-amber-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(computedLightHRVAverages?.light_hrv_ln_rmssd70, 3)}</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(computedLightHRVAverages?.light_hrv_ln_sdnn70, 3)}</td>
+                        <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(computedLightHRVAverages?.light_hrv_pnn50, 1)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -897,6 +1027,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800">
+                      <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Recording</th>
                       <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Date</th>
                       <th className="text-left py-2 px-1.5 font-medium text-emerald-400 bg-emerald-950/30 whitespace-nowrap">
@@ -915,6 +1046,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   </thead>
                   <tbody>
                     {sortedRecordings?.map((rec, idx) => {
+                      const isExcluded = excludedRecordings[rec.id];
                       // Format hSpO info
                       const hspoInfo = rec.hspo_info;
                       const hspoDisplay = hspoInfo ? (
@@ -978,7 +1110,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       const drugCardiacArrests = rec.per_drug_metrics?.filter(dm => dm.cardiac_arrest) || [];
                       
                       return (
-                        <tr key={rec.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top">
+                        <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top ${isExcluded ? 'opacity-40' : ''}`}>
+                          <td className="py-2 px-1">
+                            <RecordingToggle 
+                              isExcluded={isExcluded} 
+                              onToggle={() => toggleRecording(rec.id)}
+                              testId={`toggle-meta-${rec.id}`}
+                            />
+                          </td>
                           <td className="py-2 px-1.5">
                             <div className="text-zinc-300 font-medium">{rec.name}</div>
                             <div className="text-[10px] text-zinc-500">{rec.filename}</div>
