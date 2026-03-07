@@ -8,7 +8,7 @@ Build a production-ready web application for electrophysiology analysis of sharp
 2. **Beat Detection:** Automatic detection with manual editing capabilities
 3. **Spontaneous Activity Analysis:** BF & HRV metrics with baseline/drug readouts
 4. **Light Stimulation Analysis:** Pulse detection and HRV response analysis
-5. **Folder Comparison:** Aggregated analysis across multiple recordings
+5. **Folder Comparison:** Aggregated analysis across multiple recordings with global ON/OFF toggle for recordings
 6. **Export:** PDF, Excel, CSV exports for single recordings and comparisons
 
 ## Tech Stack
@@ -19,10 +19,28 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 7, 2026 (Current Session)
+- **Global ON/OFF Toggle for Folder Comparison:**
+  - Added global `excludedRecordings` state in `FolderComparison.js` that synchronizes across ALL tables
+  - Created `RecordingToggle` component with ON/OFF button for each recording row
+  - Added toggle column to all 6 comparison tables:
+    - Spontaneous Activity Comparison (for each drug)
+    - Spontaneous Activity Comparison - Normalized to Baseline (for each drug)
+    - Light-Induced Heart Rate Adaptation (HRA)
+    - Light-Induced Heart Rate Adaptation (HRA) - Normalized to Baseline
+    - Corrected Light-Induced Heart Rate Variability (HRV)
+    - Recording Metadata
+  - Excluded recordings are grayed out (opacity-40) in all tables
+  - Folder Average row dynamically updates (n count and values) when recordings are toggled
+  - Updated all `useMemo` hooks to filter excluded recordings from calculations
+  - Added `excluded_recording_ids` field to `FolderComparisonExportRequest` model in `server.py`
+  - Both Excel and PDF exports filter out excluded recordings before generating output
+  - **Testing:** All tests passed (100% frontend success rate)
+
 ### March 6, 2026 (Session 2)
 - **Bug Fixes for Readout Controls:**
-  - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup, allowing decimal inputs like 0.5, 1.5 to correctly find the corresponding minute window
-  - **Per-Drug Perfusion Time in Comparison:** Backend `server.py` now includes `perf_time` in `per_drug_metrics` for each drug
+  - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup
+  - **Per-Drug Perfusion Time in Comparison:** Backend `server.py` includes `perf_time` in `per_drug_metrics`
   - **UI Label Update:** Changed "Readout:" to "Readout Time Range:" in baseline and drug readout sections
   - **Removed Leading Zeros:** Time range displays now show "1-2min" instead of "01-02min"
   - **Wider Input Fields:** Increased readout input width from `w-14` to `w-16` to accommodate decimal values like 2.5
