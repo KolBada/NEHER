@@ -774,18 +774,35 @@ function AnalysisPanel({
                 <p className={`text-[9px] uppercase tracking-wider font-bold ${baselineEnabled ? 'text-cyan-400' : 'text-zinc-400'}`}>
                   Baseline Readout
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onBaselineEnabledChange(!baselineEnabled)}
-                  className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                    baselineEnabled 
-                      ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/40' 
-                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                  }`}
-                >
-                  {baselineEnabled ? 'ON' : 'OFF'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onBaselineCardiacArrestChange(!baselineCardiacArrest)}
+                    disabled={!baselineEnabled}
+                    className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                      !baselineEnabled
+                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                        : baselineCardiacArrest 
+                          ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40' 
+                          : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
+                    }`}
+                  >
+                    {baselineCardiacArrest ? 'Cardiac Arrest' : 'Beating'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onBaselineEnabledChange(!baselineEnabled)}
+                    className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                      baselineEnabled 
+                        ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/40' 
+                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                    }`}
+                  >
+                    {baselineEnabled ? 'ON' : 'OFF'}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -821,22 +838,6 @@ function AnalysisPanel({
                 <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
                   Input = Baseline Readout Start Time
                 </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="checkbox"
-                    id="baseline-cardiac-arrest"
-                    checked={baselineCardiacArrest}
-                    onChange={(e) => onBaselineCardiacArrestChange(e.target.checked)}
-                    disabled={!baselineEnabled}
-                    className="w-3 h-3 rounded border-zinc-600 bg-zinc-900 text-red-500 focus:ring-red-500 focus:ring-offset-0"
-                  />
-                  <Label 
-                    htmlFor="baseline-cardiac-arrest" 
-                    className={`text-[9px] ${baselineEnabled ? (baselineCardiacArrest ? 'text-red-400' : 'text-zinc-400') : 'text-zinc-600'} cursor-pointer`}
-                  >
-                    Cardiac Arrest
-                  </Label>
-                </div>
                 <div className="h-[6px]"></div>
               </div>
             </div>
@@ -915,19 +916,36 @@ function AnalysisPanel({
                             {drugName}
                           </Badge>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          data-testid={`drug-readout-toggle-${idx}`}
-                          onClick={toggleDrugEnabled}
-                          className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                            isDrugEnabled 
-                              ? `${colors.bg} ${colors.textLight} hover:opacity-80` 
-                              : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                          }`}
-                        >
-                          {isDrugEnabled ? 'ON' : 'OFF'}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updatePerDrugSetting('cardiacArrest', !perDrugSettings.cardiacArrest)}
+                            disabled={!isDrugEnabled}
+                            className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                              !isDrugEnabled
+                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                : perDrugSettings.cardiacArrest 
+                                  ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40' 
+                                  : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
+                            }`}
+                          >
+                            {perDrugSettings.cardiacArrest ? 'Cardiac Arrest' : 'Beating'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`drug-readout-toggle-${idx}`}
+                            onClick={toggleDrugEnabled}
+                            className={`h-5 px-2 text-[9px] rounded-full transition-all ${
+                              isDrugEnabled 
+                                ? `${colors.bg} ${colors.textLight} hover:opacity-80` 
+                                : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                            }`}
+                          >
+                            {isDrugEnabled ? 'ON' : 'OFF'}
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -971,7 +989,7 @@ function AnalysisPanel({
                             <span>Input = Perf. Time</span>
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
-                            <span>Drug Readout Time Range = Perf. Start + Perf. Delay + Perf. Time</span>
+                            <span>Drug Readout Start Time = Perf. Start + Perf. Delay + Perf. Time</span>
                             {idx === 0 && (
                               <TooltipProvider delayDuration={100}>
                                 <Tooltip>
@@ -988,22 +1006,6 @@ function AnalysisPanel({
                                 </Tooltip>
                               </TooltipProvider>
                             )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <input
-                              type="checkbox"
-                              id={`drug-cardiac-arrest-${drugKey}`}
-                              checked={perDrugSettings.cardiacArrest === true}
-                              onChange={(e) => updatePerDrugSetting('cardiacArrest', e.target.checked)}
-                              disabled={!isDrugEnabled}
-                              className="w-3 h-3 rounded border-zinc-600 bg-zinc-900 text-red-500 focus:ring-red-500 focus:ring-offset-0"
-                            />
-                            <Label 
-                              htmlFor={`drug-cardiac-arrest-${drugKey}`} 
-                              className={`text-[9px] ${isDrugEnabled ? (perDrugSettings.cardiacArrest ? 'text-red-400' : 'text-zinc-400') : 'text-zinc-600'} cursor-pointer`}
-                            >
-                              Cardiac Arrest
-                            </Label>
                           </div>
                         </div>
                       </div>
