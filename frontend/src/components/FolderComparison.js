@@ -945,7 +945,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <ChevronRight 
                       className={`w-4 h-4 transition-transform duration-200 ${spontNormExpanded[drug.key] ? 'rotate-90' : ''}`}
                     />
-                    <span className="font-medium">Normalized to Baseline</span>
+                    <InfoTip text="Values normalized to the average baseline across all included recordings in the folder">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
                   </button>
                 
                   <div 
@@ -1118,7 +1120,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <ChevronRight 
                       className={`w-4 h-4 transition-transform duration-200 ${lightNormExpanded ? 'rotate-90' : ''}`}
                     />
-                    <span className="font-medium">Normalized to Baseline</span>
+                    <InfoTip text="Values normalized to the average baseline BF across all included recordings in the folder">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
                   </button>
                   
                   <div 
@@ -1248,7 +1252,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimAvg" 
-                                    stroke="#a855f7"
+                                    stroke="#eab308"
                                     strokeWidth={2}
                                     strokeDasharray="8 4"
                                     dot={false}
@@ -1422,7 +1426,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimMedian" 
-                                    stroke="#a855f7"
+                                    stroke="#eab308"
                                     strokeWidth={2}
                                     strokeDasharray="8 4"
                                     dot={false}

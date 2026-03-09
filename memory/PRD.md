@@ -55,11 +55,20 @@ Build a production-ready web application for electrophysiology analysis of sharp
     - "Folder Median" row at bottom with column medians
     - Line chart visualization with **two traces**:
       1. **Per Stim Median** (orange solid line) - median of all recordings for each stimulation
-      2. **Stim Median** (purple dashed line) - overall median across all 5 stimulations
+      2. **Stim Median** (yellow dashed line) - overall median across all 5 stimulations
     - Global ON/OFF toggles synchronized with all other tables
   - Removed "Per Stimuli" expandable sections from both HRA and HRV cards (per user request)
   - Backend `server.py` provides `per_stim_hra` and `per_stim_hrv` data
   - Added Recharts imports for LineChart, ResponsiveContainer, ReferenceLine visualizations
+
+- **UI Naming & Color Updates (March 9, 2026):**
+  - Renamed "Normalized to Baseline" → **"Normalized to Average Baseline"** in:
+    - Spontaneous Activity tab (all drug sections)
+    - Light Stimulus tab (HRA section)
+    - PDF comparison exports
+    - Excel comparison exports
+  - Added info tooltip (ⓘ) explaining "Values normalized to the average baseline across all included recordings"
+  - Changed "Stim Average" / "Stim Median" line color from purple (#a855f7) to **yellow** (#eab308) in Per Metrics charts
 
 - **Baseline BF Color & Chart Enhancements:**
   - Changed Baseline BF color from amber to **cyan** throughout Light Stimulus section

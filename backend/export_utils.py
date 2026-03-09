@@ -3496,8 +3496,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        # Table 3.a: Drug-induced BF and HRV Normalized Data (First Drug)
-        fig3.text(0.08, 0.44, f'Table 3.a | Drug-induced BF and HRV Normalized Data ({first_drug_name})', fontsize=10, fontweight='bold', 
+        # Table 3.a: Drug-induced BF and HRV Normalized to Average Baseline Data (First Drug)
+        fig3.text(0.08, 0.44, f'Table 3.a | Drug-induced BF and HRV Normalized to Average Baseline Data ({first_drug_name})', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
         
@@ -3690,8 +3690,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                             cell.set_facecolor('white')
                         cell.set_text_props(fontfamily=body_font)
             
-            # Table 3.b: Drug-induced BF and HRV Normalized Data (Second Drug)
-            fig3b.text(0.08, 0.44, f'Table 3.b | Drug-induced BF and HRV Normalized Data ({second_drug_name})', fontsize=10, fontweight='bold', 
+            # Table 3.b: Drug-induced BF and HRV Normalized to Average Baseline Data (Second Drug)
+            fig3b.text(0.08, 0.44, f'Table 3.b | Drug-induced BF and HRV Normalized to Average Baseline Data ({second_drug_name})', fontsize=10, fontweight='bold', 
                      color=COLORS['dark'], fontfamily=title_font)
             fig3b.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3b.transFigure))
             
@@ -3856,8 +3856,8 @@ def create_comparison_pdf(folder_name, comparison_data):
                         cell.set_facecolor('white')
                     cell.set_text_props(fontfamily=body_font)
         
-        # Table 5: Light-Induced HRA Normalized Data
-        fig4.text(0.08, 0.44, 'Table 5 | Light-Induced HRA Normalized Data', fontsize=10, fontweight='bold', 
+        # Table 5: Light-Induced HRA Normalized to Average Baseline Data
+        fig4.text(0.08, 0.44, 'Table 5 | Light-Induced HRA Normalized to Average Baseline Data', fontsize=10, fontweight='bold', 
                  color=COLORS['dark'], fontfamily=title_font)
         fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
         
@@ -4565,8 +4565,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
         cell.border = thin_border
     row += 2
     
-    # Table 3.a: Drug-induced BF and HRV Normalized Data (First Drug)
-    ws3[f'A{row}'] = f'Table 3.a | Drug-induced BF and HRV Normalized Data ({first_drug_name})'
+    # Table 3.a: Drug-induced BF and HRV Normalized to Average Baseline Data (First Drug)
+    ws3[f'A{row}'] = f'Table 3.a | Drug-induced BF and HRV Normalized to Average Baseline Data ({first_drug_name})'
     ws3[f'A{row}'].font = Font(bold=True, size=12)
     row += 2
     
@@ -4739,8 +4739,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
             cell.border = thin_border
         row += 2
         
-        # Table 3.b: Drug-induced BF and HRV Normalized Data (Second Drug)
-        ws3b[f'A{row}'] = f'Table 3.b | Drug-induced BF and HRV Normalized Data ({second_drug_name})'
+        # Table 3.b: Drug-induced BF and HRV Normalized to Average Baseline Data (Second Drug)
+        ws3b[f'A{row}'] = f'Table 3.b | Drug-induced BF and HRV Normalized to Average Baseline Data ({second_drug_name})'
         ws3b[f'A{row}'].font = Font(bold=True, size=12)
         row += 2
         
@@ -4888,8 +4888,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
         cell.border = thin_border
     row += 2
     
-    # Table 5: Light-Induced HRA Normalized Data
-    ws4[f'A{row}'] = 'Table 5 | Light-Induced HRA Normalized Data'
+    # Table 5: Light-Induced HRA Normalized to Average Baseline Data
+    ws4[f'A{row}'] = 'Table 5 | Light-Induced HRA Normalized to Average Baseline Data'
     ws4[f'A{row}'].font = Font(bold=True, size=12)
     row += 2
     
