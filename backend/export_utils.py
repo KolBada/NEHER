@@ -477,8 +477,14 @@ def create_nature_pdf(request):
                     peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
                     baseline_bf_vals = [r.get('baseline_bf') for r in valid if r.get('baseline_bf')]
                     baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
+                    # Compute avg_norm on-the-fly if not stored
                     avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
-                    avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
+                    if avg_norm_vals:
+                        avg_norm = np.mean(avg_norm_vals)
+                    elif baseline_bf and baseline_bf > 0 and avg_bf:
+                        avg_norm = 100.0 * avg_bf / baseline_bf
+                    else:
+                        avg_norm = None
                     peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                     peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                     ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec') is not None]
@@ -1854,8 +1860,14 @@ def create_nature_excel(request):
                 baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
                 avg_bf = np.mean([r.get('avg_bf', 0) for r in valid if r.get('avg_bf')])
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
+                # Compute avg_norm on-the-fly if not stored
                 avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
-                avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
+                if avg_norm_vals:
+                    avg_norm = np.mean(avg_norm_vals)
+                elif baseline_bf and baseline_bf > 0 and avg_bf:
+                    avg_norm = 100.0 * avg_bf / baseline_bf
+                else:
+                    avg_norm = None
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                 peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                 ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
@@ -2615,8 +2627,14 @@ def create_nature_csv(request):
                 baseline_bf_vals = [r.get('baseline_bf') for r in valid if r.get('baseline_bf')]
                 baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
                 avg_bf = np.mean([r.get('avg_bf', 0) for r in valid if r.get('avg_bf')])
+                # Compute avg_norm on-the-fly if not stored
                 avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
-                avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
+                if avg_norm_vals:
+                    avg_norm = np.mean(avg_norm_vals)
+                elif baseline_bf and baseline_bf > 0 and avg_bf:
+                    avg_norm = 100.0 * avg_bf / baseline_bf
+                else:
+                    avg_norm = None
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                 peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
@@ -2848,6 +2866,22 @@ def create_comparison_pdf(folder_name, comparison_data):
     spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
     hra_averages = data.get('light_hra_averages', {}).get('averages', {})
     hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    
+    # Compute light_avg_norm on-the-fly if missing for hra_averages
+    if hra_averages.get('light_avg_norm') is None:
+        baseline = hra_averages.get('light_baseline_bf')
+        avg_bf = hra_averages.get('light_avg_bf')
+        if baseline and baseline > 0 and avg_bf:
+            hra_averages = dict(hra_averages)  # Make a copy to avoid modifying original
+            hra_averages['light_avg_norm'] = 100.0 * avg_bf / baseline
+    
+    # Compute light_avg_norm on-the-fly for each recording if missing
+    for rec in recordings:
+        if rec.get('light_avg_norm') is None:
+            baseline = rec.get('light_baseline_bf')
+            avg_bf = rec.get('light_avg_bf')
+            if baseline and baseline > 0 and avg_bf:
+                rec['light_avg_norm'] = 100.0 * avg_bf / baseline
     
     # Sort recordings alphabetically
     recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
@@ -4014,6 +4048,22 @@ def create_comparison_xlsx(folder_name, comparison_data):
     spont_averages = data.get('spontaneous_averages', {}).get('averages', {})
     hra_averages = data.get('light_hra_averages', {}).get('averages', {})
     hrv_averages = data.get('light_hrv_averages', {}).get('averages', {})
+    
+    # Compute light_avg_norm on-the-fly if missing for hra_averages
+    if hra_averages.get('light_avg_norm') is None:
+        baseline = hra_averages.get('light_baseline_bf')
+        avg_bf = hra_averages.get('light_avg_bf')
+        if baseline and baseline > 0 and avg_bf:
+            hra_averages = dict(hra_averages)  # Make a copy to avoid modifying original
+            hra_averages['light_avg_norm'] = 100.0 * avg_bf / baseline
+    
+    # Compute light_avg_norm on-the-fly for each recording if missing
+    for rec in recordings:
+        if rec.get('light_avg_norm') is None:
+            baseline = rec.get('light_baseline_bf')
+            avg_bf = rec.get('light_avg_bf')
+            if baseline and baseline > 0 and avg_bf:
+                rec['light_avg_norm'] = 100.0 * avg_bf / baseline
     
     # Sort recordings alphabetically
     recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
