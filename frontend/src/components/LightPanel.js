@@ -1252,6 +1252,12 @@ function LightPanel({
                       tooltip="Average Beat Frequency during light stimulation"
                     />
                     <MetricCard 
+                      label="Avg %" 
+                      value={avgHra.avg_norm_pct} 
+                      unit="%"
+                      tooltip="Normalized Avg: 100 × Avg/Baseline"
+                    />
+                    <MetricCard 
                       label="Peak BF" 
                       value={avgHra.peak_bf} 
                       unit="bpm"
@@ -1313,6 +1319,7 @@ function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Baseline BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Avg BF</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Avg %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Time to Peak</TableHead>
@@ -1338,6 +1345,9 @@ function LightPanel({
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.avg_bf?.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s && s.avg_norm_pct != null ? s.avg_norm_pct.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.peak_bf?.toFixed(1) : '\u2014'}

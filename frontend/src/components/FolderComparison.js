@@ -454,6 +454,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return {
       light_baseline_bf: mean(includedRecs.map(r => r.light_baseline_bf)),
       light_avg_bf: mean(includedRecs.map(r => r.light_avg_bf)),
+      light_avg_norm: mean(includedRecs.map(r => r.light_avg_norm)),
       light_peak_bf: mean(includedRecs.map(r => r.light_peak_bf)),
       light_peak_norm: mean(includedRecs.map(r => r.light_peak_norm)),
       light_ttp_first: mean(includedRecs.map(r => r.light_ttp_first)),
@@ -487,6 +488,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   // Removed Baseline BF as per user request
   const hraMetricDefs = useMemo(() => [
     { key: 'avg_bf', label: 'Avg BF', decimals: 1, showBaseline: true, yDomain: null },
+    { key: 'avg_norm_pct', label: 'Avg %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
     { key: 'peak_bf', label: 'Peak BF', decimals: 1, showBaseline: true, yDomain: null },
     { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
     { key: 'ttp', label: 'TTP', decimals: 1, yDomain: [0, 30] },
@@ -1040,6 +1042,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <InfoTip text="Average Beat Frequency during light stimulation">Avg BF</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                          <InfoTip text="Normalized Avg: 100 × Avg/Baseline">Avg %</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Maximum Beat Frequency reached during light stimulation">Peak BF</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
@@ -1080,6 +1085,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                             <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.light_baseline_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_norm, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
@@ -1097,6 +1103,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
                         <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(computedLightHRAAverages?.light_baseline_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_avg_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_avg_norm, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_norm, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_ttp_first, 1)}</td>
@@ -1187,7 +1194,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <ChevronRight 
                       className={`w-4 h-4 transition-transform duration-200 ${hraPerMetricExpanded ? 'rotate-90' : ''}`}
                     />
-                    <span className="font-medium">Per Metrics</span>
+                    <span className="font-medium">Per Metrics for each Stimuli</span>
                   </button>
                   
                   <div 
@@ -1383,7 +1390,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <ChevronRight 
                       className={`w-4 h-4 transition-transform duration-200 ${hrvPerMetricExpanded ? 'rotate-90' : ''}`}
                     />
-                    <span className="font-medium">Per Metrics</span>
+                    <span className="font-medium">Per Metrics for each Stimuli</span>
                   </button>
                   
                   <div 

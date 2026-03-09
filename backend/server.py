@@ -1584,7 +1584,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
     light_response = state.get('lightResponse') or state.get('light_response')
     
     # Initialize light metrics
-    for key in ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm', 
+    for key in ['light_baseline_bf', 'light_avg_bf', 'light_avg_norm', 'light_peak_bf', 'light_peak_norm', 
                'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
                'light_amplitude', 'light_roc']:
         result[key] = None
@@ -1600,6 +1600,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
             
             # Direct extraction from mean_metrics
             result['light_avg_bf'] = mean_metrics.get('avg_bf')
+            result['light_avg_norm'] = mean_metrics.get('avg_norm_pct')
             result['light_peak_bf'] = mean_metrics.get('peak_bf')
             result['light_peak_norm'] = mean_metrics.get('peak_norm_pct')
             result['light_ttp_avg'] = mean_metrics.get('time_to_peak_sec')
@@ -1621,6 +1622,9 @@ def extract_comparison_metrics(recording: dict) -> dict:
                 
                 avg_bf_vals = [r.get('avg_bf') for r in valid_resp if r.get('avg_bf') is not None]
                 result['light_avg_bf'] = float(np.mean(avg_bf_vals)) if avg_bf_vals else None
+                
+                avg_norm_vals = [r.get('avg_norm_pct') for r in valid_resp if r.get('avg_norm_pct') is not None]
+                result['light_avg_norm'] = float(np.mean(avg_norm_vals)) if avg_norm_vals else None
                 
                 peak_bf_vals = [r.get('peak_bf') for r in valid_resp if r.get('peak_bf') is not None]
                 result['light_peak_bf'] = float(np.mean(peak_bf_vals)) if peak_bf_vals else None
@@ -1668,6 +1672,7 @@ def extract_comparison_metrics(recording: dict) -> dict:
                     'stim_index': i + 1,
                     'baseline_bf': baseline_bf,
                     'avg_bf': stim.get('avg_bf'),
+                    'avg_norm_pct': stim.get('avg_norm_pct'),
                     'peak_bf': stim.get('peak_bf'),
                     'peak_norm': stim.get('peak_norm_pct'),
                     'ttp': stim.get('time_to_peak_sec'),

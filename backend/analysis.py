@@ -880,6 +880,11 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         # Normalized: RateOfChange = slope / BF_mean (1/min)
         RateOfChange_j = float(slope_b / BF_mean_j) if BF_mean_j > 0 else None
 
+        # Compute avg_norm_pct (Avg %) - explicit None checks
+        avg_norm_pct_j = None
+        if BF_base_j is not None and BF_base_j > 0 and BF_mean_j is not None:
+            avg_norm_pct_j = float(100.0 * BF_mean_j / BF_base_j)
+        
         # Compute bf_end_pct (Recovery %) - explicit None checks
         bf_end_pct_j = None
         if BF_base_j is not None and BF_base_j > 0 and BF_end_j is not None:
@@ -889,6 +894,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'pulse_index': pulse['index'],
             'n_beats': n_beats,
             'avg_bf': BF_mean_j,
+            'avg_norm_pct': avg_norm_pct_j,
             'avg_nn': float(np.mean(nn_stim)),
             'baseline_bf': BF_base_j,
             'peak_bf': PeakBF_j,
@@ -910,6 +916,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         mean_metrics = {
             'n_beats': safe_mean('n_beats'),
             'avg_bf': safe_mean('avg_bf'),
+            'avg_norm_pct': safe_mean('avg_norm_pct'),
             'avg_nn': safe_mean('avg_nn'),
             'baseline_bf': safe_mean('baseline_bf'),
             'peak_bf': safe_mean('peak_bf'),

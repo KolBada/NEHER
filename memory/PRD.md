@@ -37,19 +37,20 @@ Build a production-ready web application for electrophysiology analysis of sharp
   - Both Excel and PDF exports filter out excluded recordings before generating output
   - **Testing:** All tests passed (100% frontend success rate)
 
-- **Per Metrics Tables for HRA and HRV (UPDATED March 9, 2026):**
-  - Added "Per Metrics" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
-  - **HRA Per Metrics:** Shows 8 tables (one per metric - Baseline BF removed per user request), each with:
+- **Per Metrics for each Stimuli Tables for HRA and HRV (UPDATED March 9, 2026):**
+  - Renamed "Per Metrics" to **"Per Metrics for each Stimuli"**
+  - Added "Per Metrics for each Stimuli" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
+  - **HRA Per Metrics for each Stimuli:** Shows 9 tables (one per metric), each with:
     - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Average** (6th column = row average)
-    - Metrics: Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
+    - Metrics: Avg BF, **Avg %** (new), Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
     - "Folder Average" row at bottom with column averages
     - Line chart visualization with **three traces**:
       1. **Per Stim Average** (orange solid line) - average of all recordings for each stimulation
-      2. **Stim Average** (purple dashed line) - overall average across all 5 stimulations
+      2. **Stim Average** (yellow dashed line) - overall average across all 5 stimulations
       3. **Baseline BF** (cyan dashed, for Avg BF, Peak BF, Rec. BF charts)
-      4. **Baseline (100%)** reference line (cyan, for Peak % and Rec. % charts)
+      4. **Baseline (100%)** reference line (cyan, for Avg %, Peak % and Rec. % charts)
     - Global ON/OFF toggles synchronized with all other tables
-  - **HRV Per Metrics:** Shows 3 tables (one per metric), each with:
+  - **HRV Per Metrics for each Stimuli:** Shows 3 tables (one per metric), each with:
     - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Median** (6th column = row median)
     - Metrics: ln(RMSSD₇₀) corr., ln(SDNN₇₀) corr., pNN50₇₀ corr. (%)
     - "Folder Median" row at bottom with column medians
@@ -57,9 +58,24 @@ Build a production-ready web application for electrophysiology analysis of sharp
       1. **Per Stim Median** (orange solid line) - median of all recordings for each stimulation
       2. **Stim Median** (yellow dashed line) - overall median across all 5 stimulations
     - Global ON/OFF toggles synchronized with all other tables
-  - Removed "Per Stimuli" expandable sections from both HRA and HRV cards (per user request)
   - Backend `server.py` provides `per_stim_hra` and `per_stim_hrv` data
   - Added Recharts imports for LineChart, ResponsiveContainer, ReferenceLine visualizations
+
+- **New Metric: Avg % (Normalized Avg) - March 9, 2026:**
+  - Formula: **100 × Avg BF / Baseline BF**
+  - Added to backend `analysis.py` as `avg_norm_pct` in per-stim data and mean_metrics
+  - Added to backend `server.py` for comparison data extraction
+  - Added to single recording:
+    - LightPanel.js metric card with info tooltip
+    - Per-stimulation table column
+    - PDF export (Light Stimulus HRA section)
+    - Excel export (Light Stimulus HRA section)
+    - CSV export (Light Stimulus HRA section)
+  - Added to comparison folder:
+    - Light-Induced HRA table (header + data + folder average)
+    - Per Metrics for each Stimuli section
+    - PDF comparison export (summary and Table 4)
+    - Excel comparison export (summary and Light HRA sheet)
 
 - **UI Naming & Color Updates (March 9, 2026):**
   - Renamed "Normalized to Baseline" → **"Normalized to Average Baseline"** in:

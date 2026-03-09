@@ -477,6 +477,8 @@ def create_nature_pdf(request):
                     peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
                     baseline_bf_vals = [r.get('baseline_bf') for r in valid if r.get('baseline_bf')]
                     baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
+                    avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
+                    avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
                     peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                     peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                     ttp_vals = [r.get('time_to_peak_sec') for r in valid if r.get('time_to_peak_sec') is not None]
@@ -491,9 +493,10 @@ def create_nature_pdf(request):
                     roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
                     roc = np.mean(roc_vals) if roc_vals else None
                     
-                    # Reorganized order: Baseline BF, Avg BF, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Rate of Change
+                    # Reorganized order: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Rate of Change
                     y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{avg_norm:.1f}%" if avg_norm else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{peak_bf:.1f} bpm", TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—', TINTS['light'], width=col_width)
@@ -1851,6 +1854,8 @@ def create_nature_excel(request):
                 baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
                 avg_bf = np.mean([r.get('avg_bf', 0) for r in valid if r.get('avg_bf')])
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
+                avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
+                avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                 peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
                 ttp_1st = valid[0].get('time_to_peak_sec') if valid else None
@@ -1868,6 +1873,7 @@ def create_nature_excel(request):
                 hra_data = [
                     ('Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'),
                     ('Avg BF:', f"{avg_bf:.1f} bpm"),
+                    ('Avg (Norm.):', f"{avg_norm:.1f}%" if avg_norm else '—'),
                     ('Peak BF:', f"{peak_bf:.1f} bpm"),
                     ('Peak (Norm.):', f"{peak_norm:.1f}%" if peak_norm else '—'),
                     ('TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'),
@@ -2609,6 +2615,8 @@ def create_nature_csv(request):
                 baseline_bf_vals = [r.get('baseline_bf') for r in valid if r.get('baseline_bf')]
                 baseline_bf = np.mean(baseline_bf_vals) if baseline_bf_vals else None
                 avg_bf = np.mean([r.get('avg_bf', 0) for r in valid if r.get('avg_bf')])
+                avg_norm_vals = [r.get('avg_norm_pct') for r in valid if r.get('avg_norm_pct') is not None]
+                avg_norm = np.mean(avg_norm_vals) if avg_norm_vals else None
                 peak_bf = np.mean([r.get('peak_bf', 0) for r in valid if r.get('peak_bf')])
                 peak_norm_vals = [r.get('peak_norm_pct') for r in valid if r.get('peak_norm_pct') is not None]
                 peak_norm = np.mean(peak_norm_vals) if peak_norm_vals else None
@@ -2626,6 +2634,7 @@ def create_nature_csv(request):
                 
                 writer.writerow(['Baseline BF', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'])
                 writer.writerow(['Avg BF', f"{avg_bf:.1f} bpm"])
+                writer.writerow(['Avg (Norm.)', f"{avg_norm:.1f}%" if avg_norm else '—'])
                 writer.writerow(['Peak BF', f"{peak_bf:.1f} bpm"])
                 writer.writerow(['Peak (Norm.)', f"{peak_norm:.1f}%" if peak_norm else '—'])
                 writer.writerow(['Amplitude', f"{amplitude:.1f} bpm" if amplitude else '—'])
@@ -3189,6 +3198,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         y_right -= 0.018
         y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{fmt(hra_averages.get('light_avg_norm'), 1)}%", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(hra_averages.get('light_peak_norm'), 1)}%", TINTS['light'], width=col_width)
         # Format TTP values to show 0.0 instead of —
@@ -3795,8 +3805,8 @@ def create_comparison_pdf(folder_name, comparison_data):
         ax4a = fig4.add_axes([0.065, 0.48, 0.87, 0.34])
         ax4a.axis('off')
         
-        # Reordered columns with 1st TTP
-        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'RoC\n(1/min)']
+        # Reordered columns with 1st TTP and Avg %
+        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Avg\n%', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'RoC\n(1/min)']
         hra_data = []
         
         def fmt_ttp(val):
@@ -3810,6 +3820,7 @@ def create_comparison_pdf(folder_name, comparison_data):
                 extract_short_name(rec.get('name', '')),
                 fmt(rec.get('light_baseline_bf'), 1),
                 fmt(rec.get('light_avg_bf'), 1),
+                fmt(rec.get('light_avg_norm'), 1),
                 fmt(rec.get('light_peak_bf'), 1),
                 fmt(rec.get('light_peak_norm'), 1),
                 fmt_ttp(rec.get('light_ttp_first')),       # 1st TTP (s)
@@ -3824,6 +3835,7 @@ def create_comparison_pdf(folder_name, comparison_data):
             'Avg',
             fmt(hra_averages.get('light_baseline_bf'), 1),
             fmt(hra_averages.get('light_avg_bf'), 1),
+            fmt(hra_averages.get('light_avg_norm'), 1),
             fmt(hra_averages.get('light_peak_bf'), 1),
             fmt(hra_averages.get('light_peak_norm'), 1),
             fmt_ttp(hra_averages.get('light_ttp_first')),
@@ -3836,7 +3848,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         if hra_data:
             table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center',
-                                colWidths=[0.07, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09, 0.09])
+                                colWidths=[0.07, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08])
             table4a.auto_set_font_size(False)
             table4a.set_fontsize(5)
             table4a.scale(1.0, row_scale)
@@ -4302,6 +4314,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
     r += 1
     ws1[f'D{r}'] = 'Avg BF:'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm"
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
+    ws1[f'D{r}'] = 'Avg (Norm.):'
+    ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_avg_norm'), 1)}%"
     ws1[f'E{r}'].fill = light_fill
     r += 1
     ws1[f'D{r}'] = 'Peak BF:'
@@ -4829,7 +4845,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws4['A1'] = 'Table 4 | Light-Induced HRA Data'
     ws4['A1'].font = Font(bold=True, size=12)
     
-    hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+    hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
     for col, header in enumerate(hra_headers, 1):
         cell = ws4.cell(row=3, column=col, value=header)
         cell.font = header_font
@@ -4848,6 +4864,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
             extract_short_name(rec.get('name', '')),
             fmt(rec.get('light_baseline_bf'), 1),
             fmt(rec.get('light_avg_bf'), 1),
+            fmt(rec.get('light_avg_norm'), 1),
             fmt(rec.get('light_peak_bf'), 1),
             fmt(rec.get('light_peak_norm'), 1),
             fmt_ttp(rec.get('light_ttp_first')),
@@ -4871,6 +4888,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
         'Avg',
         fmt(hra_averages.get('light_baseline_bf'), 1),
         fmt(hra_averages.get('light_avg_bf'), 1),
+        fmt(hra_averages.get('light_avg_norm'), 1),
         fmt(hra_averages.get('light_peak_bf'), 1),
         fmt(hra_averages.get('light_peak_norm'), 1),
         fmt_ttp(hra_averages.get('light_ttp_first')),
