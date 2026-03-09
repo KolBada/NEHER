@@ -1261,8 +1261,8 @@ def create_nature_pdf(request):
                 ax = fig6.add_axes([0.08, 0.10, 0.84, 0.72])
                 ax.axis('off')
                 
-                # All HRA metrics - reordered with 1st TTP, Avg % and Amp. %
-                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'Amp. %', 'RoC (1/min)']
+                # All HRA metrics - reordered with 1st TTP, Avg % and Amp. % - units on new line
+                headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Avg\n%', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'Amp.\n%', 'RoC\n(1/min)']
                 table_data = []
                 
                 for i, r in enumerate(valid):
