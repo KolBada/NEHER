@@ -67,6 +67,22 @@ Build a production-ready web application for electrophysiology analysis of sharp
     - Global ON/OFF toggles synchronized with all other tables
   - Added Recharts imports for LineChart, ResponsiveContainer, ReferenceLine visualizations
 
+- **Baseline BF Color & Chart Enhancements:**
+  - Changed Baseline BF color from amber to **cyan** throughout Light Stimulus section:
+    - Main HRA table (header, values, and folder average)
+    - Normalized to Baseline table (header, values, and folder average)
+    - Per Stimuli tables (header, values, and folder average)
+    - Per Metrics Baseline BF table (header, chart line, and legend)
+  - Added **Baseline BF reference trace** (cyan dashed line) to charts for Avg BF, Peak BF, and Recovery BF metrics with legend
+  - Configured **fixed Y-axis scales** for Per Metrics charts:
+    - Peak %: 0 to 200
+    - TTP: 0 to 30
+    - Rec. %: 0 to 200
+    - RoC: -2 to 2
+    - ln(RMSSD₇₀): 0 to 8
+    - ln(SDNN₇₀): 0 to 8
+    - pNN50₇₀: 0 to 100
+
 ### March 6, 2026 (Session 2)
 - **Bug Fixes for Readout Controls:**
   - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup

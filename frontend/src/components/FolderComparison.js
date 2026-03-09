@@ -585,24 +585,24 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return stimTables;
   }, [comparisonData, excludedRecordings]);
 
-  // HRA metric definitions for Per Metrics tables
+  // HRA metric definitions for Per Metrics tables (with Y-axis scale config)
   const hraMetricDefs = useMemo(() => [
-    { key: 'baseline_bf', label: 'Baseline BF', decimals: 1 },
-    { key: 'avg_bf', label: 'Avg BF', decimals: 1 },
-    { key: 'peak_bf', label: 'Peak BF', decimals: 1 },
-    { key: 'peak_norm', label: 'Peak %', decimals: 1 },
-    { key: 'ttp', label: 'TTP', decimals: 1 },
-    { key: 'recovery_bf', label: 'Rec. BF', decimals: 1 },
-    { key: 'recovery_pct', label: 'Rec. %', decimals: 1 },
-    { key: 'amplitude', label: 'Amp.', decimals: 1 },
-    { key: 'roc', label: 'RoC', decimals: 4 },
+    { key: 'baseline_bf', label: 'Baseline BF', decimals: 1, color: 'cyan', yDomain: null },
+    { key: 'avg_bf', label: 'Avg BF', decimals: 1, showBaseline: true, yDomain: null },
+    { key: 'peak_bf', label: 'Peak BF', decimals: 1, showBaseline: true, yDomain: null },
+    { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200] },
+    { key: 'ttp', label: 'TTP', decimals: 1, yDomain: [0, 30] },
+    { key: 'recovery_bf', label: 'Rec. BF', decimals: 1, showBaseline: true, yDomain: null },
+    { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200] },
+    { key: 'amplitude', label: 'Amp.', decimals: 1, yDomain: null },
+    { key: 'roc', label: 'RoC', decimals: 4, yDomain: [-2, 2] },
   ], []);
 
-  // HRV metric definitions for Per Metrics tables
+  // HRV metric definitions for Per Metrics tables (with Y-axis scale config)
   const hrvMetricDefs = useMemo(() => [
-    { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀) corr.', decimals: 3 },
-    { key: 'ln_sdnn70', label: 'ln(SDNN₇₀) corr.', decimals: 3 },
-    { key: 'pnn50', label: 'pNN50₇₀ corr. (%)', decimals: 1 },
+    { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀) corr.', decimals: 3, yDomain: [0, 8] },
+    { key: 'ln_sdnn70', label: 'ln(SDNN₇₀) corr.', decimals: 3, yDomain: [0, 8] },
+    { key: 'pnn50', label: 'pNN50₇₀ corr. (%)', decimals: 1, yDomain: [0, 100] },
   ], []);
 
   // Compute per-metric HRA data (for each metric: rows=recordings, cols=stim1-5 + avg)
@@ -617,6 +617,29 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     };
     
     const maxStims = 5;
+    
+    // First, compute baseline BF data for reference in other metrics
+    const baselineBFData = allRecs.map(rec => {
+      const perStim = rec.per_stim_hra || [];
+      const stimValues = [];
+      for (let i = 0; i < maxStims; i++) {
+        const stim = perStim[i];
+        stimValues.push(stim ? stim.baseline_bf : null);
+      }
+      return {
+        id: rec.id,
+        name: rec.name,
+        isExcluded: excludedRecordings[rec.id] || false,
+        stimValues,
+        rowAvg: mean(stimValues),
+      };
+    });
+    const includedBaselineRecs = baselineBFData.filter(r => !r.isExcluded);
+    const baselineColAvgs = [];
+    for (let i = 0; i < maxStims; i++) {
+      baselineColAvgs.push(mean(includedBaselineRecs.map(r => r.stimValues[i])));
+    }
+    const baselineGrandAvg = mean(includedBaselineRecs.map(r => r.rowAvg));
     
     return hraMetricDefs.map(metric => {
       // Build per-recording data for this metric
@@ -649,7 +672,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       // Build chart data for visualization
       const chartData = [];
       for (let i = 0; i < maxStims; i++) {
-        const dataPoint = { stim: `Stim ${i + 1}`, average: colAvgs[i] };
+        const dataPoint = { 
+          stim: `Stim ${i + 1}`, 
+          average: colAvgs[i],
+          // Add baseline BF for metrics that show it
+          ...(metric.showBaseline ? { baseline: baselineColAvgs[i] } : {})
+        };
         includedRecs.forEach(rec => {
           dataPoint[rec.name] = rec.stimValues[i];
         });
@@ -659,6 +687,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       chartData.push({
         stim: 'Avg',
         average: grandAvg,
+        ...(metric.showBaseline ? { baseline: baselineGrandAvg } : {}),
         ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
       });
       
@@ -1086,7 +1115,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                         <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
                           <InfoTip text="Mean Beat Frequency from -2 to -1 min before first light stimulation">Baseline BF</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
@@ -1131,7 +1160,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               />
                             </td>
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_baseline_bf, 1)}</td>
+                            <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.light_baseline_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
@@ -1148,7 +1177,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
                         <td className="py-3 px-1"></td>
                         <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_baseline_bf, 1)}</td>
+                        <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(computedLightHRAAverages?.light_baseline_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_avg_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_peak_norm, 1)}</td>
@@ -1187,7 +1216,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <tr className="border-b border-zinc-800">
                             <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                             <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Baseline BF (%)</th>
+                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Avg BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Peak BF (%)</th>
                             <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Recovery BF (%)</th>
@@ -1206,7 +1235,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   />
                                 </td>
                                 <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                                <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
+                                <td className="py-2 px-2 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.norm_baseline_bf, 1)}</td>
                                 <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_avg_bf, 1)}</td>
                                 <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_peak_bf, 1)}</td>
                                 <td className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">{formatValue(rec.norm_recovery_bf, 1)}</td>
@@ -1217,7 +1246,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
                             <td className="py-3 px-1"></td>
                             <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={normalizedLightHRAAverages?.includedCount || 0})</td>
-                            <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
+                            <td className="py-3 px-2 text-center text-cyan-200 text-xs">{formatValue(normalizedLightHRAAverages?.norm_baseline_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_avg_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_peak_bf, 1)}</td>
                             <td className="py-3 px-2 text-center text-amber-100 text-xs">{formatValue(normalizedLightHRAAverages?.norm_recovery_bf, 1)}</td>
@@ -1257,7 +1286,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <tr className="border-b border-zinc-800">
                                     <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                                     <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Baseline BF</th>
+                                    <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
                                     <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Avg BF</th>
                                     <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak BF</th>
                                     <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak %</th>
@@ -1281,7 +1310,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                           />
                                         </td>
                                         <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.baseline_bf, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{v ? formatValue(v.baseline_bf, 1) : '—'}</td>
                                         <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.avg_bf, 1) : '—'}</td>
                                         <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_bf, 1) : '—'}</td>
                                         <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_norm, 1) : '—'}</td>
@@ -1297,7 +1326,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
                                     <td className="py-3 px-1"></td>
                                     <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={stimTable.includedCount})</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.baseline_bf, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(stimTable.averages.baseline_bf, 1)}</td>
                                     <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.avg_bf, 1)}</td>
                                     <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_bf, 1)}</td>
                                     <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_norm, 1)}</td>
@@ -1341,7 +1370,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <div className="space-y-6">
                         {perMetricHRAData.map((metricData) => (
                           <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className="text-sm font-semibold text-amber-400 mb-3">{metricData.label}</h4>
+                            <h4 className={`text-sm font-semibold mb-3 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>{metricData.label}</h4>
                             
                             {/* Visualization Chart */}
                             <div className="h-48 mb-4">
@@ -1349,20 +1378,37 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                   <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
-                                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <YAxis 
+                                    stroke="#a1a1aa" 
+                                    tick={{ fontSize: 10 }} 
+                                    domain={metricData.yDomain || ['auto', 'auto']}
+                                  />
                                   <RechartsTooltip 
                                     contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
+                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  {/* Baseline BF trace for Avg BF, Peak BF, Recovery BF charts */}
+                                  {metricData.showBaseline && (
+                                    <Line 
+                                      type="monotone" 
+                                      dataKey="baseline" 
+                                      stroke="#06b6d4" 
+                                      strokeWidth={2}
+                                      strokeDasharray="5 5"
+                                      dot={{ fill: '#06b6d4', r: 3 }}
+                                      name="Baseline BF"
+                                    />
+                                  )}
                                   <Line 
                                     type="monotone" 
                                     dataKey="average" 
-                                    stroke="#f59e0b" 
+                                    stroke={metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b'}
                                     strokeWidth={3}
-                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    dot={{ fill: metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b', r: 4 }}
                                     name="Folder Average"
                                   />
-                                  <ReferenceLine y={metricData.grandAvg} stroke="#f59e0b" strokeDasharray="5 5" strokeOpacity={0.5} />
+                                  <ReferenceLine y={metricData.grandAvg} stroke={metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b'} strokeDasharray="5 5" strokeOpacity={0.5} />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
@@ -1374,11 +1420,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <tr className="border-b border-zinc-800">
                                     <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
                                     <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 1</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 2</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 3</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 4</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 5</th>
+                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 1</th>
+                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 2</th>
+                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 3</th>
+                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 4</th>
+                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 5</th>
                                     <th className="text-center py-2 px-2 font-medium text-yellow-400 bg-yellow-950/30">Average</th>
                                   </tr>
                                 </thead>
@@ -1581,11 +1627,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                                   <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
-                                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <YAxis 
+                                    stroke="#a1a1aa" 
+                                    tick={{ fontSize: 10 }} 
+                                    domain={metricData.yDomain || ['auto', 'auto']}
+                                  />
                                   <RechartsTooltip 
                                     contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
+                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
                                   <Line 
                                     type="monotone" 
                                     dataKey="median" 
