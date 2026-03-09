@@ -37,6 +37,20 @@ Build a production-ready web application for electrophysiology analysis of sharp
   - Both Excel and PDF exports filter out excluded recordings before generating output
   - **Testing:** All tests passed (100% frontend success rate)
 
+- **Per Stimuli Tables for HRA and HRV:**
+  - Added "Per Stimuli" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
+  - **HRA Per Stimuli:** Shows 5 tables (Stimulation 1-5), each with:
+    - All recordings showing per-stim values: Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
+    - Recordings with no stim data show "—"
+    - "Folder Average" row with **mean** values from included recordings
+    - Global ON/OFF toggles synchronized with all other tables
+  - **HRV Per Stimuli:** Shows 5 tables (Stimulation 1-5), each with:
+    - All recordings showing per-stim values: ln(RMSSD₇₀) corr., ln(SDNN₇₀) corr., pNN50₇₀ corr. (%)
+    - "Folder Median" row with **median** values (not average, as requested)
+    - Global ON/OFF toggles synchronized with all other tables
+  - Backend `server.py` updated to extract `per_stim_hra` from `lightResponse.per_stim` and `per_stim_hrv` from `lightHrvDetrended.per_pulse`
+  - Frontend `FolderComparison.js` added `perStimHRAData` and `perStimHRVData` useMemo hooks for data computation
+
 ### March 6, 2026 (Session 2)
 - **Bug Fixes for Readout Controls:**
   - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup

@@ -482,47 +482,49 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   // Compute per-stim HRA data (5 tables with averages)
   const perStimHRAData = useMemo(() => {
     if (!comparisonData?.recordings) return [];
-    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
-    if (includedRecs.length === 0) return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
     
     const mean = (arr) => {
       const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
       return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
     };
     
-    // Determine max stim count (usually 5)
-    const maxStims = Math.max(...includedRecs.map(r => (r.per_stim_hra || []).length), 0);
+    // Determine max stim count (usually 5) from ALL recordings
+    const maxStims = Math.max(...allRecs.map(r => (r.per_stim_hra || []).length), 0);
     
     const stimTables = [];
     for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
-      const stimData = includedRecs.map(rec => {
+      // Show all recordings but mark excluded ones
+      const stimData = allRecs.map(rec => {
         const stimValues = (rec.per_stim_hra || [])[stimIdx];
         return {
           id: rec.id,
           name: rec.name,
           values: stimValues || null,
+          isExcluded: excludedRecordings[rec.id] || false,
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
       
-      // Calculate averages for this stim
-      const validValues = stimData.filter(r => r.values !== null).map(r => r.values);
+      // Calculate averages only from INCLUDED recordings with valid values
+      const includedWithValues = stimData.filter(r => !r.isExcluded && r.values !== null).map(r => r.values);
       const averages = {
-        baseline_bf: mean(validValues.map(v => v.baseline_bf)),
-        avg_bf: mean(validValues.map(v => v.avg_bf)),
-        peak_bf: mean(validValues.map(v => v.peak_bf)),
-        peak_norm: mean(validValues.map(v => v.peak_norm)),
-        ttp: mean(validValues.map(v => v.ttp)),
-        recovery_bf: mean(validValues.map(v => v.recovery_bf)),
-        recovery_pct: mean(validValues.map(v => v.recovery_pct)),
-        amplitude: mean(validValues.map(v => v.amplitude)),
-        roc: mean(validValues.map(v => v.roc)),
+        baseline_bf: mean(includedWithValues.map(v => v.baseline_bf)),
+        avg_bf: mean(includedWithValues.map(v => v.avg_bf)),
+        peak_bf: mean(includedWithValues.map(v => v.peak_bf)),
+        peak_norm: mean(includedWithValues.map(v => v.peak_norm)),
+        ttp: mean(includedWithValues.map(v => v.ttp)),
+        recovery_bf: mean(includedWithValues.map(v => v.recovery_bf)),
+        recovery_pct: mean(includedWithValues.map(v => v.recovery_pct)),
+        amplitude: mean(includedWithValues.map(v => v.amplitude)),
+        roc: mean(includedWithValues.map(v => v.roc)),
       };
       
       stimTables.push({
         stimIndex: stimIdx + 1,
         recordings: stimData,
         averages,
-        includedCount: validValues.length,
+        includedCount: includedWithValues.length,
       });
     }
     
@@ -532,8 +534,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   // Compute per-stim HRV data (5 tables with medians)
   const perStimHRVData = useMemo(() => {
     if (!comparisonData?.recordings) return [];
-    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
-    if (includedRecs.length === 0) return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
     
     const median = (arr) => {
       const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v)).sort((a, b) => a - b);
@@ -542,33 +544,35 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return valid.length % 2 !== 0 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
     };
     
-    // Determine max stim count (usually 5)
-    const maxStims = Math.max(...includedRecs.map(r => (r.per_stim_hrv || []).length), 0);
+    // Determine max stim count (usually 5) from ALL recordings
+    const maxStims = Math.max(...allRecs.map(r => (r.per_stim_hrv || []).length), 0);
     
     const stimTables = [];
     for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
-      const stimData = includedRecs.map(rec => {
+      // Show all recordings but mark excluded ones
+      const stimData = allRecs.map(rec => {
         const stimValues = (rec.per_stim_hrv || [])[stimIdx];
         return {
           id: rec.id,
           name: rec.name,
           values: stimValues || null,
+          isExcluded: excludedRecordings[rec.id] || false,
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
       
-      // Calculate medians for this stim
-      const validValues = stimData.filter(r => r.values !== null).map(r => r.values);
+      // Calculate medians only from INCLUDED recordings with valid values
+      const includedWithValues = stimData.filter(r => !r.isExcluded && r.values !== null).map(r => r.values);
       const medians = {
-        ln_rmssd70: median(validValues.map(v => v.ln_rmssd70)),
-        ln_sdnn70: median(validValues.map(v => v.ln_sdnn70)),
-        pnn50: median(validValues.map(v => v.pnn50)),
+        ln_rmssd70: median(includedWithValues.map(v => v.ln_rmssd70)),
+        ln_sdnn70: median(includedWithValues.map(v => v.ln_sdnn70)),
+        pnn50: median(includedWithValues.map(v => v.pnn50)),
       };
       
       stimTables.push({
         stimIndex: stimIdx + 1,
         recordings: stimData,
         medians,
-        includedCount: validValues.length,
+        includedCount: includedWithValues.length,
       });
     }
     
@@ -1102,13 +1106,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 </thead>
                                 <tbody>
                                   {stimTable.recordings.map((rec) => {
-                                    const isExcluded = excludedRecordings[rec.id];
                                     const v = rec.values;
                                     return (
-                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
                                         <td className="py-2 px-1">
                                           <RecordingToggle 
-                                            isExcluded={isExcluded} 
+                                            isExcluded={rec.isExcluded} 
                                             onToggle={() => toggleRecording(rec.id)}
                                             testId={`toggle-hra-stim${stimTable.stimIndex}-${rec.id}`}
                                           />
@@ -1238,13 +1241,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 </thead>
                                 <tbody>
                                   {stimTable.recordings.map((rec) => {
-                                    const isExcluded = excludedRecordings[rec.id];
                                     const v = rec.values;
                                     return (
-                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
                                         <td className="py-2 px-1">
                                           <RecordingToggle 
-                                            isExcluded={isExcluded} 
+                                            isExcluded={rec.isExcluded} 
                                             onToggle={() => toggleRecording(rec.id)}
                                             testId={`toggle-hrv-stim${stimTable.stimIndex}-${rec.id}`}
                                           />
