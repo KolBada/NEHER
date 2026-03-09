@@ -462,12 +462,19 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return (baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null;
     };
     
-    // Compute light_amp_norm on-the-fly for recordings that don't have it
-    const getAmpNorm = (rec) => {
-      if (rec.light_amp_norm != null) return rec.light_amp_norm;
-      const baseline = rec.light_baseline_bf;
+    // Compute light_dec_norm on-the-fly for recordings that don't have it (use Peak BF as denominator)
+    const getDecNorm = (rec) => {
+      if (rec.light_dec_norm != null) return rec.light_dec_norm;
+      // Fall back to old amp_norm if it exists (for backward compatibility)
+      if (rec.light_amp_norm != null) {
+        // Recompute with new formula using Peak BF
+        const peakBf = rec.light_peak_bf;
+        const amplitude = rec.light_amplitude;
+        return (peakBf && peakBf > 0 && amplitude != null) ? (100 * amplitude / peakBf) : null;
+      }
+      const peakBf = rec.light_peak_bf;
       const amplitude = rec.light_amplitude;
-      return (baseline && baseline > 0 && amplitude != null) ? (100 * amplitude / baseline) : null;
+      return (peakBf && peakBf > 0 && amplitude != null) ? (100 * amplitude / peakBf) : null;
     };
     
     return {
@@ -481,7 +488,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       light_recovery_bf: mean(includedRecs.map(r => r.light_recovery_bf)),
       light_recovery_pct: mean(includedRecs.map(r => r.light_recovery_pct)),
       light_amplitude: mean(includedRecs.map(r => r.light_amplitude)),
-      light_amp_norm: mean(includedRecs.map(r => getAmpNorm(r))),
+      light_dec_norm: mean(includedRecs.map(r => getDecNorm(r))),
       light_roc: mean(includedRecs.map(r => r.light_roc)),
     };
   }, [comparisonData, excludedRecordings]);
@@ -515,7 +522,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     { key: 'recovery_bf', label: 'Rec. BF', decimals: 1, showBaseline: true, yDomain: null, tooltip: 'Beat Frequency at the end of the stimulation period, before the drop' },
     { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Recovery %: 100 × Recovery BF / Baseline BF' },
     { key: 'amplitude', label: 'Amp.', decimals: 1, yDomain: null, tooltip: 'Amplitude: Peak BF − Recovery BF' },
-    { key: 'amp_norm_pct', label: 'Amp. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Normalized Amplitude: 100 × Amplitude / Baseline BF' },
+    { key: 'dec_norm_pct', label: 'Dec. %', decimals: 1, yDomain: [0, 100], showBaselinePct: false, tooltip: 'Decrease %: 100 × Amplitude / Peak BF' },
     { key: 'roc', label: 'RoC', decimals: 4, yDomain: [-2, 2], tooltip: 'Rate of Change: Slope of BF during stimulation, normalized by mean BF' },
   ], []);
 
@@ -575,11 +582,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               const baseline = stim.baseline_bf;
               const avgBf = stim.avg_bf;
               stimValues.push((baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null);
-            // Compute amp_norm_pct on-the-fly if missing
-            } else if (metric.key === 'amp_norm_pct' && stim.amp_norm_pct == null) {
-              const baseline = stim.baseline_bf;
+            // Compute dec_norm_pct on-the-fly if missing (use Peak BF as denominator)
+            } else if (metric.key === 'dec_norm_pct' && stim.dec_norm_pct == null) {
+              const peakBf = stim.peak_bf;
               const amplitude = stim.amplitude;
-              stimValues.push((baseline && baseline > 0 && amplitude != null) ? (100 * amplitude / baseline) : null);
+              stimValues.push((peakBf && peakBf > 0 && amplitude != null) ? (100 * amplitude / peakBf) : null);
             } else {
               stimValues.push(stim[metric.key]);
             }
@@ -1109,7 +1116,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <InfoTip text="Amplitude: Peak BF − Recovery BF">Amp.</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
-                          <InfoTip text="Normalized Amplitude: 100 × Amplitude / Baseline">Amp. %</InfoTip>
+                          <InfoTip text="Decrease %: 100 × Amplitude / Peak BF">Dec. %</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Slope of BF during stimulation, normalized by mean BF">RoC</InfoTip>
@@ -1143,9 +1150,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(
-                              rec.light_amp_norm != null ? rec.light_amp_norm : 
-                              (rec.light_baseline_bf && rec.light_baseline_bf > 0 && rec.light_amplitude != null ? 
-                                100 * rec.light_amplitude / rec.light_baseline_bf : null), 1)}</td>
+                              rec.light_peak_bf && rec.light_peak_bf > 0 && rec.light_amplitude != null ? 
+                                100 * rec.light_amplitude / rec.light_peak_bf : null, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
                           </tr>
                         );
@@ -1164,7 +1170,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_pct, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_amplitude, 1)}</td>
-                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_amp_norm, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_dec_norm, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_roc, 4)}</td>
                       </tr>
                     </tbody>

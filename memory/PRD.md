@@ -19,6 +19,14 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 9, 2026 (Current Session - Part 4)
+- **Renamed "Amp. %" to "Dec. %" (Decrease %)**
+  - Changed formula from `100 × Amplitude / Baseline` to `100 × Amplitude / Peak BF`
+  - Updated tooltip: "Decrease %: 100 × Amplitude / Peak BF"
+  - Frontend updates: FolderComparison.js (comparison page), LightPanel.js (single recording)
+  - Export updates: All PDF, Excel, CSV for single recording; PDF, Excel for comparison
+  - On-the-fly calculation updated for backward compatibility with saved recordings
+
 ### March 9, 2026 (Current Session - Part 3)
 - **Per Metrics Legend Fixes:**
   - Reordered legend: Per Stim Average first, Baseline BF second, All Stims Average LAST

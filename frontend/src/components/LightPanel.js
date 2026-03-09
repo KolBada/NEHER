@@ -681,11 +681,12 @@ function LightPanel({
   // Average Heart Rate Adaptation (was light response)
   const rawAvgHra = lightResponse?.mean_metrics;
   
-  // Compute avg_norm_pct and amp_norm_pct on-the-fly if missing (for older recordings)
+  // Compute avg_norm_pct and dec_norm_pct on-the-fly if missing (for older recordings)
   const avgHra = useMemo(() => {
     if (!rawAvgHra) return null;
     
     const baseline = rawAvgHra.baseline_bf || lightResponse?.baseline_bf;
+    const peakBf = rawAvgHra.peak_bf;
     
     // Compute avg_norm_pct if missing
     let avgNormPct = rawAvgHra.avg_norm_pct;
@@ -693,16 +694,16 @@ function LightPanel({
       avgNormPct = 100 * rawAvgHra.avg_bf / baseline;
     }
     
-    // Compute amp_norm_pct if missing
-    let ampNormPct = rawAvgHra.amp_norm_pct;
-    if (ampNormPct == null && baseline && baseline > 0 && rawAvgHra.amplitude != null) {
-      ampNormPct = 100 * rawAvgHra.amplitude / baseline;
+    // Compute dec_norm_pct (Decrease %) using Peak BF as denominator
+    let decNormPct = null;
+    if (peakBf && peakBf > 0 && rawAvgHra.amplitude != null) {
+      decNormPct = 100 * rawAvgHra.amplitude / peakBf;
     }
     
-    return { ...rawAvgHra, avg_norm_pct: avgNormPct, amp_norm_pct: ampNormPct };
+    return { ...rawAvgHra, avg_norm_pct: avgNormPct, dec_norm_pct: decNormPct };
   }, [rawAvgHra, lightResponse]);
   
-  // Compute per_stim data with avg_norm_pct and amp_norm_pct on-the-fly if missing
+  // Compute per_stim data with avg_norm_pct and dec_norm_pct on-the-fly if missing
   const computedPerStim = useMemo(() => {
     if (!lightResponse?.per_stim) return null;
     
@@ -710,6 +711,7 @@ function LightPanel({
       if (!s) return null;
       
       const baseline = s.baseline_bf || lightResponse?.baseline_bf;
+      const peakBf = s.peak_bf;
       
       // Compute avg_norm_pct if missing
       let avgNormPct = s.avg_norm_pct;
@@ -717,13 +719,13 @@ function LightPanel({
         avgNormPct = 100 * s.avg_bf / baseline;
       }
       
-      // Compute amp_norm_pct if missing
-      let ampNormPct = s.amp_norm_pct;
-      if (ampNormPct == null && baseline && baseline > 0 && s.amplitude != null) {
-        ampNormPct = 100 * s.amplitude / baseline;
+      // Compute dec_norm_pct (Decrease %) using Peak BF as denominator
+      let decNormPct = null;
+      if (peakBf && peakBf > 0 && s.amplitude != null) {
+        decNormPct = 100 * s.amplitude / peakBf;
       }
       
-      return { ...s, avg_norm_pct: avgNormPct, amp_norm_pct: ampNormPct };
+      return { ...s, avg_norm_pct: avgNormPct, dec_norm_pct: decNormPct };
     });
   }, [lightResponse]);
 
@@ -1363,10 +1365,10 @@ function LightPanel({
                         tooltip="Recovery %: 100 × Recovery/Baseline"
                       />
                       <MetricCard 
-                        label="Amp. %" 
-                        value={avgHra.amp_norm_pct} 
+                        label="Dec. %" 
+                        value={avgHra.dec_norm_pct} 
                         unit="%"
-                        tooltip="Normalized Amp: 100 × Amplitude/Baseline"
+                        tooltip="Decrease %: 100 × Amplitude/Peak BF"
                       />
                     </div>
                   </div>
@@ -1390,7 +1392,7 @@ function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Recovery BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Recovery %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amp. %</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Dec. %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Rate of Change</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1433,7 +1435,7 @@ function LightPanel({
                             {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
-                            {s && s.amp_norm_pct != null ? s.amp_norm_pct.toFixed(1) : '\u2014'}
+                            {s && s.dec_norm_pct != null ? s.dec_norm_pct.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.rate_of_change != null ? s.rate_of_change.toFixed(4) : '\u2014'}
