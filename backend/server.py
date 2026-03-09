@@ -1657,6 +1657,43 @@ def extract_comparison_metrics(recording: dict) -> dict:
         result['light_hrv_ln_sdnn70'] = final.get('ln_sdnn70_detrended')
         result['light_hrv_pnn50'] = final.get('pnn50_detrended')
     
+    # Per-Stim HRA data for comparison tables
+    result['per_stim_hra'] = []
+    if light_response and isinstance(light_response, dict):
+        per_stim = light_response.get('per_stim', [])
+        baseline_bf = light_response.get('baseline_bf') or result.get('light_baseline_bf')
+        for i, stim in enumerate(per_stim):
+            if stim is not None and isinstance(stim, dict):
+                result['per_stim_hra'].append({
+                    'stim_index': i + 1,
+                    'baseline_bf': baseline_bf,
+                    'avg_bf': stim.get('avg_bf'),
+                    'peak_bf': stim.get('peak_bf'),
+                    'peak_norm': stim.get('peak_norm_pct'),
+                    'ttp': stim.get('time_to_peak_sec'),
+                    'recovery_bf': stim.get('bf_end'),
+                    'recovery_pct': stim.get('bf_end_pct'),
+                    'amplitude': stim.get('amplitude'),
+                    'roc': stim.get('rate_of_change'),
+                })
+            else:
+                result['per_stim_hra'].append(None)
+    
+    # Per-Stim HRV data for comparison tables
+    result['per_stim_hrv'] = []
+    if light_hrv_detrended and light_hrv_detrended.get('per_pulse'):
+        per_pulse = light_hrv_detrended.get('per_pulse', [])
+        for i, pulse in enumerate(per_pulse):
+            if pulse is not None and isinstance(pulse, dict):
+                result['per_stim_hrv'].append({
+                    'stim_index': i + 1,
+                    'ln_rmssd70': pulse.get('ln_rmssd70_detrended'),
+                    'ln_sdnn70': pulse.get('ln_sdnn70_detrended'),
+                    'pnn50': pulse.get('pnn50_detrended'),
+                })
+            else:
+                result['per_stim_hrv'].append(None)
+    
     return result
 
 

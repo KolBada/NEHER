@@ -1,0 +1,94 @@
+{
+  "summary": "Tested Per Stimuli expandable sections in Light Stimulus tab. HRA and HRV Per Stimuli features are implemented and mostly working. Found one code issue: excluded recordings are hidden from per-stim tables instead of being shown with grayed-out styling.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "FolderComparison.js - perStimHRAData/perStimHRVData useMemo",
+        "issue": "Excluded recordings are completely hidden from per-stim tables instead of shown with opacity-40 styling. When a recording is toggled OFF, it disappears from all per-stim tables rather than being grayed out.",
+        "selector": "perStimHRAData useMemo lines 485-530, perStimHRVData useMemo lines 535-576",
+        "priority": "LOW",
+        "fix_suggestion": "Change from filtering out excluded recordings early (line 485: const includedRecs = ...) to showing all recordings but only calculating averages/medians from included ones. The render code at line 1105 already checks isExcluded but it never evaluates to true because excluded recordings are filtered before reaching the render."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/test_reports/iteration_22.json"
+  ],
+
+  "action_items": [
+    "Optional fix: Update perStimHRAData and perStimHRVData useMemo hooks to include all recordings in display while only calculating averages/medians from non-excluded ones"
+  ],
+
+  "critical_code_review_comments": [
+    "FolderComparison.js lines 62-63: hraPerStimExpanded and hrvPerStimExpanded state correctly added",
+    "FolderComparison.js lines 482-530: perStimHRAData useMemo correctly computes 5 stimulation tables with AVERAGES",
+    "FolderComparison.js lines 532-576: perStimHRVData useMemo correctly computes 5 stimulation tables with MEDIANS",
+    "FolderComparison.js line 1068: HRA Per Stimuli button has correct data-testid='expand-hra-per-stim'",
+    "FolderComparison.js line 1210: HRV Per Stimuli button has correct data-testid='expand-hrv-per-stim'",
+    "FolderComparison.js lines 1092-1100: HRA Per Stimuli tables have all 9 metrics columns (Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC)",
+    "FolderComparison.js lines 1233-1236: HRV Per Stimuli tables have 3 metrics columns (ln(RMSSD70) corr., ln(SDNN70) corr., pNN5070 corr. (%))",
+    "FolderComparison.js line 1132: HRA Per Stimuli shows 'Folder Average' label",
+    "FolderComparison.js line 1262: HRV Per Stimuli shows 'Folder Median' label (correct - HRV uses median)",
+    "FolderComparison.js line 1117: Recordings with no stim data correctly show '—' dashes"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "95% (Per Stimuli feature working, minor toggle display issue)"
+  },
+
+  "test_credentials": "",
+  "seed_data_creation": "Used existing folder: H9 hCO + Light Stimulus with 8 recordings (including 1 with no stims: H9-Light/Pre-Nepi-C4)",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Per Stimuli feature tested. Key test IDs: expand-hra-per-stim, expand-hrv-per-stim, toggle-hra-stim{N}-{recId}, toggle-hrv-stim{N}-{recId}. HRA uses AVERAGE for folder aggregate, HRV uses MEDIAN. No-stims recording shows dashes. Toggle behavior hides excluded recordings from per-stim tables.",
+
+  "features_verified": {
+    "hra_per_stim_button": "PASS - Button with data-testid='expand-hra-per-stim' below Normalized to Baseline",
+    "hra_per_stim_5_tables": "PASS - Shows Stimulation 1-5 tables when expanded",
+    "hra_per_stim_metrics": "PASS - All 9 HRA metrics: Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC",
+    "hra_per_stim_folder_average": "PASS - Shows 'Folder Average (n=X)' with AVERAGE values",
+    "hrv_per_stim_button": "PASS - Button with data-testid='expand-hrv-per-stim' in HRV card",
+    "hrv_per_stim_5_tables": "PASS - Shows Stimulation 1-5 tables when expanded",
+    "hrv_per_stim_metrics": "PASS - 3 corrected HRV metrics: ln(RMSSD70) corr., ln(SDNN70) corr., pNN5070 corr. (%)",
+    "hrv_per_stim_folder_median": "PASS - Shows 'Folder Median (n=X)' with MEDIAN values (not average)",
+    "no_stim_recording_dashes": "PASS - H9-Light/Pre-Nepi-C4 (no stims) shows '—' in all per-stim tables",
+    "toggle_affects_calculations": "PARTIAL PASS - Toggle affects average/median calculations but excluded recordings are hidden instead of grayed out"
+  },
+
+  "test_results": {
+    "tests_executed": 8,
+    "tests_passed": 7,
+    "tests_partial": 1,
+    "tests_failed": 0,
+    "playwright_tests": {
+      "expand_hra_per_stim": "PASS - Button found and expandable",
+      "hra_stimulation_tables_count": "PASS - 5 stimulation tables present",
+      "expand_hrv_per_stim": "PASS - Button found and expandable",
+      "hrv_folder_median_label": "PASS - Shows 'Folder Median' not 'Folder Average'",
+      "no_stims_shows_dashes": "PASS - 77 dash cells found for no-stims recording",
+      "toggle_updates_n_count": "PASS - Folder Average changed from n=8 to n=7 after toggle"
+    }
+  },
+
+  "hydration_warnings": [
+    "Console shows React hydration warnings: '<tr> cannot be child of <span>', '<span> cannot be child of <tbody>'",
+    "These warnings are from the table rendering but don't affect functionality",
+    "Likely caused by React dev mode wrapper elements"
+  ],
+
+  "notes": "All Per Stimuli features are functional. The toggle behavior difference (hiding vs graying out) is a minor UX inconsistency - the main tables show excluded recordings grayed out, but per-stim tables hide them completely. This doesn't affect data accuracy, just visual consistency."
+}

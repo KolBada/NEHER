@@ -59,6 +59,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [comparisonData, setComparisonData] = useState(null);
   const [spontNormExpanded, setSpontNormExpanded] = useState({});  // Object keyed by drug key
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
+  const [hraPerStimExpanded, setHraPerStimExpanded] = useState(false);  // Per Stimuli for HRA
+  const [hrvPerStimExpanded, setHrvPerStimExpanded] = useState(false);  // Per Stimuli for HRV
   // Global excluded recordings - applies to ALL tables and exports
   const [excludedRecordings, setExcludedRecordings] = useState({});  // { recordingId: true }
   
@@ -475,6 +477,102 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       light_hrv_ln_sdnn70: mean(includedRecs.map(r => r.light_hrv_ln_sdnn70)),
       light_hrv_pnn50: mean(includedRecs.map(r => r.light_hrv_pnn50)),
     };
+  }, [comparisonData, excludedRecordings]);
+
+  // Compute per-stim HRA data (5 tables with averages)
+  const perStimHRAData = useMemo(() => {
+    if (!comparisonData?.recordings) return [];
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return [];
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    // Determine max stim count (usually 5)
+    const maxStims = Math.max(...includedRecs.map(r => (r.per_stim_hra || []).length), 0);
+    
+    const stimTables = [];
+    for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
+      const stimData = includedRecs.map(rec => {
+        const stimValues = (rec.per_stim_hra || [])[stimIdx];
+        return {
+          id: rec.id,
+          name: rec.name,
+          values: stimValues || null,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Calculate averages for this stim
+      const validValues = stimData.filter(r => r.values !== null).map(r => r.values);
+      const averages = {
+        baseline_bf: mean(validValues.map(v => v.baseline_bf)),
+        avg_bf: mean(validValues.map(v => v.avg_bf)),
+        peak_bf: mean(validValues.map(v => v.peak_bf)),
+        peak_norm: mean(validValues.map(v => v.peak_norm)),
+        ttp: mean(validValues.map(v => v.ttp)),
+        recovery_bf: mean(validValues.map(v => v.recovery_bf)),
+        recovery_pct: mean(validValues.map(v => v.recovery_pct)),
+        amplitude: mean(validValues.map(v => v.amplitude)),
+        roc: mean(validValues.map(v => v.roc)),
+      };
+      
+      stimTables.push({
+        stimIndex: stimIdx + 1,
+        recordings: stimData,
+        averages,
+        includedCount: validValues.length,
+      });
+    }
+    
+    return stimTables;
+  }, [comparisonData, excludedRecordings]);
+
+  // Compute per-stim HRV data (5 tables with medians)
+  const perStimHRVData = useMemo(() => {
+    if (!comparisonData?.recordings) return [];
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return [];
+    
+    const median = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v)).sort((a, b) => a - b);
+      if (valid.length === 0) return null;
+      const mid = Math.floor(valid.length / 2);
+      return valid.length % 2 !== 0 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
+    };
+    
+    // Determine max stim count (usually 5)
+    const maxStims = Math.max(...includedRecs.map(r => (r.per_stim_hrv || []).length), 0);
+    
+    const stimTables = [];
+    for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
+      const stimData = includedRecs.map(rec => {
+        const stimValues = (rec.per_stim_hrv || [])[stimIdx];
+        return {
+          id: rec.id,
+          name: rec.name,
+          values: stimValues || null,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Calculate medians for this stim
+      const validValues = stimData.filter(r => r.values !== null).map(r => r.values);
+      const medians = {
+        ln_rmssd70: median(validValues.map(v => v.ln_rmssd70)),
+        ln_sdnn70: median(validValues.map(v => v.ln_sdnn70)),
+        pnn50: median(validValues.map(v => v.pnn50)),
+      };
+      
+      stimTables.push({
+        stimIndex: stimIdx + 1,
+        recordings: stimData,
+        medians,
+        includedCount: validValues.length,
+      });
+    }
+    
+    return stimTables;
   }, [comparisonData, excludedRecordings]);
 
   // Sort normalized spontaneous data alphabetically
@@ -961,6 +1059,98 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     </div>
                   </div>
                 </div>
+                
+                {/* Expandable Per Stimuli Section for HRA */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setHraPerStimExpanded(!hraPerStimExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-hra-per-stim"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${hraPerStimExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Stimuli</span>
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      hraPerStimExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {perStimHRAData.length > 0 ? (
+                      <div className="space-y-4">
+                        {perStimHRAData.map((stimTable) => (
+                          <div key={stimTable.stimIndex} className="bg-zinc-900/40 rounded-lg p-3">
+                            <h4 className="text-xs font-semibold text-amber-400 mb-2">Stimulation {stimTable.stimIndex}</h4>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800">
+                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
+                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Baseline BF</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Avg BF</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak BF</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak %</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">TTP</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Rec. BF</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Rec. %</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Amp.</th>
+                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">RoC</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {stimTable.recordings.map((rec) => {
+                                    const isExcluded = excludedRecordings[rec.id];
+                                    const v = rec.values;
+                                    return (
+                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                        <td className="py-2 px-1">
+                                          <RecordingToggle 
+                                            isExcluded={isExcluded} 
+                                            onToggle={() => toggleRecording(rec.id)}
+                                            testId={`toggle-hra-stim${stimTable.stimIndex}-${rec.id}`}
+                                          />
+                                        </td>
+                                        <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.baseline_bf, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.avg_bf, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_bf, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_norm, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.ttp, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.recovery_bf, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.recovery_pct, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.amplitude, 1) : '—'}</td>
+                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.roc, 4) : '—'}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {/* Average Row */}
+                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={stimTable.includedCount})</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.baseline_bf, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.avg_bf, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_bf, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_norm, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.ttp, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.recovery_bf, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.recovery_pct, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.amplitude, 1)}</td>
+                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.roc, 4)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">No per-stimuli data available</p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -1010,6 +1200,80 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       </tr>
                     </tbody>
                   </table>
+                </div>
+                
+                {/* Expandable Per Stimuli Section for HRV */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setHrvPerStimExpanded(!hrvPerStimExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-hrv-per-stim"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${hrvPerStimExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Stimuli</span>
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      hrvPerStimExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {perStimHRVData.length > 0 ? (
+                      <div className="space-y-4">
+                        {perStimHRVData.map((stimTable) => (
+                          <div key={stimTable.stimIndex} className="bg-zinc-900/40 rounded-lg p-3">
+                            <h4 className="text-xs font-semibold text-amber-400 mb-2">Stimulation {stimTable.stimIndex}</h4>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800">
+                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
+                                    <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
+                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(SDNN<sub>70</sub>) corr.</th>
+                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">pNN50<sub>70</sub> corr. (%)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {stimTable.recordings.map((rec) => {
+                                    const isExcluded = excludedRecordings[rec.id];
+                                    const v = rec.values;
+                                    return (
+                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                        <td className="py-2 px-1">
+                                          <RecordingToggle 
+                                            isExcluded={isExcluded} 
+                                            onToggle={() => toggleRecording(rec.id)}
+                                            testId={`toggle-hrv-stim${stimTable.stimIndex}-${rec.id}`}
+                                          />
+                                        </td>
+                                        <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
+                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.ln_rmssd70, 3) : '—'}</td>
+                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.ln_sdnn70, 3) : '—'}</td>
+                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.pnn50, 1) : '—'}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {/* Median Row */}
+                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-3 text-amber-300 text-xs">Folder Median (n={stimTable.includedCount})</td>
+                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.ln_rmssd70, 3)}</td>
+                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.ln_sdnn70, 3)}</td>
+                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.pnn50, 1)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">No per-stimuli data available</p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
