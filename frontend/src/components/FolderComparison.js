@@ -586,14 +586,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   }, [comparisonData, excludedRecordings]);
 
   // HRA metric definitions for Per Metrics tables (with Y-axis scale config)
+  // Removed Baseline BF as per user request
   const hraMetricDefs = useMemo(() => [
-    { key: 'baseline_bf', label: 'Baseline BF', decimals: 1, color: 'cyan', yDomain: null },
     { key: 'avg_bf', label: 'Avg BF', decimals: 1, showBaseline: true, yDomain: null },
     { key: 'peak_bf', label: 'Peak BF', decimals: 1, showBaseline: true, yDomain: null },
-    { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200] },
+    { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
     { key: 'ttp', label: 'TTP', decimals: 1, yDomain: [0, 30] },
     { key: 'recovery_bf', label: 'Rec. BF', decimals: 1, showBaseline: true, yDomain: null },
-    { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200] },
+    { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
     { key: 'amplitude', label: 'Amp.', decimals: 1, yDomain: null },
     { key: 'roc', label: 'RoC', decimals: 4, yDomain: [-2, 2] },
   ], []);
@@ -669,25 +669,33 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       }
       const grandAvg = mean(includedRecs.map(r => r.rowAvg));
       
+      // Stim Average = average of all column averages (average across 5 stims)
+      const stimAvg = mean(colAvgs);
+      
       // Build chart data for visualization
       const chartData = [];
       for (let i = 0; i < maxStims; i++) {
         const dataPoint = { 
           stim: `Stim ${i + 1}`, 
-          average: colAvgs[i],
-          // Add baseline BF for metrics that show it
-          ...(metric.showBaseline ? { baseline: baselineColAvgs[i] } : {})
+          perStimAvg: colAvgs[i],
+          stimAvg: stimAvg,
+          // Add baseline BF for metrics that show it (Avg BF, Peak BF, Rec. BF)
+          ...(metric.showBaseline ? { baseline: baselineColAvgs[i] } : {}),
+          // Add 100% baseline for percentage metrics (Peak %, Rec. %)
+          ...(metric.showBaselinePct ? { baselinePct: 100 } : {})
         };
         includedRecs.forEach(rec => {
           dataPoint[rec.name] = rec.stimValues[i];
         });
         chartData.push(dataPoint);
       }
-      // Add average column to chart
+      // Add average column to chart (last point)
       chartData.push({
         stim: 'Avg',
-        average: grandAvg,
+        perStimAvg: grandAvg,
+        stimAvg: stimAvg,
         ...(metric.showBaseline ? { baseline: baselineGrandAvg } : {}),
+        ...(metric.showBaselinePct ? { baselinePct: 100 } : {}),
         ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
       });
       
@@ -696,6 +704,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         recordings: recordingData,
         colAvgs,
         grandAvg,
+        stimAvg,
         includedCount: includedRecs.length,
         chartData,
       };
@@ -745,10 +754,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       }
       const grandMedian = median(includedRecs.map(r => r.rowMedian));
       
+      // Stim Median = median of all column medians (median across 5 stims)
+      const stimMedian = median(colMedians);
+      
       // Build chart data for visualization
       const chartData = [];
       for (let i = 0; i < maxStims; i++) {
-        const dataPoint = { stim: `Stim ${i + 1}`, median: colMedians[i] };
+        const dataPoint = { 
+          stim: `Stim ${i + 1}`, 
+          perStimMedian: colMedians[i],
+          stimMedian: stimMedian
+        };
         includedRecs.forEach(rec => {
           dataPoint[rec.name] = rec.stimValues[i];
         });
@@ -757,7 +773,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       // Add median column to chart
       chartData.push({
         stim: 'Median',
-        median: grandMedian,
+        perStimMedian: grandMedian,
+        stimMedian: stimMedian,
         ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowMedian]))
       });
       
@@ -766,6 +783,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         recordings: recordingData,
         colMedians,
         grandMedian,
+        stimMedian,
         includedCount: includedRecs.length,
         chartData,
       };
@@ -1257,97 +1275,6 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   </div>
                 </div>
                 
-                {/* Expandable Per Stimuli Section for HRA */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/50">
-                  <button
-                    onClick={() => setHraPerStimExpanded(!hraPerStimExpanded)}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
-                    data-testid="expand-hra-per-stim"
-                  >
-                    <ChevronRight 
-                      className={`w-4 h-4 transition-transform duration-200 ${hraPerStimExpanded ? 'rotate-90' : ''}`}
-                    />
-                    <span className="font-medium">Per Stimuli</span>
-                  </button>
-                  
-                  <div 
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      hraPerStimExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
-                    }`}
-                  >
-                    {perStimHRAData.length > 0 ? (
-                      <div className="space-y-4">
-                        {perStimHRAData.map((stimTable) => (
-                          <div key={stimTable.stimIndex} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className="text-xs font-semibold text-amber-400 mb-2">Stimulation {stimTable.stimIndex}</h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b border-zinc-800">
-                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Avg BF</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak BF</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Peak %</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">TTP</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Rec. BF</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Rec. %</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">Amp.</th>
-                                    <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">RoC</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {stimTable.recordings.map((rec) => {
-                                    const v = rec.values;
-                                    return (
-                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
-                                        <td className="py-2 px-1">
-                                          <RecordingToggle 
-                                            isExcluded={rec.isExcluded} 
-                                            onToggle={() => toggleRecording(rec.id)}
-                                            testId={`toggle-hra-stim${stimTable.stimIndex}-${rec.id}`}
-                                          />
-                                        </td>
-                                        <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
-                                        <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{v ? formatValue(v.baseline_bf, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.avg_bf, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_bf, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.peak_norm, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.ttp, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.recovery_bf, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.recovery_pct, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.amplitude, 1) : '—'}</td>
-                                        <td className="py-2 px-1 text-center text-zinc-300">{v ? formatValue(v.roc, 4) : '—'}</td>
-                                      </tr>
-                                    );
-                                  })}
-                                  {/* Average Row */}
-                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
-                                    <td className="py-3 px-1"></td>
-                                    <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={stimTable.includedCount})</td>
-                                    <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(stimTable.averages.baseline_bf, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.avg_bf, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_bf, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.peak_norm, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.ttp, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.recovery_bf, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.recovery_pct, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.amplitude, 1)}</td>
-                                    <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(stimTable.averages.roc, 4)}</td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500 text-sm">No per-stimuli data available</p>
-                    )}
-                  </div>
-                </div>
-                
                 {/* Expandable Per Metrics Section for HRA */}
                 <div className="mt-4 pt-3 border-t border-zinc-800/50">
                   <button
@@ -1522,79 +1449,6 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       </tr>
                     </tbody>
                   </table>
-                </div>
-                
-                {/* Expandable Per Stimuli Section for HRV */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/50">
-                  <button
-                    onClick={() => setHrvPerStimExpanded(!hrvPerStimExpanded)}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
-                    data-testid="expand-hrv-per-stim"
-                  >
-                    <ChevronRight 
-                      className={`w-4 h-4 transition-transform duration-200 ${hrvPerStimExpanded ? 'rotate-90' : ''}`}
-                    />
-                    <span className="font-medium">Per Stimuli</span>
-                  </button>
-                  
-                  <div 
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      hrvPerStimExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
-                    }`}
-                  >
-                    {perStimHRVData.length > 0 ? (
-                      <div className="space-y-4">
-                        {perStimHRVData.map((stimTable) => (
-                          <div key={stimTable.stimIndex} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className="text-xs font-semibold text-amber-400 mb-2">Stimulation {stimTable.stimIndex}</h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b border-zinc-800">
-                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                                    <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
-                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(SDNN<sub>70</sub>) corr.</th>
-                                    <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">pNN50<sub>70</sub> corr. (%)</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {stimTable.recordings.map((rec) => {
-                                    const v = rec.values;
-                                    return (
-                                      <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
-                                        <td className="py-2 px-1">
-                                          <RecordingToggle 
-                                            isExcluded={rec.isExcluded} 
-                                            onToggle={() => toggleRecording(rec.id)}
-                                            testId={`toggle-hrv-stim${stimTable.stimIndex}-${rec.id}`}
-                                          />
-                                        </td>
-                                        <td className="py-2 px-3 text-zinc-300 font-medium">{rec.name}</td>
-                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.ln_rmssd70, 3) : '—'}</td>
-                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.ln_sdnn70, 3) : '—'}</td>
-                                        <td className="py-2 px-3 text-center text-zinc-300">{v ? formatValue(v.pnn50, 1) : '—'}</td>
-                                      </tr>
-                                    );
-                                  })}
-                                  {/* Median Row */}
-                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
-                                    <td className="py-3 px-1"></td>
-                                    <td className="py-3 px-3 text-amber-300 text-xs">Folder Median (n={stimTable.includedCount})</td>
-                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.ln_rmssd70, 3)}</td>
-                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.ln_sdnn70, 3)}</td>
-                                    <td className="py-3 px-3 text-center text-amber-100 text-xs">{formatValue(stimTable.medians.pnn50, 1)}</td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500 text-sm">No per-stimuli data available</p>
-                    )}
-                  </div>
                 </div>
                 
                 {/* Expandable Per Metrics Section for HRV */}
