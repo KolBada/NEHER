@@ -162,15 +162,18 @@ def create_nature_pdf(request):
                       linewidth=0.5, transform=fig.transFigure))
         return y - 0.008
     
-    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18):
+    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18, text_color=None):
         """Draw a data row with label and value"""
         if bg_color:
             fig.add_artist(mpatches.Rectangle(
                 (x, y - 0.008), width, 0.020,
                 facecolor=bg_color, edgecolor='none', transform=fig.transFigure
             ))
-        fig.text(x + 0.01, y, label, fontsize=8, color=COLORS['gray'], fontfamily=body_font, va='center')
-        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=COLORS['dark'],
+        # Use custom text_color if provided, otherwise use default colors
+        label_color = text_color if text_color else COLORS['gray']
+        value_color = text_color if text_color else COLORS['dark']
+        fig.text(x + 0.01, y, label, fontsize=8, color=label_color, fontfamily=body_font, va='center')
+        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=value_color,
                 fontfamily=body_font, va='center')
         return y - 0.020
     
@@ -500,7 +503,8 @@ def create_nature_pdf(request):
                     roc = np.mean(roc_vals) if roc_vals else None
                     
                     # Reorganized order: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Rate of Change
-                    y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width)
+                    cyan_text = '#0891b2'  # Cyan color for Baseline BF text
+                    y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width, text_color=cyan_text)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{avg_norm:.1f}%" if avg_norm else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{peak_bf:.1f} bpm", TINTS['light'], width=col_width)
@@ -1328,17 +1332,26 @@ def create_nature_pdf(request):
                 
                 # Lighter red for average row
                 light_red = '#f87171'
+                cyan_color = '#06b6d4'  # Cyan for Baseline BF column
                 
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor('#e5e7eb')
                     if row == 0:
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                        cell.set_facecolor(COLORS['amber'])
+                        # Column 1 (Baseline BF) is cyan, others amber
+                        if col == 1:  # Baseline BF column
+                            cell.set_facecolor(cyan_color)
+                        else:
+                            cell.set_facecolor(COLORS['amber'])
                     elif row == len(table_data):
                         cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                         cell.set_facecolor(light_red)
                     else:
-                        cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
+                        # Data rows: Baseline BF column gets cyan tint, others get amber tint
+                        if col == 1:  # Baseline BF column
+                            cell.set_facecolor('#cffafe' if row % 2 == 0 else '#ecfeff')  # Cyan tints
+                        else:
+                            cell.set_facecolor('#fef3c7' if row % 2 == 0 else 'white')
                         cell.set_text_props(fontfamily=body_font)
                 
                 add_page_footer(fig6, page_num)
@@ -1922,11 +1935,21 @@ def create_nature_excel(request):
                     ('Rate of Change:', f"{roc:.3f} 1/min" if roc else '—'),
                 ]
                 
-                for label, value in hra_data:
-                    ws.cell(row=right_row, column=right_col, value=label).font = data_font
-                    ws.cell(row=right_row, column=right_col).fill = light_fill
-                    ws.cell(row=right_row, column=right_col+1, value=value).font = bold_data_font
-                    ws.cell(row=right_row, column=right_col+1).fill = light_fill
+                cyan_font = Font(size=9, bold=True, color='0891B2')  # Cyan color for Baseline BF
+                cyan_data_font = Font(size=9, color='0891B2')
+                cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')
+                
+                for i, (label, value) in enumerate(hra_data):
+                    if i == 0:  # Baseline BF row - cyan color
+                        ws.cell(row=right_row, column=right_col, value=label).font = cyan_data_font
+                        ws.cell(row=right_row, column=right_col).fill = cyan_light_fill
+                        ws.cell(row=right_row, column=right_col+1, value=value).font = cyan_font
+                        ws.cell(row=right_row, column=right_col+1).fill = cyan_light_fill
+                    else:  # Other rows - normal color
+                        ws.cell(row=right_row, column=right_col, value=label).font = data_font
+                        ws.cell(row=right_row, column=right_col).fill = light_fill
+                        ws.cell(row=right_row, column=right_col+1, value=value).font = bold_data_font
+                        ws.cell(row=right_row, column=right_col+1).fill = light_fill
                     right_row += 1
         
         # Corrected HRV
@@ -2228,10 +2251,13 @@ def create_nature_excel(request):
             
             # Match PDF columns exactly with Avg %
             headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+            cyan_fill = PatternFill(start_color='0891B2', end_color='0891B2', fill_type='solid')  # Cyan for header
+            cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')  # Light cyan for data
             for col, header in enumerate(headers, 1):
                 cell = ws_hra.cell(row=4, column=col, value=header)
                 cell.font = header_font
-                cell.fill = amber_fill
+                # Column 2 (Baseline BF) is cyan, others amber
+                cell.fill = cyan_fill if col == 2 else amber_fill
                 cell.border = thin_border
                 cell.alignment = center_align
             
@@ -2268,7 +2294,9 @@ def create_nature_excel(request):
                     cell.font = data_font
                     cell.border = thin_border
                     cell.alignment = center_align
-                    if col >= 2:
+                    if col == 2:  # Baseline BF column - cyan
+                        cell.fill = cyan_light_fill
+                    elif col >= 3:  # Other data columns - amber
                         cell.fill = light_fill
                 row += 1
             
@@ -3037,15 +3065,18 @@ def create_comparison_pdf(folder_name, comparison_data):
                       linewidth=0.5, transform=fig.transFigure))
         return y - 0.008
     
-    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18):
+    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18, text_color=None):
         """Draw a data row with label and value"""
         if bg_color:
             fig.add_artist(mpatches.Rectangle(
                 (x, y - 0.008), width, 0.020,
                 facecolor=bg_color, edgecolor='none', transform=fig.transFigure
             ))
-        fig.text(x + 0.01, y, label, fontsize=8, color=COLORS['gray'], fontfamily=body_font, va='center')
-        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=COLORS['dark'],
+        # Use custom text_color if provided, otherwise use default colors
+        label_color = text_color if text_color else COLORS['gray']
+        value_color = text_color if text_color else COLORS['dark']
+        fig.text(x + 0.01, y, label, fontsize=8, color=label_color, fontfamily=body_font, va='center')
+        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=value_color,
                 fontfamily=body_font, va='center')
         return y - 0.020
     

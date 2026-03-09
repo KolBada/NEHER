@@ -38,10 +38,15 @@ function formatTimeConfig(minutes) {
   return `${minutes.toFixed(1)}`;
 }
 
-function MetricCard({ label, value, unit, tooltip }) {
+function MetricCard({ label, value, unit, tooltip, color }) {
+  // Determine the label and value color classes based on color prop
+  const labelColorClass = color === 'cyan' ? 'text-cyan-400' : 'text-zinc-500';
+  const valueColorClass = color === 'cyan' ? 'text-cyan-300' : 'text-zinc-100';
+  const bgColorClass = color === 'cyan' ? 'bg-cyan-950/30 border-cyan-900/50' : 'bg-zinc-900/50 border-zinc-800';
+  
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3">
-      <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-500 flex items-center gap-1">
+    <div className={`${bgColorClass} border rounded-sm p-3`}>
+      <p className={`text-[9px] uppercase tracking-wider font-bold ${labelColorClass} flex items-center gap-1`}>
         {label}
         {tooltip && (
           <TooltipProvider delayDuration={100}>
@@ -58,7 +63,7 @@ function MetricCard({ label, value, unit, tooltip }) {
           </TooltipProvider>
         )}
       </p>
-      <p className="text-base font-data text-zinc-100 mt-1">
+      <p className={`text-base font-data ${valueColorClass} mt-1`}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
       {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
@@ -1280,6 +1285,7 @@ function LightPanel({
                       value={avgHra.baseline_bf} 
                       unit="bpm"
                       tooltip="Mean Beat Frequency from -2 to -1 min before first light stimulation"
+                      color="cyan"
                     />
                     <MetricCard 
                       label="Avg BF" 
@@ -1353,7 +1359,7 @@ function LightPanel({
                       <TableRow className="border-zinc-800 hover:bg-transparent">
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Beats</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Baseline BF</TableHead>
+                        <TableHead className="text-[10px] font-data text-cyan-400 h-7">Baseline BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Avg BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Avg %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Peak BF</TableHead>
@@ -1376,7 +1382,7 @@ function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s ? s.n_beats : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-400 py-1">
+                          <TableCell className="text-[10px] font-data text-cyan-300 py-1">
                             {s ? s.baseline_bf?.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
