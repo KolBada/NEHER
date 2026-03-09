@@ -19,7 +19,26 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
-### March 9, 2026 (Current Session)
+### March 9, 2026 (Current Session - Part 2)
+- **Amp % Column Added to Comparison Page:**
+  - Added "Amp. %" column to Light-Induced HRA table (100 × Amplitude / Baseline)
+  - On-the-fly calculation for recordings without stored `light_amp_norm` value
+  - Folder Average row includes computed Amp % average
+
+- **Per Metrics Metric Selector:**
+  - Replaced automatic display of all metrics with selectable buttons
+  - 10 HRA metrics: Avg BF, Avg %, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., **Amp. %**, RoC
+  - 3 HRV metrics: ln(RMSSD₇₀), ln(SDNN₇₀), pNN50₇₀
+  - Each button has info tooltip (ⓘ) explaining the metric
+  - Italicized message when no metrics selected
+
+- **Comparison Export Updates:**
+  - PDF: Added "Amp. (Norm.)" to summary readout section
+  - PDF: Added "Amp. %" column to Table 4 (Light-Induced HRA Data)
+  - Excel: Added "Amp. (Norm.)" row to Summary sheet
+  - Excel: Added "Amp. %" column to Light HRA sheet
+
+### March 9, 2026 (Current Session - Part 1)
 - **PDF Header Wrap Fix (VERIFIED):**
   - Fixed text overflow in PDF table headers by adding `\n` characters
   - **Table 3 (Per-Stimulus HRA Data)** in single recording PDF: headers now properly split
