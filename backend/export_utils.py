@@ -1937,14 +1937,14 @@ def create_nature_excel(request):
                 
                 cyan_font = Font(size=9, bold=True, color='0891B2')  # Cyan color for Baseline BF
                 cyan_data_font = Font(size=9, color='0891B2')
-                cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')
+                amber_light_fill = PatternFill(start_color='FEF3C7', end_color='FEF3C7', fill_type='solid')  # Amber background for Baseline BF
                 
                 for i, (label, value) in enumerate(hra_data):
-                    if i == 0:  # Baseline BF row - cyan color
+                    if i == 0:  # Baseline BF row - cyan text, amber background
                         ws.cell(row=right_row, column=right_col, value=label).font = cyan_data_font
-                        ws.cell(row=right_row, column=right_col).fill = cyan_light_fill
+                        ws.cell(row=right_row, column=right_col).fill = amber_light_fill
                         ws.cell(row=right_row, column=right_col+1, value=value).font = cyan_font
-                        ws.cell(row=right_row, column=right_col+1).fill = cyan_light_fill
+                        ws.cell(row=right_row, column=right_col+1).fill = amber_light_fill
                     else:  # Other rows - normal color
                         ws.cell(row=right_row, column=right_col, value=label).font = data_font
                         ws.cell(row=right_row, column=right_col).fill = light_fill
@@ -3339,7 +3339,8 @@ def create_comparison_pdf(folder_name, comparison_data):
         
         fig1.text(right_x + 0.01, y_right, 'Heart Rate Adaptation (HRA)', fontsize=7, fontstyle='italic', color='#71717a')
         y_right -= 0.018
-        y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], width=col_width)
+        cyan_text = '#0891b2'  # Cyan color for Baseline BF text
+        y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm", TINTS['light'], width=col_width, text_color=cyan_text)
         y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{fmt(hra_averages.get('light_avg_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{fmt(hra_averages.get('light_avg_norm'), 1)}%", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Peak BF:', f"{fmt(hra_averages.get('light_peak_bf'), 1)} bpm", TINTS['light'], width=col_width)
@@ -3996,16 +3997,24 @@ def create_comparison_pdf(folder_name, comparison_data):
             table4a.set_fontsize(5)
             table4a.scale(1.0, row_scale)
             
+            cyan_color = '#06b6d4'  # Cyan for Baseline BF column
+            
             for (row, col), cell in table4a.get_celld().items():
                 cell.set_edgecolor('#e5e7eb')
                 if row == 0:
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
-                    cell.set_facecolor(COLORS['amber'])
+                    # Column 1 (Baseline BF) is cyan, others amber
+                    if col == 1:
+                        cell.set_facecolor(cyan_color)
+                    else:
+                        cell.set_facecolor(COLORS['amber'])
                 elif row == len(hra_data):
                     cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
                     cell.set_facecolor('#f87171')
                 else:
-                    if col >= 1:
+                    if col == 1:  # Baseline BF column - cyan tint
+                        cell.set_facecolor('#cffafe')
+                    elif col >= 2:
                         cell.set_facecolor(TINTS['light'])
                     else:
                         cell.set_facecolor('white')
@@ -4467,8 +4476,13 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'D{r}'] = 'Heart Rate Adaptation (HRA)'
     ws1[f'D{r}'].font = Font(italic=True, size=8, color='71717A')
     r += 1
+    # Baseline BF with cyan text color
+    cyan_font = Font(size=9, color='0891B2')
+    cyan_bold_font = Font(size=9, bold=True, color='0891B2')
     ws1[f'D{r}'] = 'Baseline BF:'
+    ws1[f'D{r}'].font = cyan_font
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_baseline_bf'), 1)} bpm"
+    ws1[f'E{r}'].font = cyan_bold_font
     ws1[f'E{r}'].fill = light_fill
     r += 1
     ws1[f'D{r}'] = 'Avg BF:'
@@ -5004,11 +5018,15 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws4['A1'] = 'Table 4 | Light-Induced HRA Data'
     ws4['A1'].font = Font(bold=True, size=12)
     
+    cyan_fill = PatternFill(start_color='0891B2', end_color='0891B2', fill_type='solid')  # Cyan for header
+    cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')  # Light cyan for data
+    
     hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
     for col, header in enumerate(hra_headers, 1):
         cell = ws4.cell(row=3, column=col, value=header)
         cell.font = header_font
-        cell.fill = amber_fill
+        # Column 2 (Baseline BF) is cyan, others amber
+        cell.fill = cyan_fill if col == 2 else amber_fill
         cell.alignment = center_align
         cell.border = thin_border
     
@@ -5038,7 +5056,9 @@ def create_comparison_xlsx(folder_name, comparison_data):
             cell.font = data_font
             cell.alignment = center_align
             cell.border = thin_border
-            if col >= 2:
+            if col == 2:  # Baseline BF column - cyan
+                cell.fill = cyan_light_fill
+            elif col >= 3:  # Other data columns - amber
                 cell.fill = light_fill
         row += 1
     
