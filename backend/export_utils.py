@@ -502,7 +502,16 @@ def create_nature_pdf(request):
                     roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
                     roc = np.mean(roc_vals) if roc_vals else None
                     
-                    # Reorganized order: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Rate of Change
+                    # Compute amp_norm on-the-fly if not stored
+                    amp_norm_vals = [r.get('amp_norm_pct') for r in valid if r.get('amp_norm_pct') is not None]
+                    if amp_norm_vals:
+                        amp_norm = np.mean(amp_norm_vals)
+                    elif baseline_bf and baseline_bf > 0 and amplitude:
+                        amp_norm = 100.0 * amplitude / baseline_bf
+                    else:
+                        amp_norm = None
+                    
+                    # Summary readout: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Amp %, Rate of Change
                     cyan_text = '#0891b2'  # Cyan color for Baseline BF text
                     y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width, text_color=cyan_text)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
@@ -514,6 +523,7 @@ def create_nature_pdf(request):
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Amp. (Norm.):', f"{amp_norm:.1f}%" if amp_norm else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'], width=col_width)
             
             # Corrected HRV
@@ -1251,8 +1261,8 @@ def create_nature_pdf(request):
                 ax = fig6.add_axes([0.08, 0.10, 0.84, 0.72])
                 ax.axis('off')
                 
-                # All HRA metrics - reordered with 1st TTP and Avg %
-                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+                # All HRA metrics - reordered with 1st TTP, Avg % and Amp. %
+                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'Amp. %', 'RoC (1/min)']
                 table_data = []
                 
                 for i, r in enumerate(valid):
@@ -1268,6 +1278,14 @@ def create_nature_pdf(request):
                         if baseline and baseline > 0 and avg_bf:
                             avg_norm = 100.0 * avg_bf / baseline
                     
+                    # Compute amp_norm_pct on-the-fly if missing
+                    amp_norm = r.get('amp_norm_pct')
+                    if amp_norm is None:
+                        baseline = r.get('baseline_bf')
+                        amplitude = r.get('amplitude')
+                        if baseline and baseline > 0 and amplitude is not None:
+                            amp_norm = 100.0 * amplitude / baseline
+                    
                     table_data.append([
                         str(i + 1),
                         f"{r.get('baseline_bf', 0):.1f}" if r.get('baseline_bf') else '—',
@@ -1280,6 +1298,7 @@ def create_nature_pdf(request):
                         f"{r.get('bf_end', 0):.1f}" if r.get('bf_end') else '—',
                         f"{r.get('bf_end_pct', 0):.1f}" if r.get('bf_end_pct') else '—',
                         f"{r.get('amplitude', 0):.1f}" if r.get('amplitude') is not None else '—',
+                        f"{amp_norm:.1f}" if amp_norm else '—',
                         f"{r.get('rate_of_change', 0):.3f}" if r.get('rate_of_change') is not None else '—',
                     ])
                 
@@ -1303,11 +1322,26 @@ def create_nature_pdf(request):
                                 norm_vals.append(norm)
                         return np.mean(norm_vals) if norm_vals else None
                     
+                    # Compute amp_norm_pct average on-the-fly
+                    def compute_amp_norm_avg():
+                        norm_vals = []
+                        for r in valid:
+                            norm = r.get('amp_norm_pct')
+                            if norm is None:
+                                baseline = r.get('baseline_bf')
+                                amplitude = r.get('amplitude')
+                                if baseline and baseline > 0 and amplitude is not None:
+                                    norm = 100.0 * amplitude / baseline
+                            if norm is not None:
+                                norm_vals.append(norm)
+                        return np.mean(norm_vals) if norm_vals else None
+                    
                     # For 1st TTP avg, include 0 values
                     first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
                     first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
                     
                     avg_norm_avg = compute_avg_norm_avg()
+                    amp_norm_avg = compute_amp_norm_avg()
                     
                     avg_row = [
                         'Avg',
@@ -1321,6 +1355,7 @@ def create_nature_pdf(request):
                         f"{safe_avg('bf_end'):.1f}" if safe_avg('bf_end') else '—',
                         f"{safe_avg('bf_end_pct'):.1f}" if safe_avg('bf_end_pct') else '—',
                         f"{safe_avg('amplitude'):.1f}" if safe_avg('amplitude') is not None else '—',
+                        f"{amp_norm_avg:.1f}" if amp_norm_avg else '—',
                         f"{safe_avg('rate_of_change'):.3f}" if safe_avg('rate_of_change') is not None else '—',
                     ]
                     table_data.append(avg_row)
@@ -1921,6 +1956,15 @@ def create_nature_excel(request):
                 roc_vals = [r.get('rate_of_change') for r in valid if r.get('rate_of_change') is not None]
                 roc = np.mean(roc_vals) if roc_vals else None
                 
+                # Compute amp_norm on-the-fly if not stored
+                amp_norm_vals = [r.get('amp_norm_pct') for r in valid if r.get('amp_norm_pct') is not None]
+                if amp_norm_vals:
+                    amp_norm = np.mean(amp_norm_vals)
+                elif baseline_bf and baseline_bf > 0 and amplitude:
+                    amp_norm = 100.0 * amplitude / baseline_bf
+                else:
+                    amp_norm = None
+                
                 hra_data = [
                     ('Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—'),
                     ('Avg BF:', f"{avg_bf:.1f} bpm"),
@@ -1932,6 +1976,7 @@ def create_nature_excel(request):
                     ('Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—'),
                     ('Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—'),
                     ('Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—'),
+                    ('Amp. (Norm.):', f"{amp_norm:.1f}%" if amp_norm else '—'),
                     ('Rate of Change:', f"{roc:.3f} 1/min" if roc else '—'),
                 ]
                 
@@ -2249,8 +2294,8 @@ def create_nature_excel(request):
             ws_hra['A2'] = 'Table 3 | Per-Stimulus HRA Data'
             ws_hra['A2'].font = Font(bold=True, size=10)
             
-            # Match PDF columns exactly with Avg %
-            headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+            # Match PDF columns exactly with Avg % and Amp. %
+            headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'Amp. %', 'RoC (1/min)']
             cyan_fill = PatternFill(start_color='0891B2', end_color='0891B2', fill_type='solid')  # Cyan for header
             cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')  # Light cyan for data
             for col, header in enumerate(headers, 1):
@@ -2275,6 +2320,14 @@ def create_nature_excel(request):
                     if baseline and baseline > 0 and avg_bf:
                         avg_norm = 100.0 * avg_bf / baseline
                 
+                # Compute amp_norm_pct on-the-fly if missing
+                amp_norm = resp.get('amp_norm_pct')
+                if amp_norm is None:
+                    baseline = resp.get('baseline_bf')
+                    amplitude = resp.get('amplitude')
+                    if baseline and baseline > 0 and amplitude is not None:
+                        amp_norm = 100.0 * amplitude / baseline
+                
                 data_row = [
                     str(idx),
                     fmt(resp.get('baseline_bf'), 1),
@@ -2287,6 +2340,7 @@ def create_nature_excel(request):
                     fmt(resp.get('bf_end'), 1),
                     fmt(resp.get('bf_end_pct'), 1),
                     fmt(resp.get('amplitude'), 1),
+                    fmt(amp_norm, 1),
                     fmt(resp.get('rate_of_change'), 3),
                 ]
                 for col, value in enumerate(data_row, 1):
@@ -2320,10 +2374,25 @@ def create_nature_excel(request):
                             norm_vals.append(norm)
                     return np.mean(norm_vals) if norm_vals else None
                 
+                # Compute amp_norm_pct average on-the-fly
+                def compute_amp_norm_avg():
+                    norm_vals = []
+                    for r in valid_responses:
+                        norm = r.get('amp_norm_pct')
+                        if norm is None:
+                            baseline = r.get('baseline_bf')
+                            amplitude = r.get('amplitude')
+                            if baseline and baseline > 0 and amplitude is not None:
+                                norm = 100.0 * amplitude / baseline
+                        if norm is not None:
+                            norm_vals.append(norm)
+                    return np.mean(norm_vals) if norm_vals else None
+                
                 first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid_responses]
                 first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
                 
                 avg_norm_avg = compute_avg_norm_avg()
+                amp_norm_avg = compute_amp_norm_avg()
                 
                 avg_row = [
                     'Avg',
@@ -2337,6 +2406,7 @@ def create_nature_excel(request):
                     fmt(safe_avg('bf_end'), 1),
                     fmt(safe_avg('bf_end_pct'), 1),
                     fmt(safe_avg('amplitude'), 1),
+                    fmt(amp_norm_avg, 1),
                     fmt(safe_avg('rate_of_change'), 3),
                 ]
                 for col, value in enumerate(avg_row, 1):
@@ -2346,7 +2416,7 @@ def create_nature_excel(request):
                     cell.border = thin_border
                     cell.alignment = center_align
             
-            for col in range(1, 13):
+            for col in range(1, 14):
                 ws_hra.column_dimensions[get_column_letter(col)].width = 10
     
     # ==================== SHEET 5: LIGHT CORRECTED HRV (Table 4) ====================

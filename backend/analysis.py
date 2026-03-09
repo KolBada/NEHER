@@ -890,6 +890,11 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
         if BF_base_j is not None and BF_base_j > 0 and BF_end_j is not None:
             bf_end_pct_j = float(100.0 * BF_end_j / BF_base_j)
         
+        # Compute amp_norm_pct (Amplitude %) - explicit None checks
+        amp_norm_pct_j = None
+        if BF_base_j is not None and BF_base_j > 0 and Amplitude_j is not None:
+            amp_norm_pct_j = float(100.0 * Amplitude_j / BF_base_j)
+        
         per_stim.append({
             'pulse_index': pulse['index'],
             'n_beats': n_beats,
@@ -901,6 +906,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'peak_norm_pct': PeakBF_norm_j,
             'time_to_peak_sec': TimeToPeak_j,
             'amplitude': Amplitude_j,
+            'amp_norm_pct': amp_norm_pct_j,
             'bf_end': BF_end_j,
             'bf_end_pct': bf_end_pct_j,
             'rate_of_change': RateOfChange_j,
@@ -925,6 +931,7 @@ def compute_light_response_v2(beat_times_min_list, bf_filtered_list, pulses):
             'bf_end': safe_mean('bf_end'),
             'bf_end_pct': safe_mean('bf_end_pct'),
             'amplitude': safe_mean('amplitude'),
+            'amp_norm_pct': safe_mean('amp_norm_pct'),
             'rate_of_change': safe_mean('rate_of_change'),
         }
     else:

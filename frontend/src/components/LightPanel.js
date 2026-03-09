@@ -681,39 +681,49 @@ function LightPanel({
   // Average Heart Rate Adaptation (was light response)
   const rawAvgHra = lightResponse?.mean_metrics;
   
-  // Compute avg_norm_pct on-the-fly if missing (for older recordings)
+  // Compute avg_norm_pct and amp_norm_pct on-the-fly if missing (for older recordings)
   const avgHra = useMemo(() => {
     if (!rawAvgHra) return null;
     
-    // If avg_norm_pct exists, use it directly
-    if (rawAvgHra.avg_norm_pct != null) return rawAvgHra;
-    
-    // Compute avg_norm_pct from avg_bf and baseline_bf
     const baseline = rawAvgHra.baseline_bf || lightResponse?.baseline_bf;
-    const avgNormPct = (baseline && baseline > 0 && rawAvgHra.avg_bf != null) 
-      ? (100 * rawAvgHra.avg_bf / baseline) 
-      : null;
     
-    return { ...rawAvgHra, avg_norm_pct: avgNormPct };
+    // Compute avg_norm_pct if missing
+    let avgNormPct = rawAvgHra.avg_norm_pct;
+    if (avgNormPct == null && baseline && baseline > 0 && rawAvgHra.avg_bf != null) {
+      avgNormPct = 100 * rawAvgHra.avg_bf / baseline;
+    }
+    
+    // Compute amp_norm_pct if missing
+    let ampNormPct = rawAvgHra.amp_norm_pct;
+    if (ampNormPct == null && baseline && baseline > 0 && rawAvgHra.amplitude != null) {
+      ampNormPct = 100 * rawAvgHra.amplitude / baseline;
+    }
+    
+    return { ...rawAvgHra, avg_norm_pct: avgNormPct, amp_norm_pct: ampNormPct };
   }, [rawAvgHra, lightResponse]);
   
-  // Compute per_stim data with avg_norm_pct on-the-fly if missing
+  // Compute per_stim data with avg_norm_pct and amp_norm_pct on-the-fly if missing
   const computedPerStim = useMemo(() => {
     if (!lightResponse?.per_stim) return null;
     
     return lightResponse.per_stim.map(s => {
       if (!s) return null;
       
-      // If avg_norm_pct exists, use it directly
-      if (s.avg_norm_pct != null) return s;
-      
-      // Compute avg_norm_pct from avg_bf and baseline_bf
       const baseline = s.baseline_bf || lightResponse?.baseline_bf;
-      const avgNormPct = (baseline && baseline > 0 && s.avg_bf != null)
-        ? (100 * s.avg_bf / baseline)
-        : null;
       
-      return { ...s, avg_norm_pct: avgNormPct };
+      // Compute avg_norm_pct if missing
+      let avgNormPct = s.avg_norm_pct;
+      if (avgNormPct == null && baseline && baseline > 0 && s.avg_bf != null) {
+        avgNormPct = 100 * s.avg_bf / baseline;
+      }
+      
+      // Compute amp_norm_pct if missing
+      let ampNormPct = s.amp_norm_pct;
+      if (ampNormPct == null && baseline && baseline > 0 && s.amplitude != null) {
+        ampNormPct = 100 * s.amplitude / baseline;
+      }
+      
+      return { ...s, avg_norm_pct: avgNormPct, amp_norm_pct: ampNormPct };
     });
   }, [lightResponse]);
 
@@ -1279,74 +1289,86 @@ function LightPanel({
               <CardContent>
                 {/* Mean Heart Rate Adaptation metrics - readout (average of 5 stims) */}
                 {avgHra && (
-                  <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2 mb-4">
-                    <MetricCard 
-                      label="Baseline BF" 
-                      value={avgHra.baseline_bf} 
-                      unit="bpm"
-                      tooltip="Mean Beat Frequency from -2 to -1 min before first light stimulation"
-                      color="cyan"
-                    />
-                    <MetricCard 
-                      label="Avg BF" 
-                      value={avgHra.avg_bf} 
-                      unit="bpm"
-                      tooltip="Average Beat Frequency during light stimulation"
-                    />
-                    <MetricCard 
-                      label="Avg %" 
-                      value={avgHra.avg_norm_pct} 
-                      unit="%"
-                      tooltip="Normalized Avg: 100 × Avg/Baseline"
-                    />
-                    <MetricCard 
-                      label="Peak BF" 
-                      value={avgHra.peak_bf} 
-                      unit="bpm"
-                      tooltip="Maximum Beat Frequency reached during light stimulation"
-                    />
-                    <MetricCard 
-                      label="Peak %" 
-                      value={avgHra.peak_norm_pct} 
-                      unit="%"
-                      tooltip="Normalized Peak: 100 × Peak/Baseline"
-                    />
-                    <MetricCard 
-                      label="Time to Peak (1st)" 
-                      value={lightResponse?.per_stim?.[0]?.time_to_peak_sec} 
-                      unit="s"
-                      tooltip="Time To Peak (1st stim)"
-                    />
-                    <MetricCard 
-                      label="Time to Peak (avg)" 
-                      value={avgHra.time_to_peak_sec} 
-                      unit="s"
-                      tooltip="Time To Peak (average)"
-                    />
-                    <MetricCard 
-                      label="Recovery BF" 
-                      value={avgHra.bf_end} 
-                      unit="bpm"
-                      tooltip="Beat Frequency at the end of the stimulation period, before the drop"
-                    />
-                    <MetricCard 
-                      label="Recovery %" 
-                      value={avgHra.bf_end_pct} 
-                      unit="%"
-                      tooltip="Recovery %: 100 × Recovery/Baseline"
-                    />
-                    <MetricCard 
-                      label="Amplitude" 
-                      value={avgHra.amplitude} 
-                      unit="bpm"
-                      tooltip="Amplitude: Peak BF − Recovery BF"
-                    />
-                    <MetricCard 
-                      label="Rate of Change" 
-                      value={avgHra.rate_of_change} 
-                      unit="1/min"
-                      tooltip="Slope of BF during stimulation, normalized by mean BF"
-                    />
+                  <div className="space-y-2 mb-4">
+                    {/* First row: Absolute data metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                      <MetricCard 
+                        label="Baseline BF" 
+                        value={avgHra.baseline_bf} 
+                        unit="bpm"
+                        tooltip="Mean Beat Frequency from -2 to -1 min before first light stimulation"
+                        color="cyan"
+                      />
+                      <MetricCard 
+                        label="Avg BF" 
+                        value={avgHra.avg_bf} 
+                        unit="bpm"
+                        tooltip="Average Beat Frequency during light stimulation"
+                      />
+                      <MetricCard 
+                        label="Peak BF" 
+                        value={avgHra.peak_bf} 
+                        unit="bpm"
+                        tooltip="Maximum Beat Frequency reached during light stimulation"
+                      />
+                      <MetricCard 
+                        label="TTP Avg" 
+                        value={avgHra.time_to_peak_sec} 
+                        unit="s"
+                        tooltip="Time To Peak (average)"
+                      />
+                      <MetricCard 
+                        label="Rec. BF" 
+                        value={avgHra.bf_end} 
+                        unit="bpm"
+                        tooltip="Beat Frequency at the end of the stimulation period, before the drop"
+                      />
+                      <MetricCard 
+                        label="Amp." 
+                        value={avgHra.amplitude} 
+                        unit="bpm"
+                        tooltip="Amplitude: Peak BF − Recovery BF"
+                      />
+                    </div>
+                    {/* Second row: Normalized data metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                      <MetricCard 
+                        label="RoC" 
+                        value={avgHra.rate_of_change} 
+                        unit="1/min"
+                        tooltip="Slope of BF during stimulation, normalized by mean BF"
+                      />
+                      <MetricCard 
+                        label="Avg %" 
+                        value={avgHra.avg_norm_pct} 
+                        unit="%"
+                        tooltip="Normalized Avg: 100 × Avg/Baseline"
+                      />
+                      <MetricCard 
+                        label="Peak %" 
+                        value={avgHra.peak_norm_pct} 
+                        unit="%"
+                        tooltip="Normalized Peak: 100 × Peak/Baseline"
+                      />
+                      <MetricCard 
+                        label="TTP 1st" 
+                        value={lightResponse?.per_stim?.[0]?.time_to_peak_sec} 
+                        unit="s"
+                        tooltip="Time To Peak (1st stim)"
+                      />
+                      <MetricCard 
+                        label="Rec. %" 
+                        value={avgHra.bf_end_pct} 
+                        unit="%"
+                        tooltip="Recovery %: 100 × Recovery/Baseline"
+                      />
+                      <MetricCard 
+                        label="Amp. %" 
+                        value={avgHra.amp_norm_pct} 
+                        unit="%"
+                        tooltip="Normalized Amp: 100 × Amplitude/Baseline"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -1368,6 +1390,7 @@ function LightPanel({
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Recovery BF</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Recovery %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amplitude</TableHead>
+                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Amp. %</TableHead>
                         <TableHead className="text-[10px] font-data text-zinc-500 h-7">Rate of Change</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1408,6 +1431,9 @@ function LightPanel({
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                            {s && s.amp_norm_pct != null ? s.amp_norm_pct.toFixed(1) : '\u2014'}
                           </TableCell>
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.rate_of_change != null ? s.rate_of_change.toFixed(4) : '\u2014'}
