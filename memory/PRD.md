@@ -37,43 +37,34 @@ Build a production-ready web application for electrophysiology analysis of sharp
   - Both Excel and PDF exports filter out excluded recordings before generating output
   - **Testing:** All tests passed (100% frontend success rate)
 
-- **Per Stimuli Tables for HRA and HRV:**
-  - Added "Per Stimuli" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
-  - **HRA Per Stimuli:** Shows 5 tables (Stimulation 1-5), each with:
-    - All recordings showing per-stim values: Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
-    - Recordings with no stim data show "—"
-    - "Folder Average" row with **mean** values from included recordings
-    - Global ON/OFF toggles synchronized with all other tables
-  - **HRV Per Stimuli:** Shows 5 tables (Stimulation 1-5), each with:
-    - All recordings showing per-stim values: ln(RMSSD₇₀) corr., ln(SDNN₇₀) corr., pNN50₇₀ corr. (%)
-    - "Folder Median" row with **median** values (not average, as requested)
-    - Global ON/OFF toggles synchronized with all other tables
-  - Backend `server.py` updated to extract `per_stim_hra` from `lightResponse.per_stim` and `per_stim_hrv` from `lightHrvDetrended.per_pulse`
-  - Frontend `FolderComparison.js` added `perStimHRAData` and `perStimHRVData` useMemo hooks for data computation
-
-- **Per Metrics Tables for HRA and HRV (NEW):**
+- **Per Metrics Tables for HRA and HRV (UPDATED March 9, 2026):**
   - Added "Per Metrics" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
-  - **HRA Per Metrics:** Shows 9 tables (one per metric), each with:
+  - **HRA Per Metrics:** Shows 8 tables (one per metric - Baseline BF removed per user request), each with:
     - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Average** (6th column = row average)
-    - Metrics: Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
+    - Metrics: Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
     - "Folder Average" row at bottom with column averages
-    - Line chart visualization showing evolution across stimulations with reference line
+    - Line chart visualization with **three traces**:
+      1. **Per Stim Average** (orange solid line) - average of all recordings for each stimulation
+      2. **Stim Average** (purple dashed line) - overall average across all 5 stimulations
+      3. **Baseline BF** (cyan dashed, for Avg BF, Peak BF, Rec. BF charts)
+      4. **Baseline (100%)** reference line (cyan, for Peak % and Rec. % charts)
     - Global ON/OFF toggles synchronized with all other tables
   - **HRV Per Metrics:** Shows 3 tables (one per metric), each with:
     - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Median** (6th column = row median)
     - Metrics: ln(RMSSD₇₀) corr., ln(SDNN₇₀) corr., pNN50₇₀ corr. (%)
     - "Folder Median" row at bottom with column medians
-    - Line chart visualization showing evolution across stimulations
+    - Line chart visualization with **two traces**:
+      1. **Per Stim Median** (orange solid line) - median of all recordings for each stimulation
+      2. **Stim Median** (purple dashed line) - overall median across all 5 stimulations
     - Global ON/OFF toggles synchronized with all other tables
+  - Removed "Per Stimuli" expandable sections from both HRA and HRV cards (per user request)
+  - Backend `server.py` provides `per_stim_hra` and `per_stim_hrv` data
   - Added Recharts imports for LineChart, ResponsiveContainer, ReferenceLine visualizations
 
 - **Baseline BF Color & Chart Enhancements:**
-  - Changed Baseline BF color from amber to **cyan** throughout Light Stimulus section:
-    - Main HRA table (header, values, and folder average)
-    - Normalized to Baseline table (header, values, and folder average)
-    - Per Stimuli tables (header, values, and folder average)
-    - Per Metrics Baseline BF table (header, chart line, and legend)
-  - Added **Baseline BF reference trace** (cyan dashed line) to charts for Avg BF, Peak BF, and Recovery BF metrics with legend
+  - Changed Baseline BF color from amber to **cyan** throughout Light Stimulus section
+  - Added **Baseline BF reference trace** (cyan dashed line) to charts for Avg BF, Peak BF, and Recovery BF metrics
+  - Added **Baseline (100%)** reference line to Peak % and Rec. % charts
   - Configured **fixed Y-axis scales** for Per Metrics charts:
     - Peak %: 0 to 200
     - TTP: 0 to 30

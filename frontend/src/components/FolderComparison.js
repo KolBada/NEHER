@@ -63,8 +63,6 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [comparisonData, setComparisonData] = useState(null);
   const [spontNormExpanded, setSpontNormExpanded] = useState({});  // Object keyed by drug key
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
-  const [hraPerStimExpanded, setHraPerStimExpanded] = useState(false);  // Per Stimuli for HRA
-  const [hrvPerStimExpanded, setHrvPerStimExpanded] = useState(false);  // Per Stimuli for HRV
   const [hraPerMetricExpanded, setHraPerMetricExpanded] = useState(false);  // Per Metrics for HRA
   const [hrvPerMetricExpanded, setHrvPerMetricExpanded] = useState(false);  // Per Metrics for HRV
   // Global excluded recordings - applies to ALL tables and exports
@@ -483,106 +481,6 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       light_hrv_ln_sdnn70: mean(includedRecs.map(r => r.light_hrv_ln_sdnn70)),
       light_hrv_pnn50: mean(includedRecs.map(r => r.light_hrv_pnn50)),
     };
-  }, [comparisonData, excludedRecordings]);
-
-  // Compute per-stim HRA data (5 tables with averages)
-  const perStimHRAData = useMemo(() => {
-    if (!comparisonData?.recordings) return [];
-    const allRecs = comparisonData.recordings;
-    if (allRecs.length === 0) return [];
-    
-    const mean = (arr) => {
-      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
-      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
-    };
-    
-    // Determine max stim count (usually 5) from ALL recordings
-    const maxStims = Math.max(...allRecs.map(r => (r.per_stim_hra || []).length), 0);
-    
-    const stimTables = [];
-    for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
-      // Show all recordings but mark excluded ones
-      const stimData = allRecs.map(rec => {
-        const stimValues = (rec.per_stim_hra || [])[stimIdx];
-        return {
-          id: rec.id,
-          name: rec.name,
-          values: stimValues || null,
-          isExcluded: excludedRecordings[rec.id] || false,
-        };
-      }).sort((a, b) => a.name.localeCompare(b.name));
-      
-      // Calculate averages only from INCLUDED recordings with valid values
-      const includedWithValues = stimData.filter(r => !r.isExcluded && r.values !== null).map(r => r.values);
-      const averages = {
-        baseline_bf: mean(includedWithValues.map(v => v.baseline_bf)),
-        avg_bf: mean(includedWithValues.map(v => v.avg_bf)),
-        peak_bf: mean(includedWithValues.map(v => v.peak_bf)),
-        peak_norm: mean(includedWithValues.map(v => v.peak_norm)),
-        ttp: mean(includedWithValues.map(v => v.ttp)),
-        recovery_bf: mean(includedWithValues.map(v => v.recovery_bf)),
-        recovery_pct: mean(includedWithValues.map(v => v.recovery_pct)),
-        amplitude: mean(includedWithValues.map(v => v.amplitude)),
-        roc: mean(includedWithValues.map(v => v.roc)),
-      };
-      
-      stimTables.push({
-        stimIndex: stimIdx + 1,
-        recordings: stimData,
-        averages,
-        includedCount: includedWithValues.length,
-      });
-    }
-    
-    return stimTables;
-  }, [comparisonData, excludedRecordings]);
-
-  // Compute per-stim HRV data (5 tables with medians)
-  const perStimHRVData = useMemo(() => {
-    if (!comparisonData?.recordings) return [];
-    const allRecs = comparisonData.recordings;
-    if (allRecs.length === 0) return [];
-    
-    const median = (arr) => {
-      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v)).sort((a, b) => a - b);
-      if (valid.length === 0) return null;
-      const mid = Math.floor(valid.length / 2);
-      return valid.length % 2 !== 0 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
-    };
-    
-    // Determine max stim count (usually 5) from ALL recordings
-    const maxStims = Math.max(...allRecs.map(r => (r.per_stim_hrv || []).length), 0);
-    
-    const stimTables = [];
-    for (let stimIdx = 0; stimIdx < maxStims; stimIdx++) {
-      // Show all recordings but mark excluded ones
-      const stimData = allRecs.map(rec => {
-        const stimValues = (rec.per_stim_hrv || [])[stimIdx];
-        return {
-          id: rec.id,
-          name: rec.name,
-          values: stimValues || null,
-          isExcluded: excludedRecordings[rec.id] || false,
-        };
-      }).sort((a, b) => a.name.localeCompare(b.name));
-      
-      // Calculate medians only from INCLUDED recordings with valid values
-      const includedWithValues = stimData.filter(r => !r.isExcluded && r.values !== null).map(r => r.values);
-      const medians = {
-        ln_rmssd70: median(includedWithValues.map(v => v.ln_rmssd70)),
-        ln_sdnn70: median(includedWithValues.map(v => v.ln_sdnn70)),
-        pnn50: median(includedWithValues.map(v => v.pnn50)),
-      };
-      
-      stimTables.push({
-        stimIndex: stimIdx + 1,
-        recordings: stimData,
-        medians,
-        includedCount: includedWithValues.length,
-      });
-    }
-    
-    return stimTables;
   }, [comparisonData, excludedRecordings]);
 
   // HRA metric definitions for Per Metrics tables (with Y-axis scale config)
@@ -1327,15 +1225,35 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                       name="Baseline BF"
                                     />
                                   )}
+                                  {/* 100% baseline reference for Peak % and Rec. % charts */}
+                                  {metricData.showBaselinePct && (
+                                    <ReferenceLine 
+                                      y={100} 
+                                      stroke="#06b6d4" 
+                                      strokeDasharray="5 5" 
+                                      strokeWidth={2}
+                                      label={{ value: 'Baseline (100%)', fill: '#06b6d4', fontSize: 10, position: 'insideTopRight' }}
+                                    />
+                                  )}
+                                  {/* Per Stim Average line (average per stimulation across recordings) */}
                                   <Line 
                                     type="monotone" 
-                                    dataKey="average" 
-                                    stroke={metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b'}
+                                    dataKey="perStimAvg" 
+                                    stroke="#f59e0b"
                                     strokeWidth={3}
-                                    dot={{ fill: metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b', r: 4 }}
-                                    name="Folder Average"
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    name="Per Stim Average"
                                   />
-                                  <ReferenceLine y={metricData.grandAvg} stroke={metricData.color === 'cyan' ? '#06b6d4' : '#f59e0b'} strokeDasharray="5 5" strokeOpacity={0.5} />
+                                  {/* Stim Average line (average of all 5 stims - horizontal reference) */}
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="stimAvg" 
+                                    stroke="#a855f7"
+                                    strokeWidth={2}
+                                    strokeDasharray="8 4"
+                                    dot={false}
+                                    name="Stim Average"
+                                  />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
@@ -1491,15 +1409,25 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
                                   <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  {/* Per Stim Median line (median per stimulation across recordings) */}
                                   <Line 
                                     type="monotone" 
-                                    dataKey="median" 
+                                    dataKey="perStimMedian" 
                                     stroke="#f59e0b" 
                                     strokeWidth={3}
                                     dot={{ fill: '#f59e0b', r: 4 }}
-                                    name="Folder Median"
+                                    name="Per Stim Median"
                                   />
-                                  <ReferenceLine y={metricData.grandMedian} stroke="#f59e0b" strokeDasharray="5 5" strokeOpacity={0.5} />
+                                  {/* Stim Median line (median of all 5 stims - horizontal reference) */}
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="stimMedian" 
+                                    stroke="#a855f7"
+                                    strokeWidth={2}
+                                    strokeDasharray="8 4"
+                                    dot={false}
+                                    name="Stim Median"
+                                  />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
