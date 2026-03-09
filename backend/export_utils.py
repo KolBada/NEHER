@@ -1247,8 +1247,8 @@ def create_nature_pdf(request):
                 ax = fig6.add_axes([0.08, 0.10, 0.84, 0.72])
                 ax.axis('off')
                 
-                # All HRA metrics - reordered with 1st TTP
-                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+                # All HRA metrics - reordered with 1st TTP and Avg %
+                headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
                 table_data = []
                 
                 for i, r in enumerate(valid):
@@ -1256,10 +1256,19 @@ def create_nature_pdf(request):
                     first_ttp_val = r.get('first_ttp_sec')
                     first_ttp_str = f"{first_ttp_val:.1f}" if first_ttp_val is not None else "0.0"
                     
+                    # Compute avg_norm_pct on-the-fly if missing
+                    avg_norm = r.get('avg_norm_pct')
+                    if avg_norm is None:
+                        baseline = r.get('baseline_bf')
+                        avg_bf = r.get('avg_bf')
+                        if baseline and baseline > 0 and avg_bf:
+                            avg_norm = 100.0 * avg_bf / baseline
+                    
                     table_data.append([
                         str(i + 1),
                         f"{r.get('baseline_bf', 0):.1f}" if r.get('baseline_bf') else '—',
                         f"{r.get('avg_bf', 0):.1f}" if r.get('avg_bf') else '—',
+                        f"{avg_norm:.1f}" if avg_norm else '—',
                         f"{r.get('peak_bf', 0):.1f}" if r.get('peak_bf') else '—',
                         f"{r.get('peak_norm_pct', 0):.1f}" if r.get('peak_norm_pct') else '—',
                         first_ttp_str,
@@ -1276,14 +1285,31 @@ def create_nature_pdf(request):
                         vals = [r.get(key) for r in valid if r.get(key) is not None]
                         return np.mean(vals) if vals else None
                     
+                    # Compute avg_norm_pct average on-the-fly
+                    def compute_avg_norm_avg():
+                        norm_vals = []
+                        for r in valid:
+                            norm = r.get('avg_norm_pct')
+                            if norm is None:
+                                baseline = r.get('baseline_bf')
+                                avg_bf = r.get('avg_bf')
+                                if baseline and baseline > 0 and avg_bf:
+                                    norm = 100.0 * avg_bf / baseline
+                            if norm is not None:
+                                norm_vals.append(norm)
+                        return np.mean(norm_vals) if norm_vals else None
+                    
                     # For 1st TTP avg, include 0 values
                     first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
                     first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
+                    
+                    avg_norm_avg = compute_avg_norm_avg()
                     
                     avg_row = [
                         'Avg',
                         f"{safe_avg('baseline_bf'):.1f}" if safe_avg('baseline_bf') else '—',
                         f"{safe_avg('avg_bf'):.1f}" if safe_avg('avg_bf') else '—',
+                        f"{avg_norm_avg:.1f}" if avg_norm_avg else '—',
                         f"{safe_avg('peak_bf'):.1f}" if safe_avg('peak_bf') else '—',
                         f"{safe_avg('peak_norm_pct'):.1f}" if safe_avg('peak_norm_pct') else '—',
                         f"{first_ttp_avg:.1f}",
@@ -2200,8 +2226,8 @@ def create_nature_excel(request):
             ws_hra['A2'] = 'Table 3 | Per-Stimulus HRA Data'
             ws_hra['A2'].font = Font(bold=True, size=10)
             
-            # Match PDF columns exactly
-            headers = ['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+            # Match PDF columns exactly with Avg %
+            headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
             for col, header in enumerate(headers, 1):
                 cell = ws_hra.cell(row=4, column=col, value=header)
                 cell.font = header_font
@@ -2215,10 +2241,19 @@ def create_nature_excel(request):
                 first_ttp_val = resp.get('first_ttp_sec')
                 first_ttp_str = f"{first_ttp_val:.1f}" if first_ttp_val is not None else "0.0"
                 
+                # Compute avg_norm_pct on-the-fly if missing
+                avg_norm = resp.get('avg_norm_pct')
+                if avg_norm is None:
+                    baseline = resp.get('baseline_bf')
+                    avg_bf = resp.get('avg_bf')
+                    if baseline and baseline > 0 and avg_bf:
+                        avg_norm = 100.0 * avg_bf / baseline
+                
                 data_row = [
                     str(idx),
                     fmt(resp.get('baseline_bf'), 1),
                     fmt(resp.get('avg_bf'), 1),
+                    fmt(avg_norm, 1),
                     fmt(resp.get('peak_bf'), 1),
                     fmt(resp.get('peak_norm_pct'), 1),
                     first_ttp_str,
@@ -2243,13 +2278,30 @@ def create_nature_excel(request):
                     vals = [r.get(key) for r in valid_responses if r.get(key) is not None]
                     return np.mean(vals) if vals else None
                 
+                # Compute avg_norm_pct average on-the-fly
+                def compute_avg_norm_avg():
+                    norm_vals = []
+                    for r in valid_responses:
+                        norm = r.get('avg_norm_pct')
+                        if norm is None:
+                            baseline = r.get('baseline_bf')
+                            avg_bf = r.get('avg_bf')
+                            if baseline and baseline > 0 and avg_bf:
+                                norm = 100.0 * avg_bf / baseline
+                        if norm is not None:
+                            norm_vals.append(norm)
+                    return np.mean(norm_vals) if norm_vals else None
+                
                 first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid_responses]
                 first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
+                
+                avg_norm_avg = compute_avg_norm_avg()
                 
                 avg_row = [
                     'Avg',
                     fmt(safe_avg('baseline_bf'), 1),
                     fmt(safe_avg('avg_bf'), 1),
+                    fmt(avg_norm_avg, 1),
                     fmt(safe_avg('peak_bf'), 1),
                     fmt(safe_avg('peak_norm_pct'), 1),
                     f"{first_ttp_avg:.1f}",
@@ -2266,7 +2318,7 @@ def create_nature_excel(request):
                     cell.border = thin_border
                     cell.alignment = center_align
             
-            for col in range(1, 12):
+            for col in range(1, 13):
                 ws_hra.column_dimensions[get_column_letter(col)].width = 10
     
     # ==================== SHEET 5: LIGHT CORRECTED HRV (Table 4) ====================
@@ -2723,16 +2775,25 @@ def create_nature_csv(request):
         valid = [r for r in request.light_response if r]
         if valid:
             writer.writerow(['=== TABLE 3 | LIGHT-INDUCED HRA ==='])
-            writer.writerow(['Stim', 'Baseline BF', 'Avg BF', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)'])
+            writer.writerow(['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)'])
             for i, r in enumerate(valid):
                 # 1st TTP shows value for first stim, 0.0 for others
                 first_ttp = r.get('first_ttp_sec')
                 first_ttp_str = f"{first_ttp:.1f}" if first_ttp is not None else "0.0"
                 
+                # Compute avg_norm_pct on-the-fly if missing
+                avg_norm = r.get('avg_norm_pct')
+                if avg_norm is None:
+                    baseline = r.get('baseline_bf')
+                    avg_bf = r.get('avg_bf')
+                    if baseline and baseline > 0 and avg_bf:
+                        avg_norm = 100.0 * avg_bf / baseline
+                
                 writer.writerow([
                     i + 1,
                     round(r.get('baseline_bf', 0), 1) if r.get('baseline_bf') else '',
                     round(r.get('avg_bf', 0), 1) if r.get('avg_bf') else '',
+                    round(avg_norm, 1) if avg_norm else '',
                     round(r.get('peak_bf', 0), 1) if r.get('peak_bf') else '',
                     round(r.get('peak_norm_pct', 0), 1) if r.get('peak_norm_pct') else '',
                     first_ttp_str,
@@ -2749,13 +2810,30 @@ def create_nature_csv(request):
                     vals = [r.get(key) for r in valid if r.get(key) is not None]
                     return np.mean(vals) if vals else None
                 
+                # Compute avg_norm_pct average on-the-fly
+                def compute_avg_norm_avg():
+                    norm_vals = []
+                    for r in valid:
+                        norm = r.get('avg_norm_pct')
+                        if norm is None:
+                            baseline = r.get('baseline_bf')
+                            avg_bf = r.get('avg_bf')
+                            if baseline and baseline > 0 and avg_bf:
+                                norm = 100.0 * avg_bf / baseline
+                        if norm is not None:
+                            norm_vals.append(norm)
+                    return np.mean(norm_vals) if norm_vals else None
+                
                 first_ttp_vals = [r.get('first_ttp_sec', 0) for r in valid]
                 first_ttp_avg = np.mean(first_ttp_vals) if first_ttp_vals else 0
+                
+                avg_norm_avg = compute_avg_norm_avg()
                 
                 writer.writerow([
                     'Avg',
                     round(safe_avg('baseline_bf'), 1) if safe_avg('baseline_bf') else '',
                     round(safe_avg('avg_bf'), 1) if safe_avg('avg_bf') else '',
+                    round(avg_norm_avg, 1) if avg_norm_avg else '',
                     round(safe_avg('peak_bf'), 1) if safe_avg('peak_bf') else '',
                     round(safe_avg('peak_norm_pct'), 1) if safe_avg('peak_norm_pct') else '',
                     f"{first_ttp_avg:.1f}",
