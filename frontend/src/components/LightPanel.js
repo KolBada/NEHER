@@ -674,7 +674,43 @@ function LightPanel({
   const medianHrv = lightHrv?.final;
 
   // Average Heart Rate Adaptation (was light response)
-  const avgHra = lightResponse?.mean_metrics;
+  const rawAvgHra = lightResponse?.mean_metrics;
+  
+  // Compute avg_norm_pct on-the-fly if missing (for older recordings)
+  const avgHra = useMemo(() => {
+    if (!rawAvgHra) return null;
+    
+    // If avg_norm_pct exists, use it directly
+    if (rawAvgHra.avg_norm_pct != null) return rawAvgHra;
+    
+    // Compute avg_norm_pct from avg_bf and baseline_bf
+    const baseline = rawAvgHra.baseline_bf || lightResponse?.baseline_bf;
+    const avgNormPct = (baseline && baseline > 0 && rawAvgHra.avg_bf != null) 
+      ? (100 * rawAvgHra.avg_bf / baseline) 
+      : null;
+    
+    return { ...rawAvgHra, avg_norm_pct: avgNormPct };
+  }, [rawAvgHra, lightResponse]);
+  
+  // Compute per_stim data with avg_norm_pct on-the-fly if missing
+  const computedPerStim = useMemo(() => {
+    if (!lightResponse?.per_stim) return null;
+    
+    return lightResponse.per_stim.map(s => {
+      if (!s) return null;
+      
+      // If avg_norm_pct exists, use it directly
+      if (s.avg_norm_pct != null) return s;
+      
+      // Compute avg_norm_pct from avg_bf and baseline_bf
+      const baseline = s.baseline_bf || lightResponse?.baseline_bf;
+      const avgNormPct = (baseline && baseline > 0 && s.avg_bf != null)
+        ? (100 * s.avg_bf / baseline)
+        : null;
+      
+      return { ...s, avg_norm_pct: avgNormPct };
+    });
+  }, [lightResponse]);
 
   const isLightEnabled = lightEnabled !== false;
 
@@ -1330,7 +1366,7 @@ function LightPanel({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lightResponse.per_stim.map((s, i) => (
+                      {computedPerStim && computedPerStim.map((s, i) => (
                         <TableRow 
                           key={i} 
                           className={`border-zinc-800/50 data-row ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}

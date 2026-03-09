@@ -451,10 +451,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
     };
     
+    // Compute light_avg_norm on-the-fly for recordings that don't have it
+    const getAvgNorm = (rec) => {
+      if (rec.light_avg_norm != null) return rec.light_avg_norm;
+      const baseline = rec.light_baseline_bf;
+      const avgBf = rec.light_avg_bf;
+      return (baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null;
+    };
+    
     return {
       light_baseline_bf: mean(includedRecs.map(r => r.light_baseline_bf)),
       light_avg_bf: mean(includedRecs.map(r => r.light_avg_bf)),
-      light_avg_norm: mean(includedRecs.map(r => r.light_avg_norm)),
+      light_avg_norm: mean(includedRecs.map(r => getAvgNorm(r))),
       light_peak_bf: mean(includedRecs.map(r => r.light_peak_bf)),
       light_peak_norm: mean(includedRecs.map(r => r.light_peak_norm)),
       light_ttp_first: mean(includedRecs.map(r => r.light_ttp_first)),
@@ -548,7 +556,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         const stimValues = [];
         for (let i = 0; i < maxStims; i++) {
           const stim = perStim[i];
-          stimValues.push(stim ? stim[metric.key] : null);
+          if (stim) {
+            // Compute avg_norm_pct on-the-fly if missing
+            if (metric.key === 'avg_norm_pct' && stim.avg_norm_pct == null) {
+              const baseline = stim.baseline_bf;
+              const avgBf = stim.avg_bf;
+              stimValues.push((baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null);
+            } else {
+              stimValues.push(stim[metric.key]);
+            }
+          } else {
+            stimValues.push(null);
+          }
         }
         // Calculate row average (across stims)
         const rowAvg = mean(stimValues);
@@ -1085,7 +1104,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
                             <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.light_baseline_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_bf, 1)}</td>
-                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_norm, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(
+                              rec.light_avg_norm != null ? rec.light_avg_norm : 
+                              (rec.light_baseline_bf && rec.light_baseline_bf > 0 && rec.light_avg_bf != null ? 
+                                100 * rec.light_avg_bf / rec.light_baseline_bf : null), 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_norm, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_ttp_first, 1)}</td>
