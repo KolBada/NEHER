@@ -65,6 +65,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
   const [hraPerMetricExpanded, setHraPerMetricExpanded] = useState(false);  // Per Metrics for HRA
   const [hrvPerMetricExpanded, setHrvPerMetricExpanded] = useState(false);  // Per Metrics for HRV
+  // Selected metrics for Per Metrics sections
+  const [selectedHraMetrics, setSelectedHraMetrics] = useState({});  // { metricKey: true }
+  const [selectedHrvMetrics, setSelectedHrvMetrics] = useState({});  // { metricKey: true }
   // Global excluded recordings - applies to ALL tables and exports
   const [excludedRecordings, setExcludedRecordings] = useState({});  // { recordingId: true }
   
@@ -459,6 +462,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       return (baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null;
     };
     
+    // Compute light_amp_norm on-the-fly for recordings that don't have it
+    const getAmpNorm = (rec) => {
+      if (rec.light_amp_norm != null) return rec.light_amp_norm;
+      const baseline = rec.light_baseline_bf;
+      const amplitude = rec.light_amplitude;
+      return (baseline && baseline > 0 && amplitude != null) ? (100 * amplitude / baseline) : null;
+    };
+    
     return {
       light_baseline_bf: mean(includedRecs.map(r => r.light_baseline_bf)),
       light_avg_bf: mean(includedRecs.map(r => r.light_avg_bf)),
@@ -470,6 +481,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       light_recovery_bf: mean(includedRecs.map(r => r.light_recovery_bf)),
       light_recovery_pct: mean(includedRecs.map(r => r.light_recovery_pct)),
       light_amplitude: mean(includedRecs.map(r => r.light_amplitude)),
+      light_amp_norm: mean(includedRecs.map(r => getAmpNorm(r))),
       light_roc: mean(includedRecs.map(r => r.light_roc)),
     };
   }, [comparisonData, excludedRecordings]);
@@ -492,25 +504,26 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     };
   }, [comparisonData, excludedRecordings]);
 
-  // HRA metric definitions for Per Metrics tables (with Y-axis scale config)
+  // HRA metric definitions for Per Metrics tables (with Y-axis scale config and tooltips)
   // Removed Baseline BF as per user request
   const hraMetricDefs = useMemo(() => [
-    { key: 'avg_bf', label: 'Avg BF', decimals: 1, showBaseline: true, yDomain: null },
-    { key: 'avg_norm_pct', label: 'Avg %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
-    { key: 'peak_bf', label: 'Peak BF', decimals: 1, showBaseline: true, yDomain: null },
-    { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
-    { key: 'ttp', label: 'TTP', decimals: 1, yDomain: [0, 30] },
-    { key: 'recovery_bf', label: 'Rec. BF', decimals: 1, showBaseline: true, yDomain: null },
-    { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true },
-    { key: 'amplitude', label: 'Amp.', decimals: 1, yDomain: null },
-    { key: 'roc', label: 'RoC', decimals: 4, yDomain: [-2, 2] },
+    { key: 'avg_bf', label: 'Avg BF', decimals: 1, showBaseline: true, yDomain: null, tooltip: 'Average Beat Frequency during the stimulation period' },
+    { key: 'avg_norm_pct', label: 'Avg %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Normalized Average: 100 × Avg BF / Baseline BF' },
+    { key: 'peak_bf', label: 'Peak BF', decimals: 1, showBaseline: true, yDomain: null, tooltip: 'Maximum Beat Frequency reached during stimulation' },
+    { key: 'peak_norm', label: 'Peak %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Normalized Peak: 100 × Peak BF / Baseline BF' },
+    { key: 'ttp', label: 'TTP', decimals: 1, yDomain: [0, 30], tooltip: 'Time To Peak: Time in seconds from stimulation start to peak BF' },
+    { key: 'recovery_bf', label: 'Rec. BF', decimals: 1, showBaseline: true, yDomain: null, tooltip: 'Beat Frequency at the end of the stimulation period, before the drop' },
+    { key: 'recovery_pct', label: 'Rec. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Recovery %: 100 × Recovery BF / Baseline BF' },
+    { key: 'amplitude', label: 'Amp.', decimals: 1, yDomain: null, tooltip: 'Amplitude: Peak BF − Recovery BF' },
+    { key: 'amp_norm_pct', label: 'Amp. %', decimals: 1, yDomain: [0, 200], showBaselinePct: true, tooltip: 'Normalized Amplitude: 100 × Amplitude / Baseline BF' },
+    { key: 'roc', label: 'RoC', decimals: 4, yDomain: [-2, 2], tooltip: 'Rate of Change: Slope of BF during stimulation, normalized by mean BF' },
   ], []);
 
-  // HRV metric definitions for Per Metrics tables (with Y-axis scale config)
+  // HRV metric definitions for Per Metrics tables (with Y-axis scale config and tooltips)
   const hrvMetricDefs = useMemo(() => [
-    { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀) corr.', decimals: 3, yDomain: [0, 8] },
-    { key: 'ln_sdnn70', label: 'ln(SDNN₇₀) corr.', decimals: 3, yDomain: [0, 8] },
-    { key: 'pnn50', label: 'pNN50₇₀ corr. (%)', decimals: 1, yDomain: [0, 100] },
+    { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀) corr.', decimals: 3, yDomain: [0, 8], tooltip: 'Natural log of RMSSD at 70 beats, corrected for beat count' },
+    { key: 'ln_sdnn70', label: 'ln(SDNN₇₀) corr.', decimals: 3, yDomain: [0, 8], tooltip: 'Natural log of SDNN at 70 beats, corrected for beat count' },
+    { key: 'pnn50', label: 'pNN50₇₀ corr. (%)', decimals: 1, yDomain: [0, 100], tooltip: 'Percentage of successive NN intervals differing by more than 50ms' },
   ], []);
 
   // Compute per-metric HRA data (for each metric: rows=recordings, cols=stim1-5 + avg)
@@ -562,6 +575,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               const baseline = stim.baseline_bf;
               const avgBf = stim.avg_bf;
               stimValues.push((baseline && baseline > 0 && avgBf != null) ? (100 * avgBf / baseline) : null);
+            // Compute amp_norm_pct on-the-fly if missing
+            } else if (metric.key === 'amp_norm_pct' && stim.amp_norm_pct == null) {
+              const baseline = stim.baseline_bf;
+              const amplitude = stim.amplitude;
+              stimValues.push((baseline && baseline > 0 && amplitude != null) ? (100 * amplitude / baseline) : null);
             } else {
               stimValues.push(stim[metric.key]);
             }
@@ -1085,6 +1103,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                           <InfoTip text="Amplitude: Peak BF − Recovery BF">Amp.</InfoTip>
                         </th>
                         <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                          <InfoTip text="Normalized Amplitude: 100 × Amplitude / Baseline">Amp. %</InfoTip>
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
                           <InfoTip text="Slope of BF during stimulation, normalized by mean BF">RoC</InfoTip>
                         </th>
                       </tr>
@@ -1115,6 +1136,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_bf, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_recovery_pct, 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_amplitude, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(
+                              rec.light_amp_norm != null ? rec.light_amp_norm : 
+                              (rec.light_baseline_bf && rec.light_baseline_bf > 0 && rec.light_amplitude != null ? 
+                                100 * rec.light_amplitude / rec.light_baseline_bf : null), 1)}</td>
                             <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_roc, 4)}</td>
                           </tr>
                         );
@@ -1133,6 +1158,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_bf, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_recovery_pct, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_amplitude, 1)}</td>
+                        <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_amp_norm, 1)}</td>
                         <td className="py-3 px-1 text-center text-amber-100 text-xs">{formatValue(computedLightHRAAverages?.light_roc, 4)}</td>
                       </tr>
                     </tbody>
@@ -1224,11 +1250,42 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       hraPerMetricExpanded ? 'max-h-[8000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {perMetricHRAData.length > 0 ? (
+                    {/* Metric Selector */}
+                    <div className="mb-4 p-3 bg-zinc-900/60 rounded-lg">
+                      <p className="text-xs text-zinc-400 mb-2">Select metrics to display:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {hraMetricDefs.map((metric) => (
+                          <button
+                            key={metric.key}
+                            onClick={() => setSelectedHraMetrics(prev => ({
+                              ...prev,
+                              [metric.key]: !prev[metric.key]
+                            }))}
+                            className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                              selectedHraMetrics[metric.key]
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            }`}
+                            data-testid={`select-hra-metric-${metric.key}`}
+                          >
+                            <InfoTip text={metric.tooltip}>
+                              <span>{metric.label}</span>
+                            </InfoTip>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {Object.values(selectedHraMetrics).some(v => v) ? (
                       <div className="space-y-6">
-                        {perMetricHRAData.map((metricData) => (
+                        {perMetricHRAData.filter(m => selectedHraMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className={`text-sm font-semibold mb-3 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>{metricData.label}</h4>
+                            <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                              {metricData.label}
+                              <InfoTip text={metricData.tooltip}>
+                                <span className="text-zinc-500 cursor-help">ⓘ</span>
+                              </InfoTip>
+                            </h4>
                             
                             {/* Visualization Chart */}
                             <div className="h-48 mb-4">
@@ -1246,7 +1303,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
                                   <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                  {/* Baseline BF trace for Avg BF, Peak BF, Recovery BF charts */}
+                                  {/* Per Stim Average line (average per stimulation across recordings) - 1st in legend */}
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="perStimAvg" 
+                                    stroke="#f59e0b"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    name="Per Stim Average"
+                                  />
+                                  {/* Baseline BF trace for Avg BF, Peak BF, Recovery BF charts - 2nd in legend */}
                                   {metricData.showBaseline && (
                                     <Line 
                                       type="monotone" 
@@ -1258,26 +1324,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                       name="Baseline BF"
                                     />
                                   )}
-                                  {/* 100% baseline reference for Peak % and Rec. % charts */}
-                                  {metricData.showBaselinePct && (
-                                    <ReferenceLine 
-                                      y={100} 
-                                      stroke="#06b6d4" 
-                                      strokeDasharray="5 5" 
-                                      strokeWidth={2}
-                                      label={{ value: 'Baseline (100%)', fill: '#06b6d4', fontSize: 10, position: 'insideTopRight' }}
-                                    />
-                                  )}
-                                  {/* Per Stim Average line (average per stimulation across recordings) */}
-                                  <Line 
-                                    type="monotone" 
-                                    dataKey="perStimAvg" 
-                                    stroke="#f59e0b"
-                                    strokeWidth={3}
-                                    dot={{ fill: '#f59e0b', r: 4 }}
-                                    name="Per Stim Average"
-                                  />
-                                  {/* Stim Average line (average of all 5 stims - horizontal reference) */}
+                                  {/* All Stims Average line (average of all 5 stims - horizontal reference) - 3rd in legend */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimAvg" 
@@ -1287,6 +1334,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     dot={false}
                                     name="All Stims Average"
                                   />
+                                  {/* 100% baseline reference for percentage metrics */}
+                                  {metricData.showBaselinePct && (
+                                    <ReferenceLine 
+                                      y={100} 
+                                      stroke="#06b6d4" 
+                                      strokeDasharray="5 5" 
+                                      strokeWidth={2}
+                                      label={{ value: 'Baseline (100%)', fill: '#06b6d4', fontSize: 10, position: 'insideTopRight' }}
+                                    />
+                                  )}
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
@@ -1347,7 +1404,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-zinc-500 text-sm">No per-metric data available</p>
+                      <p className="text-zinc-500 text-sm italic">Select one or more metrics above to display their per-stimulation data</p>
                     )}
                   </div>
                 </div>
@@ -1420,11 +1477,42 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       hrvPerMetricExpanded ? 'max-h-[5000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {perMetricHRVData.length > 0 ? (
+                    {/* Metric Selector */}
+                    <div className="mb-4 p-3 bg-zinc-900/60 rounded-lg">
+                      <p className="text-xs text-zinc-400 mb-2">Select metrics to display:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {hrvMetricDefs.map((metric) => (
+                          <button
+                            key={metric.key}
+                            onClick={() => setSelectedHrvMetrics(prev => ({
+                              ...prev,
+                              [metric.key]: !prev[metric.key]
+                            }))}
+                            className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                              selectedHrvMetrics[metric.key]
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            }`}
+                            data-testid={`select-hrv-metric-${metric.key}`}
+                          >
+                            <InfoTip text={metric.tooltip}>
+                              <span>{metric.label}</span>
+                            </InfoTip>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {Object.values(selectedHrvMetrics).some(v => v) ? (
                       <div className="space-y-6">
-                        {perMetricHRVData.map((metricData) => (
+                        {perMetricHRVData.filter(m => selectedHrvMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className="text-sm font-semibold text-amber-400 mb-3">{metricData.label}</h4>
+                            <h4 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                              {metricData.label}
+                              <InfoTip text={metricData.tooltip}>
+                                <span className="text-zinc-500 cursor-help">ⓘ</span>
+                              </InfoTip>
+                            </h4>
                             
                             {/* Visualization Chart */}
                             <div className="h-48 mb-4">
@@ -1442,7 +1530,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
                                   <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                  {/* Per Stim Median line (median per stimulation across recordings) */}
+                                  {/* Per Stim Median line (median per stimulation across recordings) - 1st in legend */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="perStimMedian" 
@@ -1451,7 +1539,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     dot={{ fill: '#f59e0b', r: 4 }}
                                     name="Per Stim Median"
                                   />
-                                  {/* Stim Median line (median of all 5 stims - horizontal reference) */}
+                                  {/* All Stims Median line (median of all 5 stims - horizontal reference) - 2nd in legend */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimMedian" 
@@ -1521,7 +1609,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-zinc-500 text-sm">No per-metric data available</p>
+                      <p className="text-zinc-500 text-sm italic">Select one or more metrics above to display their per-stimulation data</p>
                     )}
                   </div>
                 </div>

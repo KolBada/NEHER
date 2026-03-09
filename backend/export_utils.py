@@ -3425,6 +3425,14 @@ def create_comparison_pdf(folder_name, comparison_data):
         y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
+        # Compute light_amp_norm on-the-fly if not stored
+        amp_norm = hra_averages.get('light_amp_norm')
+        if amp_norm is None:
+            baseline_bf = hra_averages.get('light_baseline_bf')
+            amplitude = hra_averages.get('light_amplitude')
+            if baseline_bf and baseline_bf > 0 and amplitude is not None:
+                amp_norm = 100.0 * amplitude / baseline_bf
+        y_right = draw_row(fig1, right_x, y_right, 'Amp. (Norm.):', f"{amp_norm:.1f}%" if amp_norm else '—', TINTS['light'], width=col_width)
         roc = hra_averages.get('light_roc')
         roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
         y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', roc_str, TINTS['light'], width=col_width)
@@ -4019,8 +4027,8 @@ def create_comparison_pdf(folder_name, comparison_data):
         ax4a = fig4.add_axes([0.065, 0.48, 0.87, 0.34])
         ax4a.axis('off')
         
-        # Reordered columns with 1st TTP and Avg %
-        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Avg\n%', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'RoC\n(1/min)']
+        # Reordered columns with 1st TTP, Avg % and Amp. %
+        hra_headers = ['Stim', 'Baseline\nBF', 'Avg\nBF', 'Avg\n%', 'Peak\nBF', 'Peak\n%', '1st TTP\n(s)', 'TTP\n(s)', 'BF\nRec', 'Rec\n%', 'Amp.\nBF', 'Amp.\n%', 'RoC\n(1/min)']
         hra_data = []
         
         def fmt_ttp(val):
@@ -4028,6 +4036,16 @@ def create_comparison_pdf(folder_name, comparison_data):
             if val is None:
                 return '0.0'
             return f"{val:.1f}"
+        
+        def compute_amp_norm(rec):
+            """Compute Amp % on-the-fly if not stored"""
+            amp_norm = rec.get('light_amp_norm')
+            if amp_norm is None:
+                baseline = rec.get('light_baseline_bf')
+                amplitude = rec.get('light_amplitude')
+                if baseline and baseline > 0 and amplitude is not None:
+                    amp_norm = 100.0 * amplitude / baseline
+            return amp_norm
         
         for rec in recordings:
             hra_data.append([
@@ -4042,8 +4060,17 @@ def create_comparison_pdf(folder_name, comparison_data):
                 fmt(rec.get('light_recovery_bf'), 1),      # BF Rec
                 fmt(rec.get('light_recovery_pct'), 1),     # Rec %
                 fmt(rec.get('light_amplitude'), 1),        # Amp. BF
+                fmt(compute_amp_norm(rec), 1),             # Amp. %
                 fmt(rec.get('light_roc'), 4),              # RoC (1/min)
             ])
+        
+        # Compute average Amp % on-the-fly
+        amp_norm_vals = []
+        for rec in recordings:
+            val = compute_amp_norm(rec)
+            if val is not None:
+                amp_norm_vals.append(val)
+        avg_amp_norm = np.mean(amp_norm_vals) if amp_norm_vals else None
         
         hra_data.append([
             'Avg',
@@ -4057,12 +4084,13 @@ def create_comparison_pdf(folder_name, comparison_data):
             fmt(hra_averages.get('light_recovery_bf'), 1),
             fmt(hra_averages.get('light_recovery_pct'), 1),
             fmt(hra_averages.get('light_amplitude'), 1),
+            fmt(avg_amp_norm, 1),
             fmt(hra_averages.get('light_roc'), 4),
         ])
         
         if hra_data:
             table4a = ax4a.table(cellText=hra_data, colLabels=hra_headers, loc='upper center', cellLoc='center',
-                                colWidths=[0.07, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08])
+                                colWidths=[0.065, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072, 0.072])
             table4a.auto_set_font_size(False)
             table4a.set_fontsize(5)
             table4a.scale(1.0, row_scale)
@@ -4596,6 +4624,17 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
+    # Compute Amp % on-the-fly if not stored
+    amp_norm = hra_averages.get('light_amp_norm')
+    if amp_norm is None:
+        baseline_bf = hra_averages.get('light_baseline_bf')
+        amplitude = hra_averages.get('light_amplitude')
+        if baseline_bf and baseline_bf > 0 and amplitude is not None:
+            amp_norm = 100.0 * amplitude / baseline_bf
+    ws1[f'D{r}'] = 'Amp. (Norm.):'
+    ws1[f'E{r}'] = f"{amp_norm:.1f}%" if amp_norm else '—'
+    ws1[f'E{r}'].fill = light_fill
+    r += 1
     roc = hra_averages.get('light_roc')
     roc_str = f"{roc:.4f}" if roc is not None else "0.0000"
     ws1[f'D{r}'] = 'Rate of Change:'
@@ -5091,7 +5130,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
     cyan_fill = PatternFill(start_color='0891B2', end_color='0891B2', fill_type='solid')  # Cyan for header
     cyan_light_fill = PatternFill(start_color='CFFAFE', end_color='CFFAFE', fill_type='solid')  # Light cyan for data
     
-    hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'RoC (1/min)']
+    hra_headers = ['Stim', 'Baseline BF', 'Avg BF', 'Avg %', 'Peak BF', 'Peak %', '1st TTP (s)', 'TTP (s)', 'BF Rec', 'Rec %', 'Amp. BF', 'Amp. %', 'RoC (1/min)']
     for col, header in enumerate(hra_headers, 1):
         cell = ws4.cell(row=3, column=col, value=header)
         cell.font = header_font
@@ -5104,6 +5143,16 @@ def create_comparison_xlsx(folder_name, comparison_data):
         if val is None:
             return '0.0'
         return f"{val:.1f}"
+    
+    def compute_amp_norm_xl(rec):
+        """Compute Amp % on-the-fly if not stored"""
+        amp_norm = rec.get('light_amp_norm')
+        if amp_norm is None:
+            baseline = rec.get('light_baseline_bf')
+            amplitude = rec.get('light_amplitude')
+            if baseline and baseline > 0 and amplitude is not None:
+                amp_norm = 100.0 * amplitude / baseline
+        return amp_norm
     
     row = 4
     for rec in recordings:
@@ -5119,6 +5168,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
             fmt(rec.get('light_recovery_bf'), 1),
             fmt(rec.get('light_recovery_pct'), 1),
             fmt(rec.get('light_amplitude'), 1),
+            fmt(compute_amp_norm_xl(rec), 1),
             fmt(rec.get('light_roc'), 4),
         ]
         for col, value in enumerate(data_row, 1):
@@ -5131,6 +5181,14 @@ def create_comparison_xlsx(folder_name, comparison_data):
             elif col >= 3:  # Other data columns - amber
                 cell.fill = light_fill
         row += 1
+    
+    # Compute average Amp % on-the-fly
+    amp_norm_vals_xl = []
+    for rec in recordings:
+        val = compute_amp_norm_xl(rec)
+        if val is not None:
+            amp_norm_vals_xl.append(val)
+    avg_amp_norm_xl = np.mean(amp_norm_vals_xl) if amp_norm_vals_xl else None
     
     # Average row
     hra_avg_row = [
@@ -5145,6 +5203,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
         fmt(hra_averages.get('light_recovery_bf'), 1),
         fmt(hra_averages.get('light_recovery_pct'), 1),
         fmt(hra_averages.get('light_amplitude'), 1),
+        fmt(avg_amp_norm_xl, 1),
         fmt(hra_averages.get('light_roc'), 4),
     ]
     for col, value in enumerate(hra_avg_row, 1):
@@ -5213,8 +5272,8 @@ def create_comparison_xlsx(folder_name, comparison_data):
         cell.border = thin_border
     
     # Set column widths
-    for col in range(1, 12):
-        ws4.column_dimensions[get_column_letter(col)].width = 11
+    for col in range(1, 14):
+        ws4.column_dimensions[get_column_letter(col)].width = 10
     
     # ==================== SHEET 5: DETRENDED HRV ====================
     ws5 = wb.create_sheet("Light Corrected HRV")

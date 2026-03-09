@@ -1,0 +1,93 @@
+{
+  "summary": "Tested Amp % feature additions and Per Metrics metric selector in comparison page. All major features are working correctly. Found minor legend order issue in charts.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "FolderComparison.js - Per Metrics charts legend",
+        "issue": "Chart legend order shows 'All Stims Average, Baseline BF, Per Stim Average' but expected order is 'Per Stim Average, Baseline BF (if shown), All Stims Average'. This is due to Recharts reading legend order from data keys, not JSX order.",
+        "selector": "perMetricHRAData chartData and Line components (lines 1305-1336)",
+        "priority": "LOW",
+        "note": "Visual representation in charts is correct - lines render in proper order. Only legend text order is different."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_amp_pct_export.py",
+    "/app/test_reports/pytest/pytest_results_iter23.xml",
+    "/app/test_reports/comparison_export.pdf"
+  ],
+  
+  "action_items": [
+    "Optional: Fix chart legend order in Per Metrics charts by reordering Line components or using Recharts legend payload prop"
+  ],
+  
+  "critical_code_review_comments": [
+    "FolderComparison.js lines 509-519: hraMetricDefs correctly includes amp_norm_pct with tooltip 'Normalized Amplitude: 100 × Amplitude / Baseline BF'",
+    "FolderComparison.js lines 465-471: getAmpNorm correctly computes light_amp_norm on-the-fly if not stored in data",
+    "FolderComparison.js lines 1105-1107: HRA table header correctly shows 'Amp. %' with InfoTip tooltip",
+    "FolderComparison.js lines 1139-1142: HRA table data cells correctly compute and display Amp % values",
+    "FolderComparison.js lines 1254-1277: Metric selector buttons with data-testid and info tooltips correctly implemented",
+    "export_utils.py lines 3427-3435: PDF summary correctly includes 'Amp. (Norm.)' row with on-the-fly calculation",
+    "export_utils.py lines 4030-4089: PDF Table 4 correctly includes 'Amp. %' column",
+    "export_utils.py lines 4627-4636: Excel Summary correctly includes 'Amp. (Norm.)' row",
+    "export_utils.py lines 5133-5207: Excel Light HRA sheet correctly includes 'Amp. %' column"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_amp_pct_export.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (4/4 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  
+  "test_credentials": "",
+  "seed_data_creation": "Used existing folder: H9 NeuCarS + Light Stimulus (ID: 69a6321397e7f87817ef235a)",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Amp % feature tested and working. Key test IDs: select-hra-metric-amp_norm_pct, expand-hra-per-metric. PDF/Excel exports verified to have Amp % column and Amp. (Norm.) summary row. Minor legend order issue in charts is cosmetic only.",
+  
+  "features_verified": {
+    "amp_pct_column_in_hra_table": "PASS - Amp. % column present in Light-Induced HRA table with correct values",
+    "amp_pct_folder_average": "PASS - Folder Average row shows computed Amp % (37.6 for test folder)",
+    "metric_selector_buttons": "PASS - All 10 metric buttons present (Avg BF, Avg %, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., Amp. %, RoC)",
+    "amp_pct_metric_chart": "PASS - Selecting Amp. % displays chart with per-stim data and 100% baseline reference",
+    "info_tooltips": "PASS - 29 info icons found on page, hover shows tooltip descriptions",
+    "pdf_export_table4_amp_pct": "PASS - PDF Table 4 has 'Amp. %' column header",
+    "pdf_export_summary_amp_norm": "PASS - PDF Summary has 'Amp. (Norm.)' row",
+    "excel_light_hra_amp_pct": "PASS - Excel Light HRA sheet has 'Amp. %' column",
+    "excel_summary_amp_norm": "PASS - Excel Summary sheet has 'Amp. (Norm.)' row at D28",
+    "chart_legend_order": "PARTIAL - Legend shows reverse order (All Stims Avg, Baseline BF, Per Stim Avg) but chart lines render correctly"
+  },
+  
+  "test_results": {
+    "tests_executed": 8,
+    "tests_passed": 8,
+    "tests_partial": 0,
+    "tests_failed": 0,
+    "backend_pytest": {
+      "test_excel_export_has_amp_pct_column": "PASS",
+      "test_excel_export_summary_has_amp_norm": "PASS",
+      "test_pdf_export_status": "PASS",
+      "test_comparison_data_structure": "PASS"
+    },
+    "frontend_playwright": {
+      "amp_pct_column_exists": "PASS",
+      "metric_selector_buttons": "PASS - 10/10 buttons found",
+      "amp_pct_chart_displays": "PASS",
+      "info_tooltips_present": "PASS - 29 icons found"
+    }
+  }
+}
