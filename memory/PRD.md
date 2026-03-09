@@ -19,7 +19,25 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
-### March 7, 2026 (Current Session)
+### March 9, 2026 (Current Session)
+- **PDF Header Wrap Fix (VERIFIED):**
+  - Fixed text overflow in PDF table headers by adding `\n` characters
+  - **Table 3 (Per-Stimulus HRA Data)** in single recording PDF: headers now properly split
+  - **Table 4 (Light-Induced HRA Data)** in comparison PDF: headers now properly split
+  - Header format: "Baseline\nBF", "Avg\n%", "1st TTP\n(s)" etc.
+  - Tested with curl and pdftotext - all headers within cell boundaries
+
+- **Previous Session (March 7-9, 2026):**
+  - Added "Amp. %" metric (100 × Amplitude / Baseline)
+  - Added "Avg %" metric (100 × Avg BF / Baseline)
+  - Implemented on-the-fly calculation for backward compatibility
+  - Reordered HRA readout metrics (absolute vs normalized values)
+  - Changed "Baseline BF" to cyan throughout
+  - Renamed "Stim Average" to "All Stims Average"
+  - Renamed "Per Metrics" to "Per Metrics for each Stimuli"
+  - Renamed "Normalized to Baseline" to "Normalized to Average Baseline" with info tooltip
+
+### March 7, 2026
 - **Global ON/OFF Toggle for Folder Comparison:**
   - Added global `excludedRecordings` state in `FolderComparison.js` that synchronizes across ALL tables
   - Created `RecordingToggle` component with ON/OFF button for each recording row
@@ -163,6 +181,8 @@ Build a production-ready web application for electrophysiology analysis of sharp
 - **Section Drag-and-Drop Bug** (`HomeBrowser.js`): Sections at the bottom of the list cannot be dragged. Multiple fix attempts have failed.
 
 ### P1 - High Priority
+- Excel export potential corruption (testing pending with complex exports)
+- Add "Per Metrics for each Stimuli" data to comparison exports (PDF/Excel)
 - Drug readout input values not clearing properly
 - Beat Frequency chart brush not interactive
 - Brush/slider zoom state resets on data changes
@@ -170,7 +190,11 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ### P2 - Medium Priority
 - Extend synchronized zoom to Spontaneous Activity and Light Stimulus tabs
-- Refactor large components (App.js ~1900 lines, export_utils.py ~4200 lines)
+- Refactor large components:
+  - `export_utils.py` (~5200 lines) - critical, should split into smaller modules
+  - `LightPanel.js` (~1750 lines) - should decompose into smaller components
+  - `FolderComparison.js` (~1650 lines) - should decompose into smaller components
+  - `App.js` (~1900 lines)
 
 ### P3 - Low Priority/Future
 - Add Cohort Normalization functionality
