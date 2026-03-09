@@ -511,7 +511,7 @@ def create_nature_pdf(request):
                     else:
                         amp_norm = None
                     
-                    # Summary readout: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Recovery %, Amplitude, Amp %, Rate of Change
+                    # Summary readout: Baseline BF, Avg BF, Avg %, Peak BF, Peak (Norm.), TTP (1st Stim), Time to Peak, Recovery BF, Rec. (Norm.), Amplitude, Amp %, Rate of Change
                     cyan_text = '#0891b2'  # Cyan color for Baseline BF text
                     y_right = draw_row(fig1, right_x, y_right, 'Baseline BF:', f"{baseline_bf:.1f} bpm" if baseline_bf else '—', TINTS['light'], width=col_width, text_color=cyan_text)
                     y_right = draw_row(fig1, right_x, y_right, 'Avg BF:', f"{avg_bf:.1f} bpm", TINTS['light'], width=col_width)
@@ -521,7 +521,7 @@ def create_nature_pdf(request):
                     y_right = draw_row(fig1, right_x, y_right, 'TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—', TINTS['light'], width=col_width)
-                    y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'], width=col_width)
+                    y_right = draw_row(fig1, right_x, y_right, 'Rec. (Norm.):', f"{recovery_pct:.1f}%" if recovery_pct else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Amp. (Norm.):', f"{amp_norm:.1f}%" if amp_norm else '—', TINTS['light'], width=col_width)
                     y_right = draw_row(fig1, right_x, y_right, 'Rate of Change:', f"{roc:.3f} 1/min" if roc else '—', TINTS['light'], width=col_width)
@@ -1974,7 +1974,7 @@ def create_nature_excel(request):
                     ('TTP (1st Stim):', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'),
                     ('Time to Peak:', f"{ttp:.1f} s" if ttp is not None else '—'),
                     ('Recovery BF:', f"{recovery_bf:.1f} bpm" if recovery_bf else '—'),
-                    ('Recovery %:', f"{recovery_pct:.1f}%" if recovery_pct else '—'),
+                    ('Rec. (Norm.):', f"{recovery_pct:.1f}%" if recovery_pct else '—'),
                     ('Amplitude:', f"{amplitude:.1f} bpm" if amplitude else '—'),
                     ('Amp. (Norm.):', f"{amp_norm:.1f}%" if amp_norm else '—'),
                     ('Rate of Change:', f"{roc:.3f} 1/min" if roc else '—'),
@@ -2810,7 +2810,7 @@ def create_nature_csv(request):
                 writer.writerow(['TTP (1st Stim)', f"{ttp_1st:.1f} s" if ttp_1st is not None else '—'])
                 writer.writerow(['Rate of Change', f"{roc:.3f} 1/min" if roc else '—'])
                 writer.writerow(['Recovery BF', f"{recovery_bf:.1f} bpm" if recovery_bf else '—'])
-                writer.writerow(['Recovery %', f"{recovery_pct:.1f}%" if recovery_pct else '—'])
+                writer.writerow(['Rec. (Norm.)', f"{recovery_pct:.1f}%" if recovery_pct else '—'])
         
         # Corrected HRV
         if request.light_metrics_detrended and request.light_metrics_detrended.get('final'):
@@ -3423,7 +3423,7 @@ def create_comparison_pdf(folder_name, comparison_data):
         ttp_avg_str = f"{ttp_avg:.1f}" if ttp_avg is not None else "0.0"
         y_right = draw_row(fig1, right_x, y_right, 'Time to Peak:', f"{ttp_avg_str} s", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Recovery BF:', f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm", TINTS['light'], width=col_width)
-        y_right = draw_row(fig1, right_x, y_right, 'Recovery %:', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Rec. (Norm.):', f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%", TINTS['light'], width=col_width)
         y_right = draw_row(fig1, right_x, y_right, 'Amplitude:', f"{fmt(hra_averages.get('light_amplitude'), 1)} bpm", TINTS['light'], width=col_width)
         # Compute light_amp_norm on-the-fly if not stored
         amp_norm = hra_averages.get('light_amp_norm')
@@ -4616,7 +4616,7 @@ def create_comparison_xlsx(folder_name, comparison_data):
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_bf'), 1)} bpm"
     ws1[f'E{r}'].fill = light_fill
     r += 1
-    ws1[f'D{r}'] = 'Recovery %:'
+    ws1[f'D{r}'] = 'Rec. (Norm.):'
     ws1[f'E{r}'] = f"{fmt(hra_averages.get('light_recovery_pct'), 1)}%"
     ws1[f'E{r}'].fill = light_fill
     r += 1

@@ -19,6 +19,19 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 9, 2026 (Current Session - Part 3)
+- **Per Metrics Legend Fixes:**
+  - Reordered legend: Per Stim Average first, Baseline BF second, All Stims Average LAST
+  - Changed All Stims Average icon to dotted line (differentiates from Per Stim solid line)
+  - Removed duplicate (i) info icons from metric titles above charts
+  - Custom Legend renderer ensures consistent order regardless of data key positions
+
+- **Export Label Rename:**
+  - Renamed "Recovery %" to "Rec. (Norm.)" in all exports:
+    - Single recording: PDF, Excel, CSV
+    - Comparison: PDF, Excel
+  - "Recovery BF" (absolute value) remains unchanged
+
 ### March 9, 2026 (Current Session - Part 2)
 - **Amp % Column Added to Comparison Page:**
   - Added "Amp. %" column to Light-Induced HRA table (100 × Amplitude / Baseline)

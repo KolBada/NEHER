@@ -612,14 +612,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       // Build chart data for visualization
       const chartData = [];
       for (let i = 0; i < maxStims; i++) {
+        // Order keys: perStimAvg first, baseline second (if shown), stimAvg LAST
         const dataPoint = { 
           stim: `Stim ${i + 1}`, 
           perStimAvg: colAvgs[i],
-          stimAvg: stimAvg,
           // Add baseline BF for metrics that show it (Avg BF, Peak BF, Rec. BF)
           ...(metric.showBaseline ? { baseline: baselineColAvgs[i] } : {}),
           // Add 100% baseline for percentage metrics (Peak %, Rec. %)
-          ...(metric.showBaselinePct ? { baselinePct: 100 } : {})
+          ...(metric.showBaselinePct ? { baselinePct: 100 } : {}),
+          // stimAvg LAST to appear last in legend
+          stimAvg: stimAvg,
         };
         includedRecs.forEach(rec => {
           dataPoint[rec.name] = rec.stimValues[i];
@@ -630,9 +632,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       chartData.push({
         stim: 'Avg',
         perStimAvg: grandAvg,
-        stimAvg: stimAvg,
         ...(metric.showBaseline ? { baseline: baselineGrandAvg } : {}),
         ...(metric.showBaselinePct ? { baselinePct: 100 } : {}),
+        // stimAvg LAST
+        stimAvg: stimAvg,
         ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
       });
       
@@ -697,22 +700,25 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       // Build chart data for visualization
       const chartData = [];
       for (let i = 0; i < maxStims; i++) {
+        // Order keys: perStimMedian first, stimMedian LAST for legend order
         const dataPoint = { 
           stim: `Stim ${i + 1}`, 
           perStimMedian: colMedians[i],
-          stimMedian: stimMedian
         };
         includedRecs.forEach(rec => {
           dataPoint[rec.name] = rec.stimValues[i];
         });
+        // stimMedian LAST
+        dataPoint.stimMedian = stimMedian;
         chartData.push(dataPoint);
       }
       // Add median column to chart
       chartData.push({
         stim: 'Median',
         perStimMedian: grandMedian,
+        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowMedian])),
+        // stimMedian LAST
         stimMedian: stimMedian,
-        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowMedian]))
       });
       
       return {
@@ -1280,11 +1286,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <div className="space-y-6">
                         {perMetricHRAData.filter(m => selectedHraMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                            <h4 className={`text-sm font-semibold mb-3 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
                               {metricData.label}
-                              <InfoTip text={metricData.tooltip}>
-                                <span className="text-zinc-500 cursor-help">ⓘ</span>
-                              </InfoTip>
                             </h4>
                             
                             {/* Visualization Chart */}
@@ -1302,8 +1305,39 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
-                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                  {/* Per Stim Average line (average per stimulation across recordings) - 1st in legend */}
+                                  <Legend 
+                                    wrapperStyle={{ fontSize: '10px' }} 
+                                    content={({ payload }) => {
+                                      // Custom legend with fixed order: Per Stim Average, Baseline BF (if exists), All Stims Average
+                                      const orderedItems = [];
+                                      const perStim = payload?.find(p => p.value === 'Per Stim Average');
+                                      const baseline = payload?.find(p => p.value === 'Baseline BF');
+                                      const allStims = payload?.find(p => p.value === 'All Stims Average');
+                                      if (perStim) orderedItems.push(perStim);
+                                      if (baseline) orderedItems.push(baseline);
+                                      if (allStims) orderedItems.push(allStims);
+                                      return (
+                                        <div className="flex justify-center gap-4 text-xs mt-2">
+                                          {orderedItems.map((entry, i) => (
+                                            <span key={i} className="flex items-center gap-1">
+                                              {entry.value === 'All Stims Average' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
+                                              ) : entry.value === 'Baseline BF' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${entry.color}` }} />
+                                              ) : (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color, marginRight: 2 }} />
+                                                  <span style={{ width: 8, borderTop: `2px solid ${entry.color}` }} />
+                                                </span>
+                                              )}
+                                              <span style={{ color: entry.color }}>{entry.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }}
+                                  />
+                                  {/* Per Stim Average line - 1st in legend (solid line with dots) */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="perStimAvg" 
@@ -1312,7 +1346,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     dot={{ fill: '#f59e0b', r: 4 }}
                                     name="Per Stim Average"
                                   />
-                                  {/* Baseline BF trace for Avg BF, Peak BF, Recovery BF charts - 2nd in legend */}
+                                  {/* Baseline BF trace for Avg BF, Peak BF, Recovery BF charts - 2nd in legend (dashed line) */}
                                   {metricData.showBaseline && (
                                     <Line 
                                       type="monotone" 
@@ -1324,13 +1358,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                       name="Baseline BF"
                                     />
                                   )}
-                                  {/* All Stims Average line (average of all 5 stims - horizontal reference) - 3rd in legend */}
+                                  {/* All Stims Average line - LAST in legend (dotted line, no dots) */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimAvg" 
                                     stroke="#eab308"
                                     strokeWidth={2}
-                                    strokeDasharray="8 4"
+                                    strokeDasharray="2 2"
                                     dot={false}
                                     name="All Stims Average"
                                   />
@@ -1507,11 +1541,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <div className="space-y-6">
                         {perMetricHRVData.filter(m => selectedHrvMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
-                            <h4 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-amber-400 mb-3">
                               {metricData.label}
-                              <InfoTip text={metricData.tooltip}>
-                                <span className="text-zinc-500 cursor-help">ⓘ</span>
-                              </InfoTip>
                             </h4>
                             
                             {/* Visualization Chart */}
@@ -1529,8 +1560,35 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
-                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                  {/* Per Stim Median line (median per stimulation across recordings) - 1st in legend */}
+                                  <Legend 
+                                    wrapperStyle={{ fontSize: '10px' }}
+                                    content={({ payload }) => {
+                                      // Custom legend with fixed order: Per Stim Median, All Stims Median
+                                      const orderedItems = [];
+                                      const perStim = payload?.find(p => p.value === 'Per Stim Median');
+                                      const allStims = payload?.find(p => p.value === 'All Stims Median');
+                                      if (perStim) orderedItems.push(perStim);
+                                      if (allStims) orderedItems.push(allStims);
+                                      return (
+                                        <div className="flex justify-center gap-4 text-xs mt-2">
+                                          {orderedItems.map((entry, i) => (
+                                            <span key={i} className="flex items-center gap-1">
+                                              {entry.value === 'All Stims Median' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
+                                              ) : (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color, marginRight: 2 }} />
+                                                  <span style={{ width: 8, borderTop: `2px solid ${entry.color}` }} />
+                                                </span>
+                                              )}
+                                              <span style={{ color: entry.color }}>{entry.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }}
+                                  />
+                                  {/* Per Stim Median line - 1st in legend (solid line with dots) */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="perStimMedian" 
@@ -1539,13 +1597,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     dot={{ fill: '#f59e0b', r: 4 }}
                                     name="Per Stim Median"
                                   />
-                                  {/* All Stims Median line (median of all 5 stims - horizontal reference) - 2nd in legend */}
+                                  {/* All Stims Median line - LAST in legend (dotted line, no dots) */}
                                   <Line 
                                     type="monotone" 
                                     dataKey="stimMedian" 
                                     stroke="#eab308"
                                     strokeWidth={2}
-                                    strokeDasharray="8 4"
+                                    strokeDasharray="2 2"
                                     dot={false}
                                     name="All Stims Median"
                                   />
