@@ -4,6 +4,10 @@ import {
   AlertCircle, Zap, Activity, ChevronRight, Info
 } from 'lucide-react';
 import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+  Legend, ResponsiveContainer, ReferenceLine
+} from 'recharts';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -61,6 +65,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [lightNormExpanded, setLightNormExpanded] = useState(false);
   const [hraPerStimExpanded, setHraPerStimExpanded] = useState(false);  // Per Stimuli for HRA
   const [hrvPerStimExpanded, setHrvPerStimExpanded] = useState(false);  // Per Stimuli for HRV
+  const [hraPerMetricExpanded, setHraPerMetricExpanded] = useState(false);  // Per Metrics for HRA
+  const [hrvPerMetricExpanded, setHrvPerMetricExpanded] = useState(false);  // Per Metrics for HRV
   // Global excluded recordings - applies to ALL tables and exports
   const [excludedRecordings, setExcludedRecordings] = useState({});  // { recordingId: true }
   
@@ -578,6 +584,164 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     
     return stimTables;
   }, [comparisonData, excludedRecordings]);
+
+  // HRA metric definitions for Per Metrics tables
+  const hraMetricDefs = useMemo(() => [
+    { key: 'baseline_bf', label: 'Baseline BF', decimals: 1 },
+    { key: 'avg_bf', label: 'Avg BF', decimals: 1 },
+    { key: 'peak_bf', label: 'Peak BF', decimals: 1 },
+    { key: 'peak_norm', label: 'Peak %', decimals: 1 },
+    { key: 'ttp', label: 'TTP', decimals: 1 },
+    { key: 'recovery_bf', label: 'Rec. BF', decimals: 1 },
+    { key: 'recovery_pct', label: 'Rec. %', decimals: 1 },
+    { key: 'amplitude', label: 'Amp.', decimals: 1 },
+    { key: 'roc', label: 'RoC', decimals: 4 },
+  ], []);
+
+  // HRV metric definitions for Per Metrics tables
+  const hrvMetricDefs = useMemo(() => [
+    { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀) corr.', decimals: 3 },
+    { key: 'ln_sdnn70', label: 'ln(SDNN₇₀) corr.', decimals: 3 },
+    { key: 'pnn50', label: 'pNN50₇₀ corr. (%)', decimals: 1 },
+  ], []);
+
+  // Compute per-metric HRA data (for each metric: rows=recordings, cols=stim1-5 + avg)
+  const perMetricHRAData = useMemo(() => {
+    if (!comparisonData?.recordings) return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    const maxStims = 5;
+    
+    return hraMetricDefs.map(metric => {
+      // Build per-recording data for this metric
+      const recordingData = allRecs.map(rec => {
+        const perStim = rec.per_stim_hra || [];
+        const stimValues = [];
+        for (let i = 0; i < maxStims; i++) {
+          const stim = perStim[i];
+          stimValues.push(stim ? stim[metric.key] : null);
+        }
+        // Calculate row average (across stims)
+        const rowAvg = mean(stimValues);
+        return {
+          id: rec.id,
+          name: rec.name,
+          isExcluded: excludedRecordings[rec.id] || false,
+          stimValues,
+          rowAvg,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Calculate column averages (folder average per stim)
+      const includedRecs = recordingData.filter(r => !r.isExcluded);
+      const colAvgs = [];
+      for (let i = 0; i < maxStims; i++) {
+        colAvgs.push(mean(includedRecs.map(r => r.stimValues[i])));
+      }
+      const grandAvg = mean(includedRecs.map(r => r.rowAvg));
+      
+      // Build chart data for visualization
+      const chartData = [];
+      for (let i = 0; i < maxStims; i++) {
+        const dataPoint = { stim: `Stim ${i + 1}`, average: colAvgs[i] };
+        includedRecs.forEach(rec => {
+          dataPoint[rec.name] = rec.stimValues[i];
+        });
+        chartData.push(dataPoint);
+      }
+      // Add average column to chart
+      chartData.push({
+        stim: 'Avg',
+        average: grandAvg,
+        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
+      });
+      
+      return {
+        ...metric,
+        recordings: recordingData,
+        colAvgs,
+        grandAvg,
+        includedCount: includedRecs.length,
+        chartData,
+      };
+    });
+  }, [comparisonData, excludedRecordings, hraMetricDefs]);
+
+  // Compute per-metric HRV data (for each metric: rows=recordings, cols=stim1-5 + median)
+  const perMetricHRVData = useMemo(() => {
+    if (!comparisonData?.recordings) return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
+    
+    const median = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v)).sort((a, b) => a - b);
+      if (valid.length === 0) return null;
+      const mid = Math.floor(valid.length / 2);
+      return valid.length % 2 !== 0 ? valid[mid] : (valid[mid - 1] + valid[mid]) / 2;
+    };
+    
+    const maxStims = 5;
+    
+    return hrvMetricDefs.map(metric => {
+      // Build per-recording data for this metric
+      const recordingData = allRecs.map(rec => {
+        const perStim = rec.per_stim_hrv || [];
+        const stimValues = [];
+        for (let i = 0; i < maxStims; i++) {
+          const stim = perStim[i];
+          stimValues.push(stim ? stim[metric.key] : null);
+        }
+        // Calculate row median (across stims)
+        const rowMedian = median(stimValues);
+        return {
+          id: rec.id,
+          name: rec.name,
+          isExcluded: excludedRecordings[rec.id] || false,
+          stimValues,
+          rowMedian,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Calculate column medians (folder median per stim)
+      const includedRecs = recordingData.filter(r => !r.isExcluded);
+      const colMedians = [];
+      for (let i = 0; i < maxStims; i++) {
+        colMedians.push(median(includedRecs.map(r => r.stimValues[i])));
+      }
+      const grandMedian = median(includedRecs.map(r => r.rowMedian));
+      
+      // Build chart data for visualization
+      const chartData = [];
+      for (let i = 0; i < maxStims; i++) {
+        const dataPoint = { stim: `Stim ${i + 1}`, median: colMedians[i] };
+        includedRecs.forEach(rec => {
+          dataPoint[rec.name] = rec.stimValues[i];
+        });
+        chartData.push(dataPoint);
+      }
+      // Add median column to chart
+      chartData.push({
+        stim: 'Median',
+        median: grandMedian,
+        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowMedian]))
+      });
+      
+      return {
+        ...metric,
+        recordings: recordingData,
+        colMedians,
+        grandMedian,
+        includedCount: includedRecs.length,
+        chartData,
+      };
+    });
+  }, [comparisonData, excludedRecordings, hrvMetricDefs]);
 
   // Sort normalized spontaneous data alphabetically
   const sortedNormalizedSpontaneous = useMemo(() => {
@@ -1154,6 +1318,115 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     )}
                   </div>
                 </div>
+                
+                {/* Expandable Per Metrics Section for HRA */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setHraPerMetricExpanded(!hraPerMetricExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-hra-per-metric"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${hraPerMetricExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Metrics</span>
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      hraPerMetricExpanded ? 'max-h-[8000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {perMetricHRAData.length > 0 ? (
+                      <div className="space-y-6">
+                        {perMetricHRAData.map((metricData) => (
+                          <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
+                            <h4 className="text-sm font-semibold text-amber-400 mb-3">{metricData.label}</h4>
+                            
+                            {/* Visualization Chart */}
+                            <div className="h-48 mb-4">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                                  <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <RechartsTooltip 
+                                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
+                                    labelStyle={{ color: '#fbbf24' }}
+                                  />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="average" 
+                                    stroke="#f59e0b" 
+                                    strokeWidth={3}
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    name="Folder Average"
+                                  />
+                                  <ReferenceLine y={metricData.grandAvg} stroke="#f59e0b" strokeDasharray="5 5" strokeOpacity={0.5} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            {/* Data Table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800">
+                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
+                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 1</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 2</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 3</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 4</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 5</th>
+                                    <th className="text-center py-2 px-2 font-medium text-yellow-400 bg-yellow-950/30">Average</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {metricData.recordings.map((rec) => (
+                                    <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
+                                      <td className="py-2 px-1">
+                                        <RecordingToggle 
+                                          isExcluded={rec.isExcluded} 
+                                          onToggle={() => toggleRecording(rec.id)}
+                                          testId={`toggle-hra-metric-${metricData.key}-${rec.id}`}
+                                        />
+                                      </td>
+                                      <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                      {rec.stimValues.map((val, i) => (
+                                        <td key={i} className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">
+                                          {formatValue(val, metricData.decimals)}
+                                        </td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center text-yellow-300 bg-yellow-950/20 font-medium">
+                                        {formatValue(rec.rowAvg, metricData.decimals)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {/* Folder Average Row */}
+                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-2 text-amber-300 text-xs">Folder Average (n={metricData.includedCount})</td>
+                                    {metricData.colAvgs.map((val, i) => (
+                                      <td key={i} className="py-3 px-2 text-center text-amber-100 text-xs">
+                                        {formatValue(val, metricData.decimals)}
+                                      </td>
+                                    ))}
+                                    <td className="py-3 px-2 text-center text-yellow-200 text-xs font-bold">
+                                      {formatValue(metricData.grandAvg, metricData.decimals)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">No per-metric data available</p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -1274,6 +1547,115 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       </div>
                     ) : (
                       <p className="text-zinc-500 text-sm">No per-stimuli data available</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Expandable Per Metrics Section for HRV */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setHrvPerMetricExpanded(!hrvPerMetricExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-hrv-per-metric"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${hrvPerMetricExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Metrics</span>
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      hrvPerMetricExpanded ? 'max-h-[5000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {perMetricHRVData.length > 0 ? (
+                      <div className="space-y-6">
+                        {perMetricHRVData.map((metricData) => (
+                          <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
+                            <h4 className="text-sm font-semibold text-amber-400 mb-3">{metricData.label}</h4>
+                            
+                            {/* Visualization Chart */}
+                            <div className="h-48 mb-4">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                                  <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <YAxis stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <RechartsTooltip 
+                                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
+                                    labelStyle={{ color: '#fbbf24' }}
+                                  />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="median" 
+                                    stroke="#f59e0b" 
+                                    strokeWidth={3}
+                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                    name="Folder Median"
+                                  />
+                                  <ReferenceLine y={metricData.grandMedian} stroke="#f59e0b" strokeDasharray="5 5" strokeOpacity={0.5} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            {/* Data Table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800">
+                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
+                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 1</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 2</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 3</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 4</th>
+                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 5</th>
+                                    <th className="text-center py-2 px-2 font-medium text-yellow-400 bg-yellow-950/30">Median</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {metricData.recordings.map((rec) => (
+                                    <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
+                                      <td className="py-2 px-1">
+                                        <RecordingToggle 
+                                          isExcluded={rec.isExcluded} 
+                                          onToggle={() => toggleRecording(rec.id)}
+                                          testId={`toggle-hrv-metric-${metricData.key}-${rec.id}`}
+                                        />
+                                      </td>
+                                      <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                      {rec.stimValues.map((val, i) => (
+                                        <td key={i} className="py-2 px-2 text-center text-zinc-300 bg-amber-950/10">
+                                          {formatValue(val, metricData.decimals)}
+                                        </td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center text-yellow-300 bg-yellow-950/20 font-medium">
+                                        {formatValue(rec.rowMedian, metricData.decimals)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {/* Folder Median Row */}
+                                  <tr className="bg-amber-950/60 font-bold border-t-2 border-amber-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-2 text-amber-300 text-xs">Folder Median (n={metricData.includedCount})</td>
+                                    {metricData.colMedians.map((val, i) => (
+                                      <td key={i} className="py-3 px-2 text-center text-amber-100 text-xs">
+                                        {formatValue(val, metricData.decimals)}
+                                      </td>
+                                    ))}
+                                    <td className="py-3 px-2 text-center text-yellow-200 text-xs font-bold">
+                                      {formatValue(metricData.grandMedian, metricData.decimals)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm">No per-metric data available</p>
                     )}
                   </div>
                 </div>

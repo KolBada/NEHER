@@ -51,6 +51,22 @@ Build a production-ready web application for electrophysiology analysis of sharp
   - Backend `server.py` updated to extract `per_stim_hra` from `lightResponse.per_stim` and `per_stim_hrv` from `lightHrvDetrended.per_pulse`
   - Frontend `FolderComparison.js` added `perStimHRAData` and `perStimHRVData` useMemo hooks for data computation
 
+- **Per Metrics Tables for HRA and HRV (NEW):**
+  - Added "Per Metrics" expandable sections under both HRA and Corrected HRV cards in the Light Stimulus tab
+  - **HRA Per Metrics:** Shows 9 tables (one per metric), each with:
+    - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Average** (6th column = row average)
+    - Metrics: Baseline BF, Avg BF, Peak BF, Peak %, TTP, Rec. BF, Rec. %, Amp., RoC
+    - "Folder Average" row at bottom with column averages
+    - Line chart visualization showing evolution across stimulations with reference line
+    - Global ON/OFF toggles synchronized with all other tables
+  - **HRV Per Metrics:** Shows 3 tables (one per metric), each with:
+    - Columns: Recording, Stim 1, Stim 2, Stim 3, Stim 4, Stim 5, **Median** (6th column = row median)
+    - Metrics: ln(RMSSD₇₀) corr., ln(SDNN₇₀) corr., pNN50₇₀ corr. (%)
+    - "Folder Median" row at bottom with column medians
+    - Line chart visualization showing evolution across stimulations
+    - Global ON/OFF toggles synchronized with all other tables
+  - Added Recharts imports for LineChart, ResponsiveContainer, ReferenceLine visualizations
+
 ### March 6, 2026 (Session 2)
 - **Bug Fixes for Readout Controls:**
   - **Decimal Minute Computation Fix:** Backend `analysis.py` now uses `int(hrv_minute)` for HRV window lookup
