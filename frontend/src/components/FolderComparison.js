@@ -1285,7 +1285,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     strokeWidth={2}
                                     strokeDasharray="8 4"
                                     dot={false}
-                                    name="Stim Average"
+                                    name="All Stims Average"
                                   />
                                 </LineChart>
                               </ResponsiveContainer>
@@ -1459,7 +1459,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     strokeWidth={2}
                                     strokeDasharray="8 4"
                                     dot={false}
-                                    name="Stim Median"
+                                    name="All Stims Median"
                                   />
                                 </LineChart>
                               </ResponsiveContainer>
