@@ -19,6 +19,14 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 9, 2026 (Current Session - Part 5)
+- **Phase 1: MEA Mode Selector Complete**
+  - Added `ModeSelector.js` component with two cards: SEM and MEA
+  - SEM card routes to existing SEM upload flow unchanged
+  - MEA card shows "Coming soon" badge and toast message
+  - Info tooltips explain each recording type
+  - Integrated into App.js with new `mode-select` view state
+
 ### March 9, 2026 (Current Session - Part 4)
 - **Renamed "Amp. %" to "Dec. %" (Decrease %)**
   - Changed formula from `100 × Amplitude / Baseline` to `100 × Amplitude / Peak BF`

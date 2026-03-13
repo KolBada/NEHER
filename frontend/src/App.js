@@ -29,6 +29,7 @@ import AnalysisPanel from '@/components/AnalysisPanel';
 import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import HomeBrowser from '@/components/HomeBrowser';
+import ModeSelector from '@/components/ModeSelector';
 import SaveRecording from '@/components/SaveRecording';
 import FolderComparison from '@/components/FolderComparison';
 import api, { downloadBlob } from '@/api';
@@ -1463,9 +1464,38 @@ function App() {
       <div className="min-h-screen bg-[#09090b]">
         <Toaster theme="dark" position="top-right" />
         <HomeBrowser 
-          onNewAnalysis={() => setAppView('upload')}
+          onNewAnalysis={() => setAppView('mode-select')}
           onOpenRecording={handleOpenRecording}
           initialFolderId={navigateToFolderId}
+        />
+      </div>
+    );
+  }
+
+  // Mode selector view - choose between SEM and MEA
+  if (appView === 'mode-select') {
+    return (
+      <div className="min-h-screen bg-[#09090b]">
+        <Toaster theme="dark" position="top-right" />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4"
+            onClick={() => setAppView('home')}
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+        <ModeSelector 
+          onSelectSEM={() => setAppView('upload')}
+          onSelectMEA={() => {
+            // MEA mode - coming soon, show toast
+            // For now, just stay on mode-select
+            toast.info('MEA analysis is coming soon!');
+          }}
+          onBack={() => setAppView('home')}
         />
       </div>
     );
