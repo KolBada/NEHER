@@ -256,9 +256,9 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
       
       <Card className="w-full max-w-2xl glass-surface relative z-10">
         <CardHeader>
-          <CardTitle className="text-xl font-display" style={{ color: 'var(--text-primary)' }}>Upload SEM Data</CardTitle>
+          <CardTitle className="text-xl font-display" style={{ color: 'var(--text-primary)' }}>Upload SSE Data</CardTitle>
           <p className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-            Upload at least 1 ABF file from your SEM recording
+            Upload at least 1 ABF file from your single electrode recording
           </p>
         </CardHeader>
         <CardContent className="space-y-6">

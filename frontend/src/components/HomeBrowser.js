@@ -46,7 +46,7 @@ import FolderComparison from './FolderComparison';
 import MEAPopulationAnalysis from './MEAPopulationAnalysis';
 
 // Tooltip text definitions
-const SEM_TOOLTIP = `Single-electrode extracellular recording using a sharp glass microelectrode positioned near the tissue. Detects cardiac beats from a continuous voltage trace.`;
+const SEM_TOOLTIP = `Compatible with patch clamp, sharp extracellular microelectrode, or any single-electrode technique that produces .abf files. Detects cardiac beats from a continuous voltage trace.`;
 const MEA_TOOLTIP = `Extracellular recording using an array of electrodes across a culture well. Spikes and bursts are pre-detected and exported as tables. NEHER analyzes network spike rate and burst rate.`;
 
 // Info icon with tooltip component
@@ -587,7 +587,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
           {/* Mode Selection Cards - Two glass cards side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            {/* SEM Card */}
+            {/* SSE Card */}
             <div 
               className="glass-surface mode-card mode-card-sem animate-fade-up-1 p-6 cursor-pointer"
               onClick={onNavigateToSEM}
@@ -595,15 +595,18 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             >
               <div className="mb-4">
                 <h3 className="font-display text-lg font-semibold flex items-center" style={{ color: 'var(--text-primary)' }}>
-                  Sharp Extracellular Microelectrode (SEM)
+                  Sharp Single Electrode (SSE)
                   <InfoTooltip text={SEM_TOOLTIP} />
                 </h3>
-                <p className="font-body text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  For cardiac activity — cardioids alone or neuro-cardiac assembloids (NeuCarS).
+                <p className="font-body text-sm font-medium mt-2" style={{ color: 'var(--sem-accent)' }}>
+                  For cardiac activity
+                </p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                  Cardiac organoids (hCO) or neuro-cardiac assembloids (NeuCarS)
                 </p>
               </div>
               
-              {/* SEM Drop Zone Visual */}
+              {/* SSE Drop Zone Visual */}
               <div
                 className="drop-zone drop-zone-sem p-8 text-center"
                 data-testid="sem-dropzone"
@@ -625,8 +628,11 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                   Multi-Electrode Array (MEA)
                   <InfoTooltip text={MEA_TOOLTIP} />
                 </h3>
-                <p className="font-body text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  For neuronal activity — neuronal organoids (hSpO) or neuro-cardiac assembloids (NeuCarS).
+                <p className="font-body text-sm font-medium mt-2" style={{ color: 'var(--mea-accent)' }}>
+                  For neuronal activity
+                </p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                  Spinal cord organoids (hSpO) or neuro-cardiac assembloids (NeuCarS)
                 </p>
               </div>
               
@@ -813,14 +819,23 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       onDragStart={(e) => handleSectionDragStart(e, section)}
                       onDragEnd={handleSectionDragEnd}
                       data-testid={`section-header-${section.id}`}
-                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing py-2.5 px-3 rounded-sm transition-all relative section-row-glass"
+                      className="flex items-center gap-2 mb-3 group cursor-grab active:cursor-grabbing py-3 px-4 rounded-xl transition-all relative"
                       style={{ 
-                        background: 'rgba(255,255,255,0.025)',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        background: 'rgba(255,255,255,0.03)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
                         zIndex: 10 
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.045)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                      }}
                     >
                       <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
                       <div
@@ -836,12 +851,11 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                           style={{ color: section.expanded ? 'var(--sem-accent)' : 'var(--text-tertiary)' }}
                         />
                         <span 
-                          className="text-sm font-medium transition-colors group-hover:text-white"
-                          style={{ color: 'var(--text-secondary)', fontWeight: 500 }}
+                          className="text-sm transition-colors group-hover:text-white"
+                          style={{ color: 'var(--text-primary)', fontWeight: 500 }}
                         >
                           {section.name}
                         </span>
-                        <div className="flex-1 h-px ml-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -892,8 +906,13 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                               onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                             >
                               <CardContent className="p-3 flex items-center gap-3" onClick={() => loadRecordings(folder.id)}>
-                                <div className={`w-8 h-8 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
-                                  <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
+                                <div 
+                                  className={`w-9 h-9 rounded-lg ${getFolderBgClass(folder.color)} flex items-center justify-center transition-all group-hover:scale-105`}
+                                  style={{ 
+                                    boxShadow: `0 0 20px ${folder.color === 'amber' ? 'rgba(245,158,11,0.25)' : folder.color === 'emerald' ? 'rgba(16,185,129,0.25)' : folder.color === 'sky' ? 'rgba(14,165,233,0.25)' : folder.color === 'violet' ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.1)'}`,
+                                  }}
+                                >
+                                  <FolderOpen className={`w-5 h-5 ${getFolderColorClass(folder.color)}`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>
@@ -984,8 +1003,13 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
               >
                 <CardContent className="p-4 flex items-center gap-4" onClick={() => loadRecordings(folder.id)}>
-                  <div className={`w-10 h-10 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
-                    <FolderOpen className={`w-5 h-5 ${getFolderColorClass(folder.color)}`} />
+                  <div 
+                    className={`w-11 h-11 rounded-xl ${getFolderBgClass(folder.color)} flex items-center justify-center transition-all group-hover:scale-105`}
+                    style={{ 
+                      boxShadow: `0 0 24px ${folder.color === 'amber' ? 'rgba(245,158,11,0.3)' : folder.color === 'emerald' ? 'rgba(16,185,129,0.3)' : folder.color === 'sky' ? 'rgba(14,165,233,0.3)' : folder.color === 'violet' ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.15)'}`,
+                    }}
+                  >
+                    <FolderOpen className={`w-6 h-6 ${getFolderColorClass(folder.color)}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>

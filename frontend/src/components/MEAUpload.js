@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, CheckCircle, XCircle, Loader2, ChevronRight } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // Expected MEA CSV files
@@ -730,7 +730,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
 
   // Render upload view
   return (
-    <div className="max-w-3xl mx-auto p-6 relative">
+    <div className="flex items-center justify-center min-h-[70vh] relative" data-testid="mea-upload-page">
       {/* Ambient MEA glow orb */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -741,7 +741,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         />
       </div>
       
-      <Card className="glass-surface relative z-10">
+      <Card className="w-full max-w-2xl glass-surface relative z-10">
         <CardHeader>
           <CardTitle className="text-xl font-display" style={{ color: 'var(--text-primary)' }}>Upload MEA Data</CardTitle>
           <p className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
@@ -809,8 +809,19 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             )}
             
             {/* Parse button */}
-            <div className="flex justify-between items-center">
-              <Button variant="ghost" onClick={onBack} style={{ color: 'var(--text-secondary)' }}>
+            <div className="flex justify-between items-center pt-4">
+              <Button 
+                variant="ghost" 
+                onClick={onBack}
+                className="rounded-lg"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  color: 'var(--text-secondary)',
+                  padding: '10px 20px',
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <Button
@@ -826,7 +837,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                   </>
                 ) : (
                   <>
-                    Parse Files
+                    Analyze Files
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </>
                 )}
