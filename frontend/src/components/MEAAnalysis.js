@@ -2,12 +2,27 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Save, Download, Home, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, Legend, ScatterChart, Scatter, ReferenceLine,
   ReferenceArea, BarChart, Bar
 } from 'recharts';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Toaster } from '@/components/ui/sonner';
+import MEASaveDialog from './MEASaveDialog';
 
 // ============================================================================
 // PHASE 4: Metric Computation Functions
@@ -426,6 +441,59 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     Object.keys(meaData?.wells || {})[0] || null
   );
   const [activeTab, setActiveTab] = useState('overview');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [savedWells, setSavedWells] = useState(new Set()); // Track which wells have been saved
+  
+  // Export CSV for the current well
+  const exportCSV = (type) => {
+    if (!wellAnalysis) return;
+    
+    let csvContent = '';
+    let filename = '';
+    
+    if (type === 'spike_rate') {
+      // Spike rate vs time
+      csvContent = 'time_bin_start_s,spike_rate_hz\n';
+      wellAnalysis.spikeRateBins.forEach(bin => {
+        csvContent += `${bin.bin_start},${bin.spike_rate_hz}\n`;
+      });
+      filename = `${meaData?.plate_id || 'MEA'}_${selectedWell}_spike_rate.csv`;
+    } else if (type === 'burst_rate') {
+      // Burst rate vs time
+      csvContent = 'time_bin_start_s,burst_rate_bpm\n';
+      wellAnalysis.burstRateBins.forEach(bin => {
+        csvContent += `${bin.bin_start},${bin.burst_rate_bpm}\n`;
+      });
+      filename = `${meaData?.plate_id || 'MEA'}_${selectedWell}_burst_rate.csv`;
+    } else if (type === 'spike_intervals') {
+      // Spike interval vs time
+      csvContent = 'timestamp_s,electrode,isi_s\n';
+      const well = meaData.wells[selectedWell];
+      const activeElectrodes = well.active_electrodes;
+      
+      // Group spikes by electrode and compute ISIs
+      activeElectrodes.forEach(electrode => {
+        const electrodeSpikes = well.spikes
+          .filter(s => s.electrode === electrode)
+          .sort((a, b) => a.timestamp - b.timestamp);
+        
+        for (let i = 1; i < electrodeSpikes.length; i++) {
+          const isi = electrodeSpikes[i].timestamp - electrodeSpikes[i-1].timestamp;
+          csvContent += `${electrodeSpikes[i].timestamp},${electrode},${isi}\n`;
+        }
+      });
+      filename = `${meaData?.plate_id || 'MEA'}_${selectedWell}_spike_intervals.csv`;
+    }
+    
+    // Download the CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   // Compute all metrics for the selected well
   const wellAnalysis = useMemo(() => {
@@ -528,6 +596,28 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
 
   return (
     <div className="min-h-screen bg-[#09090b] p-4">
+      <Toaster theme="dark" position="top-right" />
+      
+      {/* Save Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Save MEA Recording</DialogTitle>
+          </DialogHeader>
+          <MEASaveDialog
+            meaData={meaData}
+            config={config}
+            wellAnalysis={wellAnalysis}
+            selectedWell={selectedWell}
+            onSaveComplete={(folderId, recordingId) => {
+              setSavedWells(prev => new Set([...prev, selectedWell]));
+              setShowSaveDialog(false);
+            }}
+            onClose={() => setShowSaveDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+      
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
@@ -541,13 +631,28 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           </span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => {/* TODO: Export */}}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button size="sm" className="bg-sky-600 hover:bg-sky-500" onClick={onSave}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportCSV('spike_rate')}>
+                Spike Rate vs Time
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportCSV('burst_rate')}>
+                Burst Rate vs Time
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportCSV('spike_intervals')}>
+                Spike Intervals
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" className="bg-sky-600 hover:bg-sky-500" onClick={() => setShowSaveDialog(true)}>
             <Save className="w-4 h-4 mr-2" />
-            Save
+            Save Well
           </Button>
         </div>
       </div>
@@ -560,9 +665,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             variant={selectedWell === wellId ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedWell(wellId)}
-            className={selectedWell === wellId ? 'bg-sky-600' : ''}
+            className={`${selectedWell === wellId ? 'bg-sky-600' : ''} relative`}
           >
             {wellId}
+            {savedWells.has(wellId) && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-emerald-500 text-[8px]">✓</Badge>
+            )}
           </Button>
         ))}
       </div>

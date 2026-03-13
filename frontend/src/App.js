@@ -1216,6 +1216,38 @@ function App() {
     try {
       const state = recordingData.analysis_state;
       
+      // Check if this is an MEA recording
+      if (state.source_type === 'MEA' || recordingData.source_type === 'MEA') {
+        // Handle MEA recording - load into MEA analysis view
+        const meaWellData = {
+          [state.well_id]: {
+            well_id: state.well_id,
+            n_electrodes: state.n_electrodes,
+            n_active_electrodes: state.n_active_electrodes,
+            active_electrodes: state.active_electrodes,
+            duration_s: state.duration_s,
+            total_spikes: state.total_spikes,
+            mean_firing_rate_hz: state.mean_firing_rate_hz,
+            spikes: state.spikes,
+            electrode_bursts: state.electrode_bursts,
+            network_bursts: state.network_bursts,
+          }
+        };
+        
+        setMeaData({
+          wells: meaWellData,
+          plate_id: state.plate_id,
+          electrode_filter: state.electrode_filter,
+          environmental_data: state.environmental_data,
+        });
+        setMeaConfig(state.config);
+        setAppView('mea-analysis');
+        toast.success(`Loaded MEA recording: ${recordingData.name}`);
+        setRecordingLoading(false);
+        return;
+      }
+      
+      // SEM recording - continue with existing logic
       // Set recording identifiers immediately
       setSavedRecordingId(recordingData.id);
       setSavedFolderId(recordingData.folder_id);

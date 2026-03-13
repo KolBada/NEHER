@@ -206,19 +206,34 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
     """Create a new recording in a folder."""
     now = datetime.now(timezone.utc).isoformat()
     
-    # Extract summary info from analysis_state
-    n_beats = analysis_state.get("metrics", {}).get("n_filtered", 0)
-    duration_sec = analysis_state.get("file_info", {}).get("duration_sec", 0)
-    has_light_stim = bool(analysis_state.get("light_pulses"))
-    has_drug_analysis = bool(analysis_state.get("selected_drugs"))
+    # Determine source type (SEM or MEA)
+    source_type = analysis_state.get("source_type", "SEM")
+    
+    # Extract summary info from analysis_state based on source type
+    if source_type == "MEA":
+        # MEA-specific summary info
+        n_electrodes = analysis_state.get("n_active_electrodes", 0)
+        duration_sec = analysis_state.get("duration_s", 0)
+        has_light_stim = analysis_state.get("config", {}).get("light_enabled", False)
+        has_drug_analysis = bool(analysis_state.get("config", {}).get("drug_name"))
+        n_beats = 0  # MEA doesn't have beats
+    else:
+        # SEM summary info (existing logic)
+        n_beats = analysis_state.get("metrics", {}).get("n_filtered", 0)
+        duration_sec = analysis_state.get("file_info", {}).get("duration_sec", 0)
+        has_light_stim = bool(analysis_state.get("light_pulses"))
+        has_drug_analysis = bool(analysis_state.get("selected_drugs"))
+        n_electrodes = 0
     
     recording = {
         "folder_id": folder_id,
         "name": name,
         "filename": filename,
         "analysis_state": analysis_state,
+        "source_type": source_type,  # New field for MEA support
         "metrics_version": METRICS_VERSION,  # Track version for auto-updates
         "n_beats": n_beats,
+        "n_electrodes": n_electrodes,  # MEA-specific
         "duration_sec": duration_sec,
         "has_light_stim": has_light_stim,
         "has_drug_analysis": has_drug_analysis,
@@ -238,9 +253,11 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         "folder_id": folder_id,
         "name": name,
         "filename": filename,
+        "source_type": source_type,
         "created_at": now,
         "updated_at": now,
         "n_beats": n_beats,
+        "n_electrodes": n_electrodes,
         "duration_sec": duration_sec,
         "has_light_stim": has_light_stim,
         "has_drug_analysis": has_drug_analysis,
@@ -259,9 +276,11 @@ async def get_recordings_in_folder(db, folder_id: str) -> List[dict]:
             "folder_id": rec["folder_id"],
             "name": rec["name"],
             "filename": rec["filename"],
+            "source_type": rec.get("source_type", "SEM"),  # Default to SEM for backward compatibility
             "created_at": rec["created_at"],
             "updated_at": rec["updated_at"],
             "n_beats": rec.get("n_beats", 0),
+            "n_electrodes": rec.get("n_electrodes", 0),  # MEA-specific
             "duration_sec": rec.get("duration_sec", 0),
             "has_light_stim": rec.get("has_light_stim", False),
             "has_drug_analysis": rec.get("has_drug_analysis", False),
@@ -280,6 +299,7 @@ async def get_recording(db, recording_id: str) -> Optional[dict]:
             "folder_id": rec["folder_id"],
             "name": rec["name"],
             "filename": rec["filename"],
+            "source_type": rec.get("source_type", "SEM"),  # Default to SEM for backward compatibility
             "created_at": rec["created_at"],
             "updated_at": rec["updated_at"],
             "analysis_state": rec["analysis_state"],

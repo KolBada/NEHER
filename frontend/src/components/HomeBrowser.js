@@ -36,6 +36,7 @@ import {
 import { toast } from 'sonner';
 import api from '../api';
 import FolderComparison from './FolderComparison';
+import MEAPopulationAnalysis from './MEAPopulationAnalysis';
 
 export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFolderId = null }) {
   const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
@@ -1242,13 +1243,27 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-sm font-medium text-zinc-200 truncate">{recording.name}</h3>
+                        {/* Source type badge */}
+                        {recording.source_type === 'MEA' && (
+                          <Badge className="bg-sky-600/30 text-sky-400 text-[9px] px-1.5 py-0 border-sky-500/50">
+                            MEA
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-zinc-500 truncate mb-2">{recording.filename}</p>
                       <div className="flex flex-wrap gap-2">
-                        {recording.n_beats > 0 && (
+                        {/* SEM: Show beats count */}
+                        {recording.source_type !== 'MEA' && recording.n_beats > 0 && (
                           <Badge variant="outline" className="text-[10px] border-zinc-700 px-1.5 py-0">
                             <Activity className="w-3 h-3 mr-1" />
                             {recording.n_beats} beats
+                          </Badge>
+                        )}
+                        {/* MEA: Show electrodes count */}
+                        {recording.source_type === 'MEA' && recording.n_electrodes > 0 && (
+                          <Badge variant="outline" className="text-[10px] border-sky-700/50 text-sky-400 px-1.5 py-0">
+                            <Activity className="w-3 h-3 mr-1" />
+                            {recording.n_electrodes} electrodes
                           </Badge>
                         )}
                         {recording.duration_sec > 0 && (
@@ -1326,6 +1341,16 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
             ))}
           </div>
         </ScrollArea>
+      )}
+
+      {/* MEA Population Analysis - show when folder contains MEA recordings */}
+      {recordings.filter(r => r.source_type === 'MEA').length >= 2 && (
+        <div className="mt-6">
+          <MEAPopulationAnalysis 
+            folderId={selectedFolder?.id} 
+            recordings={recordings} 
+          />
+        </div>
       )}
 
       {/* Rename Recording Dialog */}
