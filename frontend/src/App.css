@@ -6,6 +6,277 @@
     position: relative;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   GLASSMORPHISM DESIGN SYSTEM - NEHER Home Page
+═══════════════════════════════════════════════════════════════ */
+
+/* Home page background with gradient and glow orbs */
+.neher-home-bg {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 20% 50%, #0a1628 0%, #050c1a 60%, #02080f 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle noise texture overlay */
+.neher-home-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ambient glow orbs container */
+.neher-glow-orbs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* SEM glow orb - emerald left */
+.neher-glow-orbs::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    left: 10%;
+    top: 20%;
+    background: radial-gradient(circle, rgba(0, 201, 122, 0.40) 0%, transparent 70%);
+    filter: blur(120px);
+}
+
+/* MEA glow orb - teal right */
+.neher-glow-orbs::after {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    right: 10%;
+    top: 20%;
+    background: radial-gradient(circle, rgba(0, 184, 196, 0.40) 0%, transparent 70%);
+    filter: blur(120px);
+}
+
+/* Glass surface base */
+.glass-surface {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.18);
+    border-left-color: rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(24px)) {
+    .glass-surface {
+        background: rgba(10, 22, 40, 0.92);
+    }
+}
+
+/* Glass surface with reduced opacity for nested panels */
+.glass-surface-subtle {
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Mode card base styles */
+.mode-card {
+    transition: all 0.25s ease;
+}
+
+.mode-card:hover {
+    transform: translateY(-4px);
+}
+
+/* SEM mode card accent */
+.mode-card-sem {
+    border-left: 3px solid var(--sem-accent);
+}
+
+.mode-card-sem:hover {
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 40px var(--sem-accent-glow);
+}
+
+/* MEA mode card accent */
+.mode-card-mea {
+    border-left: 3px solid var(--mea-accent);
+}
+
+.mode-card-mea:hover {
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 40px var(--mea-accent-glow);
+}
+
+/* Drop zone base */
+.drop-zone {
+    border: 1.5px dashed;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+/* SEM drop zone */
+.drop-zone-sem {
+    border-color: var(--sem-border);
+    background: var(--sem-accent-dim);
+}
+
+.drop-zone-sem:hover,
+.drop-zone-sem.active {
+    border-color: var(--sem-border-hover);
+    background: rgba(0, 201, 122, 0.10);
+    box-shadow: inset 0 0 20px rgba(0, 201, 122, 0.08);
+}
+
+/* MEA drop zone */
+.drop-zone-mea {
+    border-color: var(--mea-border);
+    background: var(--mea-accent-dim);
+}
+
+.drop-zone-mea:hover,
+.drop-zone-mea.active {
+    border-color: var(--mea-border-hover);
+    background: rgba(0, 184, 196, 0.10);
+    box-shadow: inset 0 0 20px rgba(0, 184, 196, 0.08);
+}
+
+/* Typography */
+.font-display {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-body {
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* Card animations */
+@keyframes fadeUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(16px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.animate-fade-up-1 {
+    animation: fadeUp 0.5s ease 0.1s both;
+}
+
+.animate-fade-up-2 {
+    animation: fadeUp 0.5s ease 0.2s both;
+}
+
+/* Modal animations */
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-modal-in {
+    animation: modalIn 0.2s ease both;
+}
+
+/* Upload modal overlay */
+.upload-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(2, 8, 15, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Upload modal panel */
+.upload-modal-panel {
+    width: min(640px, 92vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px;
+}
+
+.upload-modal-panel-sem {
+    border-top: 2px solid var(--sem-accent);
+}
+
+.upload-modal-panel-mea {
+    border-top: 2px solid var(--mea-accent);
+}
+
+/* Start Analysis button */
+.btn-start-analysis {
+    border-radius: 10px;
+    padding: 10px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #02080f;
+    transition: all 0.2s ease;
+}
+
+.btn-start-analysis-sem {
+    background: linear-gradient(135deg, var(--sem-accent) 0%, #00a866 100%);
+}
+
+.btn-start-analysis-mea {
+    background: linear-gradient(135deg, var(--mea-accent) 0%, #0099a3 100%);
+}
+
+.btn-start-analysis:not(:disabled):hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.btn-start-analysis:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Focus states for accessibility */
+.mode-card:focus-visible {
+    outline: 2px solid var(--sem-accent);
+    outline-offset: 2px;
+}
+
+.mode-card-mea:focus-visible {
+    outline-color: var(--mea-accent);
+}
+
+/* Header border */
+.header-border {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* Chart tooltip */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
     background: #121212 !important;

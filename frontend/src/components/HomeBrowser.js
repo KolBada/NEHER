@@ -683,49 +683,54 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
   // Home view - show folders and new analysis option
   if (view === 'home') {
     return (
-      <div className="p-6 max-w-4xl mx-auto" data-testid="home-browser">
-        {/* Developer credit - top right */}
-        <div className="text-right mb-4">
-          <p className="text-sm text-zinc-400" style={{ fontFamily: 'Arial, sans-serif' }}>by Kolia H. Badarello</p>
-        </div>
+      <div className="neher-home-bg" data-testid="home-browser">
+        {/* Ambient glow orbs */}
+        <div className="neher-glow-orbs" />
         
-        {/* Title row: NEHER on left, tagline on right */}
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-5xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
-            NEHER
-          </h1>
-          <p className="text-2xl text-white font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
-            Cardiac Electrophysiology Analysis Platform
-          </p>
-        </div>
-        {/* White line spanning full width */}
-        <div className="w-full h-0.5 bg-white mt-2 mb-8"></div>
+        {/* Content container */}
+        <div className="relative z-10 p-6 max-w-5xl mx-auto">
+          {/* Header */}
+          <header className="header-border pb-6 mb-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="font-display text-4xl font-semibold text-white tracking-tight">
+                  NEHER
+                </h1>
+              </div>
+              <div className="text-right">
+                <p className="font-body text-xs tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                  by Kolia H. Badarello
+                </p>
+                <p className="font-body text-sm uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                  Cardiac Electrophysiology Analysis Platform
+                </p>
+              </div>
+            </div>
+          </header>
 
-        {/* Mode Selection Cards - Two cards side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* SEM Card */}
-          <Card 
-            className={`bg-zinc-900/50 border-zinc-800 rounded-sm transition-all ${
-              semDragActive ? 'border-emerald-500 ring-1 ring-emerald-500/30' : 'hover:border-emerald-500/50'
-            }`}
-            data-testid="sem-mode-card"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-zinc-100 flex items-center">
-                Sharp Extracellular Microelectrode (SEM)
-                <InfoTooltip text={SEM_TOOLTIP} />
-              </CardTitle>
-              <p className="text-sm text-zinc-500">
-                For cardiac activity — cardioids alone or neuro-cardiac assembloids (NeuCarS).
-              </p>
-            </CardHeader>
-            <CardContent className="pt-2">
+          {/* Mode Selection Cards - Two glass cards side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {/* SEM Card */}
+            <div 
+              className={`glass-surface mode-card mode-card-sem animate-fade-up-1 p-6 ${
+                semDragActive ? 'ring-1 ring-[var(--sem-accent)]' : ''
+              }`}
+              data-testid="sem-mode-card"
+            >
+              <div className="mb-4">
+                <h3 className="font-display text-lg font-semibold flex items-center" style={{ color: 'var(--text-primary)' }}>
+                  Sharp Extracellular Microelectrode (SEM)
+                  <InfoTooltip text={SEM_TOOLTIP} />
+                </h3>
+                <p className="font-body text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  For cardiac activity — cardioids alone or neuro-cardiac assembloids (NeuCarS).
+                </p>
+              </div>
+              
               {/* SEM Drop Zone */}
               <div
-                className={`border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-colors ${
-                  semDragActive 
-                    ? 'border-emerald-500 bg-emerald-950/20' 
-                    : 'border-emerald-700/40 hover:border-emerald-600/60'
+                className={`drop-zone drop-zone-sem p-8 text-center cursor-pointer ${
+                  semDragActive ? 'active' : ''
                 }`}
                 onDragEnter={handleSEMDragEnter}
                 onDragLeave={handleSEMDragLeave}
@@ -734,9 +739,9 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 onClick={() => semInputRef.current?.click()}
                 data-testid="sem-dropzone"
               >
-                <Upload className="w-8 h-8 mx-auto mb-2 text-emerald-500/70" />
-                <p className="text-sm text-zinc-300">Drop .abf files here</p>
-                <p className="text-xs text-zinc-500 mt-1">or click to browse</p>
+                <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--sem-accent)' }} />
+                <p className="font-body text-sm font-medium" style={{ color: 'var(--sem-text)' }}>Drop .abf files here</p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>or click to browse</p>
                 <input
                   ref={semInputRef}
                   type="file"
@@ -748,37 +753,34 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 />
               </div>
               {semError && (
-                <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
+                <div className="mt-3 flex items-center gap-2 text-red-400 text-xs font-body">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{semError}</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* MEA Card */}
-          <Card 
-            className={`bg-zinc-900/50 border-zinc-800 rounded-sm transition-all ${
-              meaDragActive ? 'border-sky-500 ring-1 ring-sky-500/30' : 'hover:border-sky-500/50'
-            }`}
-            data-testid="mea-mode-card"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-zinc-100 flex items-center">
-                Multi-Electrode Array (MEA)
-                <InfoTooltip text={MEA_TOOLTIP} />
-              </CardTitle>
-              <p className="text-sm text-zinc-500">
-                For neuronal activity — neuronal organoids (hSpO) or neuro-cardiac assembloids (NeuCarS).
-              </p>
-            </CardHeader>
-            <CardContent className="pt-2">
+            {/* MEA Card */}
+            <div 
+              className={`glass-surface mode-card mode-card-mea animate-fade-up-2 p-6 ${
+                meaDragActive ? 'ring-1 ring-[var(--mea-accent)]' : ''
+              }`}
+              data-testid="mea-mode-card"
+            >
+              <div className="mb-4">
+                <h3 className="font-display text-lg font-semibold flex items-center" style={{ color: 'var(--text-primary)' }}>
+                  Multi-Electrode Array (MEA)
+                  <InfoTooltip text={MEA_TOOLTIP} />
+                </h3>
+                <p className="font-body text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  For neuronal activity — neuronal organoids (hSpO) or neuro-cardiac assembloids (NeuCarS).
+                </p>
+              </div>
+              
               {/* MEA Drop Zone */}
               <div
-                className={`border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-colors ${
-                  meaDragActive 
-                    ? 'border-sky-500 bg-sky-950/20' 
-                    : 'border-sky-700/40 hover:border-sky-600/60'
+                className={`drop-zone drop-zone-mea p-8 text-center cursor-pointer ${
+                  meaDragActive ? 'active' : ''
                 }`}
                 onDragEnter={handleMEADragEnter}
                 onDragLeave={handleMEADragLeave}
@@ -787,9 +789,9 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 onClick={() => meaInputRef.current?.click()}
                 data-testid="mea-dropzone"
               >
-                <Upload className="w-8 h-8 mx-auto mb-2 text-sky-500/70" />
-                <p className="text-sm text-zinc-300">Drop 5 CSV files here</p>
-                <p className="text-xs text-zinc-500 mt-1">or click to browse</p>
+                <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--mea-accent)' }} />
+                <p className="font-body text-sm font-medium" style={{ color: 'var(--mea-text)' }}>Drop 5 CSV files here</p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>or click to browse</p>
                 <input
                   ref={meaInputRef}
                   type="file"
@@ -801,33 +803,38 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 />
               </div>
               {meaError && (
-                <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
+                <div className="mt-3 flex items-center gap-2 text-red-400 text-xs font-body">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{meaError}</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* Folders Section */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Saved Recordings</h2>
-          <div className="flex items-center gap-2">
-            {/* Sort Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
-                  data-testid="sort-folders-btn"
-                >
-                  <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
-                  {folderSortBy === 'alpha' ? 'A-Z' : folderSortBy === 'created' ? 'Created' : 'Modified'}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+          {/* Saved Recordings Section - Glass panel */}
+          <div className="glass-surface-subtle p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--sem-accent)' }} />
+                <h2 className="font-body text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                  Saved Recordings
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Sort Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs border-zinc-700/50 hover:border-zinc-600 rounded-lg bg-transparent font-body"
+                      data-testid="sort-folders-btn"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+                      {folderSortBy === 'alpha' ? 'A-Z' : folderSortBy === 'created' ? 'Created' : 'Modified'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
                 <DropdownMenuItem 
                   className={`text-xs ${folderSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
                   onClick={() => setFolderSortBy('modified')}
@@ -1148,6 +1155,10 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
             )}
           </div>
         )}
+        </div>
+        {/* End of glass-surface-subtle panel */}
+        </div>
+        {/* End of content container */}
 
         {/* Create Section Dialog */}
         <Dialog open={createSectionOpen} onOpenChange={setCreateSectionOpen}>

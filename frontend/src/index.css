@@ -29,6 +29,32 @@
         --chart-4: 43 74% 66%;
         --chart-5: 27 87% 67%;
         --radius: 0.35rem;
+
+        /* Glassmorphism Design System */
+        --color-bg-base: #02080f;
+        
+        /* SEM — emerald */
+        --sem-accent: #00c97a;
+        --sem-accent-dim: rgba(0, 201, 122, 0.18);
+        --sem-accent-glow: rgba(0, 201, 122, 0.35);
+        --sem-border: rgba(0, 201, 122, 0.30);
+        --sem-border-hover: rgba(0, 201, 122, 0.65);
+        --sem-text: #00c97a;
+        --sem-text-dim: rgba(0, 201, 122, 0.70);
+
+        /* MEA — teal */
+        --mea-accent: #00b8c4;
+        --mea-accent-dim: rgba(0, 184, 196, 0.18);
+        --mea-accent-glow: rgba(0, 184, 196, 0.35);
+        --mea-border: rgba(0, 184, 196, 0.30);
+        --mea-border-hover: rgba(0, 184, 196, 0.65);
+        --mea-text: #00b8c4;
+        --mea-text-dim: rgba(0, 184, 196, 0.70);
+
+        /* Neutral text */
+        --text-primary: rgba(255, 255, 255, 0.92);
+        --text-secondary: rgba(255, 255, 255, 0.50);
+        --text-tertiary: rgba(255, 255, 255, 0.30);
     }
     .dark {
         --background: 240 6% 3.9%;
