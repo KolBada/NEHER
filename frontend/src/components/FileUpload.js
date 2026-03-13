@@ -243,23 +243,33 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh]" data-testid="upload-page">
-      <Card className="w-full max-w-2xl bg-[#0c0c0e] border-zinc-800 rounded-sm">
+    <div className="flex items-center justify-center min-h-[70vh] relative" data-testid="upload-page">
+      {/* Ambient SEM glow orb */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{
+            background: 'radial-gradient(circle, rgba(0, 201, 122, 0.40) 0%, transparent 70%)',
+            filter: 'blur(100px)'
+          }}
+        />
+      </div>
+      
+      <Card className="w-full max-w-2xl glass-surface relative z-10">
         <CardContent className="p-8">
           {/* Title row: NEHER on left, tagline on right */}
           <div className="flex items-baseline justify-between">
-            <h1 className="text-4xl font-bold text-zinc-100 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <h1 className="text-4xl font-bold tracking-tight font-display" style={{ color: 'var(--text-primary)' }}>
               NEHER
             </h1>
-            <p className="text-lg text-white font-normal" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <p className="text-lg font-normal font-body" style={{ color: 'var(--text-secondary)' }}>
               Cardiac Electrophysiology Analysis Platform
             </p>
           </div>
-          {/* White line spanning full width */}
-          <div className="w-full h-0.5 bg-white mt-2 mb-8"></div>
+          {/* Subtle line */}
+          <div className="w-full h-px mt-2 mb-8" style={{ background: 'rgba(255,255,255,0.15)' }}></div>
 
           {uploadError && (
-            <div className="mb-4 p-3 bg-red-950/30 border border-red-800 rounded-sm flex items-center gap-2 text-red-400 text-xs">
+            <div className="mb-4 p-3 bg-red-950/30 border border-red-800 rounded-lg flex items-center gap-2 text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{uploadError}</span>
             </div>
@@ -267,21 +277,21 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
 
           <div
             data-testid="file-dropzone"
-            className={`border-2 border-dashed ${
-              dragActive ? 'border-emerald-500 bg-emerald-950/20' : 'border-emerald-700/60 hover:border-emerald-600'
-            } rounded-sm p-12 text-center cursor-pointer transition-colors`}
+            className={`drop-zone drop-zone-sem p-12 text-center cursor-pointer ${
+              dragActive ? 'active' : ''
+            }`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-10 h-10 mx-auto mb-4 text-emerald-500" />
-            <p className="text-base font-medium text-zinc-300">
+            <Upload className="w-10 h-10 mx-auto mb-4" style={{ color: 'var(--sem-accent)' }} />
+            <p className="text-base font-medium font-body" style={{ color: 'var(--sem-text)' }}>
               Drop .abf files here
             </p>
-            <p className="text-xs text-emerald-600 mt-2">
-              or click to browse &middot; Supports files up to 200MB
+            <p className="text-xs mt-2 font-body" style={{ color: 'var(--text-tertiary)' }}>
+              or click to browse · Supports files up to 200MB
             </p>
             <input
               ref={fileInputRef}

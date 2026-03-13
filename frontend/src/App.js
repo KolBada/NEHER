@@ -341,7 +341,6 @@ function App() {
   // MEA-specific state
   const [meaData, setMeaData] = useState(null);
   const [meaConfig, setMeaConfig] = useState(null);
-  const [meaPreloadedFiles, setMeaPreloadedFiles] = useState(null); // Files selected from home page
   
   // Saved recording info (when editing an existing recording)
   const [savedRecordingId, setSavedRecordingId] = useState(null);
@@ -1500,21 +1499,13 @@ function App() {
   // Home view - folder browser
   if (appView === 'home') {
     return (
-      <div className="min-h-screen bg-[#09090b]">
+      <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
         <HomeBrowser 
           onOpenRecording={handleOpenRecording}
           initialFolderId={navigateToFolderId}
-          onSEMFilesSelected={(files) => {
-            // Go directly to SEM upload/analysis with pre-loaded files
-            handleUpload(files);
-            setAppView('analysis');
-          }}
-          onMEAFilesSelected={(files) => {
-            // Go to MEA upload with pre-loaded files
-            setMeaPreloadedFiles(files);
-            setAppView('mea-upload');
-          }}
+          onNavigateToSEM={() => setAppView('upload')}
+          onNavigateToMEA={() => setAppView('mea-upload')}
         />
       </div>
     );
@@ -1523,33 +1514,26 @@ function App() {
   // MEA Upload view
   if (appView === 'mea-upload') {
     return (
-      <div className="min-h-screen bg-[#09090b]">
+      <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
         <div className="p-4">
           <Button
             variant="ghost"
             size="sm"
             className="mb-4"
-            onClick={() => {
-              setMeaPreloadedFiles(null);
-              setAppView('home');
-            }}
+            style={{ color: 'var(--text-secondary)' }}
+            onClick={() => setAppView('home')}
           >
             <Home className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
         </div>
         <MEAUpload 
-          preloadedFiles={meaPreloadedFiles}
           onDataParsed={(data) => {
             setMeaData(data);
-            setMeaPreloadedFiles(null);
             setAppView('mea-config');
           }}
-          onBack={() => {
-            setMeaPreloadedFiles(null);
-            setAppView('home');
-          }}
+          onBack={() => setAppView('home')}
         />
       </div>
     );
@@ -1558,7 +1542,7 @@ function App() {
   // MEA Config view
   if (appView === 'mea-config') {
     return (
-      <div className="min-h-screen bg-[#09090b]">
+      <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
         <MEAConfig 
           meaData={meaData}
@@ -1594,13 +1578,14 @@ function App() {
   // Upload view - file upload screen
   if (appView === 'upload' || !sessionId) {
     return (
-      <div className="min-h-screen bg-[#09090b]">
+      <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
         <div className="p-4">
           <Button
             variant="ghost"
             size="sm"
             className="mb-4"
+            style={{ color: 'var(--text-secondary)' }}
             onClick={() => setAppView('home')}
           >
             <Home className="w-4 h-4 mr-2" />
@@ -1613,11 +1598,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1e] text-zinc-100">
+    <div className="min-h-screen text-zinc-100">
       <Toaster theme="dark" position="top-right" />
 
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-black border-b border-zinc-800 px-4 py-2"
+      <header className="sticky top-0 z-20 border-b border-zinc-800 px-4 py-2"
+              style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
               data-testid="app-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

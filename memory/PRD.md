@@ -24,6 +24,22 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 13, 2026 - UX Fix & Glassmorphism Site-wide ✅
+
+**Change 1 - Upload Flow Fix:**
+- Fixed two-step upload bug where files were discarded after home page selection
+- Home page mode cards now navigate directly to upload pages (no file picker on home)
+- Drop zone text updated to "Click to start" for clarity
+- SEM and MEA upload pages work correctly with their own file selection
+
+**Change 2 - Glassmorphism Site-wide:**
+- Applied glassmorphism design to SEM upload page with emerald glow orb
+- Applied glassmorphism design to MEA upload page with teal glow orb
+- Global background gradient applied to html/body via index.css
+- Removed all hardcoded background colors (bg-[#09090b], bg-black, etc.)
+- Glass surface styling applied to all panels and cards
+- Design tokens (--sem-*, --mea-*, --text-*) available globally
+
 ### March 13, 2026 - Home Page UI Consolidation ✅
 
 **Merged home page and mode selector into single page:**

@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, startTransition, memo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, startTransition, memo } from 'react';
 import { 
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
   ChevronRight, Loader2, Plus, X, Check, BarChart3, ArrowUpDown,
   SortAsc, Calendar, GripVertical, Layers, ChevronDown, Palette,
-  Upload, Info, AlertCircle
+  Upload, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,20 +73,12 @@ function InfoTooltip({ text }) {
   );
 }
 
-export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFolderId = null, onSEMFilesSelected, onMEAFilesSelected }) {
+export default function HomeBrowser({ onOpenRecording, initialFolderId = null, onNavigateToSEM, onNavigateToMEA }) {
   const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(false);
-  
-  // Drop zone states
-  const [semDragActive, setSemDragActive] = useState(false);
-  const [meaDragActive, setMeaDragActive] = useState(false);
-  const [semError, setSemError] = useState(null);
-  const [meaError, setMeaError] = useState(null);
-  const semInputRef = useRef(null);
-  const meaInputRef = useRef(null);
   
   // Dialog states
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
@@ -565,121 +557,6 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
     return sorted;
   }, [recordings, recordingSortBy]);
 
-  // SEM Drop Zone Handlers
-  const handleSEMDragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSemDragActive(true);
-  }, []);
-
-  const handleSEMDragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSemDragActive(false);
-  }, []);
-
-  const handleSEMDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleSEMDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSemDragActive(false);
-    setSemError(null);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const abfFiles = files.filter(f => f.name.toLowerCase().endsWith('.abf'));
-    
-    if (abfFiles.length === 0) {
-      setSemError('Only .abf files are accepted');
-      return;
-    }
-    
-    if (onSEMFilesSelected) {
-      onSEMFilesSelected(abfFiles);
-    }
-  }, [onSEMFilesSelected]);
-
-  const handleSEMFileSelect = useCallback((e) => {
-    setSemError(null);
-    const files = Array.from(e.target.files);
-    const abfFiles = files.filter(f => f.name.toLowerCase().endsWith('.abf'));
-    
-    if (abfFiles.length > 0 && onSEMFilesSelected) {
-      onSEMFilesSelected(abfFiles);
-    }
-    
-    if (semInputRef.current) {
-      semInputRef.current.value = '';
-    }
-  }, [onSEMFilesSelected]);
-
-  // MEA Drop Zone Handlers
-  const handleMEADragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMeaDragActive(true);
-  }, []);
-
-  const handleMEADragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMeaDragActive(false);
-  }, []);
-
-  const handleMEADragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleMEADrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMeaDragActive(false);
-    setMeaError(null);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
-    
-    if (csvFiles.length === 0) {
-      setMeaError('Only .csv files are accepted');
-      return;
-    }
-    
-    if (csvFiles.length > 5) {
-      setMeaError('A MEA dataset requires exactly 5 CSV files');
-      return;
-    }
-    
-    if (onMEAFilesSelected) {
-      onMEAFilesSelected(csvFiles);
-    }
-  }, [onMEAFilesSelected]);
-
-  const handleMEAFileSelect = useCallback((e) => {
-    setMeaError(null);
-    const files = Array.from(e.target.files);
-    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
-    
-    if (csvFiles.length > 5) {
-      setMeaError('A MEA dataset requires exactly 5 CSV files');
-      if (meaInputRef.current) {
-        meaInputRef.current.value = '';
-      }
-      return;
-    }
-    
-    if (csvFiles.length > 0 && onMEAFilesSelected) {
-      onMEAFilesSelected(csvFiles);
-    }
-    
-    if (meaInputRef.current) {
-      meaInputRef.current.value = '';
-    }
-  }, [onMEAFilesSelected]);
-
   // Home view - show folders and new analysis option
   if (view === 'home') {
     return (
@@ -712,9 +589,8 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             {/* SEM Card */}
             <div 
-              className={`glass-surface mode-card mode-card-sem animate-fade-up-1 p-6 ${
-                semDragActive ? 'ring-1 ring-[var(--sem-accent)]' : ''
-              }`}
+              className="glass-surface mode-card mode-card-sem animate-fade-up-1 p-6 cursor-pointer"
+              onClick={onNavigateToSEM}
               data-testid="sem-mode-card"
             >
               <div className="mb-4">
@@ -727,44 +603,21 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 </p>
               </div>
               
-              {/* SEM Drop Zone */}
+              {/* SEM Drop Zone Visual */}
               <div
-                className={`drop-zone drop-zone-sem p-8 text-center cursor-pointer ${
-                  semDragActive ? 'active' : ''
-                }`}
-                onDragEnter={handleSEMDragEnter}
-                onDragLeave={handleSEMDragLeave}
-                onDragOver={handleSEMDragOver}
-                onDrop={handleSEMDrop}
-                onClick={() => semInputRef.current?.click()}
+                className="drop-zone drop-zone-sem p-8 text-center"
                 data-testid="sem-dropzone"
               >
                 <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--sem-accent)' }} />
-                <p className="font-body text-sm font-medium" style={{ color: 'var(--sem-text)' }}>Drop .abf files here</p>
-                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>or click to browse</p>
-                <input
-                  ref={semInputRef}
-                  type="file"
-                  multiple
-                  accept=".abf"
-                  className="hidden"
-                  onChange={handleSEMFileSelect}
-                  data-testid="sem-file-input"
-                />
+                <p className="font-body text-sm font-medium" style={{ color: 'var(--sem-text)' }}>Upload .abf files</p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Click to start</p>
               </div>
-              {semError && (
-                <div className="mt-3 flex items-center gap-2 text-red-400 text-xs font-body">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{semError}</span>
-                </div>
-              )}
             </div>
 
             {/* MEA Card */}
             <div 
-              className={`glass-surface mode-card mode-card-mea animate-fade-up-2 p-6 ${
-                meaDragActive ? 'ring-1 ring-[var(--mea-accent)]' : ''
-              }`}
+              className="glass-surface mode-card mode-card-mea animate-fade-up-2 p-6 cursor-pointer"
+              onClick={onNavigateToMEA}
               data-testid="mea-mode-card"
             >
               <div className="mb-4">
@@ -777,37 +630,15 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
                 </p>
               </div>
               
-              {/* MEA Drop Zone */}
+              {/* MEA Drop Zone Visual */}
               <div
-                className={`drop-zone drop-zone-mea p-8 text-center cursor-pointer ${
-                  meaDragActive ? 'active' : ''
-                }`}
-                onDragEnter={handleMEADragEnter}
-                onDragLeave={handleMEADragLeave}
-                onDragOver={handleMEADragOver}
-                onDrop={handleMEADrop}
-                onClick={() => meaInputRef.current?.click()}
+                className="drop-zone drop-zone-mea p-8 text-center"
                 data-testid="mea-dropzone"
               >
                 <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--mea-accent)' }} />
-                <p className="font-body text-sm font-medium" style={{ color: 'var(--mea-text)' }}>Drop 5 CSV files here</p>
-                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>or click to browse</p>
-                <input
-                  ref={meaInputRef}
-                  type="file"
-                  multiple
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleMEAFileSelect}
-                  data-testid="mea-file-input"
-                />
+                <p className="font-body text-sm font-medium" style={{ color: 'var(--mea-text)' }}>Upload 5 CSV files</p>
+                <p className="font-body text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Click to start</p>
               </div>
-              {meaError && (
-                <div className="mt-3 flex items-center gap-2 text-red-400 text-xs font-body">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{meaError}</span>
-                </div>
-              )}
             </div>
           </div>
 

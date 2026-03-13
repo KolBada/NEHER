@@ -88,8 +88,12 @@
     * {
         @apply border-border;
     }
+    html, body, #root {
+        background: radial-gradient(ellipse at 20% 50%, #0a1628 0%, #050c1a 60%, #02080f 100%);
+        min-height: 100vh;
+        color: var(--text-primary);
+    }
     body {
-        @apply bg-background text-foreground;
         font-family: 'Inter', sans-serif;
     }
     h1, h2, h3, h4, h5, h6 {

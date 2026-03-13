@@ -478,11 +478,21 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
 
   // Render upload view
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <Card className="bg-zinc-900/50 border-zinc-800">
+    <div className="max-w-3xl mx-auto p-6 relative">
+      {/* Ambient MEA glow orb */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{
+            background: 'radial-gradient(circle, rgba(0, 184, 196, 0.40) 0%, transparent 70%)',
+            filter: 'blur(100px)'
+          }}
+        />
+      </div>
+      
+      <Card className="glass-surface relative z-10">
         <CardHeader>
-          <CardTitle className="text-xl text-zinc-100">Upload MEA Data</CardTitle>
-          <p className="text-sm text-zinc-500">
+          <CardTitle className="text-xl font-display" style={{ color: 'var(--text-primary)' }}>Upload MEA Data</CardTitle>
+          <p className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
             Upload the 5 required CSV files from your MEA export
           </p>
         </CardHeader>
@@ -490,10 +500,8 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
           <div className="space-y-6">
             {/* Drop zone */}
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                allFilesPresent 
-                  ? 'border-sky-500/50 bg-sky-950/20' 
-                  : 'border-zinc-700 hover:border-sky-500/50 hover:bg-zinc-900'
+              className={`drop-zone drop-zone-mea p-8 text-center ${
+                allFilesPresent ? 'active' : ''
               }`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -507,15 +515,15 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                 id="mea-file-input"
               />
               <label htmlFor="mea-file-input" className="cursor-pointer">
-                <Upload className="w-10 h-10 mx-auto mb-3 text-sky-400" />
-                <p className="text-zinc-300 mb-1">Drop CSV files here</p>
-                <p className="text-xs text-zinc-500">or click to browse</p>
+                <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--mea-accent)' }} />
+                <p className="font-body" style={{ color: 'var(--mea-text)' }}>Drop CSV files here</p>
+                <p className="text-xs font-body mt-1" style={{ color: 'var(--text-tertiary)' }}>or click to browse</p>
               </label>
             </div>
             
             {/* File checklist */}
-            <div className="bg-zinc-950/50 rounded-lg p-4">
-              <p className="text-xs text-zinc-500 mb-3">Required files:</p>
+            <div className="glass-surface-subtle rounded-lg p-4">
+              <p className="text-xs font-body mb-3" style={{ color: 'var(--text-secondary)' }}>Required files:</p>
               <div className="space-y-2">
                 {EXPECTED_FILES.map(ef => (
                   <div 
@@ -523,10 +531,10 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                     className="flex items-center gap-3 text-sm"
                   >
                     {getFileIcon(ef.name)}
-                    <span className={`font-mono ${files[ef.name] ? 'text-zinc-200' : 'text-zinc-500'}`}>
+                    <span className={`font-mono ${files[ef.name] ? '' : ''}`} style={{ color: files[ef.name] ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                       {ef.name}
                     </span>
-                    <span className="text-xs text-zinc-600 ml-auto">
+                    <span className="text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>
                       {ef.description}
                     </span>
                   </div>
@@ -536,27 +544,27 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             
             {/* Missing files error */}
             {!allFilesPresent && Object.keys(files).length > 0 && (
-              <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded text-amber-400 text-sm">
+              <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-lg text-amber-400 text-sm">
                 Missing files: {missingFiles.join(', ')}
               </div>
             )}
             
             {/* Parse error */}
             {parseError && (
-              <div className="p-3 bg-red-950/30 border border-red-500/30 rounded text-red-400 text-sm">
+              <div className="p-3 bg-red-950/30 border border-red-500/30 rounded-lg text-red-400 text-sm">
                 {parseError}
               </div>
             )}
             
             {/* Parse button */}
             <div className="flex justify-between items-center">
-              <Button variant="ghost" onClick={onBack}>
+              <Button variant="ghost" onClick={onBack} style={{ color: 'var(--text-secondary)' }}>
                 Back
               </Button>
               <Button
                 onClick={parseAllFiles}
                 disabled={!allFilesPresent || parsing}
-                className="bg-sky-600 hover:bg-sky-500"
+                className="btn-start-analysis btn-start-analysis-mea"
                 data-testid="mea-parse-btn"
               >
                 {parsing ? (
