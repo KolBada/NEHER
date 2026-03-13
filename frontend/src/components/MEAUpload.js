@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, CheckCircle, XCircle, AlertCircle, Loader2, ChevronRight } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, ChevronRight } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // Expected MEA CSV files
@@ -371,11 +371,11 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
     const status = fileStatus[fileName];
     const hasFile = files[fileName];
     
-    if (!hasFile) return <AlertCircle className="w-4 h-4 text-zinc-500" />;
-    if (status === 'parsing') return <Loader2 className="w-4 h-4 text-sky-400 animate-spin" />;
-    if (status === 'success') return <CheckCircle className="w-4 h-4 text-emerald-400" />;
+    if (!hasFile) return <div className="w-4 h-4 rounded-full border-2 border-zinc-600" />;
+    if (status === 'parsing') return <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--mea-accent)' }} />;
+    if (status === 'success') return <CheckCircle className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />;
     if (status === 'error') return <XCircle className="w-4 h-4 text-red-400" />;
-    return <CheckCircle className="w-4 h-4 text-amber-400" />;
+    return <CheckCircle className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />;
   };
 
   // Render well selection view
@@ -525,24 +525,20 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             
             {/* File checklist */}
             <div className="glass-surface-subtle rounded-lg p-4">
-              <p className="text-xs font-body mb-3" style={{ color: 'var(--text-secondary)' }}>Required files (suffix matching):</p>
-              <div className="space-y-2">
+              <p className="text-xs font-body mb-4" style={{ color: 'var(--text-secondary)' }}>Required files:</p>
+              <div className="space-y-3">
                 {EXPECTED_FILES.map(ef => (
                   <div 
                     key={ef.name}
                     className="flex items-center gap-3 text-sm"
                   >
                     {getFileIcon(ef.name)}
-                    <div className="flex-1 min-w-0">
-                      <span className="font-mono truncate block" style={{ color: files[ef.name] ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                        {files[ef.name] ? files[ef.name].name : `*_${ef.name}`}
-                      </span>
-                      {!files[ef.name] && (
-                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                          {ef.description}
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-body" style={{ color: files[ef.name] ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                      {ef.description}
+                    </span>
+                    <span className="ml-auto font-mono text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
+                      _{ef.name}
+                    </span>
                   </div>
                 ))}
               </div>
