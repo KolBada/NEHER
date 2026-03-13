@@ -134,7 +134,7 @@ function extractWellFromElectrode(electrode) {
 function parseSpikeCountsAxion(text) {
   const cleanText = text.replace(/^\uFEFF/, '');
   const lines = cleanText.trim().split('\n');
-  if (lines.length < 2) return { wellTotals: {}, electrodeData: [] };
+  if (lines.length < 2) return { wellTotals: {}, electrodeData: [], totalDuration: 0 };
   
   // Parse header to find column positions
   const headerLine = lines[0];
@@ -143,27 +143,30 @@ function parseSpikeCountsAxion(text) {
   // Find where the well/electrode columns start (after metadata and time columns)
   // Format: Investigator, KB, Interval Start (S), Interval End (S), [empty], A1, A2, A3, B1, B2, B3, [empty], A1_11, A1_12, ...
   
-  let wellStartCol = -1;
-  let electrodeStartCol = -1;
   const wellColumns = []; // {col: index, wellId: 'A1'}
   const electrodeColumns = []; // {col: index, electrode: 'A1_11', wellId: 'A1'}
   
   for (let i = 0; i < allHeaders.length; i++) {
-    const h = allHeaders[i];
+    const h = allHeaders[i].trim();
+    if (!h) continue;
     
-    // Well columns are like "A1", "A2", "B1" (single letter + single digit)
-    if (/^[A-Ha-h]\d$/.test(h)) {
-      if (wellStartCol === -1) wellStartCol = i;
+    // Well columns are like "A1", "A2", "B1" (single letter + single digit, 1-3 chars)
+    // Pattern: [A-H][1-9] (no underscore)
+    if (/^[A-Ha-h][1-9]$/.test(h)) {
       wellColumns.push({ col: i, wellId: h.toUpperCase() });
     }
     
-    // Electrode columns are like "A1_11", "A2_44"
-    if (/^[A-Ha-h]\d_\d+$/.test(h)) {
-      if (electrodeStartCol === -1) electrodeStartCol = i;
+    // Electrode columns are like "A1_11", "A2_44", "B1_65" (well_electrode format)
+    // Pattern: [A-H][1-9]_[0-9]+ 
+    else if (/^[A-Ha-h][1-9]_\d+$/.test(h)) {
       const wellId = extractWellFromElectrode(h);
-      electrodeColumns.push({ col: i, electrode: h, wellId: wellId });
+      if (wellId) {
+        electrodeColumns.push({ col: i, electrode: h.toUpperCase(), wellId: wellId });
+      }
     }
   }
+  
+  console.log(`parseSpikeCountsAxion: Found ${wellColumns.length} well columns, ${electrodeColumns.length} electrode columns`);
   
   // Find the time interval columns
   let intervalStartCol = -1;
@@ -178,6 +181,7 @@ function parseSpikeCountsAxion(text) {
   const electrodeSpikeTotals = {}; // electrode -> total spike count
   const wellSpikeTotals = {}; // well -> total spike count
   let totalDuration = 0;
+  let lastValidEnd = 0;
   
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -185,12 +189,11 @@ function parseSpikeCountsAxion(text) {
     
     const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
     
-    // Get interval duration
-    if (intervalStartCol >= 0 && intervalEndCol >= 0) {
-      const start = parseFloat(values[intervalStartCol]);
+    // Track the maximum interval end time for total duration
+    if (intervalEndCol >= 0) {
       const end = parseFloat(values[intervalEndCol]);
-      if (!isNaN(start) && !isNaN(end) && i === lines.length - 1) {
-        totalDuration = end; // Use the last interval's end time as total duration
+      if (!isNaN(end) && end > lastValidEnd) {
+        lastValidEnd = end;
       }
     }
     
@@ -209,6 +212,9 @@ function parseSpikeCountsAxion(text) {
       electrodeSpikeTotals[electrode].spike_count += count;
     });
   }
+  
+  totalDuration = lastValidEnd;
+  console.log(`parseSpikeCountsAxion: Total duration = ${totalDuration}s, Electrodes with data = ${Object.keys(electrodeSpikeTotals).length}`);
   
   // Convert to array format with firing rate
   const electrodeData = Object.values(electrodeSpikeTotals).map(e => ({
@@ -386,6 +392,11 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       const spikeCountsText = await files['spike_counts.csv'].text();
       const { electrodeData, totalDuration } = parseSpikeCountsAxion(spikeCountsText);
       
+      console.log(`electrodeData count: ${electrodeData.length}, totalDuration: ${totalDuration}`);
+      if (electrodeData.length > 0) {
+        console.log('Sample electrode data:', electrodeData.slice(0, 3));
+      }
+      
       // Build electrode registry per well
       const electrodeRegistry = {};
       wellSet.forEach(well => {
@@ -393,7 +404,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       });
       
       electrodeData.forEach(row => {
-        const wellId = row.well;
+        const wellId = row.well ? row.well.toUpperCase() : null;
         if (wellId && wellSet.has(wellId)) {
           electrodeRegistry[wellId].push({
             electrode: row.electrode,
@@ -403,6 +414,8 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
           });
         }
       });
+      
+      console.log('Electrode registry:', Object.keys(electrodeRegistry).map(w => `${w}: ${electrodeRegistry[w].length} electrodes`));
       
       newStatus['spike_counts.csv'] = 'success';
       setFileStatus({ ...newStatus });
