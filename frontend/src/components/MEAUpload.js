@@ -70,14 +70,16 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
   const [selectedWells, setSelectedWells] = useState({});
   const [electrodeFilter, setElectrodeFilter] = useState({ min_hz: 0.05, max_hz: null });
 
-  // Handle file drop/selection
+  // Handle file drop/selection - uses suffix matching for flexible file names
   const handleFiles = useCallback((fileList) => {
     const newFiles = { ...files };
     const newStatus = { ...fileStatus };
     
     Array.from(fileList).forEach(file => {
       const fileName = file.name.toLowerCase();
-      const expectedFile = EXPECTED_FILES.find(ef => ef.name === fileName);
+      
+      // Find expected file by suffix matching (e.g., "prefix_spike_list.csv" matches "spike_list.csv")
+      const expectedFile = EXPECTED_FILES.find(ef => fileName.endsWith(ef.name));
       
       if (expectedFile) {
         newFiles[expectedFile.name] = file;
@@ -523,7 +525,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             
             {/* File checklist */}
             <div className="glass-surface-subtle rounded-lg p-4">
-              <p className="text-xs font-body mb-3" style={{ color: 'var(--text-secondary)' }}>Required files:</p>
+              <p className="text-xs font-body mb-3" style={{ color: 'var(--text-secondary)' }}>Required files (suffix matching):</p>
               <div className="space-y-2">
                 {EXPECTED_FILES.map(ef => (
                   <div 
@@ -531,12 +533,16 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                     className="flex items-center gap-3 text-sm"
                   >
                     {getFileIcon(ef.name)}
-                    <span className={`font-mono ${files[ef.name] ? '' : ''}`} style={{ color: files[ef.name] ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                      {ef.name}
-                    </span>
-                    <span className="text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>
-                      {ef.description}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-mono truncate block" style={{ color: files[ef.name] ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                        {files[ef.name] ? files[ef.name].name : `*_${ef.name}`}
+                      </span>
+                      {!files[ef.name] && (
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                          {ef.description}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
