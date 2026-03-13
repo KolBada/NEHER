@@ -658,7 +658,24 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 text-xs border-zinc-700/50 hover:border-zinc-600 rounded-lg bg-transparent font-body"
+                      className="h-8 text-xs rounded-lg transition-all"
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        backdropFilter: 'blur(12px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+                        border: '1px solid rgba(255,255,255,0.14)',
+                        color: 'var(--text-secondary)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }}
                       data-testid="sort-folders-btn"
                     >
                       <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
@@ -695,21 +712,55 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+              className="h-8 text-xs rounded-lg transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                color: 'var(--text-secondary)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
               onClick={() => setCreateSectionOpen(true)}
               data-testid="create-section-btn"
             >
-              <Layers className="w-3.5 h-3.5 mr-1.5" />
+              <Layers className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--sem-accent)' }} />
               New Section
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+              className="h-8 text-xs rounded-lg transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                color: 'var(--text-secondary)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
               onClick={() => setCreateFolderOpen(true)}
               data-testid="create-folder-btn"
             >
-              <FolderPlus className="w-3.5 h-3.5 mr-1.5" />
+              <FolderPlus className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--sem-accent)' }} />
               New Folder
             </Button>
           </div>
@@ -762,8 +813,14 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       onDragStart={(e) => handleSectionDragStart(e, section)}
                       onDragEnd={handleSectionDragEnd}
                       data-testid={`section-header-${section.id}`}
-                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing py-2 px-1 rounded-sm transition-colors hover:bg-zinc-800/30 relative"
-                      style={{ zIndex: 10 }}
+                      className="flex items-center gap-2 mb-2 group cursor-grab active:cursor-grabbing py-2.5 px-3 rounded-sm transition-all relative section-row-glass"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.025)',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        zIndex: 10 
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.045)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
                     >
                       <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
                       <div
@@ -774,9 +831,17 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                         tabIndex={0}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleSection(section); }}
                       >
-                        <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} />
-                        <span className="text-sm font-medium text-zinc-300">{section.name}</span>
-                        <div className="flex-1 h-px bg-zinc-800 ml-2" />
+                        <ChevronDown 
+                          className={`w-4 h-4 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} 
+                          style={{ color: section.expanded ? 'var(--sem-accent)' : 'var(--text-tertiary)' }}
+                        />
+                        <span 
+                          className="text-sm font-medium transition-colors group-hover:text-white"
+                          style={{ color: 'var(--text-secondary)', fontWeight: 500 }}
+                        >
+                          {section.name}
+                        </span>
+                        <div className="flex-1 h-px ml-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -820,16 +885,19 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                           sectionFolders.map((folder) => (
                             <Card 
                               key={folder.id}
-                              className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
+                              className="glass-surface cursor-pointer group transition-all hover:translate-y-[-1px]"
+                              style={{ borderRadius: '12px' }}
                               data-testid={`folder-${folder.id}`}
+                              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)'}
+                              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                             >
                               <CardContent className="p-3 flex items-center gap-3" onClick={() => loadRecordings(folder.id)}>
                                 <div className={`w-8 h-8 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
                                   <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
-                                  <p className="text-xs text-zinc-500">{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
+                                  <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>
+                                  <p className="text-xs" style={{ color: 'var(--text-secondary)', fontSize: '0.83rem' }}>{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
                                 </div>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -870,7 +938,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                                <ChevronRight className="w-4 h-4 text-zinc-600" />
+                                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
                               </CardContent>
                             </Card>
                           ))
@@ -902,23 +970,26 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               <div className="grid gap-2">
                 {sections.length > 0 && (
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-zinc-500">Unsorted</span>
-                    <div className="flex-1 h-px bg-zinc-800" />
+                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Unsorted</span>
+                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
                   </div>
                 )}
                 {sortedFolders.filter(f => !f.section_id).map((folder) => (
               <Card 
                 key={folder.id}
-                className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
+                className="glass-surface cursor-pointer group transition-all hover:translate-y-[-1px]"
+                style={{ borderRadius: '12px' }}
                 data-testid={`folder-${folder.id}`}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
               >
                 <CardContent className="p-4 flex items-center gap-4" onClick={() => loadRecordings(folder.id)}>
                   <div className={`w-10 h-10 rounded-sm ${getFolderBgClass(folder.color)} flex items-center justify-center`}>
                     <FolderOpen className={`w-5 h-5 ${getFolderColorClass(folder.color)}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-zinc-200 truncate">{folder.name}</h3>
-                    <p className="text-xs text-zinc-500">
+                    <h3 className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem' }}>
                       {folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -978,7 +1049,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <ChevronRight className="w-4 h-4 text-zinc-600" />
+                  <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
                 </CardContent>
               </Card>
             ))}

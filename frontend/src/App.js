@@ -1516,18 +1516,6 @@ function App() {
     return (
       <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-4"
-            style={{ color: 'var(--text-secondary)' }}
-            onClick={() => setAppView('home')}
-          >
-            <Home className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
-        </div>
         <MEAUpload 
           onDataParsed={(data) => {
             setMeaData(data);
@@ -1580,19 +1568,12 @@ function App() {
     return (
       <div className="min-h-screen">
         <Toaster theme="dark" position="top-right" />
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-4"
-            style={{ color: 'var(--text-secondary)' }}
-            onClick={() => setAppView('home')}
-          >
-            <Home className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
-        </div>
-        <FileUpload onUpload={(files) => { handleUpload(files); setAppView('analysis'); }} loading={uploadLoading} appName="NEHER" />
+        <FileUpload 
+          onUpload={(files) => { handleUpload(files); setAppView('analysis'); }} 
+          loading={uploadLoading} 
+          appName="NEHER" 
+          onBack={() => setAppView('home')}
+        />
       </div>
     );
   }
@@ -1708,11 +1689,28 @@ function App() {
                     <Plus className="w-3 h-3 ml-1" />
                   </Badge>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-zinc-900 border-zinc-800">
+                <DropdownMenuContent 
+                  className="border-0"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.85)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    borderTopColor: 'rgba(255,255,255,0.22)',
+                    borderLeftColor: 'rgba(255,255,255,0.18)',
+                    borderRadius: '14px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+                  }}
+                >
                   {Object.entries(DRUG_CONFIG).map(([key, config]) => (
                     <DropdownMenuItem
                       key={key}
-                      className={`text-xs cursor-pointer ${selectedDrugs.includes(key) ? 'text-purple-400' : 'text-zinc-300'}`}
+                      className={`text-xs cursor-pointer rounded-lg mx-1 my-0.5 ${selectedDrugs.includes(key) ? 'text-purple-400' : ''}`}
+                      style={{ 
+                        color: selectedDrugs.includes(key) ? undefined : 'var(--text-primary)',
+                        padding: '8px 16px',
+                        fontSize: '0.9rem',
+                      }}
                       onClick={() => toggleDrug(key)}
                     >
                       {selectedDrugs.includes(key) && <Check className="w-3 h-3 mr-2" />}
@@ -1720,9 +1718,16 @@ function App() {
                       {config.name}
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuSeparator style={{ borderColor: 'rgba(255,255,255,0.07)' }} />
                   <DropdownMenuItem
-                    className="text-xs text-zinc-400 cursor-pointer"
+                    className="text-xs cursor-pointer rounded-lg mx-1 my-0.5"
+                    style={{ 
+                      color: 'var(--sem-accent)',
+                      padding: '8px 16px',
+                      fontSize: '0.9rem',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,201,122,0.10)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = ''}
                     onClick={addOtherDrug}
                   >
                     <Plus className="w-3 h-3 mr-2" /> Other (custom)
@@ -1812,7 +1817,16 @@ function App() {
 
       {/* Per-drug settings - only shown when drugs are selected */}
       {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-        <div className="px-4 md:px-6 pt-3 pb-1">
+        <div 
+          className="px-4 md:px-6 pt-3 pb-1"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            borderBottom: '1px solid rgba(255,255,255,0.10)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
           <ScrollArea className="max-h-[150px]">
             <div className="space-y-2">
               {/* Predefined drugs with settings */}
@@ -1828,8 +1842,12 @@ function App() {
                 ];
                 const colors = colorSchemes[idx % colorSchemes.length];
                 return (
-                  <div key={drugKey} className={`flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border ${colors.border} relative z-10`}>
-                    <span className={`text-[10px] font-medium ${colors.text} w-24`}>{config.name}</span>
+                  <div 
+                    key={drugKey} 
+                    className={`flex items-center gap-3 p-2 rounded-md border ${colors.border} relative z-10`}
+                    style={{ background: 'rgba(255,255,255,0.02)' }}
+                  >
+                    <span className={`text-[10px] font-medium ${colors.text} w-24`} style={{ fontWeight: 500 }}>{config.name}</span>
                     <div className="flex items-center gap-1">
                       <Input
                         data-testid={`drug-${drugKey}-concentration`}

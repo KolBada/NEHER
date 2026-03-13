@@ -30,6 +30,17 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 
 ## Recent Changes (December 2025)
 
+### Glassmorphism UI Updates (Latest)
+Applied glassmorphism styling across key UI elements:
+
+1. **Home Page - Section Rows**: Added subtle glass background (`rgba(255,255,255,0.025)`) with hover states and accent-colored chevrons
+2. **Home Page - Folder Rows**: Updated to use `.glass-surface` class with 12px border-radius and hover effects
+3. **Home Page - Toolbar Buttons**: A-Z, New Section, New Folder buttons now have glass styling with backdrop blur and accent-colored icons
+4. **Drug Dropdown Menu**: Glass popover with blur effect, proper spacing, and accent color for "Other (custom)"
+5. **Drug Config Bar**: Full-width glass bar with backdrop blur when drugs are selected
+6. **SEM Upload Page**: Restructured to match MEA layout - title "Upload SEM Data", required files checklist, Back/Analyze buttons
+7. **Removed "Back to Home" Links**: Both SEM and MEA upload pages now use footer Back buttons only
+
 ### Fixed: MEA CSV Parsing for Axion Biosystems Format
 - **Problem**: Parser expected standard CSV but Axion files have:
   - Metadata in columns 1-2

@@ -1,13 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FileAudio, X, Loader2, AlertCircle, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import { Upload, FileAudio, X, Loader2, AlertCircle, GripVertical, ArrowUp, ArrowDown, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
 const MAX_FILES_FOR_FUSION = 5;
 
-export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
+export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBack }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileProgress, setFileProgress] = useState({});
@@ -255,21 +255,15 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
       </div>
       
       <Card className="w-full max-w-2xl glass-surface relative z-10">
-        <CardContent className="p-8">
-          {/* Title row: NEHER on left, tagline on right */}
-          <div className="flex items-baseline justify-between">
-            <h1 className="text-4xl font-bold tracking-tight font-display" style={{ color: 'var(--text-primary)' }}>
-              NEHER
-            </h1>
-            <p className="text-lg font-normal font-body" style={{ color: 'var(--text-secondary)' }}>
-              Cardiac Electrophysiology Analysis Platform
-            </p>
-          </div>
-          {/* Subtle line */}
-          <div className="w-full h-px mt-2 mb-8" style={{ background: 'rgba(255,255,255,0.15)' }}></div>
-
+        <CardHeader>
+          <CardTitle className="text-xl font-display" style={{ color: 'var(--text-primary)' }}>Upload SEM Data</CardTitle>
+          <p className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
+            Upload at least 1 ABF file from your SEM recording
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
           {uploadError && (
-            <div className="mb-4 p-3 bg-red-950/30 border border-red-800 rounded-lg flex items-center gap-2 text-red-400 text-xs">
+            <div className="p-3 bg-red-950/30 border border-red-800 rounded-lg flex items-center gap-2 text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{uploadError}</span>
             </div>
@@ -305,8 +299,28 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
             />
           </div>
 
+          {/* Required files section */}
+          <div className="glass-surface-subtle rounded-xl p-4">
+            <p className="text-xs font-body mb-4 uppercase tracking-widest" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em', fontSize: '0.72rem' }}>
+              Required files:
+            </p>
+            <div className="flex items-center gap-3 text-sm">
+              {selectedFiles.length > 0 ? (
+                <CheckCircle className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
+              ) : (
+                <div className="w-4 h-4 rounded-full" style={{ border: '1.5px solid rgba(255,255,255,0.20)' }} />
+              )}
+              <span className="font-body" style={{ color: selectedFiles.length > 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                ABF recording file
+              </span>
+              <span className="ml-auto font-mono text-xs italic" style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>
+                _recording.abf
+              </span>
+            </div>
+          </div>
+
           {selectedFiles.length > 0 && (
-            <div className="mt-6 space-y-2 animate-slide-up">
+            <div className="space-y-2 animate-slide-up">
               {/* Fusion mode indicator */}
               {selectedFiles.length > 1 && (
                 <div className="flex items-center gap-2 p-3 bg-emerald-950/30 border border-emerald-800/50 rounded-sm mb-3">
@@ -407,26 +421,43 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER' }) {
                   )}
                 </div>
               ))}
-
-              <Button
-                data-testid="upload-btn"
-                className="w-full mt-4 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 rounded-sm font-medium text-xs h-9"
-                onClick={handleUpload}
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {selectedFiles.length > 1 ? 'Fusing & Processing...' : 'Processing...'}
-                  </span>
-                ) : selectedFiles.length > 1 ? (
-                  `Fuse & Analyze ${selectedFiles.length} recordings`
-                ) : (
-                  `Analyze ${selectedFiles.length} file(s)`
-                )}
-              </Button>
             </div>
           )}
+
+          {/* Footer buttons */}
+          <div className="flex justify-between items-center pt-4">
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+              className="rounded-lg"
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.18)',
+                color: 'var(--text-secondary)',
+                padding: '10px 20px',
+              }}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <Button
+              data-testid="upload-btn"
+              className="btn-start-analysis btn-start-analysis-sem"
+              onClick={handleUpload}
+              disabled={loading || selectedFiles.length === 0}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {selectedFiles.length > 1 ? 'Fusing & Processing...' : 'Processing...'}
+                </span>
+              ) : selectedFiles.length > 1 ? (
+                `Fuse & Analyze ${selectedFiles.length} recordings ›`
+              ) : (
+                'Analyze File ›'
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
