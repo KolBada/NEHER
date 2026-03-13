@@ -118,9 +118,6 @@ export default function ModeSelector({ onSelectSEM, onSelectMEA, onBack }) {
                 <div className="w-2 h-2 rounded-full bg-sky-500" />
                 <span>Network activity analysis</span>
               </div>
-              <div className="mt-2 px-2 py-1 bg-amber-950/30 border border-amber-500/30 rounded text-amber-400 text-xs">
-                Coming soon
-              </div>
             </div>
           </CardContent>
         </Card>

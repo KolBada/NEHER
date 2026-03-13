@@ -295,10 +295,16 @@ export default function MEAUpload({ onDataParsed, onBack }) {
       setSelectedWells(initialSelection);
       
       // Store parsed data
+      // Plate ID: use the spike_list filename without 'spike_list' suffix, or default to 'MEA_plate'
+      let plateId = files['spike_list.csv'].name.replace('.csv', '');
+      if (plateId === 'spike_list') {
+        plateId = 'MEA_plate';
+      }
+      
       const result = {
         wells: wellData,
         environmental_data: envData,
-        plate_id: files['spike_list.csv'].name.replace('.csv', ''),
+        plate_id: plateId,
         electrode_filter: electrodeFilter,
       };
       

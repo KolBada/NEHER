@@ -1,0 +1,10 @@
+electrode,well,spike_count,duration (s)
+E1,A1,7,3.0
+E2,A1,7,3.0
+E3,A1,6,3.0
+E1,B2,7,3.0
+E2,B2,7,3.0
+E3,B2,6,3.0
+E1,C3,7,3.0
+E2,C3,7,3.0
+E3,C3,6,3.0
