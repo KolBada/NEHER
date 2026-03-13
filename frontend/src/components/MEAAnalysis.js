@@ -30,7 +30,7 @@ import MEASaveDialog from './MEASaveDialog';
 
 // Compute spike rate per time bin
 function computeSpikeRate(spikes, activeElectrodes, binSize, duration) {
-  if (!spikes || spikes.length === 0 || activeElectrodes.length === 0) {
+  if (!spikes || spikes.length === 0 || !activeElectrodes || activeElectrodes.length === 0 || !duration || duration <= 0) {
     return [];
   }
   
@@ -45,6 +45,7 @@ function computeSpikeRate(spikes, activeElectrodes, binSize, duration) {
     const spikeCount = spikes.filter(s => 
       s.timestamp >= binStart && 
       s.timestamp < binEnd &&
+      s.electrode &&
       activeElectrodes.includes(s.electrode)
     ).length;
     
@@ -65,7 +66,7 @@ function computeSpikeRate(spikes, activeElectrodes, binSize, duration) {
 
 // Compute burst rate per time bin
 function computeBurstRate(bursts, activeElectrodes, binSize, duration) {
-  if (!bursts || activeElectrodes.length === 0) {
+  if (!bursts || !activeElectrodes || activeElectrodes.length === 0 || !duration || duration <= 0) {
     return [];
   }
   
@@ -80,6 +81,7 @@ function computeBurstRate(bursts, activeElectrodes, binSize, duration) {
     const burstCount = bursts.filter(b => 
       b.start < binEnd && 
       b.stop > binStart &&
+      b.electrode &&
       activeElectrodes.includes(b.electrode)
     ).length;
     
@@ -142,10 +144,10 @@ function computeCorrelation(x, y) {
 
 // Build spike raster data (time, electrode, tick)
 function buildSpikeRaster(spikes, activeElectrodes) {
-  if (!spikes || activeElectrodes.length === 0) return [];
+  if (!spikes || !activeElectrodes || activeElectrodes.length === 0) return [];
   
   return spikes
-    .filter(s => activeElectrodes.includes(s.electrode))
+    .filter(s => s.electrode && activeElectrodes.includes(s.electrode))
     .map(s => ({
       time: s.timestamp,
       electrode: s.electrode,
@@ -155,10 +157,10 @@ function buildSpikeRaster(spikes, activeElectrodes) {
 
 // Build burst raster data
 function buildBurstRaster(bursts, activeElectrodes) {
-  if (!bursts || activeElectrodes.length === 0) return [];
+  if (!bursts || !activeElectrodes || activeElectrodes.length === 0) return [];
   
   return bursts
-    .filter(b => activeElectrodes.includes(b.electrode))
+    .filter(b => b.electrode && activeElectrodes.includes(b.electrode))
     .map(b => ({
       start: b.start,
       stop: b.stop,
@@ -173,7 +175,7 @@ function buildBurstRaster(bursts, activeElectrodes) {
 
 // P1: Spike Raster Plot
 function SpikeRasterPlot({ rasterData, electrodes, duration, stimWindows, drugWindow }) {
-  if (!rasterData || rasterData.length === 0) {
+  if (!rasterData || rasterData.length === 0 || !electrodes || electrodes.length === 0) {
     return <div className="text-zinc-500 text-sm text-center py-8">No spike data available</div>;
   }
   
@@ -500,7 +502,35 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     if (!selectedWell || !meaData?.wells?.[selectedWell]) return null;
     
     const well = meaData.wells[selectedWell];
-    const { spikes, electrode_bursts, active_electrodes, duration_s } = well;
+    
+    // Ensure we have the required data with defaults
+    const spikes = well.spikes || [];
+    const electrode_bursts = well.electrode_bursts || [];
+    const active_electrodes = well.active_electrodes || [];
+    const duration_s = well.duration_s || 0;
+    
+    // Early return if no valid data
+    if (active_electrodes.length === 0 || duration_s <= 0) {
+      return {
+        well: {
+          ...well,
+          active_electrodes: active_electrodes,
+          duration_s: duration_s,
+        },
+        spikeRateBins: [],
+        burstRateBins: [],
+        spikeRaster: [],
+        burstRaster: [],
+        baselineSpikeHz: 0,
+        baselineBurstBpm: 0,
+        stimWindows: [],
+        stimMetrics: [],
+        drugWindow: null,
+        drugSpikeHz: null,
+        drugBurstBpm: null,
+        correlation: 0,
+      };
+    }
     
     // Compute spike rate time series
     const spikeRateBins = computeSpikeRate(
@@ -576,7 +606,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const correlation = computeCorrelation(spikeValues, alignedBurst);
     
     return {
-      well,
+      well: {
+        ...well,
+        active_electrodes: active_electrodes,
+        duration_s: duration_s,
+      },
       spikeRateBins,
       burstRateBins,
       spikeRaster,
@@ -701,15 +735,15 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Active Electrodes:</span>
-                      <span className="text-zinc-300">{wellAnalysis.well.n_active_electrodes}</span>
+                      <span className="text-zinc-300">{wellAnalysis?.well?.n_active_electrodes ?? 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Total Spikes:</span>
-                      <span className="text-zinc-300">{wellAnalysis.well.total_spikes?.toLocaleString()}</span>
+                      <span className="text-zinc-300">{wellAnalysis?.well?.total_spikes?.toLocaleString() ?? 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Duration:</span>
-                      <span className="text-zinc-300">{wellAnalysis.well.duration_s?.toFixed(1)}s</span>
+                      <span className="text-zinc-300">{wellAnalysis?.well?.duration_s?.toFixed(1) ?? 0}s</span>
                     </div>
                   </div>
                 </CardContent>
@@ -730,13 +764,13 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Mean Spike Rate:</span>
                       <span className="text-sky-400">
-                        {wellAnalysis.baselineSpikeHz?.toFixed(2) || '—'} Hz
+                        {wellAnalysis?.baselineSpikeHz?.toFixed(2) || '—'} Hz
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Mean Burst Rate:</span>
                       <span className="text-orange-400">
-                        {wellAnalysis.baselineBurstBpm?.toFixed(2) || '—'} bpm
+                        {wellAnalysis?.baselineBurstBpm?.toFixed(2) || '—'} bpm
                       </span>
                     </div>
                   </div>
@@ -747,57 +781,67 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           
           {/* Spikes Tab */}
           <TabsContent value="spikes" className="mt-4 space-y-4">
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-zinc-400">Spike Raster</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SpikeRasterPlot 
-                  rasterData={wellAnalysis.spikeRaster}
-                  electrodes={wellAnalysis.well.active_electrodes}
-                  duration={wellAnalysis.well.duration_s}
-                  stimWindows={wellAnalysis.stimWindows}
-                  drugWindow={wellAnalysis.drugWindow}
-                />
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-zinc-400">Spike Rate Trace</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SpikeRateTracePlot 
-                  spikeRateBins={wellAnalysis.spikeRateBins}
-                  duration={wellAnalysis.well.duration_s}
-                  stimWindows={wellAnalysis.stimWindows}
-                  drugWindow={wellAnalysis.drugWindow}
-                />
-              </CardContent>
-            </Card>
+            {wellAnalysis ? (
+              <>
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-zinc-400">Spike Raster</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SpikeRasterPlot 
+                      rasterData={wellAnalysis.spikeRaster || []}
+                      electrodes={wellAnalysis.well?.active_electrodes || []}
+                      duration={wellAnalysis.well?.duration_s || 0}
+                      stimWindows={wellAnalysis.stimWindows || []}
+                      drugWindow={wellAnalysis.drugWindow}
+                    />
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-zinc-400">Spike Rate Trace</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SpikeRateTracePlot 
+                      spikeRateBins={wellAnalysis.spikeRateBins || []}
+                      duration={wellAnalysis.well?.duration_s || 0}
+                      stimWindows={wellAnalysis.stimWindows || []}
+                      drugWindow={wellAnalysis.drugWindow}
+                    />
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <div className="text-zinc-500 text-center py-8">Select a well to view spike data</div>
+            )}
           </TabsContent>
           
           {/* Bursts Tab */}
           <TabsContent value="bursts" className="mt-4 space-y-4">
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-zinc-400">Burst Rate Trace</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BurstRateTracePlot 
-                  burstRateBins={wellAnalysis.burstRateBins}
-                  duration={wellAnalysis.well.duration_s}
-                  stimWindows={wellAnalysis.stimWindows}
-                  drugWindow={wellAnalysis.drugWindow}
-                />
-              </CardContent>
-            </Card>
+            {wellAnalysis ? (
+              <Card className="bg-zinc-900/50 border-zinc-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-zinc-400">Burst Rate Trace</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BurstRateTracePlot 
+                    burstRateBins={wellAnalysis.burstRateBins || []}
+                    duration={wellAnalysis.well?.duration_s || 0}
+                    stimWindows={wellAnalysis.stimWindows || []}
+                    drugWindow={wellAnalysis.drugWindow}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="text-zinc-500 text-center py-8">Select a well to view burst data</div>
+            )}
           </TabsContent>
           
           {/* Comparisons Tab */}
           <TabsContent value="comparisons" className="mt-4 space-y-4">
             {/* Light stimulation comparisons */}
-            {config.light_enabled && wellAnalysis.stimMetrics.length > 0 && (
+            {wellAnalysis && config.light_enabled && wellAnalysis.stimMetrics?.length > 0 && (
               <>
                 <Card className="bg-zinc-900/50 border-zinc-800">
                   <CardHeader className="pb-2">
@@ -834,7 +878,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             )}
             
             {/* Drug comparisons */}
-            {config.drug_enabled && config.drug_name && (
+            {wellAnalysis && config.drug_enabled && config.drug_name && (
               <>
                 <Card className="bg-zinc-900/50 border-zinc-800">
                   <CardHeader className="pb-2">

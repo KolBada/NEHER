@@ -94,10 +94,19 @@ function parseAxionCSV(text, fileType) {
     
     const row = {};
     dataHeaders.forEach((h, idx) => {
-      const val = dataValues[idx] || '';
+      let val = dataValues[idx] || '';
       // Try to parse as number
       const num = parseFloat(val);
-      row[h] = isNaN(num) ? val : num;
+      if (!isNaN(num)) {
+        row[h] = num;
+      } else {
+        // Normalize electrode names to uppercase for consistent matching
+        if (h === 'electrode' && val) {
+          row[h] = val.toUpperCase();
+        } else {
+          row[h] = val;
+        }
+      }
     });
     
     // Skip rows that are clearly metadata (first column is a settings label)
