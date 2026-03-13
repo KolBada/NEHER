@@ -20,12 +20,32 @@ function parseCSV(text) {
   
   // Parse header - handle various CSV formats
   const headerLine = lines[0];
-  const headers = headerLine.split(',').map(h => 
-    h.trim().toLowerCase()
+  const headers = headerLine.split(',').map(h => {
+    let cleaned = h.trim()
       .replace(/['"]/g, '')
       .replace(/\s*\(.*?\)\s*/g, '') // Remove units in parentheses
       .replace(/\s+/g, '_')
-  );
+      .toLowerCase();
+    
+    // Normalize common column name variations
+    if (cleaned === 'well_id' || cleaned === 'wellid' || cleaned === 'well_name') {
+      cleaned = 'well';
+    }
+    if (cleaned === 'time' || cleaned === 'time_s' || cleaned === 'timestamp_s') {
+      cleaned = 'timestamp';
+    }
+    if (cleaned === 'start_s' || cleaned === 'start_time') {
+      cleaned = 'start';
+    }
+    if (cleaned === 'stop_s' || cleaned === 'stop_time' || cleaned === 'end' || cleaned === 'end_s') {
+      cleaned = 'stop';
+    }
+    if (cleaned === 'duration_s' || cleaned === 'dur') {
+      cleaned = 'duration';
+    }
+    
+    return cleaned;
+  });
   
   const data = [];
   for (let i = 1; i < lines.length; i++) {
@@ -45,20 +65,55 @@ function parseCSV(text) {
   return data;
 }
 
-// Validate well ID format (A1-H12)
+// Validate well ID format - accepts various formats:
+// - A1-H12 (standard 96-well plate)
+// - A01-H12 (with leading zero)
+// - Well_A1, Well A1 (with prefix)
+// - Any alphanumeric identifier
 function isValidWellId(wellId) {
   if (!wellId || typeof wellId !== 'string') return false;
-  const match = wellId.match(/^([A-H])(\d{1,2})$/i);
-  if (!match) return false;
-  const col = parseInt(match[2]);
-  return col >= 1 && col <= 12;
+  const str = String(wellId).trim();
+  if (str.length === 0) return false;
+  
+  // Standard format A1-H12 or A01-H12
+  const standardMatch = str.match(/^([A-Ha-h])(\d{1,2})$/);
+  if (standardMatch) {
+    const col = parseInt(standardMatch[2]);
+    return col >= 1 && col <= 12;
+  }
+  
+  // With "Well" prefix: Well_A1, Well A1, Well_A01
+  const prefixMatch = str.match(/^Well[_\s]?([A-Ha-h])(\d{1,2})$/i);
+  if (prefixMatch) {
+    const col = parseInt(prefixMatch[2]);
+    return col >= 1 && col <= 12;
+  }
+  
+  // Accept any non-empty alphanumeric string as a valid well identifier
+  // This handles custom naming conventions
+  return /^[A-Za-z0-9_-]+$/.test(str);
 }
 
-// Normalize well ID to uppercase
+// Normalize well ID to a consistent format
 function normalizeWellId(wellId) {
   if (!wellId) return null;
-  const str = String(wellId).toUpperCase().trim();
-  return isValidWellId(str) ? str : null;
+  const str = String(wellId).trim();
+  if (str.length === 0) return null;
+  
+  // Standard format - normalize to uppercase
+  const standardMatch = str.match(/^([A-Ha-h])(\d{1,2})$/);
+  if (standardMatch) {
+    return `${standardMatch[1].toUpperCase()}${parseInt(standardMatch[2])}`;
+  }
+  
+  // With "Well" prefix - extract and normalize
+  const prefixMatch = str.match(/^Well[_\s]?([A-Ha-h])(\d{1,2})$/i);
+  if (prefixMatch) {
+    return `${prefixMatch[1].toUpperCase()}${parseInt(prefixMatch[2])}`;
+  }
+  
+  // Return as-is for custom identifiers (just trim and uppercase)
+  return str.toUpperCase();
 }
 
 export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
@@ -147,7 +202,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       });
       
       if (wellSet.size === 0) {
-        throw new Error('No valid well IDs found in spike_list.csv. Expected format: A1-H12');
+        throw new Error('No wells found in spike_list.csv. Check that your CSV has a "well" column with valid well identifiers.');
       }
       
       if (invalidWells.size > 0) {
