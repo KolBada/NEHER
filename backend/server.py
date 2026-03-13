@@ -138,6 +138,42 @@ class ExportRequest(BaseModel):
     recording_description: Optional[str] = None  # Description/notes
 
 
+# MEA-specific models
+class MEARecordingSaveRequest(BaseModel):
+    """Request model for saving an MEA well recording"""
+    folder_id: str
+    name: str
+    well_id: str
+    plate_id: str
+    source_type: str = "MEA"
+    
+    # MEA-specific data
+    active_electrodes: List[str]
+    electrode_filter: dict
+    spike_bin_s: int = 5
+    burst_bin_s: int = 30
+    
+    # Config
+    config: dict
+    
+    # Computed metrics
+    spike_rate_bins: List[dict]
+    burst_rate_bins: List[dict]
+    baseline_spike_hz: Optional[float] = None
+    baseline_burst_bpm: Optional[float] = None
+    stim_metrics: Optional[List[dict]] = None
+    drug_metrics: Optional[dict] = None
+    correlation: Optional[dict] = None
+    
+    # Raw data for re-plotting
+    spikes: List[dict]
+    electrode_bursts: List[dict]
+    duration_s: float
+    total_spikes: int
+    n_electrodes: int
+    n_active_electrodes: int
+
+
 # --- Endpoints ---
 @api_router.get("/")
 async def root():

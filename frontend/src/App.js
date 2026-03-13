@@ -30,6 +30,9 @@ import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import HomeBrowser from '@/components/HomeBrowser';
 import ModeSelector from '@/components/ModeSelector';
+import MEAUpload from '@/components/MEAUpload';
+import MEAConfig from '@/components/MEAConfig';
+import MEAAnalysis from '@/components/MEAAnalysis';
 import SaveRecording from '@/components/SaveRecording';
 import FolderComparison from '@/components/FolderComparison';
 import api, { downloadBlob } from '@/api';
@@ -335,6 +338,10 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
 function App() {
   // App view mode: 'home' (folder browser) or 'analysis' (main analysis view)
   const [appView, setAppView] = useState('home');
+  
+  // MEA-specific state
+  const [meaData, setMeaData] = useState(null);
+  const [meaConfig, setMeaConfig] = useState(null);
   
   // Saved recording info (when editing an existing recording)
   const [savedRecordingId, setSavedRecordingId] = useState(null);
@@ -1491,13 +1498,74 @@ function App() {
         <ModeSelector 
           onSelectSEM={() => setAppView('upload')}
           onSelectMEA={() => {
-            // MEA mode - coming soon, show toast
-            // For now, just stay on mode-select
-            toast.info('MEA analysis is coming soon!');
+            setAppView('mea-upload');
           }}
           onBack={() => setAppView('home')}
         />
       </div>
+    );
+  }
+
+  // MEA Upload view
+  if (appView === 'mea-upload') {
+    return (
+      <div className="min-h-screen bg-[#09090b]">
+        <Toaster theme="dark" position="top-right" />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4"
+            onClick={() => setAppView('mode-select')}
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Back to Mode Selection
+          </Button>
+        </div>
+        <MEAUpload 
+          onDataParsed={(data) => {
+            setMeaData(data);
+            setAppView('mea-config');
+          }}
+          onBack={() => setAppView('mode-select')}
+        />
+      </div>
+    );
+  }
+
+  // MEA Config view
+  if (appView === 'mea-config') {
+    return (
+      <div className="min-h-screen bg-[#09090b]">
+        <Toaster theme="dark" position="top-right" />
+        <MEAConfig 
+          meaData={meaData}
+          onConfigured={(config) => {
+            setMeaConfig(config);
+            setAppView('mea-analysis');
+          }}
+          onBack={() => setAppView('mea-upload')}
+        />
+      </div>
+    );
+  }
+
+  // MEA Analysis view
+  if (appView === 'mea-analysis') {
+    return (
+      <MEAAnalysis 
+        meaData={meaData}
+        config={meaConfig}
+        onSave={() => {
+          // TODO: Implement save dialog
+          toast.success('Save functionality coming soon!');
+        }}
+        onHome={() => {
+          setMeaData(null);
+          setMeaConfig(null);
+          setAppView('home');
+        }}
+      />
     );
   }
 
