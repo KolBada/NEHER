@@ -13,19 +13,44 @@ const EXPECTED_FILES = [
   { name: 'environmental_data.csv', required: ['timestamp', 'temperature', 'CO2'], description: 'Environmental conditions' },
 ];
 
-// Parse CSV text into array of objects
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
+// Parse Axion Biosystems CSV format
+// These files have metadata in columns 1-2, actual data starts at column 3+
+// The header row contains both metadata labels and data column headers
+function parseAxionCSV(text, fileType) {
+  // Remove BOM if present
+  const cleanText = text.replace(/^\uFEFF/, '');
+  const lines = cleanText.trim().split('\n');
   if (lines.length < 2) return [];
   
-  // Parse header - handle various CSV formats
+  // Parse the header line to find data columns
   const headerLine = lines[0];
-  const headers = headerLine.split(',').map(h => {
-    let cleaned = h.trim()
-      .replace(/['"]/g, '')
-      .replace(/\s*\(.*?\)\s*/g, '') // Remove units in parentheses
+  const allHeaders = headerLine.split(',').map(h => h.trim().replace(/['"]/g, ''));
+  
+  // For Axion format, identify where actual data columns start
+  // Metadata columns are typically: "Investigator", "KB" or "Recording Name", etc.
+  // Data columns have headers like "Time (s)", "Electrode", "Amplitude (mV)", "Well", etc.
+  
+  let dataStartCol = 0;
+  const dataHeaders = [];
+  
+  // Find the first column that looks like a data header
+  for (let i = 0; i < allHeaders.length; i++) {
+    const h = allHeaders[i].toLowerCase();
+    if (h.includes('time') || h.includes('electrode') || h.includes('well') || 
+        h.includes('amplitude') || h.includes('interval') || h.includes('heater') ||
+        h.includes('size') || h.includes('duration')) {
+      dataStartCol = i;
+      break;
+    }
+  }
+  
+  // Extract and normalize data headers
+  for (let i = dataStartCol; i < allHeaders.length; i++) {
+    let cleaned = allHeaders[i]
+      .replace(/\s*\(.*?\)\s*/g, '') // Remove units in parentheses like (s), (mV)
       .replace(/\s+/g, '_')
-      .toLowerCase();
+      .toLowerCase()
+      .trim();
     
     // Normalize common column name variations
     if (cleaned === 'well_id' || cleaned === 'wellid' || cleaned === 'well_name') {
@@ -43,26 +68,158 @@ function parseCSV(text) {
     if (cleaned === 'duration_s' || cleaned === 'dur') {
       cleaned = 'duration';
     }
+    if (cleaned === 'size') {
+      cleaned = 'spike_count';
+    }
+    if (cleaned === 'number_of_electrodes') {
+      cleaned = 'electrode_count';
+    }
     
-    return cleaned;
-  });
+    dataHeaders.push(cleaned);
+  }
   
   const data = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     
-    const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
+    const allValues = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
+    
+    // Extract only data columns (skip metadata columns)
+    const dataValues = allValues.slice(dataStartCol);
+    
+    // Skip rows where data columns are empty (metadata-only rows)
+    const hasData = dataValues.some(v => v && v.length > 0);
+    if (!hasData) continue;
+    
     const row = {};
-    headers.forEach((h, idx) => {
-      const val = values[idx];
+    dataHeaders.forEach((h, idx) => {
+      const val = dataValues[idx] || '';
       // Try to parse as number
       const num = parseFloat(val);
       row[h] = isNaN(num) ? val : num;
     });
+    
+    // Skip rows that are clearly metadata (first column is a settings label)
+    if (row.timestamp === '' || (typeof row.timestamp === 'string' && row.timestamp.length === 0)) {
+      continue;
+    }
+    
     data.push(row);
   }
+  
   return data;
+}
+
+// Extract well ID from Axion electrode format (e.g., "A2_44" -> "A2")
+function extractWellFromElectrode(electrode) {
+  if (!electrode || typeof electrode !== 'string') return null;
+  
+  // Axion format: WellRow+WellCol_ElectrodeNum (e.g., "A2_44", "B1_65")
+  const match = electrode.match(/^([A-Ha-h])(\d+)_\d+$/i);
+  if (match) {
+    return `${match[1].toUpperCase()}${match[2]}`;
+  }
+  
+  // Also try format without underscore: "A244" -> "A2"
+  const altMatch = electrode.match(/^([A-Ha-h])(\d)(\d{2})$/i);
+  if (altMatch) {
+    return `${altMatch[1].toUpperCase()}${altMatch[2]}`;
+  }
+  
+  return null;
+}
+
+// Parse spike_counts.csv which has a wide format with wells and electrodes as columns
+function parseSpikeCountsAxion(text) {
+  const cleanText = text.replace(/^\uFEFF/, '');
+  const lines = cleanText.trim().split('\n');
+  if (lines.length < 2) return { wellTotals: {}, electrodeData: [] };
+  
+  // Parse header to find column positions
+  const headerLine = lines[0];
+  const allHeaders = headerLine.split(',').map(h => h.trim().replace(/['"]/g, ''));
+  
+  // Find where the well/electrode columns start (after metadata and time columns)
+  // Format: Investigator, KB, Interval Start (S), Interval End (S), [empty], A1, A2, A3, B1, B2, B3, [empty], A1_11, A1_12, ...
+  
+  let wellStartCol = -1;
+  let electrodeStartCol = -1;
+  const wellColumns = []; // {col: index, wellId: 'A1'}
+  const electrodeColumns = []; // {col: index, electrode: 'A1_11', wellId: 'A1'}
+  
+  for (let i = 0; i < allHeaders.length; i++) {
+    const h = allHeaders[i];
+    
+    // Well columns are like "A1", "A2", "B1" (single letter + single digit)
+    if (/^[A-Ha-h]\d$/.test(h)) {
+      if (wellStartCol === -1) wellStartCol = i;
+      wellColumns.push({ col: i, wellId: h.toUpperCase() });
+    }
+    
+    // Electrode columns are like "A1_11", "A2_44"
+    if (/^[A-Ha-h]\d_\d+$/.test(h)) {
+      if (electrodeStartCol === -1) electrodeStartCol = i;
+      const wellId = extractWellFromElectrode(h);
+      electrodeColumns.push({ col: i, electrode: h, wellId: wellId });
+    }
+  }
+  
+  // Find the time interval columns
+  let intervalStartCol = -1;
+  let intervalEndCol = -1;
+  for (let i = 0; i < allHeaders.length; i++) {
+    const h = allHeaders[i].toLowerCase();
+    if (h.includes('interval') && h.includes('start')) intervalStartCol = i;
+    if (h.includes('interval') && h.includes('end')) intervalEndCol = i;
+  }
+  
+  // Aggregate spike counts per electrode across all time intervals
+  const electrodeSpikeTotals = {}; // electrode -> total spike count
+  const wellSpikeTotals = {}; // well -> total spike count
+  let totalDuration = 0;
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
+    
+    // Get interval duration
+    if (intervalStartCol >= 0 && intervalEndCol >= 0) {
+      const start = parseFloat(values[intervalStartCol]);
+      const end = parseFloat(values[intervalEndCol]);
+      if (!isNaN(start) && !isNaN(end) && i === lines.length - 1) {
+        totalDuration = end; // Use the last interval's end time as total duration
+      }
+    }
+    
+    // Sum well totals
+    wellColumns.forEach(({ col, wellId }) => {
+      const count = parseInt(values[col]) || 0;
+      wellSpikeTotals[wellId] = (wellSpikeTotals[wellId] || 0) + count;
+    });
+    
+    // Sum electrode totals
+    electrodeColumns.forEach(({ col, electrode, wellId }) => {
+      const count = parseInt(values[col]) || 0;
+      if (!electrodeSpikeTotals[electrode]) {
+        electrodeSpikeTotals[electrode] = { electrode, wellId, spike_count: 0 };
+      }
+      electrodeSpikeTotals[electrode].spike_count += count;
+    });
+  }
+  
+  // Convert to array format with firing rate
+  const electrodeData = Object.values(electrodeSpikeTotals).map(e => ({
+    electrode: e.electrode,
+    well: e.wellId,
+    spike_count: e.spike_count,
+    duration: totalDuration,
+    firing_rate_hz: totalDuration > 0 ? e.spike_count / totalDuration : 0,
+  }));
+  
+  return { wellTotals: wellSpikeTotals, electrodeData, totalDuration };
 }
 
 // Validate well ID format - accepts various formats:
@@ -179,45 +336,55 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
     
     try {
       // Step 1: Parse spike_list.csv to get unique wells
+      // In Axion format, the well ID is embedded in the Electrode column (e.g., "A2_44" -> well "A2")
       newStatus['spike_list.csv'] = 'parsing';
       setFileStatus({ ...newStatus });
       
       const spikeListText = await files['spike_list.csv'].text();
-      const spikeList = parseCSV(spikeListText);
+      const spikeListRaw = parseAxionCSV(spikeListText, 'spike_list');
       
-      if (spikeList.length === 0) {
+      if (spikeListRaw.length === 0) {
         throw new Error('spike_list.csv is empty or malformed');
       }
       
-      // Extract unique well IDs
+      // Extract unique well IDs from the electrode column (Axion format)
       const wellSet = new Set();
-      const invalidWells = new Set();
-      spikeList.forEach(row => {
-        const wellId = normalizeWellId(row.well);
+      const spikeList = spikeListRaw.map(row => {
+        // Extract well from electrode (e.g., "A2_44" -> "A2")
+        let wellId = null;
+        if (row.electrode) {
+          wellId = extractWellFromElectrode(String(row.electrode));
+        }
+        // Fallback to direct well column if present
+        if (!wellId && row.well) {
+          wellId = normalizeWellId(row.well);
+        }
+        
         if (wellId) {
           wellSet.add(wellId);
-        } else if (row.well) {
-          invalidWells.add(row.well);
         }
-      });
+        
+        return {
+          ...row,
+          well: wellId,
+        };
+      }).filter(row => row.well); // Only keep rows with valid wells
       
       if (wellSet.size === 0) {
-        throw new Error('No wells found in spike_list.csv. Check that your CSV has a "well" column with valid well identifiers.');
+        throw new Error('No valid well IDs found in spike_list.csv. Expected electrode format like "A2_44" or a "well" column.');
       }
       
-      if (invalidWells.size > 0) {
-        console.warn('Invalid well IDs found:', Array.from(invalidWells));
-      }
+      console.log(`Found ${wellSet.size} wells:`, Array.from(wellSet));
       
       newStatus['spike_list.csv'] = 'success';
       setFileStatus({ ...newStatus });
       
-      // Step 2: Parse spike_counts.csv for electrode filtering
+      // Step 2: Parse spike_counts.csv for electrode filtering (Axion wide format)
       newStatus['spike_counts.csv'] = 'parsing';
       setFileStatus({ ...newStatus });
       
       const spikeCountsText = await files['spike_counts.csv'].text();
-      const spikeCounts = parseCSV(spikeCountsText);
+      const { electrodeData, totalDuration } = parseSpikeCountsAxion(spikeCountsText);
       
       // Build electrode registry per well
       const electrodeRegistry = {};
@@ -225,15 +392,14 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         electrodeRegistry[well] = [];
       });
       
-      spikeCounts.forEach(row => {
-        const wellId = normalizeWellId(row.well);
+      electrodeData.forEach(row => {
+        const wellId = row.well;
         if (wellId && wellSet.has(wellId)) {
-          const rate = row.spike_count / row.duration;
           electrodeRegistry[wellId].push({
             electrode: row.electrode,
             spike_count: row.spike_count,
-            duration: row.duration,
-            firing_rate_hz: rate,
+            duration: row.duration || totalDuration,
+            firing_rate_hz: row.firing_rate_hz,
           });
         }
       });
@@ -241,12 +407,12 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       newStatus['spike_counts.csv'] = 'success';
       setFileStatus({ ...newStatus });
       
-      // Step 3: Parse electrode_burst_list.csv
+      // Step 3: Parse electrode_burst_list.csv (Axion format with electrode column)
       newStatus['electrode_burst_list.csv'] = 'parsing';
       setFileStatus({ ...newStatus });
       
       const electrodeBurstText = await files['electrode_burst_list.csv'].text();
-      const electrodeBursts = parseCSV(electrodeBurstText);
+      const electrodeBurstsRaw = parseAxionCSV(electrodeBurstText, 'electrode_burst');
       
       // Assign bursts to electrodes per well
       const burstsByWell = {};
@@ -254,44 +420,51 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         burstsByWell[well] = [];
       });
       
-      electrodeBursts.forEach(row => {
-        const wellId = normalizeWellId(row.well);
+      electrodeBurstsRaw.forEach(row => {
+        // Extract well from electrode column
+        let wellId = null;
+        if (row.electrode) {
+          wellId = extractWellFromElectrode(String(row.electrode));
+        }
+        if (!wellId && row.well) {
+          wellId = normalizeWellId(row.well);
+        }
+        
         if (wellId && wellSet.has(wellId)) {
           burstsByWell[wellId].push({
             electrode: row.electrode,
-            start: row.start,
-            stop: row.stop,
+            start: row.timestamp || row.start,
+            stop: (row.timestamp || row.start) + (row.duration || 0),
             spike_count: row.spike_count,
-            mean_isi: row.mean_isi,
+            duration: row.duration,
           });
-        } else if (wellId) {
-          console.warn(`Well ${wellId} in electrode_burst_list.csv not found in spike_list.csv, ignoring`);
         }
       });
       
       newStatus['electrode_burst_list.csv'] = 'success';
       setFileStatus({ ...newStatus });
       
-      // Step 4: Parse network_burst_list.csv
+      // Step 4: Parse network_burst_list.csv (has direct Well column)
       newStatus['network_burst_list.csv'] = 'parsing';
       setFileStatus({ ...newStatus });
       
       const networkBurstText = await files['network_burst_list.csv'].text();
-      const networkBursts = parseCSV(networkBurstText);
+      const networkBurstsRaw = parseAxionCSV(networkBurstText, 'network_burst');
       
       const networkBurstsByWell = {};
       wellSet.forEach(well => {
         networkBurstsByWell[well] = [];
       });
       
-      networkBursts.forEach(row => {
+      networkBurstsRaw.forEach(row => {
         const wellId = normalizeWellId(row.well);
         if (wellId && wellSet.has(wellId)) {
           networkBurstsByWell[wellId].push({
-            start: row.start,
-            stop: row.stop,
+            start: row.timestamp || row.start,
+            stop: (row.timestamp || row.start) + (row.duration || 0),
             electrode_count: row.electrode_count,
             spike_count: row.spike_count,
+            duration: row.duration,
           });
         }
       });
@@ -304,7 +477,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       setFileStatus({ ...newStatus });
       
       const envText = await files['environmental_data.csv'].text();
-      const envData = parseCSV(envText);
+      const envData = parseAxionCSV(envText, 'environmental');
       
       newStatus['environmental_data.csv'] = 'success';
       setFileStatus({ ...newStatus });
@@ -324,18 +497,18 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         });
         
         // Get spikes for this well
-        const wellSpikes = spikeList.filter(s => normalizeWellId(s.well) === well);
+        const wellSpikes = spikeList.filter(s => s.well === well);
         
         // Calculate mean firing rate across active electrodes
         const meanFiringRate = activeElectrodes.length > 0
           ? activeElectrodes.reduce((sum, e) => sum + e.firing_rate_hz, 0) / activeElectrodes.length
           : 0;
         
-        // Get recording duration from spike timestamps
+        // Get recording duration from spike timestamps or from spike_counts
         const timestamps = wellSpikes.map(s => s.timestamp).filter(t => !isNaN(t));
         const duration = timestamps.length > 0 
           ? Math.max(...timestamps) - Math.min(...timestamps)
-          : 0;
+          : totalDuration;
         
         wellData[well] = {
           well_id: well,
