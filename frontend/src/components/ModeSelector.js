@@ -97,7 +97,7 @@ export default function ModeSelector({ onSelectSEM, onSelectMEA, onBack }) {
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-lg text-zinc-100 flex items-center">
-              MEA — Multi-Electrode Array
+              Multi-Electrode Array (MEA)
               <InfoTooltip text={MEA_TOOLTIP} />
             </CardTitle>
             <CardDescription className="text-zinc-500 text-sm">

@@ -29,7 +29,6 @@ import AnalysisPanel from '@/components/AnalysisPanel';
 import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import HomeBrowser from '@/components/HomeBrowser';
-import ModeSelector from '@/components/ModeSelector';
 import MEAUpload from '@/components/MEAUpload';
 import MEAConfig from '@/components/MEAConfig';
 import MEAAnalysis from '@/components/MEAAnalysis';
@@ -342,6 +341,7 @@ function App() {
   // MEA-specific state
   const [meaData, setMeaData] = useState(null);
   const [meaConfig, setMeaConfig] = useState(null);
+  const [meaPreloadedFiles, setMeaPreloadedFiles] = useState(null); // Files selected from home page
   
   // Saved recording info (when editing an existing recording)
   const [savedRecordingId, setSavedRecordingId] = useState(null);
@@ -1503,36 +1503,18 @@ function App() {
       <div className="min-h-screen bg-[#09090b]">
         <Toaster theme="dark" position="top-right" />
         <HomeBrowser 
-          onNewAnalysis={() => setAppView('mode-select')}
           onOpenRecording={handleOpenRecording}
           initialFolderId={navigateToFolderId}
-        />
-      </div>
-    );
-  }
-
-  // Mode selector view - choose between SEM and MEA
-  if (appView === 'mode-select') {
-    return (
-      <div className="min-h-screen bg-[#09090b]">
-        <Toaster theme="dark" position="top-right" />
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-4"
-            onClick={() => setAppView('home')}
-          >
-            <Home className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
-        </div>
-        <ModeSelector 
-          onSelectSEM={() => setAppView('upload')}
-          onSelectMEA={() => {
+          onSEMFilesSelected={(files) => {
+            // Go directly to SEM upload/analysis with pre-loaded files
+            handleUpload(files);
+            setAppView('analysis');
+          }}
+          onMEAFilesSelected={(files) => {
+            // Go to MEA upload with pre-loaded files
+            setMeaPreloadedFiles(files);
             setAppView('mea-upload');
           }}
-          onBack={() => setAppView('home')}
         />
       </div>
     );
@@ -1548,18 +1530,26 @@ function App() {
             variant="ghost"
             size="sm"
             className="mb-4"
-            onClick={() => setAppView('mode-select')}
+            onClick={() => {
+              setMeaPreloadedFiles(null);
+              setAppView('home');
+            }}
           >
             <Home className="w-4 h-4 mr-2" />
-            Back to Mode Selection
+            Back to Home
           </Button>
         </div>
         <MEAUpload 
+          preloadedFiles={meaPreloadedFiles}
           onDataParsed={(data) => {
             setMeaData(data);
+            setMeaPreloadedFiles(null);
             setAppView('mea-config');
           }}
-          onBack={() => setAppView('mode-select')}
+          onBack={() => {
+            setMeaPreloadedFiles(null);
+            setAppView('home');
+          }}
         />
       </div>
     );

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, CheckCircle, XCircle, AlertCircle, Loader2, ChevronRight } from 'lucide-react';
@@ -61,7 +61,7 @@ function normalizeWellId(wellId) {
   return isValidWellId(str) ? str : null;
 }
 
-export default function MEAUpload({ onDataParsed, onBack }) {
+export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
   const [files, setFiles] = useState({});
   const [fileStatus, setFileStatus] = useState({});
   const [parsing, setParsing] = useState(false);
@@ -89,6 +89,13 @@ export default function MEAUpload({ onDataParsed, onBack }) {
     setFileStatus(newStatus);
     setParseError(null);
   }, [files, fileStatus]);
+
+  // Process preloaded files from home page
+  useEffect(() => {
+    if (preloadedFiles && preloadedFiles.length > 0) {
+      handleFiles(preloadedFiles);
+    }
+  }, [preloadedFiles]); // Only run on mount with preloaded files
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();

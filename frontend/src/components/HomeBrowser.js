@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, startTransition, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, startTransition, memo, useRef } from 'react';
 import { 
   Folder, FolderPlus, FolderOpen, FileAudio, Pencil, Trash2, 
   ArrowLeft, MoreVertical, MoveRight, Clock, Activity, Zap, Pill,
   ChevronRight, Loader2, Plus, X, Check, BarChart3, ArrowUpDown,
-  SortAsc, Calendar, GripVertical, Layers, ChevronDown, Palette
+  SortAsc, Calendar, GripVertical, Layers, ChevronDown, Palette,
+  Upload, Info, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,17 +34,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from 'sonner';
 import api from '../api';
 import FolderComparison from './FolderComparison';
 import MEAPopulationAnalysis from './MEAPopulationAnalysis';
 
-export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFolderId = null }) {
+// Tooltip text definitions
+const SEM_TOOLTIP = `Single-electrode extracellular recording using a sharp glass microelectrode positioned near the tissue. Detects cardiac beats from a continuous voltage trace.`;
+const MEA_TOOLTIP = `Extracellular recording using an array of electrodes across a culture well. Spikes and bursts are pre-detected and exported as tables. NEHER analyzes network spike rate and burst rate.`;
+
+// Info icon with tooltip component
+function InfoTooltip({ text }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button 
+            className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent 
+          side="bottom" 
+          className="max-w-sm bg-zinc-900 border-zinc-700 text-zinc-300 text-xs p-3"
+        >
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFolderId = null, onSEMFilesSelected, onMEAFilesSelected }) {
   const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Drop zone states
+  const [semDragActive, setSemDragActive] = useState(false);
+  const [meaDragActive, setMeaDragActive] = useState(false);
+  const [semError, setSemError] = useState(null);
+  const [meaError, setMeaError] = useState(null);
+  const semInputRef = useRef(null);
+  const meaInputRef = useRef(null);
   
   // Dialog states
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
@@ -522,6 +565,121 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
     return sorted;
   }, [recordings, recordingSortBy]);
 
+  // SEM Drop Zone Handlers
+  const handleSEMDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSemDragActive(true);
+  }, []);
+
+  const handleSEMDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSemDragActive(false);
+  }, []);
+
+  const handleSEMDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleSEMDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSemDragActive(false);
+    setSemError(null);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const abfFiles = files.filter(f => f.name.toLowerCase().endsWith('.abf'));
+    
+    if (abfFiles.length === 0) {
+      setSemError('Only .abf files are accepted');
+      return;
+    }
+    
+    if (onSEMFilesSelected) {
+      onSEMFilesSelected(abfFiles);
+    }
+  }, [onSEMFilesSelected]);
+
+  const handleSEMFileSelect = useCallback((e) => {
+    setSemError(null);
+    const files = Array.from(e.target.files);
+    const abfFiles = files.filter(f => f.name.toLowerCase().endsWith('.abf'));
+    
+    if (abfFiles.length > 0 && onSEMFilesSelected) {
+      onSEMFilesSelected(abfFiles);
+    }
+    
+    if (semInputRef.current) {
+      semInputRef.current.value = '';
+    }
+  }, [onSEMFilesSelected]);
+
+  // MEA Drop Zone Handlers
+  const handleMEADragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMeaDragActive(true);
+  }, []);
+
+  const handleMEADragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMeaDragActive(false);
+  }, []);
+
+  const handleMEADragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleMEADrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMeaDragActive(false);
+    setMeaError(null);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+    
+    if (csvFiles.length === 0) {
+      setMeaError('Only .csv files are accepted');
+      return;
+    }
+    
+    if (csvFiles.length > 5) {
+      setMeaError('A MEA dataset requires exactly 5 CSV files');
+      return;
+    }
+    
+    if (onMEAFilesSelected) {
+      onMEAFilesSelected(csvFiles);
+    }
+  }, [onMEAFilesSelected]);
+
+  const handleMEAFileSelect = useCallback((e) => {
+    setMeaError(null);
+    const files = Array.from(e.target.files);
+    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith('.csv'));
+    
+    if (csvFiles.length > 5) {
+      setMeaError('A MEA dataset requires exactly 5 CSV files');
+      if (meaInputRef.current) {
+        meaInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    if (csvFiles.length > 0 && onMEAFilesSelected) {
+      onMEAFilesSelected(csvFiles);
+    }
+    
+    if (meaInputRef.current) {
+      meaInputRef.current.value = '';
+    }
+  }, [onMEAFilesSelected]);
+
   // Home view - show folders and new analysis option
   if (view === 'home') {
     return (
@@ -543,23 +701,114 @@ export default function HomeBrowser({ onNewAnalysis, onOpenRecording, initialFol
         {/* White line spanning full width */}
         <div className="w-full h-0.5 bg-white mt-2 mb-8"></div>
 
-        {/* New Analysis Card */}
-        <Card 
-          className="bg-gradient-to-br from-emerald-900/30 to-emerald-950/50 border-emerald-600/50 rounded-sm mb-6 cursor-pointer hover:border-emerald-500 transition-colors"
-          onClick={onNewAnalysis}
-          data-testid="new-analysis-card"
-        >
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-700/50 flex items-center justify-center">
-              <Plus className="w-6 h-6 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-zinc-100">New Analysis</h3>
-              <p className="text-sm text-emerald-400/70">Drop a new .abf file to start analysis</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-emerald-600 ml-auto" />
-          </CardContent>
-        </Card>
+        {/* Mode Selection Cards - Two cards side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* SEM Card */}
+          <Card 
+            className={`bg-zinc-900/50 border-zinc-800 rounded-sm transition-all ${
+              semDragActive ? 'border-emerald-500 ring-1 ring-emerald-500/30' : 'hover:border-emerald-500/50'
+            }`}
+            data-testid="sem-mode-card"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-zinc-100 flex items-center">
+                Sharp Extracellular Microelectrode (SEM)
+                <InfoTooltip text={SEM_TOOLTIP} />
+              </CardTitle>
+              <p className="text-sm text-zinc-500">
+                For cardiac activity — cardioids alone or neuro-cardiac assembloids (NeuCarS).
+              </p>
+            </CardHeader>
+            <CardContent className="pt-2">
+              {/* SEM Drop Zone */}
+              <div
+                className={`border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-colors ${
+                  semDragActive 
+                    ? 'border-emerald-500 bg-emerald-950/20' 
+                    : 'border-emerald-700/40 hover:border-emerald-600/60'
+                }`}
+                onDragEnter={handleSEMDragEnter}
+                onDragLeave={handleSEMDragLeave}
+                onDragOver={handleSEMDragOver}
+                onDrop={handleSEMDrop}
+                onClick={() => semInputRef.current?.click()}
+                data-testid="sem-dropzone"
+              >
+                <Upload className="w-8 h-8 mx-auto mb-2 text-emerald-500/70" />
+                <p className="text-sm text-zinc-300">Drop .abf files here</p>
+                <p className="text-xs text-zinc-500 mt-1">or click to browse</p>
+                <input
+                  ref={semInputRef}
+                  type="file"
+                  multiple
+                  accept=".abf"
+                  className="hidden"
+                  onChange={handleSEMFileSelect}
+                  data-testid="sem-file-input"
+                />
+              </div>
+              {semError && (
+                <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{semError}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* MEA Card */}
+          <Card 
+            className={`bg-zinc-900/50 border-zinc-800 rounded-sm transition-all ${
+              meaDragActive ? 'border-sky-500 ring-1 ring-sky-500/30' : 'hover:border-sky-500/50'
+            }`}
+            data-testid="mea-mode-card"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-zinc-100 flex items-center">
+                Multi-Electrode Array (MEA)
+                <InfoTooltip text={MEA_TOOLTIP} />
+              </CardTitle>
+              <p className="text-sm text-zinc-500">
+                For neuronal activity — neuronal organoids (hSpO) or neuro-cardiac assembloids (NeuCarS).
+              </p>
+            </CardHeader>
+            <CardContent className="pt-2">
+              {/* MEA Drop Zone */}
+              <div
+                className={`border-2 border-dashed rounded-sm p-6 text-center cursor-pointer transition-colors ${
+                  meaDragActive 
+                    ? 'border-sky-500 bg-sky-950/20' 
+                    : 'border-sky-700/40 hover:border-sky-600/60'
+                }`}
+                onDragEnter={handleMEADragEnter}
+                onDragLeave={handleMEADragLeave}
+                onDragOver={handleMEADragOver}
+                onDrop={handleMEADrop}
+                onClick={() => meaInputRef.current?.click()}
+                data-testid="mea-dropzone"
+              >
+                <Upload className="w-8 h-8 mx-auto mb-2 text-sky-500/70" />
+                <p className="text-sm text-zinc-300">Drop 5 CSV files here</p>
+                <p className="text-xs text-zinc-500 mt-1">or click to browse</p>
+                <input
+                  ref={meaInputRef}
+                  type="file"
+                  multiple
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleMEAFileSelect}
+                  data-testid="mea-file-input"
+                />
+              </div>
+              {meaError && (
+                <div className="mt-2 flex items-center gap-2 text-red-400 text-xs">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{meaError}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Folders Section */}
         <div className="flex items-center justify-between mb-4">
