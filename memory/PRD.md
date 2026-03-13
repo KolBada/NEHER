@@ -24,10 +24,25 @@ Build a production-ready web application for electrophysiology analysis of sharp
 
 ## What's Been Implemented
 
+### March 13, 2026 - Home Page UI Consolidation ✅
+
+**Merged home page and mode selector into single page:**
+- Two mode cards (SEM and MEA) displayed side-by-side at route "/"
+- Each card has inline drag-and-drop file zone
+- SEM card: "Sharp Extracellular Microelectrode (SEM)" - accepts .abf files
+  - Description: "For cardiac activity — cardioids alone or neuro-cardiac assembloids (NeuCarS)."
+- MEA card: "Multi-Electrode Array (MEA)" - accepts 5 CSV files
+  - Description: "For neuronal activity — neuronal organoids (hSpO) or neuro-cardiac assembloids (NeuCarS)."
+- Info tooltips (i) on both cards explain recording types
+- No intermediate navigation step - users land directly on merged page
+- Removed old `ModeSelector.js` component (dead code cleanup)
+- Updated `HomeBrowser.js` with new mode cards and drop zones
+- Updated `App.js` to remove 'mode-select' view
+
 ### March 13, 2026 - MEA Feature Implementation (Phases 1-8) ✅ COMPLETE
 
-#### Phase 1: Mode Selector ✅
-- Added `ModeSelector.js` component with SEM and MEA cards
+#### Phase 1: Mode Selector ✅ (Now merged into home page)
+- Mode selection integrated directly into home page
 - SEM card routes to existing SEM upload flow unchanged
 - MEA card routes to new MEA upload workflow
 - Info tooltips explain each recording type
