@@ -566,7 +566,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
         <div className="neher-glow-orbs" />
         
         {/* Content container */}
-        <div className="relative z-10 p-6 max-w-6xl mx-auto">
+        <div className="relative z-10 p-6 max-w-5xl mx-auto">
           {/* Header */}
           <header className="header-border pb-6 mb-8">
             <div className="flex items-start justify-between">
@@ -1366,7 +1366,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
       <div className="neher-glow-orbs" />
       
       {/* Content container */}
-      <div className="relative z-10 p-6 max-w-6xl mx-auto">
+      <div className="relative z-10 p-6 max-w-5xl mx-auto">
         {/* Header - same branding as home page */}
         <header className="header-border pb-6 mb-8">
           <div className="flex items-start justify-between">
@@ -1606,7 +1606,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                     }}
                     data-testid={`recording-${recording.id}`}
                   >
-                    <div className="p-4" onClick={() => handleOpenRecording(recording)}>
+                    <div className="p-4 pl-6" onClick={() => handleOpenRecording(recording)}>
                       <div className="flex items-start gap-4">
                         <div 
                           className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
