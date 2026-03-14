@@ -1368,7 +1368,12 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2"
+            className="h-8 px-3 rounded-lg transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'var(--text-secondary)',
+            }}
             onClick={() => { setView('home'); setSelectedFolder(null); loadFolders(); }}
             data-testid="back-to-home-btn"
           >
@@ -1376,9 +1381,17 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             Back
           </Button>
           <div className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-medium text-zinc-100">{selectedFolder?.name}</h2>
-            <Badge variant="outline" className="text-xs border-zinc-700">
+            <FolderOpen className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
+            <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{selectedFolder?.name}</h2>
+            <Badge 
+              variant="outline" 
+              className="text-xs"
+              style={{ 
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'var(--text-secondary)',
+              }}
+            >
               {recordings.length} recording{recordings.length !== 1 ? 's' : ''}
             </Badge>
           </div>
@@ -1392,7 +1405,13 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs border-zinc-700 hover:border-zinc-600 rounded-sm"
+                className="h-8 text-xs rounded-lg transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  color: 'var(--text-secondary)',
+                }}
                 data-testid="sort-recordings-btn"
               >
                 <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
@@ -1432,7 +1451,13 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-emerald-700/50 hover:border-emerald-600 hover:bg-emerald-950/30 text-emerald-400"
+              className="h-8 text-xs rounded-lg transition-all"
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: 'var(--mea-accent)',
+              }}
               onClick={() => {
                 setComparisonKey(Date.now());
                 setView('comparison');
@@ -1451,67 +1476,129 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
           <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
         </div>
       ) : recordings.length === 0 ? (
-        <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-          <CardContent className="p-8 text-center">
-            <FileAudio className="w-10 h-10 mx-auto mb-3 text-zinc-600" />
-            <p className="text-zinc-500 text-sm">No recordings in this folder</p>
-            <p className="text-zinc-600 text-xs mt-1">Save an analysis to add it here</p>
-          </CardContent>
-        </Card>
+        <div 
+          className="rounded-xl p-8 text-center"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <FileAudio className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No recordings in this folder</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Save an analysis to add it here</p>
+        </div>
       ) : (
         <ScrollArea className="h-[calc(100vh-200px)]">
-          <div className="grid gap-3">
+          <div className="space-y-3">
             {sortedRecordings.map((recording) => (
-              <Card 
+              <div 
                 key={recording.id}
-                className="bg-zinc-900/50 border-zinc-800 rounded-sm hover:border-zinc-700 transition-colors cursor-pointer group"
+                className="rounded-xl cursor-pointer group transition-all hover:translate-y-[-1px]"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                 data-testid={`recording-${recording.id}`}
               >
-                <CardContent className="p-4" onClick={() => handleOpenRecording(recording)}>
+                <div className="p-4" onClick={() => handleOpenRecording(recording)}>
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-sm bg-zinc-700/30 flex items-center justify-center flex-shrink-0">
-                      <FileAudio className="w-5 h-5 text-zinc-400" />
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <FileAudio className="w-5 h-5" style={{ color: 'var(--text-tertiary)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-medium text-zinc-200 truncate">{recording.name}</h3>
+                        <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{recording.name}</h3>
                         {/* Source type badge */}
                         {recording.source_type === 'MEA' && (
-                          <Badge className="bg-sky-600/30 text-sky-400 text-[9px] px-1.5 py-0 border-sky-500/50">
+                          <Badge 
+                            className="text-[9px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              color: 'var(--mea-accent)',
+                            }}
+                          >
                             MEA
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500 truncate mb-2">{recording.filename}</p>
+                      <p className="text-xs truncate mb-2" style={{ color: 'var(--text-tertiary)' }}>{recording.filename}</p>
                       <div className="flex flex-wrap gap-2">
                         {/* SEM: Show beats count */}
                         {recording.source_type !== 'MEA' && recording.n_beats > 0 && (
-                          <Badge variant="outline" className="text-[10px] border-zinc-700 px-1.5 py-0">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(244, 206, 162, 0.1)',
+                              border: '1px solid rgba(244, 206, 162, 0.25)',
+                              color: 'var(--sem-accent)',
+                            }}
+                          >
                             <Activity className="w-3 h-3 mr-1" />
                             {recording.n_beats} beats
                           </Badge>
                         )}
                         {/* MEA: Show electrodes count */}
                         {recording.source_type === 'MEA' && recording.n_electrodes > 0 && (
-                          <Badge variant="outline" className="text-[10px] border-sky-700/50 text-sky-400 px-1.5 py-0">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.25)',
+                              color: 'var(--mea-accent)',
+                            }}
+                          >
                             <Activity className="w-3 h-3 mr-1" />
                             {recording.n_electrodes} electrodes
                           </Badge>
                         )}
                         {recording.duration_sec > 0 && (
-                          <Badge variant="outline" className="text-[10px] border-zinc-700 px-1.5 py-0">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(255,255,255,0.04)',
+                              border: '1px solid rgba(255,255,255,0.12)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
                             <Clock className="w-3 h-3 mr-1" />
                             {formatDuration(recording.duration_sec)}
                           </Badge>
                         )}
                         {recording.has_light_stim && (
-                          <Badge variant="outline" className="text-[10px] border-amber-700/50 text-amber-400 px-1.5 py-0">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(245, 158, 11, 0.1)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                              color: '#f59e0b',
+                            }}
+                          >
                             <Zap className="w-3 h-3 mr-1" />
                             Light Stim
                           </Badge>
                         )}
                         {recording.has_drug_analysis && (
-                          <Badge variant="outline" className="text-[10px] border-purple-700/50 text-purple-400 px-1.5 py-0">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0"
+                            style={{ 
+                              background: 'rgba(168, 85, 247, 0.1)',
+                              border: '1px solid rgba(168, 85, 247, 0.25)',
+                              color: '#a855f7',
+                            }}
+                          >
                             <Pill className="w-3 h-3 mr-1" />
                             Drug
                           </Badge>
@@ -1519,7 +1606,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-600">{formatDate(recording.updated_at)}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{formatDate(recording.updated_at)}</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="sm" className="glass-menu-btn h-8 w-8 p-0 rounded-md opacity-0 group-hover:opacity-100">
@@ -1565,11 +1652,11 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <ChevronRight className="w-4 h-4 text-zinc-600" />
+                      <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         </ScrollArea>
@@ -1587,23 +1674,23 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
       {/* Rename Recording Dialog */}
       <Dialog open={renameRecordingOpen} onOpenChange={setRenameRecordingOpen}>
-        <DialogContent className="bg-zinc-900 border-zinc-800">
+        <DialogContent className="glass-dialog">
           <DialogHeader>
-            <DialogTitle className="text-zinc-100">Rename Recording</DialogTitle>
+            <DialogTitle style={{ color: 'var(--text-primary)' }}>Rename Recording</DialogTitle>
           </DialogHeader>
           <Input
             value={renameRecordingName}
             onChange={(e) => setRenameRecordingName(e.target.value)}
             placeholder="Recording name"
-            className="bg-zinc-950 border-zinc-800"
+            className="glass-dialog-input"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleRenameRecording()}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameRecordingOpen(false)} className="border-zinc-700">
+            <Button onClick={() => setRenameRecordingOpen(false)} className="glass-btn-cancel">
               Cancel
             </Button>
-            <Button onClick={handleRenameRecording} className="bg-cyan-600 hover:bg-cyan-700">
+            <Button onClick={handleRenameRecording} className="glass-btn-primary">
               Rename
             </Button>
           </DialogFooter>
@@ -1612,18 +1699,18 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
       {/* Delete Recording Dialog */}
       <Dialog open={deleteRecordingOpen} onOpenChange={setDeleteRecordingOpen}>
-        <DialogContent className="bg-zinc-900 border-zinc-800">
+        <DialogContent className="glass-dialog">
           <DialogHeader>
-            <DialogTitle className="text-zinc-100">Delete Recording</DialogTitle>
-            <DialogDescription className="text-zinc-500">
+            <DialogTitle style={{ color: 'var(--text-primary)' }}>Delete Recording</DialogTitle>
+            <DialogDescription style={{ color: 'var(--text-secondary)' }}>
               Are you sure you want to delete "{recordingToDelete?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteRecordingOpen(false)} className="border-zinc-700">
+            <Button onClick={() => setDeleteRecordingOpen(false)} className="glass-btn-cancel">
               Cancel
             </Button>
-            <Button onClick={handleDeleteRecording} variant="destructive">
+            <Button onClick={handleDeleteRecording} variant="destructive" className="bg-red-600 hover:bg-red-700">
               Delete
             </Button>
           </DialogFooter>
@@ -1632,22 +1719,22 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
       {/* Move Recording Dialog */}
       <Dialog open={moveRecordingOpen} onOpenChange={setMoveRecordingOpen}>
-        <DialogContent className="bg-zinc-900 border-zinc-800">
+        <DialogContent className="glass-dialog">
           <DialogHeader>
-            <DialogTitle className="text-zinc-100">Move Recording</DialogTitle>
-            <DialogDescription className="text-zinc-500">
+            <DialogTitle style={{ color: 'var(--text-primary)' }}>Move Recording</DialogTitle>
+            <DialogDescription style={{ color: 'var(--text-secondary)' }}>
               Select a folder to move "{recordingToMove?.name}" to
             </DialogDescription>
           </DialogHeader>
           <Select value={moveTargetFolder} onValueChange={setMoveTargetFolder}>
-            <SelectTrigger className="bg-zinc-950 border-zinc-800">
+            <SelectTrigger className="glass-dialog-input">
               <SelectValue placeholder="Select folder" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-800">
+            <SelectContent className="glass-dropdown">
               {folders.filter(f => f.id !== selectedFolder?.id).map((folder) => (
                 <SelectItem key={folder.id} value={folder.id}>
                   <div className="flex items-center gap-2">
-                    <FolderOpen className="w-4 h-4 text-amber-500" />
+                    <FolderOpen className="w-4 h-4" style={{ color: 'var(--accent-teal)' }} />
                     {folder.name}
                   </div>
                 </SelectItem>
@@ -1655,12 +1742,12 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </SelectContent>
           </Select>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveRecordingOpen(false)} className="border-zinc-700">
+            <Button onClick={() => setMoveRecordingOpen(false)} className="glass-btn-cancel">
               Cancel
             </Button>
             <Button 
               onClick={handleMoveRecording} 
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="glass-btn-primary"
               disabled={!moveTargetFolder}
             >
               Move
