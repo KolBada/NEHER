@@ -1109,7 +1109,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#10b981' }}>Spike</p>
                             <div>
                               <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
-                              <p className="text-base font-data font-semibold" style={{ color: '#34d399' }}>
+                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
                                 {wellAnalysis.baselineSpikeHz?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">Hz</span>
                               </p>
                             </div>
@@ -1127,7 +1127,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#f97316' }}>Burst</p>
                             <div>
                               <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
-                              <p className="text-base font-data font-semibold" style={{ color: '#fb923c' }}>
+                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
                                 {wellAnalysis.baselineBurstBpm?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">bpm</span>
                               </p>
                             </div>
