@@ -233,20 +233,21 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
   const isZoomed = zoomDomain !== null;
 
   return (
-    <div className="bg-[#0c0c0e] border border-zinc-800 rounded-sm" data-testid="bf-chart">
-      <div className="p-2 flex items-center justify-between">
+    <div className="glass-surface-subtle rounded-xl" data-testid="bf-chart">
+      <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">Beat Frequency (Filtered) - bpm vs min</span>
+          <span className="text-xs" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>- bpm vs min</span>
           {!isValidated && (
             <span className="text-[9px] text-amber-500/70 italic">(previous detection)</span>
           )}
           {/* Beats badge - emerald */}
-          <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
+          <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#10b981', color: '#10b981' }}>
             {metrics.n_kept || data.length} beats
           </Badge>
           {/* Stims badge - amber - only when light enabled */}
           {lightEnabled && lightPulses && lightPulses.length > 0 && (
-            <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+            <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
               {lightPulses.length} stims
             </Badge>
           )}
@@ -262,20 +263,20 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomIn} title="Zoom In">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" style={{ color: 'var(--text-secondary)' }} onClick={handleZoomIn} title="Zoom In">
             <Plus className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" style={{ color: 'var(--text-secondary)' }} onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
             <Minus className="w-4 h-4" />
           </Button>
           {isZoomed && (
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-200" onClick={handleResetZoom}>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" style={{ color: 'var(--text-secondary)' }} onClick={handleResetZoom}>
               <RotateCcw className="w-3 h-3 mr-1" /> Reset
             </Button>
           )}
         </div>
       </div>
-      <div ref={containerRef}>
+      <div ref={containerRef} className="p-2 pt-0">
         <ResponsiveContainer width="100%" height={377}>
           <LineChart data={data} margin={{ top: 10, right: 35, left: 15, bottom: 35 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
@@ -321,8 +322,8 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
             <Brush
               dataKey="time"
               height={20}
-              stroke="#52525b"
-              fill="#0c0c0e"
+              stroke="rgba(255,255,255,0.15)"
+              fill="transparent"
               tickFormatter={(v) => v.toFixed(1)}
               onChange={handleBrushChange}
               travellerWidth={10}

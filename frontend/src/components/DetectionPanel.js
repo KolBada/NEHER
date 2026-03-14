@@ -38,7 +38,7 @@ export default function DetectionPanel({
       <div className="px-4 pb-4 space-y-5">
         {/* Threshold Direction - Positive or Negative */}
         <div className="space-y-2">
-          <Label className="text-xs text-center block" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.78rem' }}>Threshold Direction</Label>
+          <Label className="text-xs text-center block" style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Threshold Direction</Label>
           <div className="flex gap-2 justify-center">
             <Button
               data-testid="threshold-positive-btn"
@@ -295,7 +295,7 @@ export default function DetectionPanel({
               </Button>
             </>
           ) : (
-            <>
+            <div className="space-y-3">
               <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 <Check className="w-3 h-3" style={{ color: '#10b981' }} />
                 <span className="text-xs" style={{ color: '#10b981' }}>Beats validated ({beats ? beats.length : 0})</span>
@@ -310,7 +310,7 @@ export default function DetectionPanel({
                 <RotateCcw className="w-3 h-3 mr-1" />
                 Reset Validation (Re-edit beats)
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
