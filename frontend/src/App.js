@@ -1579,43 +1579,70 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen text-zinc-100">
+    <div className="neher-home-bg min-h-screen text-zinc-100">
+      {/* Ambient glow orbs */}
+      <div className="neher-glow-orbs" />
+      
       <Toaster theme="dark" position="top-right" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 px-4 py-2"
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.03)', 
-                backdropFilter: 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.10)'
-              }}
-              data-testid="app-header">
+      {/* Header - Glassmorphic top bar */}
+      <header 
+        className="sticky top-0 z-20 px-6 py-3"
+        style={{ 
+          background: 'rgba(255, 255, 255, 0.04)', 
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.10)',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+        }}
+        data-testid="app-header"
+      >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2"
+              className="h-8 w-8 p-0 rounded-lg transition-all hover:bg-white/10"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+              }}
               onClick={handleGoHome}
               data-testid="home-btn"
             >
-              <Home className="w-4 h-4 text-zinc-400" />
+              <Home className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
             </Button>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
               NEHER
             </h1>
-            <Separator orientation="vertical" className="h-5 bg-zinc-700" />
+            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
             {/* Status badge: Saved (emerald), Edit | Cancel (orange), Unsaved (red) */}
             {savedRecordingId && !isModified && (
-              <Badge variant="outline" className="h-6 text-[10px] border-emerald-700/50 text-emerald-400 px-2">
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                }}
+              >
+                <Check className="w-3 h-3 mr-1.5" />
                 Saved
               </Badge>
             )}
             {savedRecordingId && isModified && (
-              <Badge variant="outline" className="h-6 text-[10px] border-orange-700/50 text-orange-400 px-2 flex items-center gap-0">
-                <span>Edit</span>
-                <Separator orientation="vertical" className="h-3 bg-orange-700/50 mx-1.5" />
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg flex items-center gap-0"
+                style={{
+                  background: 'rgba(249, 115, 22, 0.12)',
+                  border: '1px solid rgba(249, 115, 22, 0.35)',
+                  color: '#f97316',
+                }}
+              >
+                <span>Editing</span>
+                <div className="h-3 w-px mx-2" style={{ background: 'rgba(249, 115, 22, 0.4)' }} />
                 <button 
                   onClick={handleCancelEdit}
                   className="hover:text-orange-200 transition-colors"
@@ -1626,7 +1653,15 @@ function App() {
               </Badge>
             )}
             {!savedRecordingId && metrics && (
-              <Badge variant="outline" className="h-6 text-[10px] border-red-700/50 text-red-400 px-2">
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444',
+                }}
+              >
                 Unsaved
               </Badge>
             )}
@@ -1653,16 +1688,16 @@ function App() {
             {activeFile && (
               <Badge 
                 variant="outline" 
-                className="h-6 text-[10px] px-2"
+                className="h-7 text-[11px] px-3 rounded-lg"
                 style={{
                   background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.10)',
-                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   fontFamily: "'SF Mono', 'Fira Code', monospace",
                   color: 'var(--text-secondary)',
                 }}
               >
-                {activeFile.filename} &middot; {activeFile.duration_sec.toFixed(1)}s &middot; {activeFile.sample_rate}Hz
+                <FileAudio className="w-3 h-3 mr-1.5" style={{ color: 'var(--sem-accent)' }} />
+                {activeFile.filename} · {activeFile.duration_sec.toFixed(1)}s · {activeFile.sample_rate}Hz
               </Badge>
             )}
             
@@ -1671,18 +1706,23 @@ function App() {
               data-testid="recording-name-input"
               value={recordingName}
               onChange={(e) => setRecordingName(e.target.value)}
-              className="h-6 w-56 text-[10px] bg-transparent border-none px-2 focus:bg-zinc-800/50 focus:ring-1 focus:ring-zinc-700"
+              className="h-7 w-56 text-xs bg-transparent border-none px-3 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}
               placeholder="Recording name..."
             />
             
-            <Separator orientation="vertical" className="h-4 bg-zinc-700" />
+            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
             
             {/* Light indicator - show if light is enabled */}
             {lightEnabled && (
               <Badge 
                 variant="outline" 
-                className="h-6 text-[10px] border-yellow-700 bg-yellow-950/30 text-yellow-400 px-2"
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{
+                  background: 'rgba(250, 204, 21, 0.12)',
+                  border: '1px solid rgba(250, 204, 21, 0.35)',
+                  color: '#facc15',
+                }}
               >
                 <Zap className="w-3 h-3 mr-1" /> 
                 Light
@@ -1695,14 +1735,19 @@ function App() {
                 <DropdownMenuTrigger asChild>
                   <Badge 
                     variant="outline" 
-                    className="h-6 text-[10px] border-zinc-700 text-zinc-400 px-2 cursor-pointer hover:bg-zinc-800/50"
+                    className="h-7 text-[11px] px-3 rounded-lg cursor-pointer transition-all hover:bg-white/10"
+                    style={{
+                      background: 'rgba(168, 85, 247, 0.08)',
+                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      color: '#a855f7',
+                    }}
                   >
-                    <FlaskConical className="w-3 h-3 mr-1" /> 
+                    <FlaskConical className="w-3 h-3 mr-1.5" /> 
                     {selectedDrugs.length + otherDrugs.length > 0 
                       ? `${selectedDrugs.length + otherDrugs.length} Drug${selectedDrugs.length + otherDrugs.length > 1 ? 's' : ''}`
                       : 'Add Drug'
                     }
-                    <Plus className="w-3 h-3 ml-1" />
+                    <Plus className="w-3 h-3 ml-1.5" />
                   </Badge>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
@@ -1754,57 +1799,80 @@ function App() {
               {/* Show selected drugs as small badges - colors match trace visualization */}
               {selectedDrugs.map((drugKey, idx) => {
                 const config = DRUG_CONFIG[drugKey];
-                // Match colors with trace visualization
-                const colorStyles = [
-                  'border-purple-500 bg-purple-950/30 text-purple-400 hover:bg-purple-950/50',
-                  'border-purple-400 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50',
-                  'border-violet-600 bg-violet-950/30 text-violet-400 hover:bg-violet-950/50',
-                  'border-violet-500 bg-violet-900/30 text-violet-300 hover:bg-violet-900/50',
+                // Match colors with trace visualization  
+                const colorConfigs = [
+                  { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
+                  { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                  { bg: 'rgba(124, 58, 237, 0.15)', border: 'rgba(124, 58, 237, 0.40)', color: '#7c3aed' },
+                  { bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.40)', color: '#8b5cf6' },
                 ];
-                const colorClass = colorStyles[idx % colorStyles.length];
+                const colorStyle = colorConfigs[idx % colorConfigs.length];
                 return (
                   <Badge 
                     key={drugKey} 
                     variant="outline" 
-                    className={`h-6 text-[10px] cursor-pointer px-2 ${colorClass}`}
+                    className="h-7 text-[11px] cursor-pointer px-3 rounded-lg transition-all hover:scale-105"
+                    style={{
+                      background: colorStyle.bg,
+                      border: `1px solid ${colorStyle.border}`,
+                      color: colorStyle.color,
+                    }}
                     onClick={() => toggleDrug(drugKey)}
                   >
                     {config.name}
-                    <X className="w-2.5 h-2.5 ml-1" />
+                    <X className="w-3 h-3 ml-1.5" />
                   </Badge>
                 );
               })}
               {otherDrugs.map((drug, idx) => {
                 const colorIdx = selectedDrugs.length + idx;
-                const colorStyles = [
-                  'border-purple-500 bg-purple-950/30 text-purple-400 hover:bg-purple-950/50',
-                  'border-purple-400 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50',
-                  'border-violet-600 bg-violet-950/30 text-violet-400 hover:bg-violet-950/50',
-                  'border-violet-500 bg-violet-900/30 text-violet-300 hover:bg-violet-900/50',
+                const colorConfigs = [
+                  { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
+                  { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                  { bg: 'rgba(124, 58, 237, 0.15)', border: 'rgba(124, 58, 237, 0.40)', color: '#7c3aed' },
+                  { bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.40)', color: '#8b5cf6' },
                 ];
-                const colorClass = colorStyles[colorIdx % colorStyles.length];
+                const colorStyle = colorConfigs[colorIdx % colorConfigs.length];
                 return (
                   <Badge 
                     key={drug.id} 
                     variant="outline" 
-                    className={`h-6 text-[10px] cursor-pointer px-2 ${colorClass}`}
+                    className="h-7 text-[11px] cursor-pointer px-3 rounded-lg transition-all hover:scale-105"
+                    style={{
+                      background: colorStyle.bg,
+                      border: `1px solid ${colorStyle.border}`,
+                      color: colorStyle.color,
+                    }}
                     onClick={() => removeOtherDrug(drug.id)}
                   >
                     {drug.name || 'Other'}
-                    <X className="w-2.5 h-2.5 ml-1" />
+                    <X className="w-3 h-3 ml-1.5" />
                   </Badge>
                 );
               })}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Go to Folder button - only shown if recording is in a folder */}
             {savedFolderId && (
               <Button
                 data-testid="go-to-folder-btn"
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs text-zinc-500 hover:text-zinc-300 rounded-sm gap-1"
+                className="h-8 text-xs px-3 rounded-lg transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'var(--text-secondary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
                 onClick={() => {
                   const targetFolderId = savedFolderId;
                   handleReset();
@@ -1812,7 +1880,7 @@ function App() {
                   setAppView('home');
                 }}
               >
-                <FolderOpen className="w-3 h-3" /> Go to Folder
+                <FolderOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Folder
               </Button>
             )}
             {/* Comparison button - only shown if recording is in a folder */}
@@ -1821,10 +1889,24 @@ function App() {
                 data-testid="comparison-btn"
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs text-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30 rounded-sm gap-1"
+                className="h-8 text-xs px-3 rounded-lg transition-all"
+                style={{
+                  background: 'rgba(20, 184, 166, 0.12)',
+                  border: '1px solid rgba(20, 184, 166, 0.35)',
+                  color: 'var(--accent-teal)',
+                  boxShadow: '0 0 15px rgba(20, 184, 166, 0.10)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(20, 184, 166, 0.20)';
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.20)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(20, 184, 166, 0.12)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(20, 184, 166, 0.10)';
+                }}
                 onClick={() => setShowComparisonDialog(true)}
               >
-                <BarChart3 className="w-3 h-3" /> Comparison
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
               </Button>
             )}
           </div>
@@ -1834,13 +1916,12 @@ function App() {
       {/* Per-drug settings - only shown when drugs are selected */}
       {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
         <div 
-          className="px-4 md:px-6 pt-3 pb-1"
+          className="px-6 py-3"
           style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: 'rgba(168, 85, 247, 0.03)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            borderBottom: '1px solid rgba(255,255,255,0.10)',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderBottom: '1px solid rgba(168, 85, 247, 0.12)',
           }}
         >
           <ScrollArea className="max-h-[150px]">
@@ -1850,65 +1931,78 @@ function App() {
                 const config = DRUG_CONFIG[drugKey];
                 const settings = drugSettings[drugKey] || {};
                 // Color schemes matching the top bar badges
-                const colorSchemes = [
-                  { border: 'border-purple-500/50', text: 'text-purple-400', textLight: 'text-purple-300', separator: 'bg-purple-500/30', icon: 'text-purple-400/60', label: 'text-purple-400/70' },
-                  { border: 'border-purple-400/50', text: 'text-purple-300', textLight: 'text-purple-200', separator: 'bg-purple-400/30', icon: 'text-purple-300/60', label: 'text-purple-300/70' },
-                  { border: 'border-violet-600/50', text: 'text-violet-400', textLight: 'text-violet-300', separator: 'bg-violet-600/30', icon: 'text-violet-400/60', label: 'text-violet-400/70' },
-                  { border: 'border-violet-500/50', text: 'text-violet-300', textLight: 'text-violet-200', separator: 'bg-violet-500/30', icon: 'text-violet-300/60', label: 'text-violet-300/70' },
+                const colorConfigs = [
+                  { bg: 'rgba(168, 85, 247, 0.08)', border: 'rgba(168, 85, 247, 0.25)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.7)' },
+                  { bg: 'rgba(192, 132, 252, 0.08)', border: 'rgba(192, 132, 252, 0.25)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.7)' },
+                  { bg: 'rgba(124, 58, 237, 0.08)', border: 'rgba(124, 58, 237, 0.25)', color: '#7c3aed', labelColor: 'rgba(124, 58, 237, 0.7)' },
+                  { bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.25)', color: '#8b5cf6', labelColor: 'rgba(139, 92, 246, 0.7)' },
                 ];
-                const colors = colorSchemes[idx % colorSchemes.length];
+                const colorStyle = colorConfigs[idx % colorConfigs.length];
                 return (
                   <div 
                     key={drugKey} 
-                    className={`flex items-center gap-3 p-2 rounded-md border ${colors.border} relative z-10`}
-                    style={{ background: 'rgba(255,255,255,0.02)' }}
+                    className="flex items-center gap-4 p-3 rounded-xl relative z-10"
+                    style={{ 
+                      background: colorStyle.bg,
+                      border: `1px solid ${colorStyle.border}`,
+                    }}
                   >
-                    <span className={`text-[10px] font-medium ${colors.text} w-24`} style={{ fontWeight: 500 }}>{config.name}</span>
-                    <div className="flex items-center gap-1">
+                    <span className="text-xs font-medium w-28" style={{ color: colorStyle.color, fontFamily: 'var(--font-display)' }}>{config.name}</span>
+                    <div className="flex items-center gap-1.5">
                       <Input
                         data-testid={`drug-${drugKey}-concentration`}
                         type="text"
                         value={settings.concentration !== undefined ? settings.concentration : config.defaultConc}
                         onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>µM</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>µM</span>
                     </div>
-                    <Separator orientation="vertical" className={`h-4 ${colors.separator}`} />
-                    <div className="flex items-center gap-1">
-                      <Clock className={`w-3 h-3 ${colors.icon}`} />
-                      <span className={`text-[9px] ${colors.label}`}>Start:</span>
+                    <div className="h-4 w-px" style={{ background: colorStyle.border }} />
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" style={{ color: colorStyle.labelColor }} />
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>Start:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-start`}
                         type="number"
                         step="1"
                         value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min, Delay:</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>Delay:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-time`}
                         type="number"
                         step="1"
                         value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min, End:</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>End:</span>
                       <Input
                         data-testid={`drug-${drugKey}-perfusion-end`}
                         type="number"
                         step="1"
                         value={settings.perfusionEnd ?? ''}
                         onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                         placeholder="—"
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
                     </div>
-                    <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
-                      Perf.Time: BF@{config.bfReadout ?? 'peak'}min HRV@{config.hrvReadout ?? 'peak'}min
+                    <Badge 
+                      variant="outline" 
+                      className="text-[10px] ml-auto rounded-lg px-2"
+                      style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${colorStyle.border}`, color: colorStyle.labelColor }}
+                    >
+                      Readout: BF@{config.bfReadout ?? 'peak'}min · HRV@{config.hrvReadout ?? 'peak'}min
                     </Badge>
                   </div>
                 );
@@ -1918,66 +2012,81 @@ function App() {
               {otherDrugs.map((drug, idx) => {
                 // Continue color index from predefined drugs
                 const colorIdx = selectedDrugs.length + idx;
-                const colorSchemes = [
-                  { border: 'border-purple-500/50', text: 'text-purple-400', textLight: 'text-purple-300', separator: 'bg-purple-500/30', icon: 'text-purple-400/60', label: 'text-purple-400/70' },
-                  { border: 'border-purple-400/50', text: 'text-purple-300', textLight: 'text-purple-200', separator: 'bg-purple-400/30', icon: 'text-purple-300/60', label: 'text-purple-300/70' },
-                  { border: 'border-violet-600/50', text: 'text-violet-400', textLight: 'text-violet-300', separator: 'bg-violet-600/30', icon: 'text-violet-400/60', label: 'text-violet-400/70' },
-                  { border: 'border-violet-500/50', text: 'text-violet-300', textLight: 'text-violet-200', separator: 'bg-violet-500/30', icon: 'text-violet-300/60', label: 'text-violet-300/70' },
+                const colorConfigs = [
+                  { bg: 'rgba(168, 85, 247, 0.08)', border: 'rgba(168, 85, 247, 0.25)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.7)' },
+                  { bg: 'rgba(192, 132, 252, 0.08)', border: 'rgba(192, 132, 252, 0.25)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.7)' },
+                  { bg: 'rgba(124, 58, 237, 0.08)', border: 'rgba(124, 58, 237, 0.25)', color: '#7c3aed', labelColor: 'rgba(124, 58, 237, 0.7)' },
+                  { bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.25)', color: '#8b5cf6', labelColor: 'rgba(139, 92, 246, 0.7)' },
                 ];
-                const colors = colorSchemes[colorIdx % colorSchemes.length];
+                const colorStyle = colorConfigs[colorIdx % colorConfigs.length];
                 return (
-                  <div key={drug.id} className={`flex items-center gap-3 p-2 bg-[#0c0c0e] rounded-sm border ${colors.border}`}>
+                  <div 
+                    key={drug.id} 
+                    className="flex items-center gap-4 p-3 rounded-xl"
+                    style={{ 
+                      background: colorStyle.bg,
+                      border: `1px solid ${colorStyle.border}`,
+                    }}
+                  >
                     <Input
                       value={drug.name}
                       onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
-                      className={`h-6 w-24 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
+                      className="h-7 w-28 text-xs bg-black/30 rounded-lg px-2"
+                      style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       placeholder="Drug name"
                     />
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <Input
                         value={drug.concentration}
                         onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>µM</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>µM</span>
                     </div>
-                    <Separator orientation="vertical" className={`h-4 ${colors.separator}`} />
-                    <div className="flex items-center gap-1">
-                      <Clock className={`w-3 h-3 ${colors.icon}`} />
-                      <span className={`text-[9px] ${colors.label}`}>Start:</span>
+                    <div className="h-4 w-px" style={{ background: colorStyle.border }} />
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" style={{ color: colorStyle.labelColor }} />
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>Start:</span>
                       <Input
                         type="number"
                         step="1"
                         value={drug.perfusionStart}
                         onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min, Delay:</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>Delay:</span>
                       <Input
                         type="number"
                         step="1"
                         value={drug.perfusionTime}
                         onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min, End:</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>End:</span>
                       <Input
                         type="number"
                         step="1"
                         value={drug.perfusionEnd ?? ''}
                         onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className={`h-6 w-14 text-[9px] font-data bg-zinc-950 ${colors.border} ${colors.textLight} rounded-sm px-2 number-input-white-arrows`}
+                        className="h-7 w-16 text-xs bg-black/30 rounded-lg px-2 number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
                         placeholder="—"
                       />
-                      <span className={`text-[9px] ${colors.label}`}>min</span>
+                      <span className="text-xs" style={{ color: colorStyle.labelColor }}>min</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-5 w-5 p-0 ${colors.label} hover:text-red-400`}
+                      className="h-7 w-7 p-0 ml-auto rounded-lg hover:bg-red-500/20"
+                      style={{ color: colorStyle.labelColor }}
                       onClick={() => removeOtherDrug(drug.id)}
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
                 );
@@ -1988,56 +2097,62 @@ function App() {
       )}
 
       {/* Main content */}
-      <main className="p-4 md:p-6 pt-2">
+      <main className="p-6 pt-4 relative z-10">
         <Tabs defaultValue="trace" className="w-full">
           <TabsList 
-            className="h-9 mb-4 rounded-xl p-1"
+            className="h-11 mb-6 rounded-2xl p-1.5 gap-1"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              backdropFilter: 'blur(16px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
             }}
             data-testid="main-tabs"
           >
             <TabsTrigger 
               value="trace" 
-              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              className="h-8 px-4 text-xs rounded-xl gap-2 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              style={{ fontFamily: 'var(--font-body)' }}
               data-testid="tab-trace"
             >
-              <Activity className="w-3.5 h-3.5" style={{ color: '#c0c0c0' }} /> Trace
+              <Activity className="w-4 h-4" style={{ color: '#c0c0c0' }} /> Trace
             </TabsTrigger>
             <TabsTrigger 
               value="analysis" 
-              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              className="h-8 px-4 text-xs rounded-xl gap-2 transition-all data-[state=active]:bg-[rgba(244,206,162,0.15)] data-[state=active]:text-[#F4CEA2] data-[state=active]:shadow-sm data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              style={{ fontFamily: 'var(--font-body)' }}
               disabled={!isValidated} 
               data-testid="tab-analysis"
             >
-              <BarChart3 className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
+              <BarChart3 className="w-4 h-4" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
             </TabsTrigger>
             <TabsTrigger 
               value="light" 
-              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              className="h-8 px-4 text-xs rounded-xl gap-2 transition-all data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-300 data-[state=active]:shadow-sm data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              style={{ fontFamily: 'var(--font-body)' }}
               disabled={!isValidated} 
               data-testid="tab-light"
             >
-              <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} /> Light Stimulus
+              <Zap className="w-4 h-4" style={{ color: '#f59e0b' }} /> Light Stimulus
             </TabsTrigger>
             <TabsTrigger 
               value="save" 
-              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              className="h-8 px-4 text-xs rounded-xl gap-2 transition-all data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300 data-[state=active]:shadow-sm data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              style={{ fontFamily: 'var(--font-body)' }}
               disabled={!isValidated} 
               data-testid="tab-save"
             >
-              <Save className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> Save Recording
+              <Save className="w-4 h-4" style={{ color: '#10b981' }} /> Save Recording
             </TabsTrigger>
             <TabsTrigger 
               value="export" 
-              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              className="h-8 px-4 text-xs rounded-xl gap-2 transition-all data-[state=active]:bg-teal-500/15 data-[state=active]:text-teal-300 data-[state=active]:shadow-sm data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              style={{ fontFamily: 'var(--font-body)' }}
               disabled={!isValidated} 
               data-testid="tab-export"
             >
-              <Download className="w-3.5 h-3.5" style={{ color: 'var(--accent-teal)' }} /> Export
+              <Download className="w-4 h-4" style={{ color: 'var(--accent-teal)' }} /> Export
             </TabsTrigger>
           </TabsList>
 
