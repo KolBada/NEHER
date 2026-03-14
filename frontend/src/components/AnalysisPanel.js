@@ -55,47 +55,43 @@ const CHART_COLORS = {
 };
 
 function MetricCard({ label, value, unit, sublabel, highlight, highlightColor = 'cyan', tooltip }) {
-  const colorClasses = {
-    cyan: {
-      bg: 'bg-cyan-950/30 border-cyan-800',
-      label: 'text-cyan-400',
-      value: 'text-cyan-100'
-    },
-    purple: {
-      bg: 'bg-purple-950/30 border-purple-800',
-      label: 'text-purple-400',
-      value: 'text-purple-100'
-    },
-    'purple-light': {
-      bg: 'bg-purple-900/30 border-purple-700',
-      label: 'text-purple-300',
-      value: 'text-purple-100'
-    },
-    violet: {
-      bg: 'bg-violet-950/30 border-violet-800',
-      label: 'text-violet-400',
-      value: 'text-violet-100'
-    },
-    'violet-light': {
-      bg: 'bg-violet-900/30 border-violet-700',
-      label: 'text-violet-300',
-      value: 'text-violet-100'
-    }
-  };
-  const colors = highlight ? (colorClasses[highlightColor] || colorClasses.purple) : { bg: 'bg-zinc-900/50 border-zinc-800', label: 'text-zinc-500', value: 'text-zinc-100' };
-  
-  const labelContent = tooltip ? (
-    <InfoTip text={tooltip}>{label}</InfoTip>
-  ) : label;
+  // Determine the label and value color based on highlightColor prop
+  const labelColor = highlight 
+    ? (highlightColor === 'cyan' ? '#22d3ee' : highlightColor === 'purple' ? '#a855f7' : highlightColor === 'purple-light' ? '#c084fc' : highlightColor === 'violet' ? '#8b5cf6' : highlightColor === 'violet-light' ? '#a78bfa' : 'var(--text-secondary)')
+    : 'var(--text-secondary)';
+  const valueColor = highlight 
+    ? (highlightColor === 'cyan' ? '#67e8f9' : 'var(--text-primary)') 
+    : 'var(--text-primary)';
+  const bgStyle = highlight 
+    ? (highlightColor === 'cyan' 
+        ? { background: 'rgba(34, 211, 238, 0.08)', border: '1px solid rgba(34, 211, 238, 0.25)' }
+        : { background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.25)' })
+    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' };
   
   return (
-    <div className={`border rounded-sm p-3 ${colors.bg}`}>
-      <p className={`text-[9px] uppercase tracking-wider font-bold ${colors.label}`}>{labelContent}</p>
-      {sublabel && <p className="text-[8px] text-zinc-600">{sublabel}</p>}
-      <p className={`text-lg font-data mt-1 ${colors.value}`}>
+    <div className="rounded-xl p-3" style={bgStyle}>
+      <p className="text-[9px] uppercase tracking-wider font-medium flex items-center gap-1" style={{ color: labelColor, letterSpacing: '0.08em', fontFamily: 'var(--font-display)' }}>
+        {label}
+        {tooltip && (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="inline-flex">
+                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
+                <p>{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </p>
+      {sublabel && <p className="text-[8px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{sublabel}</p>}
+      <p className="text-base font-data mt-1" style={{ color: valueColor, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
-      {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
+      {unit && <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{unit}</p>}
     </div>
   );
 }
@@ -723,13 +719,13 @@ function AnalysisPanel({
         {/* Header */}
         <div className="py-3 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" style={{ color: '#a855f7' }} />
+            <BarChart3 className="w-4 h-4" style={{ color: drugPresent ? '#a855f7' : '#22d3ee' }} />
             <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem' }}>Spontaneous Activity Analysis (BF & HRV)</span>
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="inline-flex">
-                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                    <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
@@ -1152,7 +1148,7 @@ function AnalysisPanel({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button type="button" className="inline-flex">
-                      <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                      <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
@@ -1169,17 +1165,17 @@ function AnalysisPanel({
                 { key: 'ln_sdnn', label: 'ln(SDNN₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.sdnn },
                 { key: 'pnn50', label: 'pNN50₇₀ (%)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.pnn50 },
               ].map(({ key, label, sublabel, color }) => (
-                <div key={key} className="bg-black border border-zinc-800 rounded-sm p-2">
-                  <p className="text-[10px] text-zinc-400 font-medium mb-0.5">{label}</p>
-                  <p className="text-[8px] text-zinc-600 mb-1">{sublabel}</p>
+                <div key={key} className="glass-surface-subtle rounded-xl p-3">
+                  <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>{label}</p>
+                  <p className="text-[8px] mb-1" style={{ color: 'var(--text-tertiary)' }}>{sublabel}</p>
                   <ResponsiveContainer width="100%" height={140}>
                     <LineChart data={hrvChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                       <XAxis dataKey="minute" tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
                         label={{ value: 'min', fill: '#a1a1aa', fontSize: 9, position: 'insideBottomRight', offset: -5 }} />
                       <YAxis tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }} width={40} />
                       <RechartsTooltip
-                        contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                        contentStyle={{ background: 'rgba(2, 8, 15, 0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontSize: 9, fontFamily: 'JetBrains Mono' }}
                       />
                       {/* Drug effect regions (purple) - one per drug */}
                       {allDrugsForViz.map((drug, idx) => (
@@ -1212,7 +1208,7 @@ function AnalysisPanel({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="inline-flex">
-                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                    <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="w-72 glass-surface text-[10px] p-3 z-50" style={{ color: 'var(--text-primary)' }}>
