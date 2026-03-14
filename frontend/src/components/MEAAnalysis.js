@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +8,12 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Home, Save, Download, FileSpreadsheet, FileText, Zap, Activity, 
   Info, BarChart3, TrendingUp, Settings2, Check, FolderOpen, 
-  FlaskConical, Plus, X, RefreshCw
+  FlaskConical, Plus, X, RefreshCw, Search, Loader2, Minus, RotateCcw,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, ScatterChart, Scatter, ReferenceArea
+  ResponsiveContainer, ScatterChart, Scatter, ReferenceArea, Brush
 } from 'recharts';
 import {
   Tooltip,
@@ -30,6 +31,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
 
@@ -44,6 +48,47 @@ const DRUG_CONFIG = {
   nepicastat: { name: 'Nepicastat', defaultConc: '30', unit: 'µM' },
   ruxolitinib: { name: 'Ruxolitinib', defaultConc: '2', unit: 'µM' },
 };
+
+// ============================================================================
+// MetricCard Component for Light Stimulus Metrics
+// ============================================================================
+function LightMetricCard({ label, value, unit, tooltip, color = 'default' }) {
+  const labelColor = color === 'cyan' ? '#22d3ee' : color === 'emerald' ? '#10b981' : color === 'amber' ? '#f59e0b' : color === 'orange' ? '#f97316' : 'var(--text-secondary)';
+  const valueColor = color === 'cyan' ? '#67e8f9' : color === 'emerald' ? '#34d399' : color === 'amber' ? '#fbbf24' : color === 'orange' ? '#fb923c' : 'var(--text-primary)';
+  const bgStyle = color === 'cyan' 
+    ? { background: 'rgba(34, 211, 238, 0.08)', border: '1px solid rgba(34, 211, 238, 0.25)' }
+    : color === 'emerald'
+    ? { background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }
+    : color === 'orange'
+    ? { background: 'rgba(249, 115, 22, 0.08)', border: '1px solid rgba(249, 115, 22, 0.25)' }
+    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' };
+  
+  return (
+    <div className="rounded-xl p-3" style={bgStyle}>
+      <p className="text-[9px] uppercase tracking-wider font-medium flex items-center gap-1" style={{ color: labelColor, letterSpacing: '0.08em' }}>
+        {label}
+        {tooltip && (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="inline-flex">
+                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
+                <p>{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </p>
+      <p className="text-base font-data mt-1" style={{ color: valueColor, fontWeight: 600 }}>
+        {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
+      </p>
+      {unit && <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{unit}</p>}
+    </div>
+  );
+}
 
 // ============================================================================
 // Metric Computation Functions (memoization-friendly pure functions)
@@ -417,8 +462,23 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   const [drugPerfTime, setDrugPerfTime] = useState(3); // Perfusion time in minutes
   const [drugReadoutMinute, setDrugReadoutMinute] = useState(5); // Readout minute
   
-  // Light stimulus
+  // Light stimulus state
   const [lightEnabled, setLightEnabled] = useState(false);
+  const [lightParams, setLightParams] = useState({
+    startTime: 300, // Approx start in seconds
+    pulseDuration: 20, // Pulse duration in seconds
+    interval: 'decreasing', // 'decreasing' or '60' or '30'
+    nPulses: 5,
+    searchRange: 20, // Search range in seconds
+    autoDetect: true, // AI detector
+  });
+  const [lightPulses, setLightPulses] = useState(null); // Detected pulses
+  const [originalLightPulses, setOriginalLightPulses] = useState(null);
+  const [selectedPulseIdx, setSelectedPulseIdx] = useState(null);
+  const [lightMetrics, setLightMetrics] = useState(null);
+  const [lightLoading, setLightLoading] = useState(false);
+  const [lightZoomDomain, setLightZoomDomain] = useState(null);
+  const [editMode, setEditMode] = useState(null); // 'start' | 'end' | null
   
   // Table mode
   const [tableMode, setTableMode] = useState('minute');
@@ -530,6 +590,154 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     start: drugPerfTime * 60,
     end: (drugReadoutMinute + 1) * 60,
   } : null;
+
+  // ===========================================================================
+  // Light Stimulus Detection and Computation Handlers
+  // ===========================================================================
+  
+  const handleDetectLightStim = useCallback(() => {
+    if (!wellAnalysis) return;
+    setLightLoading(true);
+    
+    // Generate pulses based on configuration
+    const { startTime, pulseDuration, interval, nPulses } = lightParams;
+    const pulses = [];
+    let t = startTime;
+    
+    // Interval pattern
+    const intervals = interval === 'decreasing' 
+      ? [60, 30, 20, 10] 
+      : Array(nPulses).fill(parseInt(interval) || 30);
+    
+    for (let i = 0; i < nPulses; i++) {
+      pulses.push({
+        start_sec: t,
+        end_sec: t + pulseDuration,
+        index: i + 1,
+      });
+      // Add interval (gap between pulses)
+      if (i < nPulses - 1) {
+        t += pulseDuration + (intervals[i % intervals.length] || 30);
+      }
+    }
+    
+    setLightPulses(pulses);
+    setOriginalLightPulses(JSON.parse(JSON.stringify(pulses)));
+    setSelectedPulseIdx(null);
+    setLightMetrics(null);
+    
+    setTimeout(() => {
+      setLightLoading(false);
+      toast.success(`${pulses.length} light stimuli detected`);
+    }, 300);
+  }, [wellAnalysis, lightParams]);
+  
+  const handleComputeSpikeAndBurst = useCallback(() => {
+    if (!wellAnalysis || !lightPulses || lightPulses.length === 0) return;
+    setLightLoading(true);
+    
+    const { spikeRateBins, burstRateBins } = wellAnalysis;
+    const firstStimStart = lightPulses[0].start_sec;
+    
+    // Baseline: -2 to -1 min before first stim
+    const blStart = Math.max(0, firstStimStart - 120);
+    const blEnd = Math.max(0, firstStimStart - 60);
+    const baselineSpikeHz = computeWindowMean(spikeRateBins, 'spike_rate_hz', blStart, blEnd) || 0;
+    const baselineBurstBpm = computeWindowMean(burstRateBins, 'burst_rate_bpm', blStart, blEnd) || 0;
+    
+    // Compute per-stim metrics
+    const perStim = lightPulses.map((pulse) => {
+      const pStart = pulse.start_sec;
+      const pEnd = pulse.end_sec;
+      
+      // Spike metrics for this stim
+      const spikeInWindow = spikeRateBins.filter(b => b.time >= pStart && b.time <= pEnd);
+      const avgSpikeHz = spikeInWindow.length > 0 
+        ? spikeInWindow.reduce((sum, b) => sum + b.spike_rate_hz, 0) / spikeInWindow.length 
+        : 0;
+      const maxSpikeHz = spikeInWindow.length > 0 
+        ? Math.max(...spikeInWindow.map(b => b.spike_rate_hz)) 
+        : 0;
+      const maxSpikeBin = spikeInWindow.find(b => b.spike_rate_hz === maxSpikeHz);
+      const spikeTimeToPeak = maxSpikeBin ? maxSpikeBin.time - pStart : 0;
+      
+      // Burst metrics for this stim
+      const burstInWindow = burstRateBins.filter(b => b.time >= pStart && b.time <= pEnd);
+      const avgBurstBpm = burstInWindow.length > 0 
+        ? burstInWindow.reduce((sum, b) => sum + b.burst_rate_bpm, 0) / burstInWindow.length 
+        : 0;
+      const maxBurstBpm = burstInWindow.length > 0 
+        ? Math.max(...burstInWindow.map(b => b.burst_rate_bpm)) 
+        : 0;
+      const maxBurstBin = burstInWindow.find(b => b.burst_rate_bpm === maxBurstBpm);
+      const burstTimeToPeak = maxBurstBin ? maxBurstBin.time - pStart : 0;
+      
+      return {
+        baselineSpikeHz,
+        avgSpikeHz,
+        maxSpikeHz,
+        spikeTimeToPeak,
+        baselineBurstBpm,
+        avgBurstBpm,
+        maxBurstBpm,
+        burstTimeToPeak,
+      };
+    });
+    
+    // Compute averaged metrics
+    const n = perStim.length;
+    const avg = {
+      baselineSpikeHz,
+      avgSpikeHz: perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n,
+      maxSpikeHz: perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n,
+      spikeTimeToPeak: perStim.reduce((s, p) => s + p.spikeTimeToPeak, 0) / n,
+      spikeChangePct: baselineSpikeHz > 0 ? 100 * (perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n - baselineSpikeHz) / baselineSpikeHz : 0,
+      maxSpikeChangePct: baselineSpikeHz > 0 ? 100 * (perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n - baselineSpikeHz) / baselineSpikeHz : 0,
+      baselineBurstBpm,
+      avgBurstBpm: perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n,
+      maxBurstBpm: perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n,
+      burstTimeToPeak: perStim.reduce((s, p) => s + p.burstTimeToPeak, 0) / n,
+      burstChangePct: baselineBurstBpm > 0 ? 100 * (perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n - baselineBurstBpm) / baselineBurstBpm : 0,
+      maxBurstChangePct: baselineBurstBpm > 0 ? 100 * (perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n - baselineBurstBpm) / baselineBurstBpm : 0,
+    };
+    
+    setLightMetrics({ perStim, avg });
+    
+    setTimeout(() => {
+      setLightLoading(false);
+      toast.success('Spike and burst metrics computed');
+    }, 300);
+  }, [wellAnalysis, lightPulses]);
+  
+  const handleLightChartClick = useCallback((clickedTime) => {
+    if (selectedPulseIdx === null || !lightPulses || !editMode) return;
+    
+    const newPulses = [...lightPulses];
+    if (editMode === 'start') {
+      newPulses[selectedPulseIdx] = {
+        ...newPulses[selectedPulseIdx],
+        start_sec: clickedTime,
+      };
+    } else if (editMode === 'end') {
+      newPulses[selectedPulseIdx] = {
+        ...newPulses[selectedPulseIdx],
+        end_sec: clickedTime,
+      };
+    }
+    setLightPulses(newPulses);
+    setEditMode(null);
+  }, [selectedPulseIdx, lightPulses, editMode]);
+  
+  const handleAdjustPulseBySeconds = useCallback((delta) => {
+    if (selectedPulseIdx === null || !lightPulses) return;
+    const newPulses = [...lightPulses];
+    newPulses[selectedPulseIdx] = {
+      ...newPulses[selectedPulseIdx],
+      start_sec: newPulses[selectedPulseIdx].start_sec + delta,
+      end_sec: newPulses[selectedPulseIdx].end_sec + delta,
+    };
+    setLightPulses(newPulses);
+  }, [selectedPulseIdx, lightPulses]);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -1265,17 +1473,554 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             )}
           </TabsContent>
           
-          {/* Placeholder tabs */}
+          {/* ============================================================
+              LIGHT STIMULUS TAB - Full Implementation
+          ============================================================ */}
           <TabsContent value="light" className="space-y-6">
-            <div className="glass-surface-subtle rounded-xl p-8 text-center" style={{ borderLeft: '3px solid #f59e0b' }}>
-              <Zap className="w-12 h-12 mx-auto mb-4" style={{ color: '#f59e0b' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Light Stimulus Analysis</h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Configure light stimulation parameters.</p>
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <Label style={{ color: 'var(--text-secondary)' }}>Enable Light</Label>
-                <Switch checked={lightEnabled} onCheckedChange={setLightEnabled} />
-              </div>
-            </div>
+            {wellAnalysis ? (
+              <>
+                {/* Row 1: Spike Trace + Burst Trace with Light Overlays */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Spike Trace with Light Windows */}
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
+                          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
+                          {lightEnabled && lightPulses && (
+                            <Badge variant="outline" className="text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                              {lightPulses.length} stims
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => {
+                            const mid = duration / 2;
+                            const range = duration / 4;
+                            setLightZoomDomain([mid - range, mid + range]);
+                          }} title="Zoom In">
+                            <Plus className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setLightZoomDomain(null)} disabled={!lightZoomDomain} title="Zoom Out">
+                            <Minus className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
+                          </Button>
+                          {lightZoomDomain && (
+                            <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px]" style={{ color: 'var(--text-secondary)' }} onClick={() => setLightZoomDomain(null)}>
+                              <RotateCcw className="w-3 h-3 mr-1" />Reset
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart 
+                            data={wellAnalysis.spikeRateBins} 
+                            margin={{ top: 10, right: 20, left: 50, bottom: 20 }}
+                            onClick={(e) => {
+                              if (editMode && selectedPulseIdx !== null && e?.activeLabel) {
+                                const clickedTime = e.activeLabel;
+                                handleLightChartClick(clickedTime);
+                              }
+                            }}
+                            style={{ cursor: editMode ? 'crosshair' : 'default' }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                            <XAxis 
+                              dataKey="time" 
+                              stroke="rgba(255,255,255,0.3)" 
+                              tick={{ fontSize: 9, fill: '#71717a' }} 
+                              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
+                              domain={lightZoomDomain || ['dataMin', 'dataMax']}
+                              allowDataOverflow
+                              type="number"
+                            />
+                            <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+                            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+                            {/* Light pulse regions */}
+                            {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
+                              <ReferenceArea
+                                key={`spike-pulse-${i}`}
+                                x1={pulse.start_sec}
+                                x2={pulse.end_sec}
+                                fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
+                                fillOpacity={selectedPulseIdx === i ? 0.35 : 0.18}
+                                stroke="#facc15"
+                                strokeOpacity={selectedPulseIdx === i ? 0.9 : 0.5}
+                                strokeWidth={selectedPulseIdx === i ? 2 : 1}
+                                onClick={() => {
+                                  setSelectedPulseIdx(i);
+                                  setEditMode(null);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                              />
+                            ))}
+                            <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Brush 
+                              dataKey="time" 
+                              height={18} 
+                              stroke="#52525b" 
+                              fill="transparent" 
+                              tickFormatter={(v) => `${Math.floor(v)}s`}
+                              onChange={(e) => {
+                                if (e.startIndex !== undefined && e.endIndex !== undefined && wellAnalysis.spikeRateBins.length > 0) {
+                                  const start = wellAnalysis.spikeRateBins[e.startIndex]?.time || 0;
+                                  const end = wellAnalysis.spikeRateBins[e.endIndex]?.time || duration;
+                                  setLightZoomDomain([start, end]);
+                                }
+                              }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    
+                    {/* Pulse adjustment controls for Spike Trace */}
+                    {selectedPulseIdx !== null && lightPulses && (
+                      <div 
+                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg"
+                        style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
+                      >
+                        <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[10px] font-data text-yellow-400">
+                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
+                        </span>
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <div className="flex items-center gap-1">
+                          <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
+                            className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                            onClick={() => setEditMode(editMode === 'start' ? null : 'start')}
+                          >Start</Button>
+                          <Button variant={editMode === 'end' ? 'default' : 'outline'} size="sm" 
+                            className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                            onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
+                          >End</Button>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-zinc-500" onClick={() => { setSelectedPulseIdx(null); setEditMode(null); }}>
+                          <X className="w-3 h-3 mr-1" /> Deselect
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Burst Trace with Light Windows */}
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
+                          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Trace</span>
+                          {lightEnabled && lightPulses && (
+                            <Badge variant="outline" className="text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                              {lightPulses.length} stims
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart 
+                            data={wellAnalysis.burstRateBins} 
+                            margin={{ top: 10, right: 20, left: 50, bottom: 20 }}
+                            onClick={(e) => {
+                              if (editMode && selectedPulseIdx !== null && e?.activeLabel) {
+                                const clickedTime = e.activeLabel;
+                                handleLightChartClick(clickedTime);
+                              }
+                            }}
+                            style={{ cursor: editMode ? 'crosshair' : 'default' }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                            <XAxis 
+                              dataKey="time" 
+                              stroke="rgba(255,255,255,0.3)" 
+                              tick={{ fontSize: 9, fill: '#71717a' }} 
+                              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
+                              domain={lightZoomDomain || ['dataMin', 'dataMax']}
+                              allowDataOverflow
+                              type="number"
+                            />
+                            <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+                            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+                            {/* Light pulse regions */}
+                            {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
+                              <ReferenceArea
+                                key={`burst-pulse-${i}`}
+                                x1={pulse.start_sec}
+                                x2={pulse.end_sec}
+                                fill={selectedPulseIdx === i ? '#facc15' : '#facc15'}
+                                fillOpacity={selectedPulseIdx === i ? 0.35 : 0.18}
+                                stroke="#facc15"
+                                strokeOpacity={selectedPulseIdx === i ? 0.9 : 0.5}
+                                strokeWidth={selectedPulseIdx === i ? 2 : 1}
+                                onClick={() => {
+                                  setSelectedPulseIdx(i);
+                                  setEditMode(null);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                              />
+                            ))}
+                            <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                            <Brush 
+                              dataKey="time" 
+                              height={18} 
+                              stroke="#52525b" 
+                              fill="transparent" 
+                              tickFormatter={(v) => `${Math.floor(v)}s`}
+                              onChange={(e) => {
+                                if (e.startIndex !== undefined && e.endIndex !== undefined && wellAnalysis.burstRateBins.length > 0) {
+                                  const start = wellAnalysis.burstRateBins[e.startIndex]?.time || 0;
+                                  const end = wellAnalysis.burstRateBins[e.endIndex]?.time || duration;
+                                  setLightZoomDomain([start, end]);
+                                }
+                              }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    
+                    {/* Pulse adjustment controls for Burst Trace */}
+                    {selectedPulseIdx !== null && lightPulses && (
+                      <div 
+                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg"
+                        style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
+                      >
+                        <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[10px] font-data text-yellow-400">
+                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
+                        </span>
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-zinc-700" onClick={() => handleAdjustPulseBySeconds(-5)}>
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          <span className="text-[9px] text-zinc-500 px-1">±5s</span>
+                          <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-zinc-700" onClick={() => handleAdjustPulseBySeconds(5)}>
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Row 2: Spike Raster + Burst Raster */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <SpikeRasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                    </div>
+                  </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <BurstRasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Light Stimulation Analysis Block */}
+                <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f59e0b' }}>
+                  {/* Header */}
+                  <div className="py-3 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4" style={{ color: lightEnabled ? '#fbbf24' : 'var(--text-tertiary)' }} />
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Light Stimulation Analysis</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                          {lightEnabled ? 'Enabled' : 'Disabled'}
+                        </Label>
+                        <Switch checked={lightEnabled} onCheckedChange={setLightEnabled} />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Configuration Section - only when enabled */}
+                  {lightEnabled && (
+                    <>
+                      <div className="p-4 pb-2">
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Configuration</span>
+                      </div>
+                      <div className="p-4 pt-2">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                          <div className="space-y-1">
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Approx. Start (s)</Label>
+                            <Input
+                              type="number"
+                              value={lightParams.startTime}
+                              onChange={(e) => setLightParams(p => ({ ...p, startTime: parseFloat(e.target.value) || 0 }))}
+                              className="h-7 text-xs font-data rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Pulse Duration (s)</Label>
+                            <Select value={String(lightParams.pulseDuration)} onValueChange={(v) => setLightParams(p => ({ ...p, pulseDuration: parseInt(v) }))}>
+                              <SelectTrigger className="h-7 text-xs font-data rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="20">20s</SelectItem>
+                                <SelectItem value="30">30s</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Intervals</Label>
+                            <Select value={lightParams.interval} onValueChange={(v) => setLightParams(p => ({ ...p, interval: v }))}>
+                              <SelectTrigger className="h-7 text-xs font-data rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="decreasing">60s-30s-20s-10s</SelectItem>
+                                <SelectItem value="60">Uniform 60s</SelectItem>
+                                <SelectItem value="30">Uniform 30s</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Pulses</Label>
+                            <Input
+                              type="number"
+                              value={lightParams.nPulses}
+                              onChange={(e) => setLightParams(p => ({ ...p, nPulses: parseInt(e.target.value) || 5 }))}
+                              className="h-7 text-xs font-data rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                              min={1} max={20}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Search Range (s)</Label>
+                            <Input
+                              type="number"
+                              value={lightParams.searchRange}
+                              onChange={(e) => setLightParams(p => ({ ...p, searchRange: parseFloat(e.target.value) || 20 }))}
+                              className="h-7 text-xs font-data rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mb-4">
+                          <Switch checked={lightParams.autoDetect} onCheckedChange={(v) => setLightParams(p => ({ ...p, autoDetect: v }))} />
+                          <Label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>AI light stim detector</Label>
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="inline-flex">
+                                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
+                                When ON, uses AI to detect stim boundaries by analyzing spike/burst patterns. When OFF, uses only the manual settings.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            className="h-7 text-xs rounded-lg font-medium"
+                            style={{ background: '#f59e0b', color: '#02080f' }}
+                            onClick={handleDetectLightStim}
+                            disabled={lightLoading}
+                          >
+                            {lightLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
+                            Detect Light Stimulus
+                          </Button>
+                          {lightPulses && (
+                            <Button
+                              className="h-7 text-xs rounded-lg font-medium"
+                              style={{ background: 'rgba(16, 185, 129, 0.8)', color: '#000' }}
+                              onClick={handleComputeSpikeAndBurst}
+                              disabled={lightLoading}
+                            >
+                              {lightLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Check className="w-3 h-3 mr-1" />}
+                              Compute Spike and Burst
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Detected Light Stims - Pulse Cards */}
+                      {lightPulses && (
+                        <>
+                          <hr className="border-zinc-700/50 mx-4" />
+                          <div className="p-4 pb-2">
+                            <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Detected Light Stims</span>
+                              <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                                {lightPulses.length} stims
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="p-4 pt-2">
+                            <div className="grid grid-cols-5 gap-2 mb-4">
+                              {lightPulses.map((p, i) => (
+                                <div 
+                                  key={i} 
+                                  className="rounded-lg p-2 text-center cursor-pointer transition-all"
+                                  style={{
+                                    background: selectedPulseIdx === i ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.03)',
+                                    border: selectedPulseIdx === i ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255,255,255,0.08)'
+                                  }}
+                                  onClick={() => setSelectedPulseIdx(selectedPulseIdx === i ? null : i)}
+                                >
+                                  <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>Stim {i + 1}</p>
+                                  <p className="text-[10px] font-data" style={{ color: '#f59e0b' }}>
+                                    {(p.start_sec / 60).toFixed(2)} - {(p.end_sec / 60).toFixed(2)} min
+                                  </p>
+                                  <p className="text-[9px] font-data" style={{ color: 'var(--text-tertiary)' }}>
+                                    ({(p.end_sec - p.start_sec).toFixed(1)}s)
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Reset/Apply buttons */}
+                            {lightPulses && originalLightPulses && JSON.stringify(lightPulses) !== JSON.stringify(originalLightPulses) && (
+                              <div className="flex items-center justify-center gap-2 mt-3">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs rounded-lg"
+                                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}
+                                  onClick={() => setLightPulses(originalLightPulses)}
+                                >
+                                  <RotateCcw className="w-3 h-3 mr-1" /> Reset
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs rounded-lg"
+                                  style={{ background: '#f59e0b', color: '#02080f' }}
+                                  onClick={() => {
+                                    setOriginalLightPulses(lightPulses);
+                                    toast.success('Pulse changes applied');
+                                  }}
+                                >
+                                  Apply Changes
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+                
+                {/* Light Stimulus Metrics - Only show when computed */}
+                {lightMetrics && lightEnabled && (
+                  <div className="glass-surface-subtle rounded-xl">
+                    <div className="p-4 pb-2">
+                      <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Light-Induced Spike & Burst Response</span>
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="inline-flex">
+                                <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
+                              <p className="font-semibold mb-1">Baseline Calculation:</p>
+                              <p>Baseline is computed from -2 to -1 minute before first light stimulation</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                    <div className="p-4 pt-2">
+                      {/* Summary Metric Cards */}
+                      <div className="space-y-3 mb-4">
+                        {/* Spike Metrics Row */}
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider font-medium mb-2" style={{ color: '#10b981' }}>Spike Metrics (Averaged)</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                            <LightMetricCard label="Baseline Spike" value={lightMetrics.avg?.baselineSpikeHz} unit="Hz" color="cyan" tooltip="Mean spike rate from -2 to -1 min before first stim" />
+                            <LightMetricCard label="Avg Spike" value={lightMetrics.avg?.avgSpikeHz} unit="Hz" tooltip="Average spike rate during light (averaged across stims)" />
+                            <LightMetricCard label="Max Spike" value={lightMetrics.avg?.maxSpikeHz} unit="Hz" tooltip="Max spike rate during light (averaged across stims)" />
+                            <LightMetricCard label="Spike Δ%" value={lightMetrics.avg?.spikeChangePct} unit="%" color="emerald" tooltip="Percent change: 100 × (Avg - Baseline) / Baseline" />
+                            <LightMetricCard label="Peak Spike Δ%" value={lightMetrics.avg?.maxSpikeChangePct} unit="%" tooltip="Percent change at peak: 100 × (Max - Baseline) / Baseline" />
+                            <LightMetricCard label="Time to Peak" value={lightMetrics.avg?.spikeTimeToPeak} unit="s" tooltip="Time from stim start to max spike (avg)" />
+                          </div>
+                        </div>
+                        {/* Burst Metrics Row */}
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider font-medium mb-2" style={{ color: '#f97316' }}>Burst Metrics (Averaged)</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                            <LightMetricCard label="Baseline Burst" value={lightMetrics.avg?.baselineBurstBpm} unit="bpm" color="cyan" tooltip="Mean burst rate from -2 to -1 min before first stim" />
+                            <LightMetricCard label="Avg Burst" value={lightMetrics.avg?.avgBurstBpm} unit="bpm" tooltip="Average burst rate during light (averaged across stims)" />
+                            <LightMetricCard label="Max Burst" value={lightMetrics.avg?.maxBurstBpm} unit="bpm" tooltip="Max burst rate during light (averaged across stims)" />
+                            <LightMetricCard label="Burst Δ%" value={lightMetrics.avg?.burstChangePct} unit="%" color="orange" tooltip="Percent change: 100 × (Avg - Baseline) / Baseline" />
+                            <LightMetricCard label="Peak Burst Δ%" value={lightMetrics.avg?.maxBurstChangePct} unit="%" tooltip="Percent change at peak: 100 × (Max - Baseline) / Baseline" />
+                            <LightMetricCard label="Time to Peak" value={lightMetrics.avg?.burstTimeToPeak} unit="s" tooltip="Time from stim start to max burst (avg)" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Per-Stim Table */}
+                      <hr className="border-zinc-700/50 my-3" />
+                      <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation Metrics</p>
+                      <ScrollArea className="max-h-[250px]">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-zinc-800 hover:bg-transparent">
+                              <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
+                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">Baseline Spike</TableHead>
+                              <TableHead className="text-[10px] font-data text-emerald-400 h-7">Avg Spike</TableHead>
+                              <TableHead className="text-[10px] font-data text-emerald-400 h-7">Max Spike</TableHead>
+                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">Baseline Burst</TableHead>
+                              <TableHead className="text-[10px] font-data text-orange-400 h-7">Avg Burst</TableHead>
+                              <TableHead className="text-[10px] font-data text-orange-400 h-7">Max Burst</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {lightMetrics.perStim && lightMetrics.perStim.map((s, i) => (
+                              <TableRow 
+                                key={i} 
+                                className={`border-zinc-800/50 ${selectedPulseIdx === i ? 'bg-yellow-950/20' : ''}`}
+                                onClick={() => setSelectedPulseIdx(i)}
+                              >
+                                <TableCell className="text-[10px] font-data text-zinc-400 py-1">{i + 1}</TableCell>
+                                <TableCell className="text-[10px] font-data text-cyan-300 py-1">{s?.baselineSpikeHz?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.avgSpikeHz?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.maxSpikeHz?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-cyan-300 py-1">{s?.baselineBurstBpm?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.avgBurstBpm?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.maxBurstBpm?.toFixed(3) ?? '—'}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-16" style={{ color: 'var(--text-tertiary)' }}>Select a well to view analysis</div>
+            )}
           </TabsContent>
           
           <TabsContent value="save" className="space-y-6">

@@ -80,8 +80,11 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 **UI/UX Changes:**
 - **Top Bar:** Reduced spacing between "Unsaved" badge and well chips, moved them directly adjacent
-- **Drug Badge:** Added Perf. Start (Perfusion Start) input field alongside concentration
-- **Parameters Tab:** Changed to full-width Spike Trace at top, parameters panel below in 4-column layout
+- **Drug Badge:** Simplified to just drug name + X button
+- **Drug Readout:** Changed labels to "Perf. Start/Perf. Time" matching SSE
+- **Parameters Tab:** Changed to 2-column layout (Spike Trace 2/3, Parameters 1/3)
+- **Color Scheme:** Changed cyan (#00b8c4) to emerald (#10b981) for spike-related elements throughout
+- **Readout Configuration:** Border and icon change to magenta when drugs selected
 
 **Bug Fixes:**
 - Fixed burst data parsing in `MEAUpload.js` (lines 483-530)
@@ -91,6 +94,22 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 - Created separate `SpikeRasterPlot` and `BurstRasterPlot` components in `MEAAnalysis.js`
   - Spike raster shows vertical ticks at spike timestamps
   - Burst raster shows horizontal bars from start to stop times
+
+**Light Stimulus Tab - Full Implementation (December 2025):**
+- Complete rebuild following SSE Light Stimulus workflow:
+  1. **Spike Trace + Burst Trace** with synchronized light pulse overlays
+  2. **Zoom controls** for detailed inspection of stimuli
+  3. **Detected stim editor boxes** below each trace for pulse adjustment
+  4. **Light Stimulation Analysis block** with:
+     - Approx. Start time, Pulse Duration, Intervals, Pulses, Search Range
+     - AI light stim detector toggle
+     - "Detect Light Stimulus" and "Compute Spike and Burst" buttons
+  5. **Light Metrics Cards** showing:
+     - Baseline/Avg/Max spike rates and change percentages
+     - Baseline/Avg/Max burst rates and change percentages
+     - Time to peak metrics
+  6. **Per-Stim Table** with individual stim metrics
+  7. Baseline calculation: -2 to -1 minute before first light stimulation
 
 **MEA Analysis Components Implemented:**
 1. **Parameters Tab:** Spike trace chart, bin size controls, electrode filter, well info, validate button
