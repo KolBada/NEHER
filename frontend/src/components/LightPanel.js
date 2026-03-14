@@ -116,12 +116,12 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
     // Overlay mode: Raw NN_70 and detrended NN_residual plotted together
     return (
       <div className="space-y-2">
-        <p className="text-[9px] text-zinc-500 text-center uppercase tracking-wider mb-1">
+        <p className="text-[9px] text-center uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>
           Overlay: Raw NN₇₀ (cyan) vs Detrended Residual (green, shifted for visibility)
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={chartData} margin={{ top: 10, right: 35, left: 15, bottom: 55 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
@@ -143,7 +143,7 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               label={{ value: 'Residual (ms)', angle: 90, fill: '#52525b', fontSize: 8, position: 'insideRight' }}
             />
             <RechartsTooltip
-              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 9, fontFamily: 'JetBrains Mono' }}
+              contentStyle={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 9, fontFamily: 'JetBrains Mono' }}
               formatter={(v, name) => [typeof v === 'number' ? v.toFixed(2) : v, name]}
             />
             <ReferenceLine yAxisId="residual" y={0} stroke="#52525b" strokeDasharray="3 3" />
@@ -160,13 +160,13 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
       {/* Panel A: Raw Data */}
-      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-emerald-400 text-center uppercase tracking-wider mb-1 font-medium">
+      <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <p className="text-[9px] text-center uppercase tracking-wider mb-1 font-medium" style={{ color: '#10b981' }}>
           Panel A: Raw NN₇₀
         </p>
         <ResponsiveContainer width="100%" height={140}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
@@ -178,23 +178,23 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               domain={yBounds.nn}
             />
             <RechartsTooltip
-              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              contentStyle={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 8, fontFamily: 'JetBrains Mono' }}
               formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'NN₇₀']}
             />
             <Line type="monotone" dataKey="nn_70" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[8px] text-zinc-600 text-center">Time (s) from stim start</p>
+        <p className="text-[8px] text-center" style={{ color: 'var(--text-tertiary)' }}>Time (s) from stim start</p>
       </div>
 
       {/* Panel B: Trend Extraction */}
-      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-zinc-300 text-center uppercase tracking-wider mb-1 font-medium">
+      <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <p className="text-[9px] text-center uppercase tracking-wider mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
           Panel B: Trend Extraction
         </p>
         <ResponsiveContainer width="100%" height={140}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
@@ -206,24 +206,24 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               domain={yBounds.nn}
             />
             <RechartsTooltip
-              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              contentStyle={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 8, fontFamily: 'JetBrains Mono' }}
               formatter={(v, name) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, name]}
             />
             <Line type="monotone" dataKey="nn_70" name="Raw" stroke="#71717a" strokeWidth={1} dot={false} isAnimationActive={false} opacity={0.5} />
             <Line type="monotone" dataKey="trend" name="LOESS" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[8px] text-zinc-600 text-center">LOESS smoothed trend overlay</p>
+        <p className="text-[8px] text-center" style={{ color: 'var(--text-tertiary)' }}>LOESS smoothed trend overlay</p>
       </div>
 
       {/* Panel C: Detrended Signal */}
-      <div className="bg-zinc-950/50 p-2 rounded-sm border border-zinc-800">
-        <p className="text-[9px] text-yellow-400 text-center uppercase tracking-wider mb-1 font-medium">
+      <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <p className="text-[9px] text-center uppercase tracking-wider mb-1 font-medium" style={{ color: '#f59e0b' }}>
           Panel C: Detrended Residual
         </p>
         <ResponsiveContainer width="100%" height={140}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               tick={{ fill: '#71717a', fontSize: 7, fontFamily: 'JetBrains Mono' }}
@@ -235,14 +235,14 @@ function DetrendingVisualization({ vizData, showOverlay, stimIdx }) {
               domain={yBounds.residual}
             />
             <RechartsTooltip
-              contentStyle={{ background: '#121212', border: '1px solid #27272a', borderRadius: 2, fontSize: 8, fontFamily: 'JetBrains Mono' }}
+              contentStyle={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 8, fontFamily: 'JetBrains Mono' }}
               formatter={(v) => [typeof v === 'number' ? v.toFixed(2) + ' ms' : v, 'Residual']}
             />
             <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
             <Line type="monotone" dataKey="residual" stroke="#facc15" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
-        <p className="text-[8px] text-zinc-600 text-center">NN₇₀ - Trend (zero reference)</p>
+        <p className="text-[8px] text-center" style={{ color: 'var(--text-tertiary)' }}>NN₇₀ - Trend (zero reference)</p>
       </div>
     </div>
   );
@@ -868,7 +868,7 @@ function LightPanel({
                         dataKey="time" 
                         height={20} 
                         stroke="#52525b" 
-                        fill="#0c0c0e" 
+                        fill="transparent" 
                         tickFormatter={(v) => v.toFixed(1)}
                         startIndex={brushIndices.start}
                         endIndex={brushIndices.end}
@@ -881,7 +881,14 @@ function LightPanel({
                 
                 {/* Pulse adjustment controls */}
                 {selectedPulseIdx !== null && displayPulses && (
-                  <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-zinc-900/50 rounded-sm border border-zinc-800">
+                  <div 
+                    className="flex items-center justify-center gap-2 mt-2 p-2 rounded-lg"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.10)'
+                    }}
+                  >
                     <span className="text-[10px] text-zinc-400 font-medium">
                       Stim {selectedPulseIdx + 1}
                     </span>
@@ -1043,9 +1050,13 @@ function LightPanel({
             </div>
           )}
 
-          {/* Light Stimulation Analysis Header - Below the chart */}
-          <div className="glass-surface-subtle rounded-xl mt-4">
-            <div className="py-3 px-4">
+          {/* Light Stimulation Analysis - Unified Section with amber accent line */}
+          <div 
+            className="glass-surface-subtle rounded-xl overflow-hidden mt-4"
+            style={{ borderLeft: '3px solid #f59e0b' }}
+          >
+            {/* Header */}
+            <div className="py-3 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4" style={{ color: isLightEnabled ? '#fbbf24' : 'var(--text-tertiary)' }} />
@@ -1063,13 +1074,11 @@ function LightPanel({
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Rest of Light Stim content - only show when enabled */}
-          {isLightEnabled && (
-            <>
-              {/* Light Stimulation Configuration */}
-              <div className="glass-surface-subtle rounded-xl">
+            {/* Rest of Light Stim content - only show when enabled */}
+            {isLightEnabled && (
+              <>
+                {/* Configuration Section */}
                 <div className="p-4 pb-2">
                   <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Configuration</span>
                 </div>
@@ -1206,11 +1215,11 @@ function LightPanel({
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Pulse list */}
+          {/* Pulse list - fused section with divider */}
           {displayPulses && (
-            <div className="glass-surface-subtle rounded-xl">
+            <>
+              <hr className="border-zinc-700/50 mx-4" />
               <div className="p-4 pb-2">
                 <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Detected Light Stims</span>
@@ -1271,11 +1280,14 @@ function LightPanel({
                   </div>
                 )}
               </div>
-            </div>
+            </>
           )}
+              </>
+            )}
+          </div>
 
           {/* Light Induced Heart Rate Adaptation - using BPM */}
-          {lightResponse && (
+          {lightResponse && isLightEnabled && (
             <div className="glass-surface-subtle rounded-xl mt-4">
               <div className="p-4 pb-2">
                 <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
@@ -1739,9 +1751,9 @@ function LightPanel({
 
                     {/* Expandable Visualization Panel */}
                     {expandedStim !== null && lightHrvDetrended.per_pulse?.[expandedStim]?.viz && (
-                      <div className="mt-4 p-3 bg-zinc-900/50 rounded-sm border border-emerald-800/50">
+                      <div className="mt-4 p-3 glass-surface-subtle rounded-xl" style={{ borderLeft: '2px solid rgba(16, 185, 129, 0.5)' }}>
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-[10px] text-emerald-400 font-medium uppercase tracking-wider">
+                          <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#10b981' }}>
                             Detrending Visualization — Stim {expandedStim + 1}
                           </p>
                           <div className="flex items-center gap-2">
@@ -1751,7 +1763,7 @@ function LightPanel({
                               onCheckedChange={setShowOverlay}
                               className="h-4 w-7"
                             />
-                            <Label htmlFor="overlay-toggle" className="text-[9px] text-zinc-400 cursor-pointer">
+                            <Label htmlFor="overlay-toggle" className="text-[9px] cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
                               Overlay Mode
                             </Label>
                           </div>
@@ -1773,8 +1785,6 @@ function LightPanel({
                 )}
               </div>
             </div>
-          )}
-            </>
           )}
     </div>
   );

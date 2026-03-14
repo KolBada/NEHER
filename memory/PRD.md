@@ -56,6 +56,15 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ### Glassmorphism UI/UX Overhaul - Phase 3 (December 2025 - Latest)
 
+**Light Stimulus Tab Overhaul (December 2025):**
+- **Fused Panel:** Combined "Light Stimulation Analysis" header, Configuration, and "Detected Light Stims" into a single glassmorphic panel with amber (3px) left border accent
+- **HR Divider:** Added subtle horizontal rule separator between Configuration and Detected Stims sections
+- **Brush Transparency:** Changed the chart Brush component fill to transparent (was #0c0c0e)
+- **Stim Editing Controls:** Applied glassmorphism to the pulse adjustment controls bar (transparent background with blur)
+- **DetrendingVisualization:** Updated container to `glass-surface-subtle` with emerald left border accent
+- **Three-Panel View:** Updated Panel A/B/C detrending charts to glassmorphic styling with proper color-coded headers (emerald for Panel A, secondary for Panel B, amber for Panel C)
+- **Chart Tooltips:** Updated all tooltips to glassmorphic style with backdrop blur
+
 **Latest UI Polish Pass (December 2025):**
 - **Top Bar:** Improved sticky top bar with darker glassmorphic background for better differentiation
 - **Drug Boxes:** Compact inline drug chips without running bar effect, properly spaced
@@ -119,6 +128,10 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 - Dialogs and dropdown menus
 
 ## Pending Tasks
+
+### P1 - Verified/Completed
+- ✅ Light Stimulus tab UI overhaul (fused sections, amber accent, glassmorphism)
+- ✅ SSE uploaded file state styling (already glassmorphic in FileUpload.js)
 
 ### P2 - Medium Priority
 - Refactor oversized files (`HomeBrowser.js` >1700 lines, `export_utils.py`, `LightPanel.js`)
