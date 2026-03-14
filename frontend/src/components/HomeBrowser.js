@@ -871,7 +871,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       >
                         <ChevronDown 
                           className={`w-4 h-4 transition-transform ${!section.expanded ? '-rotate-90' : ''}`} 
-                          style={{ color: section.expanded ? 'var(--sem-accent)' : 'var(--text-tertiary)' }}
+                          style={{ color: section.expanded ? 'var(--accent-teal)' : 'var(--text-tertiary)' }}
                         />
                         <span 
                           className="text-sm transition-colors group-hover:text-white"
