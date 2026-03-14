@@ -124,23 +124,24 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
   // Folder colors available
   const FOLDER_COLORS = [
-    { name: 'amber', class: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { name: 'red', class: 'text-red-500', bg: 'bg-red-500/10' },
-    { name: 'orange', class: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { name: 'yellow', class: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    { name: 'lime', class: 'text-lime-500', bg: 'bg-lime-500/10' },
-    { name: 'green', class: 'text-green-500', bg: 'bg-green-500/10' },
-    { name: 'emerald', class: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { name: 'teal', class: 'text-teal-500', bg: 'bg-teal-500/10' },
-    { name: 'cyan', class: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-    { name: 'sky', class: 'text-sky-500', bg: 'bg-sky-500/10' },
-    { name: 'blue', class: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { name: 'indigo', class: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-    { name: 'violet', class: 'text-violet-500', bg: 'bg-violet-500/10' },
-    { name: 'purple', class: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { name: 'fuchsia', class: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
-    { name: 'pink', class: 'text-pink-500', bg: 'bg-pink-500/10' },
-    { name: 'rose', class: 'text-rose-500', bg: 'bg-rose-500/10' },
+    { name: 'amber', class: 'text-amber-400', bg: 'bg-amber-500/20' },
+    { name: 'red', class: 'text-red-400', bg: 'bg-red-500/20' },
+    { name: 'orange', class: 'text-orange-400', bg: 'bg-orange-500/20' },
+    { name: 'yellow', class: 'text-yellow-400', bg: 'bg-yellow-500/20' },
+    { name: 'lime', class: 'text-lime-400', bg: 'bg-lime-500/20' },
+    { name: 'green', class: 'text-green-400', bg: 'bg-green-500/20' },
+    { name: 'emerald', class: 'text-emerald-400', bg: 'bg-emerald-500/20' },
+    { name: 'teal', class: 'text-teal-400', bg: 'bg-teal-500/20' },
+    { name: 'cyan', class: 'text-cyan-400', bg: 'bg-cyan-500/20' },
+    { name: 'sky', class: 'text-sky-400', bg: 'bg-sky-500/20' },
+    { name: 'blue', class: 'text-blue-400', bg: 'bg-blue-500/20' },
+    { name: 'indigo', class: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+    { name: 'violet', class: 'text-violet-400', bg: 'bg-violet-500/20' },
+    { name: 'purple', class: 'text-purple-400', bg: 'bg-purple-500/20' },
+    { name: 'fuchsia', class: 'text-fuchsia-400', bg: 'bg-fuchsia-500/20' },
+    { name: 'pink', class: 'text-pink-400', bg: 'bg-pink-500/20' },
+    { name: 'rose', class: 'text-rose-400', bg: 'bg-rose-500/20' },
+    { name: 'zinc', class: 'text-zinc-400', bg: 'bg-zinc-500/20' },
   ];
 
   const getFolderColorClass = (colorName) => {
@@ -1127,10 +1128,10 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
         {/* Create Section Dialog */}
         <Dialog open={createSectionOpen} onOpenChange={setCreateSectionOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Create New Section</DialogTitle>
-              <DialogDescription className="text-zinc-500">
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Create New Section</DialogTitle>
+              <DialogDescription style={{ color: 'var(--text-secondary)' }}>
                 Sections help organize your folders into groups
               </DialogDescription>
             </DialogHeader>
@@ -1138,15 +1139,15 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               value={newSectionName}
               onChange={(e) => setNewSectionName(e.target.value)}
               placeholder="Section name"
-              className="bg-zinc-950 border-zinc-800"
+              className="glass-dialog-input"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleCreateSection()}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateSectionOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setCreateSectionOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
-              <Button onClick={handleCreateSection} className="bg-cyan-600 hover:bg-cyan-700">
+              <Button onClick={handleCreateSection} className="glass-btn-primary">
                 Create
               </Button>
             </DialogFooter>
@@ -1155,23 +1156,23 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
         {/* Rename Section Dialog */}
         <Dialog open={renameSectionOpen} onOpenChange={setRenameSectionOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Rename Section</DialogTitle>
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Rename Section</DialogTitle>
             </DialogHeader>
             <Input
               value={renameSectionName}
               onChange={(e) => setRenameSectionName(e.target.value)}
               placeholder="Section name"
-              className="bg-zinc-950 border-zinc-800"
+              className="glass-dialog-input"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleRenameSection()}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameSectionOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setRenameSectionOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
-              <Button onClick={handleRenameSection} className="bg-cyan-600 hover:bg-cyan-700">
+              <Button onClick={handleRenameSection} className="glass-btn-primary">
                 Rename
               </Button>
             </DialogFooter>
@@ -1183,36 +1184,37 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
           setDeleteSectionOpen(open);
           if (!open) setDeleteSectionConfirmed(false);
         }}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Delete Section</DialogTitle>
-              <DialogDescription className="text-zinc-500">
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Delete Section</DialogTitle>
+              <DialogDescription style={{ color: 'var(--text-secondary)' }}>
                 Are you sure you want to delete "{sectionToDelete?.name}"? Folders in this section will be moved to Unsorted.
               </DialogDescription>
             </DialogHeader>
             {/* Show checkbox confirmation if section has folders */}
             {sectionToDelete && folders.filter(f => f.section_id === sectionToDelete.id).length > 0 && (
-              <div className="flex items-start gap-3 p-3 bg-amber-950/30 border border-amber-800/50 rounded-sm">
+              <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
                 <input
                   type="checkbox"
                   id="confirm-section-delete"
                   checked={deleteSectionConfirmed}
                   onChange={(e) => setDeleteSectionConfirmed(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-teal-500 focus:ring-teal-500"
                 />
-                <label htmlFor="confirm-section-delete" className="text-sm text-amber-200">
+                <label htmlFor="confirm-section-delete" className="text-sm" style={{ color: '#fbbf24' }}>
                   I understand that this section contains <strong>{folders.filter(f => f.section_id === sectionToDelete.id).length} folder(s)</strong> that will be moved to Unsorted.
                 </label>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteSectionOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setDeleteSectionOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
               <Button 
                 variant="destructive" 
                 onClick={handleDeleteSection}
                 disabled={sectionToDelete && folders.filter(f => f.section_id === sectionToDelete.id).length > 0 && !deleteSectionConfirmed}
+                className="bg-red-600 hover:bg-red-700"
               >
                 Delete
               </Button>
@@ -1222,18 +1224,22 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
         {/* Folder Color Picker Dialog */}
         <Dialog open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Choose Folder Color</DialogTitle>
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Choose Folder Color</DialogTitle>
+              <DialogDescription style={{ color: 'var(--text-secondary)' }}>
+                Select a color for your folder
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-6 gap-2 py-2">
+            <div className="grid grid-cols-6 gap-3 py-4">
               {FOLDER_COLORS.map((color) => (
                 <button
                   key={color.name}
                   onClick={() => handleChangeFolderColor(color.name)}
-                  className={`w-10 h-10 rounded-sm ${color.bg} flex items-center justify-center hover:ring-2 ring-white/20 transition-all ${folderToColor?.color === color.name ? 'ring-2 ring-white/50' : ''}`}
+                  className={`glass-color-btn ${color.bg} ${folderToColor?.color === color.name ? 'selected' : ''}`}
+                  title={color.name}
                 >
-                  <Folder className={`w-5 h-5 ${color.class}`} />
+                  <Folder className={`w-6 h-6 ${color.class}`} />
                 </button>
               ))}
             </div>
@@ -1242,10 +1248,10 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
         {/* Create Folder Dialog */}
         <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Create New Folder</DialogTitle>
-              <DialogDescription className="text-zinc-500">
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Create New Folder</DialogTitle>
+              <DialogDescription style={{ color: 'var(--text-secondary)' }}>
                 Enter a name for your new folder
               </DialogDescription>
             </DialogHeader>
@@ -1253,15 +1259,15 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Folder name"
-              className="bg-zinc-950 border-zinc-800"
+              className="glass-dialog-input"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateFolderOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setCreateFolderOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
-              <Button onClick={handleCreateFolder} className="bg-cyan-600 hover:bg-cyan-700">
+              <Button onClick={handleCreateFolder} className="glass-btn-primary">
                 Create
               </Button>
             </DialogFooter>
@@ -1270,23 +1276,23 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
         {/* Rename Folder Dialog */}
         <Dialog open={renameFolderOpen} onOpenChange={setRenameFolderOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Rename Folder</DialogTitle>
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Rename Folder</DialogTitle>
             </DialogHeader>
             <Input
               value={renameFolderName}
               onChange={(e) => setRenameFolderName(e.target.value)}
               placeholder="Folder name"
-              className="bg-zinc-950 border-zinc-800"
+              className="glass-dialog-input"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleRenameFolder()}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameFolderOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setRenameFolderOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
-              <Button onClick={handleRenameFolder} className="bg-cyan-600 hover:bg-cyan-700">
+              <Button onClick={handleRenameFolder} className="glass-btn-primary">
                 Rename
               </Button>
             </DialogFooter>
@@ -1298,36 +1304,37 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
           setDeleteFolderOpen(open);
           if (!open) setDeleteFolderConfirmed(false);
         }}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="glass-dialog">
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">Delete Folder</DialogTitle>
-              <DialogDescription className="text-zinc-500">
+              <DialogTitle style={{ color: 'var(--text-primary)' }}>Delete Folder</DialogTitle>
+              <DialogDescription style={{ color: 'var(--text-secondary)' }}>
                 Are you sure you want to delete "{folderToDelete?.name}"? This will also delete all recordings in this folder. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             {/* Show checkbox confirmation if folder has recordings */}
             {folderToDelete && folderToDelete.recording_count > 0 && (
-              <div className="flex items-start gap-3 p-3 bg-red-950/30 border border-red-800/50 rounded-sm">
+              <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 <input
                   type="checkbox"
                   id="confirm-folder-delete"
                   checked={deleteFolderConfirmed}
                   onChange={(e) => setDeleteFolderConfirmed(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-cyan-500"
+                  className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-teal-500 focus:ring-teal-500"
                 />
-                <label htmlFor="confirm-folder-delete" className="text-sm text-red-200">
+                <label htmlFor="confirm-folder-delete" className="text-sm" style={{ color: '#f87171' }}>
                   I understand that <strong>{folderToDelete.recording_count} recording(s)</strong> will be permanently deleted.
                 </label>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteFolderOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setDeleteFolderOpen(false)} className="glass-btn-cancel">
                 Cancel
               </Button>
               <Button 
                 onClick={handleDeleteFolder} 
                 variant="destructive"
                 disabled={folderToDelete && folderToDelete.recording_count > 0 && !deleteFolderConfirmed}
+                className="bg-red-600 hover:bg-red-700"
               >
                 Delete
               </Button>
