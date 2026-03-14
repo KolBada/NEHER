@@ -236,7 +236,7 @@ function BFChart({ metrics, lightPulses, lightEnabled, zoomDomain, onZoomChange,
     <div className="glass-surface-subtle rounded-xl" data-testid="bf-chart">
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span>
+          <span className="text-xs" style={{ color: 'white', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span>
           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>- bpm vs min</span>
           {!isValidated && (
             <span className="text-[9px] text-amber-500/70 italic">(previous detection)</span>

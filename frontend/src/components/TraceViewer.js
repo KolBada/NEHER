@@ -389,7 +389,7 @@ function TraceViewer({
             data-testid="edit-mode-btn"
             variant={editMode ? 'default' : 'ghost'}
             size="sm"
-            className={`h-7 text-xs rounded-lg ${
+            className={`h-7 text-[10px] rounded-lg px-3 ${
               editMode
                 ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                 : 'hover:text-zinc-100'
@@ -414,7 +414,7 @@ function TraceViewer({
                 data-testid="add-beat-hint"
                 variant="outline"
                 size="sm"
-                className="h-6 text-[10px] rounded-lg"
+                className="h-7 text-[10px] rounded-lg px-3"
                 style={{ borderColor: 'rgba(34, 197, 94, 0.4)', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}
                 disabled
               >
@@ -425,22 +425,22 @@ function TraceViewer({
                 data-testid="remove-beat-hint"
                 variant="outline"
                 size="sm"
-                className="h-6 text-[10px] rounded-lg"
+                className="h-7 text-[10px] rounded-lg px-3"
                 style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}
                 disabled
               >
                 <Trash2 className="w-3 h-3 mr-1" />
-                Click marker to remove
+                Click to remove
               </Button>
             </>
           )}
           {/* Beats badge - silver */}
-          <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#c0c0c0', color: '#c0c0c0' }}>
+          <Badge variant="outline" className="font-data text-[10px] h-7 px-3 flex items-center" style={{ borderColor: '#c0c0c0', color: '#c0c0c0' }}>
             {beats ? beats.length : 0} beats
           </Badge>
           {/* Stims badge - amber - only when light enabled */}
           {lightEnabled && lightPulses && lightPulses.length > 0 && (
-            <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+            <Badge variant="outline" className="font-data text-[10px] h-7 px-3 flex items-center" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
               {lightPulses.length} stims
             </Badge>
           )}

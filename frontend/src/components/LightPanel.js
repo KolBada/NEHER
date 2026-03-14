@@ -747,7 +747,7 @@ function LightPanel({
           <div className="p-3 pb-2">
             <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span> - bpm vs min
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'white' }}>Beat Frequency (Filtered)</span> - bpm vs min
                 {/* Beats badge - emerald */}
                 <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#10b981', color: '#10b981' }}>
                   {bfChartData.length} beats

@@ -506,7 +506,7 @@ function AnalysisPanel({
           <div className="p-3 pb-2">
             <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                <span style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span> - bpm vs min
+                <span style={{ color: 'white', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span> - bpm vs min
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
