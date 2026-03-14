@@ -333,7 +333,7 @@ export default function SaveRecording({
                       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                     />
                     {ageAtRecording !== null && (
-                      <p className="text-[10px] font-data" style={{ color: info.cell_type === 'hSpO' ? '#10b981' : info.cell_type === 'hCO' ? '#22d3ee' : 'var(--text-secondary)' }}>
+                      <p className="text-[10px] font-data" style={{ color: info.cell_type === 'hSpO' ? '#10b981' : info.cell_type === 'hCO' ? '#F4CEA2' : 'var(--text-secondary)' }}>
                         Age at recording: D{ageAtRecording}
                       </p>
                     )}
@@ -424,7 +424,7 @@ export default function SaveRecording({
                             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                           />
                           {transfectionDays !== null && (
-                            <p className="text-[10px] font-data" style={{ color: 'white' }}>
+                            <p className="text-[10px] font-data" style={{ color: info.cell_type === 'hSpO' ? '#10b981' : info.cell_type === 'hCO' ? '#F4CEA2' : 'white' }}>
                               Days since transfection: {transfectionDays}
                             </p>
                           )}
