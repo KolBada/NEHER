@@ -245,7 +245,9 @@
 }
 
 .btn-start-analysis-sem {
-    background: linear-gradient(135deg, var(--sem-accent) 0%, #00a866 100%);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
 }
 
 .btn-start-analysis-mea {

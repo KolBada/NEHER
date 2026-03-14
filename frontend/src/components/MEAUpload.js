@@ -730,7 +730,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
 
   // Render upload view
   return (
-    <div className="flex items-center justify-center min-h-[70vh] relative" data-testid="mea-upload-page">
+    <div className="flex items-center justify-center min-h-[70vh] pt-16 relative" data-testid="mea-upload-page">
       {/* Ambient MEA glow orb */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"

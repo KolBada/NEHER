@@ -56,6 +56,10 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ### Glassmorphism UI/UX Overhaul - Phase 3 (December 2025 - Latest)
 
+**Latest Fix (December 2025):**
+- Aligned MEA upload card with SSE upload card by adding `pt-16` top padding
+- Changed SSE "Analyze File" button from green gradient to neutral glassmorphic style
+
 **Surface 1: Folder Page Visual Overhaul**
 - Added NEHER header branding to Folder page (matching Home page)
 - Applied `neher-home-bg` background with glow orbs for ambient atmosphere
