@@ -800,23 +800,38 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       onDragOver={(e) => handleDropZoneDragOver(e, index)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, index)}
-                      className={`absolute -top-2 left-0 right-0 h-4 rounded transition-all ${
-                        dropTargetIndex === index 
-                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
-                          : 'hover:bg-zinc-700/30'
-                      }`}
-                      style={{ zIndex: 20 }}
+                      className="absolute -top-3 left-0 right-0 h-6 rounded-lg transition-all"
+                      style={{ 
+                        zIndex: 20,
+                        background: dropTargetIndex === index 
+                          ? 'rgba(20, 184, 166, 0.15)' 
+                          : 'transparent',
+                        border: dropTargetIndex === index 
+                          ? '2px dashed rgba(20, 184, 166, 0.6)' 
+                          : '2px dashed transparent',
+                        backdropFilter: dropTargetIndex === index ? 'blur(8px)' : 'none',
+                        boxShadow: dropTargetIndex === index 
+                          ? '0 0 20px rgba(20, 184, 166, 0.3), inset 0 0 20px rgba(20, 184, 166, 0.1)' 
+                          : 'none',
+                      }}
                     />
                   )}
                   
                   {/* Section content - unified glass container */}
                   <div 
-                    className={`transition-all duration-200 rounded-xl overflow-hidden ${isBeingDragged ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}
+                    className={`transition-all duration-300 rounded-xl overflow-hidden ${isBeingDragged ? 'opacity-50 scale-[0.98] rotate-1' : 'opacity-100'}`}
                     style={{ 
-                      background: 'rgba(255,255,255,0.02)',
+                      background: isBeingDragged 
+                        ? 'rgba(20, 184, 166, 0.08)' 
+                        : 'rgba(255,255,255,0.02)',
                       backdropFilter: 'blur(12px)',
                       WebkitBackdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: isBeingDragged 
+                        ? '1px solid rgba(20, 184, 166, 0.4)' 
+                        : '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: isBeingDragged 
+                        ? '0 20px 40px rgba(0,0,0,0.4), 0 0 30px rgba(20, 184, 166, 0.2)' 
+                        : 'none',
                     }}
                   >
                     {/* Section Header - Draggable */}
@@ -838,7 +853,13 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                         e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
                       }}
                     >
-                      <GripVertical className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                      <GripVertical 
+                        className="w-4 h-4 flex-shrink-0 transition-all group-hover:opacity-100" 
+                        style={{ 
+                          color: 'var(--accent-teal)',
+                          opacity: 0.4,
+                        }}
+                      />
                       <div
                         draggable="false"
                         onClick={(e) => { e.stopPropagation(); handleToggleSection(section); }}
@@ -972,12 +993,20 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       onDragOver={(e) => handleDropZoneDragOver(e, sections.length)}
                       onDragLeave={handleDropZoneDragLeave}
                       onDrop={(e) => handleDropZoneDrop(e, sections.length)}
-                      className={`h-4 mt-3 rounded transition-all ${
-                        dropTargetIndex === sections.length 
-                          ? 'bg-cyan-500/30 border-2 border-dashed border-cyan-500 h-8' 
-                          : 'hover:bg-zinc-700/30'
-                      }`}
-                      style={{ zIndex: 20 }}
+                      className="h-6 mt-4 rounded-lg transition-all"
+                      style={{ 
+                        zIndex: 20,
+                        background: dropTargetIndex === sections.length 
+                          ? 'rgba(20, 184, 166, 0.15)' 
+                          : 'transparent',
+                        border: dropTargetIndex === sections.length 
+                          ? '2px dashed rgba(20, 184, 166, 0.6)' 
+                          : '2px dashed transparent',
+                        backdropFilter: dropTargetIndex === sections.length ? 'blur(8px)' : 'none',
+                        boxShadow: dropTargetIndex === sections.length 
+                          ? '0 0 20px rgba(20, 184, 166, 0.3), inset 0 0 20px rgba(20, 184, 166, 0.1)' 
+                          : 'none',
+                      }}
                     />
                   )}
                 </div>
