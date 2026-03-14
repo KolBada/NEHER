@@ -1428,13 +1428,12 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               </Button>
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  className={`w-9 h-9 rounded-xl ${getFolderBgClass(selectedFolder?.color)} flex items-center justify-center transition-all`}
                   style={{ 
-                    background: 'rgba(20, 184, 166, 0.15)',
-                    boxShadow: '0 0 20px rgba(20, 184, 166, 0.2)',
+                    boxShadow: `0 0 20px ${selectedFolder?.color === 'amber' ? 'rgba(245,158,11,0.2)' : selectedFolder?.color === 'emerald' ? 'rgba(16,185,129,0.2)' : selectedFolder?.color === 'sky' ? 'rgba(14,165,233,0.2)' : selectedFolder?.color === 'violet' ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.08)'}`,
                   }}
                 >
-                  <FolderOpen className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
+                  <FolderOpen className={`w-5 h-5 ${getFolderColorClass(selectedFolder?.color)}`} />
                 </div>
                 <div>
                   <h2 className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedFolder?.name}</h2>
