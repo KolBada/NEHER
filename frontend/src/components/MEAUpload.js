@@ -482,15 +482,49 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         
         if (wellId && wellSet.has(wellId)) {
           // Use row.stop directly if available, otherwise calculate from start + duration
-          const startTime = row.timestamp || row.start;
-          const stopTime = row.stop || (startTime + (row.duration || 0));
+          const startTime = parseFloat(row.timestamp || row.start) || 0;
+          const stopTime = parseFloat(row.stop) || (startTime + (parseFloat(row.duration) || 0));
           burstsByWell[wellId].push({
             electrode: row.electrode,
             start: startTime,
             stop: stopTime,
             spike_count: row.spike_count,
-            duration: row.duration || (stopTime - startTime),
+            duration: parseFloat(row.duration) || (stopTime - startTime),
           });
+        }
+      });
+      
+      // BURST TIMESTAMP CORRECTION:
+      // Spike timestamps are referenced to experiment start (no correction needed)
+      // Burst timestamps are referenced to file start (need offset correction)
+      // offset = file_start_timestamp - experiment_start_timestamp
+      // 
+      // Strategy: For each well, find min spike timestamp and min burst timestamp.
+      // If bursts start significantly later (indicating file-reference), compute offset.
+      wellSet.forEach(wellId => {
+        const wellSpikes = spikeList.filter(s => s.well === wellId);
+        const wellBursts = burstsByWell[wellId] || [];
+        
+        if (wellSpikes.length > 0 && wellBursts.length > 0) {
+          const minSpikeTime = Math.min(...wellSpikes.map(s => parseFloat(s.timestamp) || 0));
+          const minBurstStart = Math.min(...wellBursts.map(b => b.start));
+          
+          // If burst timestamps start significantly after spike timestamps,
+          // apply offset correction (bursts are file-referenced, spikes are experiment-referenced)
+          // Threshold: if burst min > spike min + 60s, likely needs correction
+          const timeDiff = minBurstStart - minSpikeTime;
+          if (timeDiff > 60) { // 60 second threshold to detect file-reference offset
+            const offset = minBurstStart - minSpikeTime;
+            console.log(`[${wellId}] Applying burst timestamp correction: offset = ${offset.toFixed(2)}s`);
+            console.log(`  Min spike time: ${minSpikeTime.toFixed(2)}s, Min burst time: ${minBurstStart.toFixed(2)}s`);
+            
+            // Apply offset correction to all bursts in this well
+            burstsByWell[wellId] = wellBursts.map(b => ({
+              ...b,
+              start: b.start - offset,
+              stop: b.stop - offset,
+            }));
+          }
         }
       });
       
@@ -520,8 +554,32 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             stop: stopTime,
             electrode_count: row.electrode_count,
             spike_count: row.spike_count,
-            duration: row.duration || (stopTime - startTime),
+            duration: parseFloat(row.duration) || (stopTime - startTime),
           });
+        }
+      });
+      
+      // Apply burst timestamp correction to network bursts as well
+      // (same logic as electrode bursts - they're also file-referenced)
+      wellSet.forEach(wellId => {
+        const wellSpikes = spikeList.filter(s => s.well === wellId);
+        const wellNetworkBursts = networkBurstsByWell[wellId] || [];
+        
+        if (wellSpikes.length > 0 && wellNetworkBursts.length > 0) {
+          const minSpikeTime = Math.min(...wellSpikes.map(s => parseFloat(s.timestamp) || 0));
+          const minNetBurstStart = Math.min(...wellNetworkBursts.map(b => b.start));
+          
+          const timeDiff = minNetBurstStart - minSpikeTime;
+          if (timeDiff > 60) {
+            const offset = minNetBurstStart - minSpikeTime;
+            console.log(`[${wellId}] Applying network burst timestamp correction: offset = ${offset.toFixed(2)}s`);
+            
+            networkBurstsByWell[wellId] = wellNetworkBursts.map(b => ({
+              ...b,
+              start: b.start - offset,
+              stop: b.stop - offset,
+            }));
+          }
         }
       });
       

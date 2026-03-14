@@ -78,10 +78,16 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ### MEA Analysis Page Redesign - Session 26 (December 2025)
 
+**UI/UX Changes:**
+- **Top Bar:** Reduced spacing between "Unsaved" badge and well chips, moved them directly adjacent
+- **Drug Badge:** Added Perf. Start (Perfusion Start) input field alongside concentration
+- **Parameters Tab:** Changed to full-width Spike Trace at top, parameters panel below in 4-column layout
+
 **Bug Fixes:**
-- Fixed burst data parsing in `MEAUpload.js` (lines 483-497, 509-523)
+- Fixed burst data parsing in `MEAUpload.js` (lines 483-530)
   - Now correctly uses `row.stop` field when available instead of calculating from duration
-  - Properly handles electrode_burst_list.csv with start/stop columns
+  - **Added burst timestamp correction:** Detects offset between file-referenced burst timestamps and experiment-referenced spike timestamps, applies correction automatically
+  - Applies same correction to network_burst_list.csv
 - Created separate `SpikeRasterPlot` and `BurstRasterPlot` components in `MEAAnalysis.js`
   - Spike raster shows vertical ticks at spike timestamps
   - Burst raster shows horizontal bars from start to stop times

@@ -461,8 +461,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
         }}
       >
         <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          {/* Left: Home + Title + Status */}
-          <div className="flex items-center gap-4">
+          {/* Left: Home + Title + Status + Well Chips */}
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -481,7 +481,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
               NEHER
             </h1>
-            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
             <Badge 
               variant="outline" 
               className="h-7 text-[11px] px-3 rounded-lg"
@@ -493,12 +492,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             >
               Unsaved
             </Badge>
-          </div>
-          
-          {/* Center: Well Chips + Editable Name + Light + Drug */}
-          <div className="flex items-center gap-3 flex-wrap justify-center">
-            {/* Well selector chips */}
-            <div className="flex items-center gap-1.5">
+            
+            {/* Well selector chips - directly after Unsaved */}
+            <div className="flex items-center gap-1">
               {wells.map(wellId => (
                 <Button
                   key={wellId}
@@ -525,13 +521,14 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             <Input
               value={wellName}
               onChange={(e) => setWellNames(prev => ({ ...prev, [selectedWell]: e.target.value }))}
-              className="h-7 w-44 text-xs bg-transparent border-none px-3 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
+              className="h-7 w-32 text-xs bg-transparent border-none px-2 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}
               placeholder="Well name..."
             />
-            
-            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
-            
+          </div>
+          
+          {/* Center: Light + Drug Dropdown + Drug Badges */}
+          <div className="flex items-center gap-2">
             {/* Light indicator */}
             {lightEnabled && (
               <Badge 
@@ -584,20 +581,42 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Selected drug badges */}
+            {/* Selected drug badges with concentration and Perf. Start */}
             {selectedDrugs.map((drugKey) => {
               const cfg = DRUG_CONFIG[drugKey];
+              const settings = drugSettings[drugKey] || {};
               return (
-                <Badge 
-                  key={drugKey} 
-                  variant="outline" 
-                  className="h-7 text-[11px] cursor-pointer px-3 rounded-lg transition-all hover:scale-105"
-                  style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.40)', color: '#a855f7' }}
-                  onClick={() => toggleDrug(drugKey)}
+                <div 
+                  key={drugKey}
+                  className="flex items-center gap-1.5 h-7 px-2 rounded-lg"
+                  style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.40)' }}
                 >
-                  {cfg.name}
-                  <X className="w-3 h-3 ml-1.5" />
-                </Badge>
+                  <span className="text-[11px] font-medium" style={{ color: '#a855f7' }}>{cfg.name}</span>
+                  <Input
+                    type="text"
+                    value={settings.concentration ?? cfg.defaultConc}
+                    onChange={(e) => setDrugSettings(prev => ({ ...prev, [drugKey]: { ...prev[drugKey], concentration: e.target.value } }))}
+                    className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center"
+                    style={{ border: '1px solid rgba(168, 85, 247, 0.30)', color: '#a855f7' }}
+                  />
+                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>{cfg.unit}</span>
+                  <div className="w-px h-4 mx-1" style={{ background: 'rgba(168, 85, 247, 0.3)' }} />
+                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>Perf.</span>
+                  <Input
+                    type="number"
+                    value={settings.perfusionStart ?? 3}
+                    onChange={(e) => setDrugSettings(prev => ({ ...prev, [drugKey]: { ...prev[drugKey], perfusionStart: parseFloat(e.target.value) || 0 } }))}
+                    className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center"
+                    style={{ border: '1px solid rgba(168, 85, 247, 0.30)', color: '#a855f7' }}
+                  />
+                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>min</span>
+                  <button 
+                    onClick={() => toggleDrug(drugKey)}
+                    className="ml-1 p-0.5 rounded hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-3 h-3" style={{ color: '#a855f7' }} />
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -710,38 +729,38 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           {/* ============================================================
               PARAMETERS TAB
           ============================================================ */}
-          <TabsContent value="parameters" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Spike Trace Full Width */}
-              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
-                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
-                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                      Spike Trace — All Electrodes
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+          <TabsContent value="parameters" className="space-y-4">
+            {/* Spike Trace - Full Width */}
+            <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+              <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                  <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                    Spike Trace — All Electrodes
+                  </span>
                 </div>
               </div>
-              
-              {/* Parameters Panel */}
-              <div className="glass-surface-subtle rounded-xl overflow-hidden">
-                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="flex items-center gap-2">
-                    <Settings2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                      Analysis Parameters
-                    </span>
-                    <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
-                      {selectedWell}
-                    </Badge>
-                  </div>
+              <div className="p-4">
+                <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+              </div>
+            </div>
+            
+            {/* Parameters Panel - Full Width Below */}
+            <div className="glass-surface-subtle rounded-xl overflow-hidden">
+              <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-2">
+                  <Settings2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                  <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                    Analysis Parameters
+                  </span>
+                  <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
+                    {selectedWell}
+                  </Badge>
                 </div>
-                <div className="p-4 space-y-4">
-                  {/* Bin Sizes */}
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Binning Section */}
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Binning</Label>
                     <div className="grid grid-cols-2 gap-3">
@@ -770,7 +789,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </div>
                   </div>
                   
-                  {/* Electrode Filter */}
+                  {/* Electrode Filter Section */}
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Electrode Filter</Label>
                     <div className="space-y-1">
@@ -786,36 +805,41 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </div>
                   </div>
                   
-                  {/* Well Info */}
-                  <div className="pt-2 space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                    <div className="flex justify-between">
-                      <span>Active Electrodes:</span>
-                      <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Total Spikes:</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{wellAnalysis?.well?.total_spikes?.toLocaleString() || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Duration:</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{(duration / 60).toFixed(1)} min</span>
+                  {/* Well Info Section */}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Well Info</Label>
+                    <div className="space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                      <div className="flex justify-between">
+                        <span>Active Electrodes:</span>
+                        <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Spikes:</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{wellAnalysis?.well?.total_spikes?.toLocaleString() || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Duration:</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{(duration / 60).toFixed(1)} min</span>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Rerun Button */}
-                  <Button
-                    className="w-full h-9 rounded-xl font-medium mt-4"
-                    style={{ background: '#00b8c4', color: '#000' }}
-                    onClick={() => {
-                      setIsComputing(true);
-                      toast.success(`Parameters updated for ${selectedWell}`);
-                      setTimeout(() => setIsComputing(false), 500);
-                    }}
-                    disabled={isComputing}
-                  >
-                    {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                    Validate Parameters
-                  </Button>
+                  {/* Validate Button Section */}
+                  <div className="flex items-end">
+                    <Button
+                      className="w-full h-10 rounded-xl font-medium"
+                      style={{ background: '#00b8c4', color: '#000' }}
+                      onClick={() => {
+                        setIsComputing(true);
+                        toast.success(`Parameters updated for ${selectedWell}`);
+                        setTimeout(() => setIsComputing(false), 500);
+                      }}
+                      disabled={isComputing}
+                    >
+                      {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                      Validate Parameters
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
