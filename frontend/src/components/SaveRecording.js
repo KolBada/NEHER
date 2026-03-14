@@ -199,34 +199,37 @@ export default function SaveRecording({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Organoid/Cell Information */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* LEFT COLUMN: Tissue Information */}
       <div className="glass-surface-subtle rounded-xl">
         <div className="p-4 pb-2">
           <span className="text-sm" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Organoid/Cell Information
+            Tissue Information
           </span>
         </div>
         <div className="p-4 pt-2 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Recording Date */}
-            <div className="space-y-1">
-              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Date</Label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  value={recordingDate || ''}
-                  onChange={(e) => setRecordingDate(e.target.value)}
-                  className="text-xs h-8 font-data rounded-lg"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                />
-              </div>
-            </div>
+          {/* Fusion Date - At the top */}
+          <div className="space-y-1">
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+              {organoidInfo.length >= 2 ? 'Fusion Date' : 'Fusion Media Start'} <span style={{ color: 'var(--text-tertiary)' }}>(optional{organoidInfo.length >= 2 ? ' - applies to all samples' : ''})</span>
+            </Label>
+            <Input
+              type="date"
+              value={fusionDate || ''}
+              onChange={(e) => setFusionDate(e.target.value)}
+              className="text-xs h-8 font-data rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+            />
+            {fusionDate && recordingDate && (
+              <p className="text-[10px] font-data" style={{ color: 'white' }}>
+                {organoidInfo.length >= 2 ? 'Days since fusion' : 'Day since in fusion media'}: {calculateDays(fusionDate, recordingDate)}
+              </p>
+            )}
           </div>
 
-          {/* Organoid/Cell entries */}
+          {/* Sample(s) entries */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Sample Information</Label>
               <Button
                 variant="ghost"
@@ -433,25 +436,6 @@ export default function SaveRecording({
               );
             })}
           </div>
-          
-          {/* Fusion Date - Shared for all samples */}
-          <div className="space-y-1">
-            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-              {organoidInfo.length >= 2 ? 'Fusion Date' : 'Fusion Media Start'} <span style={{ color: 'var(--text-tertiary)' }}>(optional{organoidInfo.length >= 2 ? ' - applies to all samples' : ''})</span>
-            </Label>
-            <Input
-              type="date"
-              value={fusionDate || ''}
-              onChange={(e) => setFusionDate(e.target.value)}
-              className="text-xs h-8 font-data rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-            />
-            {fusionDate && recordingDate && (
-              <p className="text-[10px] font-data" style={{ color: 'white' }}>
-                {organoidInfo.length >= 2 ? 'Days since fusion' : 'Day since in fusion media'}: {calculateDays(fusionDate, recordingDate)}
-              </p>
-            )}
-          </div>
 
           {/* Description */}
           <div className="space-y-1">
@@ -467,20 +451,34 @@ export default function SaveRecording({
         </div>
       </div>
 
-      {/* Save Recording Card */}
-      <div className="glass-surface-subtle rounded-xl">
+      {/* RIGHT COLUMN: Recording Information */}
+      <div className="glass-surface-subtle rounded-xl h-fit">
         <div className="p-4 pb-2">
           <div className="flex items-center gap-2">
             <Save className="w-4 h-4" style={{ color: existingRecordingId ? '#10b981' : 'var(--sem-accent)' }} />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {existingRecordingId ? 'Update Recording' : 'Save Recording'}
+              Recording Information
             </span>
           </div>
         </div>
         <div className="p-4 pt-2 space-y-4">
+          {/* Recording Date */}
+          <div className="space-y-1">
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Date</Label>
+            <div className="relative">
+              <Input
+                type="date"
+                value={recordingDate || ''}
+                onChange={(e) => setRecordingDate(e.target.value)}
+                className="text-xs h-8 font-data rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+              />
+            </div>
+          </div>
+
           {/* Recording Name */}
-          <div className="space-y-2">
-            <Label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Recording Name</Label>
+          <div className="space-y-1">
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Name</Label>
             <Input
               value={recordingName}
               onChange={(e) => onRecordingNameChange?.(e.target.value)}
@@ -496,7 +494,7 @@ export default function SaveRecording({
 
               {/* Folder Selection */}
               <div className="space-y-3">
-                <Label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Save Location</Label>
+                <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Save Location</Label>
                 
                 <RadioGroup value={mode} onValueChange={setMode} className="space-y-3">
                   {/* Existing Folder Option */}
