@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -7,12 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { 
   Home, Save, Download, FileSpreadsheet, FileText, Zap, Activity, 
-  Info, ChevronDown, ChevronUp, BarChart3, TrendingUp
+  Info, BarChart3, TrendingUp, Settings2, Check, FolderOpen, 
+  FlaskConical, Plus, X, RefreshCw
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, Legend, ScatterChart, Scatter, ReferenceLine,
-  ReferenceArea, BarChart, Bar
+  ResponsiveContainer, ScatterChart, Scatter, ReferenceArea
 } from 'recharts';
 import {
   Tooltip,
@@ -23,77 +23,32 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
 
 // ============================================================================
-// Helper Components
+// DRUG CONFIGURATION (matching SSE)
 // ============================================================================
-
-function InfoTip({ text, children }) {
-  return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="inline-flex items-center cursor-help">
-            {children}
-            <Info className="w-3 h-3 ml-1" style={{ color: 'var(--text-tertiary)' }} />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
-          {text}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
-function MetricCard({ label, value, unit, color = 'cyan', tooltip }) {
-  const bgStyle = color === 'cyan' 
-    ? { background: 'rgba(0, 184, 196, 0.08)', border: '1px solid rgba(0, 184, 196, 0.25)' }
-    : color === 'orange'
-    ? { background: 'rgba(249, 115, 22, 0.08)', border: '1px solid rgba(249, 115, 22, 0.25)' }
-    : color === 'purple'
-    ? { background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.25)' }
-    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' };
-  
-  const labelColor = color === 'cyan' ? '#00b8c4' : color === 'orange' ? '#f97316' : color === 'purple' ? '#a855f7' : 'var(--text-secondary)';
-  
-  return (
-    <div className="rounded-xl p-3" style={bgStyle}>
-      <p className="text-[9px] uppercase tracking-wider font-medium flex items-center gap-1" style={{ color: labelColor, letterSpacing: '0.08em' }}>
-        {label}
-        {tooltip && (
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" className="inline-flex">
-                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
-                <p>{tooltip}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </p>
-      <p className="text-lg font-data mt-1" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-        {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '—'}
-      </p>
-      {unit && <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{unit}</p>}
-    </div>
-  );
-}
+const DRUG_CONFIG = {
+  isoproterenol: { name: 'Isoproterenol', defaultConc: '100', unit: 'nM' },
+  carbachol: { name: 'Carbachol', defaultConc: '10', unit: 'µM' },
+  nifedipine: { name: 'Nifedipine', defaultConc: '1', unit: 'µM' },
+  e4031: { name: 'E-4031', defaultConc: '1', unit: 'µM' },
+};
 
 // ============================================================================
-// Metric Computation Functions
+// Metric Computation Functions (memoization-friendly pure functions)
 // ============================================================================
 
 function computeSpikeRate(spikes, activeElectrodes, binSize, duration) {
-  if (!spikes || spikes.length === 0 || !activeElectrodes || activeElectrodes.length === 0 || !duration || duration <= 0) {
-    return [];
-  }
+  if (!spikes?.length || !activeElectrodes?.length || !duration || duration <= 0) return [];
   
   const nBins = Math.ceil(duration / binSize);
   const bins = [];
@@ -103,31 +58,26 @@ function computeSpikeRate(spikes, activeElectrodes, binSize, duration) {
     const binEnd = (i + 1) * binSize;
     
     const spikeCount = spikes.filter(s => 
-      s.timestamp >= binStart && 
-      s.timestamp < binEnd &&
-      s.electrode &&
-      activeElectrodes.includes(s.electrode)
+      s.timestamp >= binStart && s.timestamp < binEnd &&
+      s.electrode && activeElectrodes.includes(s.electrode)
     ).length;
-    
-    const rate = spikeCount / (binSize * activeElectrodes.length);
     
     bins.push({
       time: binStart + binSize / 2,
       bin_start: binStart,
       bin_end: binEnd,
       spike_count: spikeCount,
-      spike_rate_hz: rate,
+      spike_rate_hz: spikeCount / (binSize * activeElectrodes.length),
     });
   }
-  
   return bins;
 }
 
 function computeBurstRate(bursts, activeElectrodes, binSize, duration) {
-  if (!bursts || !activeElectrodes || activeElectrodes.length === 0 || !duration || duration <= 0) {
-    return [];
-  }
+  if (!activeElectrodes?.length || !duration || duration <= 0) return [];
   
+  // Handle different burst data structures
+  const burstList = Array.isArray(bursts) ? bursts : [];
   const nBins = Math.ceil(duration / binSize);
   const bins = [];
   
@@ -135,44 +85,37 @@ function computeBurstRate(bursts, activeElectrodes, binSize, duration) {
     const binStart = i * binSize;
     const binEnd = (i + 1) * binSize;
     
-    const burstCount = bursts.filter(b => 
-      b.start < binEnd && 
-      b.stop > binStart &&
-      b.electrode &&
-      activeElectrodes.includes(b.electrode)
-    ).length;
-    
-    const rate = (burstCount / activeElectrodes.length) / (binSize / 60);
+    // Count bursts that overlap with this bin
+    const burstCount = burstList.filter(b => {
+      const bStart = b.start ?? b.start_time ?? b.onset ?? 0;
+      const bEnd = b.stop ?? b.end_time ?? b.offset ?? bStart + 0.1;
+      const electrode = b.electrode ?? b.channel ?? '';
+      return bStart < binEnd && bEnd > binStart && 
+             (!electrode || activeElectrodes.includes(electrode));
+    }).length;
     
     bins.push({
       time: binStart + binSize / 2,
       bin_start: binStart,
       bin_end: binEnd,
       burst_count: burstCount,
-      burst_rate_bpm: rate,
+      burst_rate_bpm: (burstCount / activeElectrodes.length) / (binSize / 60),
     });
   }
-  
   return bins;
 }
 
 function computeWindowMean(timeSeries, key, startTime, endTime) {
-  const binsInWindow = timeSeries.filter(b => 
-    b.bin_start >= startTime && b.bin_end <= endTime
-  );
-  
-  if (binsInWindow.length === 0) return null;
-  
+  if (!timeSeries?.length) return null;
+  const binsInWindow = timeSeries.filter(b => b.bin_start >= startTime && b.bin_end <= endTime);
+  if (!binsInWindow.length) return null;
   const values = binsInWindow.map(b => b[key]).filter(v => !isNaN(v) && v !== null);
-  if (values.length === 0) return null;
-  
+  if (!values.length) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
 function computeCorrelation(x, y) {
-  if (x.length !== y.length || x.length < 3) {
-    return { r: null, p: null, n: 0 };
-  }
+  if (!x || !y || x.length !== y.length || x.length < 3) return { r: null, n: 0 };
   
   const n = x.length;
   const sumX = x.reduce((a, b) => a + b, 0);
@@ -184,292 +127,198 @@ function computeCorrelation(x, y) {
   const numerator = n * sumXY - sumX * sumY;
   const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
   
-  if (denominator === 0) return { r: null, p: null, n };
-  
-  const r = numerator / denominator;
-  const t = r * Math.sqrt((n - 2) / (1 - r * r));
-  const p = n > 30 ? 2 * (1 - Math.min(0.9999, Math.abs(t) / Math.sqrt(n))) : null;
-  
-  return { r, p, n };
+  if (denominator === 0) return { r: null, n };
+  return { r: numerator / denominator, n };
 }
 
 function buildSpikeRaster(spikes, activeElectrodes) {
-  if (!spikes || !activeElectrodes || activeElectrodes.length === 0) return [];
-  
+  if (!spikes?.length || !activeElectrodes?.length) return [];
   return spikes
     .filter(s => s.electrode && activeElectrodes.includes(s.electrode))
     .map(s => ({
       time: s.timestamp,
-      electrode: s.electrode,
       electrodeIndex: activeElectrodes.indexOf(s.electrode),
     }));
 }
 
 function buildBurstRaster(bursts, activeElectrodes) {
-  if (!bursts || !activeElectrodes || activeElectrodes.length === 0) return [];
-  
-  return bursts
-    .filter(b => b.electrode && activeElectrodes.includes(b.electrode))
+  if (!activeElectrodes?.length) return [];
+  const burstList = Array.isArray(bursts) ? bursts : [];
+  return burstList
+    .filter(b => {
+      const electrode = b.electrode ?? b.channel ?? '';
+      return !electrode || activeElectrodes.includes(electrode);
+    })
     .map(b => ({
-      start: b.start,
-      stop: b.stop,
-      electrode: b.electrode,
-      electrodeIndex: activeElectrodes.indexOf(b.electrode),
+      start: b.start ?? b.start_time ?? b.onset ?? 0,
+      stop: b.stop ?? b.end_time ?? b.offset ?? 0.1,
+      electrodeIndex: activeElectrodes.indexOf(b.electrode ?? b.channel ?? activeElectrodes[0]),
     }));
 }
 
 // ============================================================================
-// Chart Components with Glassmorphism
+// Memoized Chart Components
 // ============================================================================
 
-function GlassChartWrapper({ title, icon: Icon, iconColor = '#00b8c4', children }) {
-  return (
-    <div 
-      className="rounded-xl overflow-hidden"
-      style={{ 
-        background: 'rgba(255,255,255,0.02)', 
-        border: '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(12px)'
-      }}
-    >
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4" style={{ color: iconColor }} />}
-          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
-            {title}
-          </span>
-        </div>
-      </div>
-      <div className="p-4">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function SpikeRateChart({ data, duration, stimWindows, drugWindow }) {
-  if (!data || data.length === 0) {
-    return <div className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No spike rate data available</div>;
+const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWindow }) {
+  if (!data?.length) {
+    return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
   }
-  
-  return (
-    <div className="h-56">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis 
-            dataKey="time" 
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Time (s)', position: 'bottom', fill: '#71717a', fontSize: 10 }}
-          />
-          <YAxis 
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'insideLeft', fill: '#71717a', fontSize: 10 }}
-          />
-          <RechartsTooltip 
-            contentStyle={{ 
-              background: 'rgba(0,0,0,0.8)', 
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: 8,
-              fontSize: 11
-            }}
-          />
-          {stimWindows?.map((sw, i) => (
-            <ReferenceArea key={`stim-${i}`} x1={sw.start} x2={sw.end} fill="#f59e0b" fillOpacity={0.15} />
-          ))}
-          {drugWindow && (
-            <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#8b5cf6" fillOpacity={0.15} />
-          )}
-          <Line type="monotone" dataKey="spike_rate_hz" stroke="#00b8c4" strokeWidth={2} dot={false} name="Spike Rate" />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function BurstRateChart({ data, duration, stimWindows, drugWindow }) {
-  if (!data || data.length === 0) {
-    return <div className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No burst rate data available</div>;
-  }
-  
-  return (
-    <div className="h-56">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis 
-            dataKey="time" 
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Time (s)', position: 'bottom', fill: '#71717a', fontSize: 10 }}
-          />
-          <YAxis 
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'insideLeft', fill: '#71717a', fontSize: 10 }}
-          />
-          <RechartsTooltip 
-            contentStyle={{ 
-              background: 'rgba(0,0,0,0.8)', 
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: 8,
-              fontSize: 11
-            }}
-          />
-          {stimWindows?.map((sw, i) => (
-            <ReferenceArea key={`stim-${i}`} x1={sw.start} x2={sw.end} fill="#f59e0b" fillOpacity={0.15} />
-          ))}
-          {drugWindow && (
-            <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#8b5cf6" fillOpacity={0.15} />
-          )}
-          <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={2} dot={false} name="Burst Rate" />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function RasterPlot({ data, electrodes, duration, type = 'spike', stimWindows }) {
-  if (!data || data.length === 0 || !electrodes || electrodes.length === 0) {
-    return <div className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No raster data available</div>;
-  }
-  
-  const color = type === 'spike' ? '#00b8c4' : '#f97316';
-  
   return (
     <div className="h-48">
       <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+          {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+          <Line type="monotone" dataKey="spike_rate_hz" stroke="#00b8c4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
+const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWindow }) {
+  if (!data?.length) {
+    return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst data</div>;
+  }
+  return (
+    <div className="h-48">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+          {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+          <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
+const RasterPlot = memo(function RasterPlot({ data, electrodes, duration, type }) {
+  if (!data?.length || !electrodes?.length) {
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No raster data</div>;
+  }
+  const color = type === 'spike' ? '#00b8c4' : '#f97316';
+  return (
+    <div className="h-36">
+      <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis 
-            dataKey="time" 
-            type="number" 
-            domain={[0, duration]}
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Time (s)', position: 'bottom', fill: '#71717a', fontSize: 10 }}
-          />
-          <YAxis 
-            dataKey="electrodeIndex" 
-            type="number"
-            domain={[-0.5, electrodes.length - 0.5]}
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            label={{ value: 'Electrode', angle: -90, position: 'insideLeft', fill: '#71717a', fontSize: 10 }}
-          />
-          {stimWindows?.map((sw, i) => (
-            <ReferenceArea key={`stim-${i}`} x1={sw.start} x2={sw.end} fill="#f59e0b" fillOpacity={0.1} />
-          ))}
-          <Scatter 
-            data={data} 
-            fill={color}
-            shape={(props) => (
-              <line 
-                x1={props.cx} x2={props.cx} 
-                y1={props.cy - 3} y2={props.cy + 3} 
-                stroke={color}
-                strokeWidth={1}
-              />
-            )}
-          />
+          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <Scatter data={data} fill={color} shape={(props) => (
+            <line x1={props.cx} x2={props.cx} y1={props.cy - 2} y2={props.cy + 2} stroke={color} strokeWidth={1} />
+          )} isAnimationActive={false} />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
   );
-}
+});
 
-function CorrelationScatter({ spikeData, burstData, correlation, xLabel = 'Spike Rate (Hz)', yLabel = 'Burst Rate (bpm)' }) {
-  const scatterData = spikeData?.map((sr, i) => ({
-    x: sr.spike_rate_hz,
-    y: burstData?.[i]?.burst_rate_bpm || 0,
-  })).filter(d => !isNaN(d.x) && !isNaN(d.y)) || [];
+const CorrelationScatter = memo(function CorrelationScatter({ spikeData, burstData, correlation }) {
+  const scatterData = useMemo(() => {
+    if (!spikeData?.length || !burstData?.length) return [];
+    return spikeData.map((sr, i) => ({
+      x: sr.spike_rate_hz,
+      y: burstData[i]?.burst_rate_bpm || 0,
+    })).filter(d => !isNaN(d.x) && !isNaN(d.y));
+  }, [spikeData, burstData]);
   
-  if (scatterData.length === 0) {
-    return <div className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>Insufficient data for correlation</div>;
+  if (!scatterData.length) {
+    return <div className="h-56 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>Insufficient data</div>;
   }
-  
   return (
     <div>
-      <div className="h-64">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis 
-              dataKey="x" type="number"
-              stroke="rgba(255,255,255,0.3)"
-              tick={{ fontSize: 10, fill: '#71717a' }}
-              label={{ value: xLabel, position: 'bottom', fill: '#71717a', fontSize: 10 }}
-            />
-            <YAxis 
-              dataKey="y" type="number"
-              stroke="rgba(255,255,255,0.3)"
-              tick={{ fontSize: 10, fill: '#71717a' }}
-              label={{ value: yLabel, angle: -90, position: 'insideLeft', fill: '#71717a', fontSize: 10 }}
-            />
-            <RechartsTooltip 
-              contentStyle={{ 
-                background: 'rgba(0,0,0,0.8)', 
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255,255,255,0.1)', 
-                borderRadius: 8,
-                fontSize: 11
-              }}
-            />
-            <Scatter data={scatterData} fill="#10b981" />
+            <XAxis dataKey="x" type="number" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} name="Spike Rate (Hz)" />
+            <YAxis dataKey="y" type="number" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} name="Burst Rate (bpm)" />
+            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+            <Scatter data={scatterData} fill="#10b981" isAnimationActive={false} />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      {correlation && correlation.r !== null && (
-        <div className="text-center text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+      {correlation?.r !== null && (
+        <div className="text-center text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
           r = {correlation.r.toFixed(3)} | n = {correlation.n} bins
-          {correlation.p !== null && ` | p ≈ ${correlation.p.toFixed(3)}`}
         </div>
       )}
     </div>
   );
-}
+});
 
 // ============================================================================
 // Main MEA Analysis Component
 // ============================================================================
 
 export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
-  const [selectedWell, setSelectedWell] = useState(
-    Object.keys(meaData?.wells || {})[0] || null
-  );
-  const [activeTab, setActiveTab] = useState('spontaneous');
+  // Well state
+  const [selectedWell, setSelectedWell] = useState(Object.keys(meaData?.wells || {})[0] || null);
+  const [wellNames, setWellNames] = useState({});
+  const [activeTab, setActiveTab] = useState('parameters');
   
-  // Readout configuration state
-  const [spikeBaselineStart, setSpikeBaselineStart] = useState(0);
-  const [spikeBaselineEnd, setSpikeBaselineEnd] = useState(60);
-  const [burstBaselineStart, setBurstBaselineStart] = useState(0);
-  const [burstBaselineEnd, setBurstBaselineEnd] = useState(60);
+  // Per-well parameters (bin sizes can be customized per well)
+  const [wellParams, setWellParams] = useState({});
+  
+  // Shared readout configuration (applies to both spike AND burst)
+  const [baselineEnabled, setBaselineEnabled] = useState(true);
+  const [baselineMinute, setBaselineMinute] = useState(1); // Minute number (1-based)
   const [drugEnabled, setDrugEnabled] = useState(false);
-  const [drugName, setDrugName] = useState('');
-  const [spikeDrugStart, setSpikeDrugStart] = useState(120);
-  const [spikeDrugEnd, setSpikeDrugEnd] = useState(180);
-  const [burstDrugStart, setBurstDrugStart] = useState(120);
-  const [burstDrugEnd, setBurstDrugEnd] = useState(180);
+  const [selectedDrugs, setSelectedDrugs] = useState([]);
+  const [drugSettings, setDrugSettings] = useState({});
+  const [drugPerfTime, setDrugPerfTime] = useState(3); // Perfusion time in minutes
+  const [drugReadoutMinute, setDrugReadoutMinute] = useState(5); // Readout minute
   
-  // Light stimulus state
+  // Light stimulus
   const [lightEnabled, setLightEnabled] = useState(false);
-  const [lightBaselineStart, setLightBaselineStart] = useState(-120);
-  const [lightBaselineEnd, setLightBaselineEnd] = useState(-60);
   
-  // Table view mode
-  const [tableMode, setTableMode] = useState('minute'); // 'minute' or 'bin'
+  // Table mode
+  const [tableMode, setTableMode] = useState('minute');
   
-  // Compute all metrics for the selected well
+  // Computing flag
+  const [isComputing, setIsComputing] = useState(false);
+
+  // Get current well's bin sizes (with defaults from config)
+  const currentParams = useMemo(() => {
+    const wp = wellParams[selectedWell] || {};
+    return {
+      spikeBinS: wp.spikeBinS ?? config?.spike_bin_s ?? 5,
+      burstBinS: wp.burstBinS ?? config?.burst_bin_s ?? 30,
+      minHz: wp.minHz ?? 0.01,
+    };
+  }, [selectedWell, wellParams, config]);
+
+  // Update well params
+  const updateWellParam = useCallback((key, value) => {
+    setWellParams(prev => ({
+      ...prev,
+      [selectedWell]: { ...prev[selectedWell], [key]: value }
+    }));
+  }, [selectedWell]);
+
+  // Drug management
+  const toggleDrug = useCallback((drugKey) => {
+    setSelectedDrugs(prev => 
+      prev.includes(drugKey) ? prev.filter(d => d !== drugKey) : [...prev, drugKey]
+    );
+    setDrugEnabled(true);
+  }, []);
+
+  // Compute all metrics for the selected well (heavily memoized)
   const wellAnalysis = useMemo(() => {
     if (!selectedWell || !meaData?.wells?.[selectedWell]) return null;
     
     const well = meaData.wells[selectedWell];
     const spikes = well.spikes || [];
-    const electrode_bursts = well.electrode_bursts || [];
+    const electrode_bursts = well.electrode_bursts || well.bursts || [];
     const active_electrodes = well.active_electrodes || [];
     const duration_s = well.duration_s || 0;
     
@@ -477,41 +326,40 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       return { well, spikeRateBins: [], burstRateBins: [], spikeRaster: [], burstRaster: [] };
     }
     
-    const spikeRateBins = computeSpikeRate(spikes, active_electrodes, config.spike_bin_s, duration_s);
-    const burstRateBins = computeBurstRate(electrode_bursts, active_electrodes, config.burst_bin_s, duration_s);
+    const spikeRateBins = computeSpikeRate(spikes, active_electrodes, currentParams.spikeBinS, duration_s);
+    const burstRateBins = computeBurstRate(electrode_bursts, active_electrodes, currentParams.burstBinS, duration_s);
     const spikeRaster = buildSpikeRaster(spikes, active_electrodes);
     const burstRaster = buildBurstRaster(electrode_bursts, active_electrodes);
     
-    // Baseline metrics
-    const baselineSpikeHz = computeWindowMean(spikeRateBins, 'spike_rate_hz', spikeBaselineStart, spikeBaselineEnd);
-    const baselineBurstBpm = computeWindowMean(burstRateBins, 'burst_rate_bpm', burstBaselineStart, burstBaselineEnd);
+    // Baseline metrics (using shared minute)
+    const blStart = (baselineMinute - 1) * 60;
+    const blEnd = baselineMinute * 60;
+    const baselineSpikeHz = baselineEnabled ? computeWindowMean(spikeRateBins, 'spike_rate_hz', blStart, blEnd) : null;
+    const baselineBurstBpm = baselineEnabled ? computeWindowMean(burstRateBins, 'burst_rate_bpm', blStart, blEnd) : null;
     
-    // Drug metrics
-    const drugSpikeHz = drugEnabled ? computeWindowMean(spikeRateBins, 'spike_rate_hz', spikeDrugStart, spikeDrugEnd) : null;
-    const drugBurstBpm = drugEnabled ? computeWindowMean(burstRateBins, 'burst_rate_bpm', burstDrugStart, burstDrugEnd) : null;
+    // Drug metrics (using shared readout minute)
+    const drugStart = (drugReadoutMinute - 1) * 60;
+    const drugEnd = drugReadoutMinute * 60;
+    const drugSpikeHz = drugEnabled && selectedDrugs.length > 0 ? computeWindowMean(spikeRateBins, 'spike_rate_hz', drugStart, drugEnd) : null;
+    const drugBurstBpm = drugEnabled && selectedDrugs.length > 0 ? computeWindowMean(burstRateBins, 'burst_rate_bpm', drugStart, drugEnd) : null;
     
     // Correlation
     const spikeValues = spikeRateBins.map(b => b.spike_rate_hz);
-    const alignedBurst = spikeRateBins.map((sb) => {
-      const matchingBurst = burstRateBins.find(bb => bb.bin_start <= sb.bin_start && bb.bin_end >= sb.bin_end);
-      return matchingBurst?.burst_rate_bpm || 0;
-    });
-    const correlation = computeCorrelation(spikeValues, alignedBurst);
+    const burstValues = burstRateBins.map(b => b.burst_rate_bpm);
+    // Align by bin index (assuming same number of bins for simplicity)
+    const minLen = Math.min(spikeValues.length, burstValues.length);
+    const correlation = computeCorrelation(spikeValues.slice(0, minLen), burstValues.slice(0, minLen));
     
-    // Per-minute aggregation
-    const perMinuteSpike = [];
-    const perMinuteBurst = [];
+    // Per-minute combined data
     const totalMinutes = Math.ceil(duration_s / 60);
+    const perMinuteCombined = [];
     for (let m = 0; m < totalMinutes; m++) {
       const mStart = m * 60;
       const mEnd = (m + 1) * 60;
-      perMinuteSpike.push({
+      perMinuteCombined.push({
         minute: m + 1,
         spike_rate_hz: computeWindowMean(spikeRateBins, 'spike_rate_hz', mStart, mEnd) || 0,
         spike_count: spikeRateBins.filter(b => b.bin_start >= mStart && b.bin_end <= mEnd).reduce((sum, b) => sum + b.spike_count, 0),
-      });
-      perMinuteBurst.push({
-        minute: m + 1,
         burst_rate_bpm: computeWindowMean(burstRateBins, 'burst_rate_bpm', mStart, mEnd) || 0,
         burst_count: burstRateBins.filter(b => b.bin_start >= mStart && b.bin_end <= mEnd).reduce((sum, b) => sum + b.burst_count, 0),
       });
@@ -528,20 +376,28 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       drugSpikeHz,
       drugBurstBpm,
       correlation,
-      perMinuteSpike,
-      perMinuteBurst,
+      perMinuteCombined,
     };
-  }, [selectedWell, meaData, config, spikeBaselineStart, spikeBaselineEnd, burstBaselineStart, burstBaselineEnd, drugEnabled, spikeDrugStart, spikeDrugEnd, burstDrugStart, burstDrugEnd]);
+  }, [selectedWell, meaData, currentParams, baselineEnabled, baselineMinute, drugEnabled, selectedDrugs, drugReadoutMinute]);
   
-  const wells = Object.keys(meaData?.wells || {}).sort();
+  const wells = useMemo(() => Object.keys(meaData?.wells || {}).sort(), [meaData]);
   const duration = wellAnalysis?.well?.duration_s || 0;
+  const wellName = wellNames[selectedWell] || selectedWell || '';
+
+  // Drug window for visualization
+  const drugWindow = drugEnabled && selectedDrugs.length > 0 ? {
+    start: drugPerfTime * 60,
+    end: (drugReadoutMinute + 1) * 60,
+  } : null;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Toaster theme="dark" position="top-right" />
       
-      {/* Fixed Top Bar */}
-      <div 
+      {/* ================================================================
+          TOP BAR - SSE-aligned structure
+      ================================================================ */}
+      <header 
         className="fixed top-0 left-0 right-0 z-50 px-6 py-3"
         style={{
           background: 'rgba(12, 12, 14, 0.92)',
@@ -551,12 +407,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
         }}
       >
         <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          {/* Left: Home + Title */}
+          {/* Left: Home + Title + Status */}
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl transition-all"
+              className="h-9 text-xs rounded-xl transition-all"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(12px)',
@@ -568,104 +424,348 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
               <Home className="w-4 h-4 mr-2" />
               Home
             </Button>
-            <div>
-              <h1 className="text-lg font-display" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                MEA Analysis
-              </h1>
-              <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {wells.length} wells • Plate: {meaData?.plate_id || 'Unknown'}
-              </p>
-            </div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+              NEHER
+            </h1>
+            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            <Badge 
+              variant="outline" 
+              className="h-7 text-[11px] px-3 rounded-lg"
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: '#ef4444',
+              }}
+            >
+              Unsaved
+            </Badge>
           </div>
           
-          {/* Center: Well Selector */}
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            {wells.map(wellId => (
-              <Button
-                key={wellId}
-                variant={selectedWell === wellId ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedWell(wellId)}
-                className="h-8 px-3 rounded-lg transition-all font-mono text-xs"
-                style={selectedWell === wellId ? {
-                  background: '#00b8c4',
-                  color: '#000',
-                  boxShadow: '0 0 15px rgba(0, 184, 196, 0.4)',
-                } : {
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  color: 'var(--text-secondary)',
+          {/* Center: Well Chips + Editable Name + Light + Drug */}
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            {/* Well selector chips */}
+            <div className="flex items-center gap-1.5">
+              {wells.map(wellId => (
+                <Button
+                  key={wellId}
+                  variant={selectedWell === wellId ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedWell(wellId)}
+                  className="h-7 px-2.5 rounded-lg font-mono text-[11px] transition-all"
+                  style={selectedWell === wellId ? {
+                    background: '#00b8c4',
+                    color: '#000',
+                    boxShadow: '0 0 12px rgba(0, 184, 196, 0.4)',
+                  } : {
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {wellId}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Editable well name */}
+            <Input
+              value={wellName}
+              onChange={(e) => setWellNames(prev => ({ ...prev, [selectedWell]: e.target.value }))}
+              className="h-7 w-44 text-xs bg-transparent border-none px-3 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}
+              placeholder="Well name..."
+            />
+            
+            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            
+            {/* Light indicator */}
+            {lightEnabled && (
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{ background: 'rgba(250, 204, 21, 0.12)', border: '1px solid rgba(250, 204, 21, 0.35)', color: '#facc15' }}
+              >
+                <Zap className="w-3 h-3 mr-1" /> Light
+              </Badge>
+            )}
+            
+            {/* Drug dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge 
+                  variant="outline" 
+                  className="h-7 text-[11px] px-3 rounded-lg cursor-pointer transition-all hover:bg-white/10"
+                  style={{
+                    background: selectedDrugs.length > 0 ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.06)',
+                    border: selectedDrugs.length > 0 ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.12)',
+                    color: selectedDrugs.length > 0 ? '#a855f7' : 'var(--text-secondary)',
+                  }}
+                >
+                  <FlaskConical className="w-3 h-3 mr-1.5" /> 
+                  {selectedDrugs.length > 0 ? `${selectedDrugs.length} Drug${selectedDrugs.length > 1 ? 's' : ''}` : 'Add Drug'}
+                  <Plus className="w-3 h-3 ml-1.5" />
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="border-0"
+                style={{
+                  background: 'rgba(10, 22, 40, 0.9)',
+                  backdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderRadius: '14px',
                 }}
               >
-                {wellId}
-              </Button>
-            ))}
+                {Object.entries(DRUG_CONFIG).map(([key, cfg]) => (
+                  <DropdownMenuItem
+                    key={key}
+                    className={`text-xs cursor-pointer rounded-lg mx-1 my-0.5 ${selectedDrugs.includes(key) ? 'text-purple-400' : ''}`}
+                    style={{ color: selectedDrugs.includes(key) ? undefined : 'var(--text-primary)', padding: '8px 16px' }}
+                    onClick={() => toggleDrug(key)}
+                  >
+                    {selectedDrugs.includes(key) && <Check className="w-3 h-3 mr-2" />}
+                    {!selectedDrugs.includes(key) && <span className="w-3 mr-2" />}
+                    {cfg.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Selected drug badges */}
+            {selectedDrugs.map((drugKey) => {
+              const cfg = DRUG_CONFIG[drugKey];
+              return (
+                <Badge 
+                  key={drugKey} 
+                  variant="outline" 
+                  className="h-7 text-[11px] cursor-pointer px-3 rounded-lg transition-all hover:scale-105"
+                  style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.40)', color: '#a855f7' }}
+                  onClick={() => toggleDrug(drugKey)}
+                >
+                  {cfg.name}
+                  <X className="w-3 h-3 ml-1.5" />
+                </Badge>
+              );
+            })}
           </div>
           
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          {/* Right: Go to Folder + Comparison */}
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl"
+              className="h-9 text-xs px-3 rounded-xl transition-all"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.14)',
                 color: 'var(--text-secondary)',
               }}
-              onClick={() => toast.info('Export coming soon')}
+              onClick={() => toast.info('Go to Folder coming soon')}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export
+              <FolderOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Folder
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs px-3 rounded-xl transition-all"
+              style={{
+                background: 'rgba(20, 184, 166, 0.12)',
+                border: '1px solid rgba(20, 184, 166, 0.35)',
+                color: 'var(--accent-teal)',
+                boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
+              }}
+              onClick={() => toast.info('Comparison coming soon')}
+            >
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
             </Button>
           </div>
         </div>
-      </div>
+      </header>
       
-      {/* Main Content - with padding for fixed header */}
-      <div className="pt-24 px-6 pb-8 max-w-[1800px] mx-auto">
-        {/* Tab Navigation */}
+      {/* ================================================================
+          MAIN CONTENT
+      ================================================================ */}
+      <main className="p-6 pt-20 relative z-10 max-w-[1800px] mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList 
-            className="w-full justify-start gap-1 p-1 rounded-xl mb-6"
-            style={{ 
-              background: 'rgba(255,255,255,0.03)', 
-              border: '1px solid rgba(255,255,255,0.08)' 
-            }}
-          >
-            <TabsTrigger 
-              value="spontaneous" 
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-[#00b8c4] data-[state=active]:text-black"
-              style={{ color: activeTab === 'spontaneous' ? '#000' : 'var(--text-secondary)' }}
+          {/* Section Selector Bar - SSE-aligned */}
+          <div className="flex items-center gap-3 mb-6">
+            <TabsList 
+              className="h-9 rounded-xl p-1 gap-1"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}
             >
-              <Activity className="w-4 h-4 mr-2" />
-              Spontaneous Activity
-            </TabsTrigger>
-            <TabsTrigger 
-              value="light" 
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-[#f59e0b] data-[state=active]:text-black"
-              style={{ color: activeTab === 'light' ? '#000' : 'var(--text-secondary)' }}
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              Light Stimulus
-            </TabsTrigger>
-            <TabsTrigger 
-              value="save" 
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-[#10b981] data-[state=active]:text-black"
-              style={{ color: activeTab === 'save' ? '#000' : 'var(--text-secondary)' }}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Recording
-            </TabsTrigger>
-            <TabsTrigger 
-              value="export" 
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black"
-              style={{ color: activeTab === 'export' ? '#000' : 'var(--text-secondary)' }}
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              Export
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger 
+                value="parameters" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              >
+                <Settings2 className="w-3.5 h-3.5" /> Parameters
+              </TabsTrigger>
+              <TabsTrigger 
+                value="spontaneous" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-[rgba(244,206,162,0.15)] data-[state=active]:text-[#F4CEA2] data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              >
+                <BarChart3 className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
+              </TabsTrigger>
+              <TabsTrigger 
+                value="light" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              >
+                <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} /> Light Stimulus
+              </TabsTrigger>
+              <TabsTrigger 
+                value="save" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              >
+                <Save className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> Save Recording
+              </TabsTrigger>
+              <TabsTrigger 
+                value="export" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-teal-500/15 data-[state=active]:text-teal-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+              >
+                <Download className="w-3.5 h-3.5" style={{ color: 'var(--accent-teal)' }} /> Export
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Drug boxes inline with tabs (SSE style) */}
+            {selectedDrugs.length > 0 && (
+              <div className="flex items-center gap-2">
+                {selectedDrugs.map((drugKey, idx) => {
+                  const cfg = DRUG_CONFIG[drugKey];
+                  const settings = drugSettings[drugKey] || {};
+                  return (
+                    <div 
+                      key={drugKey} 
+                      className="flex items-center gap-2 h-9 px-3 rounded-xl text-[10px]"
+                      style={{ background: 'rgba(168, 85, 247, 0.10)', border: '1px solid rgba(168, 85, 247, 0.30)' }}
+                    >
+                      <FlaskConical className="w-3 h-3" style={{ color: '#a855f7' }} />
+                      <span className="font-medium" style={{ color: '#a855f7' }}>{cfg.name}</span>
+                      <Input
+                        type="text"
+                        value={settings.concentration ?? cfg.defaultConc}
+                        onChange={(e) => setDrugSettings(prev => ({ ...prev, [drugKey]: { ...prev[drugKey], concentration: e.target.value } }))}
+                        className="h-5 w-12 text-[9px] bg-black/40 rounded px-1 text-center"
+                        style={{ border: '1px solid rgba(168, 85, 247, 0.30)', color: '#a855f7' }}
+                      />
+                      <span style={{ color: 'rgba(168, 85, 247, 0.7)' }}>{cfg.unit}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* ============================================================
+              PARAMETERS TAB
+          ============================================================ */}
+          <TabsContent value="parameters" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Spike Trace Full Width */}
+              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                      Spike Trace — All Electrodes
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                </div>
+              </div>
+              
+              {/* Parameters Panel */}
+              <div className="glass-surface-subtle rounded-xl overflow-hidden">
+                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2">
+                    <Settings2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                      Analysis Parameters
+                    </span>
+                    <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
+                      {selectedWell}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="p-4 space-y-4">
+                  {/* Bin Sizes */}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Binning</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Spike Bin (s)</Label>
+                        <Input
+                          type="number"
+                          value={currentParams.spikeBinS}
+                          onChange={(e) => updateWellParam('spikeBinS', parseInt(e.target.value) || 5)}
+                          className="h-8 text-xs font-data rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                          min={1} max={60}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Burst Bin (s)</Label>
+                        <Input
+                          type="number"
+                          value={currentParams.burstBinS}
+                          onChange={(e) => updateWellParam('burstBinS', parseInt(e.target.value) || 30)}
+                          className="h-8 text-xs font-data rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                          min={5} max={120}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Electrode Filter */}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Electrode Filter</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Min Firing Rate (Hz)</Label>
+                      <Input
+                        type="number"
+                        value={currentParams.minHz}
+                        onChange={(e) => updateWellParam('minHz', parseFloat(e.target.value) || 0)}
+                        className="h-8 text-xs font-data rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                        min={0} step={0.01}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Well Info */}
+                  <div className="pt-2 space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="flex justify-between">
+                      <span>Active Electrodes:</span>
+                      <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Spikes:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{wellAnalysis?.well?.total_spikes?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Duration:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{(duration / 60).toFixed(1)} min</span>
+                    </div>
+                  </div>
+                  
+                  {/* Rerun Button */}
+                  <Button
+                    className="w-full h-9 rounded-xl font-medium mt-4"
+                    style={{ background: '#00b8c4', color: '#000' }}
+                    onClick={() => {
+                      setIsComputing(true);
+                      toast.success(`Parameters updated for ${selectedWell}`);
+                      setTimeout(() => setIsComputing(false), 500);
+                    }}
+                    disabled={isComputing}
+                  >
+                    {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                    Validate Parameters
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
           
           {/* ============================================================
               SPONTANEOUS ACTIVITY TAB
@@ -673,286 +773,245 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           <TabsContent value="spontaneous" className="space-y-6">
             {wellAnalysis ? (
               <>
-                {/* Row 1: Spike Trace & Burst Trace */}
+                {/* Row 1: Spike Trace + Burst Trace */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <GlassChartWrapper title="Spike Trace" icon={TrendingUp} iconColor="#00b8c4">
-                    <SpikeRateChart 
-                      data={wellAnalysis.spikeRateBins} 
-                      duration={duration}
-                      stimWindows={[]}
-                      drugWindow={drugEnabled ? { start: spikeDrugStart, end: spikeDrugEnd } : null}
-                    />
-                  </GlassChartWrapper>
-                  <GlassChartWrapper title="Burst Trace" icon={TrendingUp} iconColor="#f97316">
-                    <BurstRateChart 
-                      data={wellAnalysis.burstRateBins} 
-                      duration={duration}
-                      stimWindows={[]}
-                      drugWindow={drugEnabled ? { start: burstDrugStart, end: burstDrugEnd } : null}
-                    />
-                  </GlassChartWrapper>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <SpikeTraceChart data={wellAnalysis.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                    </div>
+                  </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Trace</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <BurstTraceChart data={wellAnalysis.burstRateBins} duration={duration} drugWindow={drugWindow} />
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Row 2: Spike Raster & Burst Raster */}
+                {/* Row 2: Spike Raster + Burst Raster */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <GlassChartWrapper title="Spike Raster" icon={BarChart3} iconColor="#00b8c4">
-                    <RasterPlot 
-                      data={wellAnalysis.spikeRaster} 
-                      electrodes={wellAnalysis.well?.active_electrodes || []}
-                      duration={duration}
-                      type="spike"
-                    />
-                  </GlassChartWrapper>
-                  <GlassChartWrapper title="Burst Raster" icon={BarChart3} iconColor="#f97316">
-                    <RasterPlot 
-                      data={wellAnalysis.burstRaster} 
-                      electrodes={wellAnalysis.well?.active_electrodes || []}
-                      duration={duration}
-                      type="burst"
-                    />
-                  </GlassChartWrapper>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <RasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} type="spike" />
+                    </div>
+                  </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
+                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
+                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <RasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} type="burst" />
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Row 3: Readout Configuration */}
+                {/* Row 3: Readout Configuration with Integrated Metrics */}
                 <div 
                   className="glass-surface-subtle rounded-xl overflow-hidden"
-                  style={{ borderLeft: '3px solid #00b8c4' }}
+                  style={{ borderLeft: '3px solid #22d3ee' }}
                 >
                   <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                      <Activity className="w-4 h-4" style={{ color: '#22d3ee' }} />
                       <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
                         Readout Configuration
                       </span>
                     </div>
                   </div>
                   <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Spike Readout */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs uppercase tracking-wider font-medium" style={{ color: '#00b8c4' }}>Spike Readout</h4>
-                        
-                        {/* Baseline */}
-                        <div 
-                          className="p-3 rounded-xl"
-                          style={{ background: 'rgba(0, 184, 196, 0.08)', border: '1px solid rgba(0, 184, 196, 0.25)' }}
-                        >
-                          <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Baseline Window</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Start (s)</Label>
-                              <Input 
-                                type="number" 
-                                value={spikeBaselineStart} 
-                                onChange={(e) => setSpikeBaselineStart(Number(e.target.value))}
-                                className="h-8 text-xs font-data rounded-lg"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>End (s)</Label>
-                              <Input 
-                                type="number" 
-                                value={spikeBaselineEnd} 
-                                onChange={(e) => setSpikeBaselineEnd(Number(e.target.value))}
-                                className="h-8 text-xs font-data rounded-lg"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                              />
-                            </div>
-                          </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Baseline Readout */}
+                      <div 
+                        className="p-3 rounded-xl transition-all"
+                        style={{ 
+                          background: baselineEnabled ? 'rgba(34, 211, 238, 0.08)' : 'rgba(255,255,255,0.03)', 
+                          border: baselineEnabled ? '1px solid rgba(34, 211, 238, 0.25)' : '1px solid rgba(255,255,255,0.10)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[9px] uppercase tracking-wider font-medium" style={{ color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)' }}>
+                            Baseline Readout
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBaselineEnabled(!baselineEnabled)}
+                            className="h-5 px-2 text-[9px] rounded-full"
+                            style={{
+                              background: baselineEnabled ? 'rgba(34, 211, 238, 0.2)' : 'rgba(255,255,255,0.08)',
+                              color: baselineEnabled ? '#22d3ee' : 'var(--text-secondary)',
+                            }}
+                          >
+                            {baselineEnabled ? 'ON' : 'OFF'}
+                          </Button>
                         </div>
-                        
-                        {/* Drug */}
-                        <div 
-                          className="p-3 rounded-xl transition-all"
-                          style={{ 
-                            background: drugEnabled ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.03)', 
-                            border: drugEnabled ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.10)',
-                            opacity: drugEnabled ? 1 : 0.6
-                          }}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Drug Window</p>
-                            <Switch checked={drugEnabled} onCheckedChange={setDrugEnabled} />
-                          </div>
-                          {drugEnabled && (
-                            <>
-                              <div className="mb-2">
-                                <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Drug Name</Label>
-                                <Input 
-                                  value={drugName} 
-                                  onChange={(e) => setDrugName(e.target.value)}
-                                  placeholder="e.g., Isoproterenol"
-                                  className="h-8 text-xs font-data rounded-lg"
-                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Start (s)</Label>
-                                  <Input 
-                                    type="number" 
-                                    value={spikeDrugStart} 
-                                    onChange={(e) => setSpikeDrugStart(Number(e.target.value))}
-                                    className="h-8 text-xs font-data rounded-lg"
-                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>End (s)</Label>
-                                  <Input 
-                                    type="number" 
-                                    value={spikeDrugEnd} 
-                                    onChange={(e) => setSpikeDrugEnd(Number(e.target.value))}
-                                    className="h-8 text-xs font-data rounded-lg"
-                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                                  />
-                                </div>
-                              </div>
-                            </>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Minute:</Label>
+                          <Input
+                            type="number"
+                            value={baselineMinute}
+                            onChange={(e) => setBaselineMinute(parseInt(e.target.value) || 1)}
+                            className="w-16 h-6 text-[10px] font-data rounded-lg"
+                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34, 211, 238, 0.2)', color: '#22d3ee' }}
+                            disabled={!baselineEnabled}
+                            min={1}
+                          />
+                          <Badge variant="outline" className="text-[8px] px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(34, 211, 238, 0.2)', color: 'rgba(34, 211, 238, 0.8)' }}>
+                            {baselineMinute}-{baselineMinute + 1}min
+                          </Badge>
                         </div>
                       </div>
                       
-                      {/* Burst Readout */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>Burst Readout</h4>
-                        
-                        {/* Baseline */}
-                        <div 
-                          className="p-3 rounded-xl"
-                          style={{ background: 'rgba(249, 115, 22, 0.08)', border: '1px solid rgba(249, 115, 22, 0.25)' }}
-                        >
-                          <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Baseline Window</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Start (s)</Label>
-                              <Input 
-                                type="number" 
-                                value={burstBaselineStart} 
-                                onChange={(e) => setBurstBaselineStart(Number(e.target.value))}
-                                className="h-8 text-xs font-data rounded-lg"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                      {/* Drug Readout */}
+                      <div 
+                        className="p-3 rounded-xl transition-all"
+                        style={{ 
+                          background: drugEnabled && selectedDrugs.length > 0 ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.03)', 
+                          border: drugEnabled && selectedDrugs.length > 0 ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.10)',
+                          opacity: selectedDrugs.length > 0 ? 1 : 0.5
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[9px] uppercase tracking-wider font-medium" style={{ color: drugEnabled ? '#a855f7' : 'var(--text-tertiary)' }}>
+                            Drug Readout
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDrugEnabled(!drugEnabled)}
+                            className="h-5 px-2 text-[9px] rounded-full"
+                            style={{
+                              background: drugEnabled ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.08)',
+                              color: drugEnabled ? '#a855f7' : 'var(--text-secondary)',
+                            }}
+                            disabled={selectedDrugs.length === 0}
+                          >
+                            {drugEnabled ? 'ON' : 'OFF'}
+                          </Button>
+                        </div>
+                        {selectedDrugs.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Perf Time:</Label>
+                              <Input
+                                type="number"
+                                value={drugPerfTime}
+                                onChange={(e) => setDrugPerfTime(parseInt(e.target.value) || 1)}
+                                className="w-14 h-6 text-[10px] font-data rounded-lg"
+                                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(168, 85, 247, 0.2)', color: '#a855f7' }}
+                                disabled={!drugEnabled}
                               />
+                              <span className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>min</span>
                             </div>
-                            <div>
-                              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>End (s)</Label>
-                              <Input 
-                                type="number" 
-                                value={burstBaselineEnd} 
-                                onChange={(e) => setBurstBaselineEnd(Number(e.target.value))}
-                                className="h-8 text-xs font-data rounded-lg"
-                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                            <div className="flex items-center gap-2">
+                              <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Readout:</Label>
+                              <Input
+                                type="number"
+                                value={drugReadoutMinute}
+                                onChange={(e) => setDrugReadoutMinute(parseInt(e.target.value) || 1)}
+                                className="w-14 h-6 text-[10px] font-data rounded-lg"
+                                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(168, 85, 247, 0.2)', color: '#a855f7' }}
+                                disabled={!drugEnabled}
                               />
+                              <span className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>min</span>
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* Drug (synced with spike) */}
-                        <div 
-                          className="p-3 rounded-xl transition-all"
-                          style={{ 
-                            background: drugEnabled ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.03)', 
-                            border: drugEnabled ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.10)',
-                            opacity: drugEnabled ? 1 : 0.6
-                          }}
-                        >
-                          <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Drug Window</p>
-                          {drugEnabled ? (
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Start (s)</Label>
-                                <Input 
-                                  type="number" 
-                                  value={burstDrugStart} 
-                                  onChange={(e) => setBurstDrugStart(Number(e.target.value))}
-                                  className="h-8 text-xs font-data rounded-lg"
-                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>End (s)</Label>
-                                <Input 
-                                  type="number" 
-                                  value={burstDrugEnd} 
-                                  onChange={(e) => setBurstDrugEnd(Number(e.target.value))}
-                                  className="h-8 text-xs font-data rounded-lg"
-                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                                />
-                              </div>
+                        ) : (
+                          <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>Add a drug to enable</p>
+                        )}
+                      </div>
+                      
+                      {/* Readout Metrics */}
+                      <div 
+                        className="p-3 rounded-xl"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}
+                      >
+                        <p className="text-[9px] uppercase tracking-wider font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+                          Readout Metrics
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Spike Column */}
+                          <div className="space-y-2">
+                            <p className="text-[8px] uppercase" style={{ color: '#00b8c4' }}>Spike</p>
+                            <div className="text-[10px]">
+                              <span style={{ color: 'var(--text-tertiary)' }}>Baseline: </span>
+                              <span className="font-data" style={{ color: '#22d3ee' }}>
+                                {wellAnalysis.baselineSpikeHz?.toFixed(3) ?? '—'} Hz
+                              </span>
                             </div>
-                          ) : (
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Enable drug in spike readout</p>
-                          )}
+                            {drugEnabled && selectedDrugs.length > 0 && (
+                              <div className="text-[10px]">
+                                <span style={{ color: 'var(--text-tertiary)' }}>Drug: </span>
+                                <span className="font-data" style={{ color: '#a855f7' }}>
+                                  {wellAnalysis.drugSpikeHz?.toFixed(3) ?? '—'} Hz
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Burst Column */}
+                          <div className="space-y-2">
+                            <p className="text-[8px] uppercase" style={{ color: '#f97316' }}>Burst</p>
+                            <div className="text-[10px]">
+                              <span style={{ color: 'var(--text-tertiary)' }}>Baseline: </span>
+                              <span className="font-data" style={{ color: '#22d3ee' }}>
+                                {wellAnalysis.baselineBurstBpm?.toFixed(3) ?? '—'} bpm
+                              </span>
+                            </div>
+                            {drugEnabled && selectedDrugs.length > 0 && (
+                              <div className="text-[10px]">
+                                <span style={{ color: 'var(--text-tertiary)' }}>Drug: </span>
+                                <span className="font-data" style={{ color: '#a855f7' }}>
+                                  {wellAnalysis.drugBurstBpm?.toFixed(3) ?? '—'} bpm
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                {/* Row 4: Readout Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  <MetricCard label="Baseline Spike Rate" value={wellAnalysis.baselineSpikeHz} unit="Hz" color="cyan" />
-                  <MetricCard label="Baseline Burst Rate" value={wellAnalysis.baselineBurstBpm} unit="bpm" color="orange" />
-                  {drugEnabled && (
-                    <>
-                      <MetricCard label={`${drugName || 'Drug'} Spike Rate`} value={wellAnalysis.drugSpikeHz} unit="Hz" color="purple" />
-                      <MetricCard label={`${drugName || 'Drug'} Burst Rate`} value={wellAnalysis.drugBurstBpm} unit="bpm" color="purple" />
-                    </>
-                  )}
-                  <MetricCard label="Active Electrodes" value={wellAnalysis.well?.n_active_electrodes} unit="" color="default" />
-                  <MetricCard label="Duration" value={(duration / 60).toFixed(1)} unit="min" color="default" />
+                {/* Spike-Burst Correlation */}
+                <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
+                  <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
+                      <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike–Burst Correlation</span>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <CorrelationScatter spikeData={wellAnalysis.spikeRateBins} burstData={wellAnalysis.burstRateBins} correlation={wellAnalysis.correlation} />
+                  </div>
                 </div>
                 
-                {/* Row 5: Correlation - Spike vs Baseline, Burst vs Baseline */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <GlassChartWrapper title="Spike Rate Distribution" icon={BarChart3} iconColor="#00b8c4">
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={wellAnalysis.perMinuteSpike} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                          <XAxis dataKey="minute" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10, fill: '#71717a' }} />
-                          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10, fill: '#71717a' }} />
-                          <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
-                          <Bar dataKey="spike_rate_hz" fill="#00b8c4" name="Spike Rate (Hz)" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </GlassChartWrapper>
-                  <GlassChartWrapper title="Burst Rate Distribution" icon={BarChart3} iconColor="#f97316">
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={wellAnalysis.perMinuteBurst} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                          <XAxis dataKey="minute" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10, fill: '#71717a' }} />
-                          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10, fill: '#71717a' }} />
-                          <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }} />
-                          <Bar dataKey="burst_rate_bpm" fill="#f97316" name="Burst Rate (bpm)" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </GlassChartWrapper>
-                </div>
-                
-                {/* Row 6: Spike-Burst Correlation (Full Width) */}
-                <GlassChartWrapper title="Spike–Burst Correlation" icon={TrendingUp} iconColor="#10b981">
-                  <CorrelationScatter 
-                    spikeData={wellAnalysis.spikeRateBins}
-                    burstData={wellAnalysis.burstRateBins}
-                    correlation={wellAnalysis.correlation}
-                  />
-                </GlassChartWrapper>
-                
-                {/* Row 7: Per-Minute / Per-Bin Tables */}
-                <div 
-                  className="glass-surface-subtle rounded-xl overflow-hidden"
-                  style={{ borderLeft: '3px solid #10b981' }}
-                >
+                {/* Per Minute Metrics */}
+                <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid var(--text-secondary)' }}>
                   <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
+                      <BarChart3 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                       <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                        Tabular Summaries
+                        Per Minute Metrics
                       </span>
                     </div>
                     <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -960,7 +1019,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         size="sm"
                         variant={tableMode === 'minute' ? 'default' : 'ghost'}
                         className="h-7 px-3 text-xs rounded-md"
-                        style={tableMode === 'minute' ? { background: '#10b981', color: '#000' } : { color: 'var(--text-secondary)' }}
+                        style={tableMode === 'minute' ? { background: 'var(--text-secondary)', color: '#000' } : { color: 'var(--text-tertiary)' }}
                         onClick={() => setTableMode('minute')}
                       >
                         Per Minute
@@ -969,184 +1028,142 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         size="sm"
                         variant={tableMode === 'bin' ? 'default' : 'ghost'}
                         className="h-7 px-3 text-xs rounded-md"
-                        style={tableMode === 'bin' ? { background: '#10b981', color: '#000' } : { color: 'var(--text-secondary)' }}
+                        style={tableMode === 'bin' ? { background: 'var(--text-secondary)', color: '#000' } : { color: 'var(--text-tertiary)' }}
                         onClick={() => setTableMode('bin')}
                       >
                         Per Bin
                       </Button>
                     </div>
                   </div>
-                  <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Spike Table */}
-                    <div>
-                      <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#00b8c4' }}>
-                        Spike {tableMode === 'minute' ? 'Per Minute' : 'Per Bin'}
-                      </h4>
-                      <ScrollArea className="h-48 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="p-4">
+                    {tableMode === 'minute' ? (
+                      /* Combined Per-Minute Table */
+                      <ScrollArea className="h-64 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                         <Table>
                           <TableHeader>
                             <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                              <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                                {tableMode === 'minute' ? 'Minute' : 'Bin Start (s)'}
-                              </TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Rate (Hz)</TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Count</TableHead>
+                              <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Minute</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#00b8c4' }}>Spike Rate (Hz)</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#00b8c4' }}>Spike Count</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#f97316' }}>Burst Rate (bpm)</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#f97316' }}>Burst Count</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {(tableMode === 'minute' ? wellAnalysis.perMinuteSpike : wellAnalysis.spikeRateBins).map((row, i) => (
-                              <TableRow key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>
-                                  {tableMode === 'minute' ? row.minute : row.bin_start}
-                                </TableCell>
-                                <TableCell className="text-xs font-data text-right" style={{ color: '#00b8c4' }}>
-                                  {(tableMode === 'minute' ? row.spike_rate_hz : row.spike_rate_hz).toFixed(3)}
-                                </TableCell>
-                                <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>
-                                  {row.spike_count}
-                                </TableCell>
+                            {wellAnalysis.perMinuteCombined.map((row) => (
+                              <TableRow key={row.minute} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.minute}</TableCell>
+                                <TableCell className="text-xs font-data text-right" style={{ color: '#00b8c4' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
+                                <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.spike_count}</TableCell>
+                                <TableCell className="text-xs font-data text-right" style={{ color: '#f97316' }}>{row.burst_rate_bpm.toFixed(3)}</TableCell>
+                                <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.burst_count}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
                         </Table>
                       </ScrollArea>
-                    </div>
-                    
-                    {/* Burst Table */}
-                    <div>
-                      <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#f97316' }}>
-                        Burst {tableMode === 'minute' ? 'Per Minute' : 'Per Bin'}
-                      </h4>
-                      <ScrollArea className="h-48 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <Table>
-                          <TableHeader>
-                            <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                              <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                                {tableMode === 'minute' ? 'Minute' : 'Bin Start (s)'}
-                              </TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Rate (bpm)</TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Count</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(tableMode === 'minute' ? wellAnalysis.perMinuteBurst : wellAnalysis.burstRateBins).map((row, i) => (
-                              <TableRow key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>
-                                  {tableMode === 'minute' ? row.minute : row.bin_start}
-                                </TableCell>
-                                <TableCell className="text-xs font-data text-right" style={{ color: '#f97316' }}>
-                                  {(tableMode === 'minute' ? row.burst_rate_bpm : row.burst_rate_bpm).toFixed(3)}
-                                </TableCell>
-                                <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>
-                                  {row.burst_count}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </ScrollArea>
-                    </div>
+                    ) : (
+                      /* Separate Per-Bin Tables */
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Spike Per-Bin */}
+                        <div>
+                          <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#00b8c4' }}>Spike Per Bin</h4>
+                          <ScrollArea className="h-48 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Table>
+                              <TableHeader>
+                                <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                  <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Bin Start (s)</TableHead>
+                                  <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Rate (Hz)</TableHead>
+                                  <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Count</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {wellAnalysis.spikeRateBins.map((row, i) => (
+                                  <TableRow key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.bin_start}</TableCell>
+                                    <TableCell className="text-xs font-data text-right" style={{ color: '#00b8c4' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
+                                    <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.spike_count}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                        </div>
+                        {/* Burst Per-Bin */}
+                        <div>
+                          <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#f97316' }}>Burst Per Bin</h4>
+                          <ScrollArea className="h-48 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <Table>
+                              <TableHeader>
+                                <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                  <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Bin Start (s)</TableHead>
+                                  <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Rate (bpm)</TableHead>
+                                  <TableHead className="text-[10px] text-right" style={{ color: 'var(--text-tertiary)' }}>Count</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {wellAnalysis.burstRateBins.map((row, i) => (
+                                  <TableRow key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.bin_start}</TableCell>
+                                    <TableCell className="text-xs font-data text-right" style={{ color: '#f97316' }}>{row.burst_rate_bpm.toFixed(3)}</TableCell>
+                                    <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.burst_count}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
             ) : (
-              <div className="text-center py-16" style={{ color: 'var(--text-tertiary)' }}>
-                Select a well to view analysis
-              </div>
+              <div className="text-center py-16" style={{ color: 'var(--text-tertiary)' }}>Select a well to view analysis</div>
             )}
           </TabsContent>
           
-          {/* ============================================================
-              LIGHT STIMULUS TAB
-          ============================================================ */}
+          {/* Placeholder tabs */}
           <TabsContent value="light" className="space-y-6">
-            <div 
-              className="glass-surface-subtle rounded-xl p-8 text-center"
-              style={{ borderLeft: '3px solid #f59e0b' }}
-            >
+            <div className="glass-surface-subtle rounded-xl p-8 text-center" style={{ borderLeft: '3px solid #f59e0b' }}>
               <Zap className="w-12 h-12 mx-auto mb-4" style={{ color: '#f59e0b' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>
-                Light Stimulus Analysis
-              </h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Configure light stimulation parameters to analyze light-induced activity changes.
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <Label style={{ color: 'var(--text-secondary)' }}>Enable Light Analysis</Label>
+              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Light Stimulus Analysis</h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Configure light stimulation parameters.</p>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Label style={{ color: 'var(--text-secondary)' }}>Enable Light</Label>
                 <Switch checked={lightEnabled} onCheckedChange={setLightEnabled} />
               </div>
-              {lightEnabled && (
-                <p className="text-xs mt-4" style={{ color: 'var(--text-tertiary)' }}>
-                  Light stimulus configuration coming in next update
-                </p>
-              )}
             </div>
           </TabsContent>
           
-          {/* ============================================================
-              SAVE RECORDING TAB
-          ============================================================ */}
           <TabsContent value="save" className="space-y-6">
-            <div 
-              className="glass-surface-subtle rounded-xl p-8 text-center"
-              style={{ borderLeft: '3px solid #10b981' }}
-            >
+            <div className="glass-surface-subtle rounded-xl p-8 text-center" style={{ borderLeft: '3px solid #10b981' }}>
               <Save className="w-12 h-12 mx-auto mb-4" style={{ color: '#10b981' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>
-                Save MEA Recording
-              </h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Save the current well analysis to a folder for comparison and export.
-              </p>
-              <Button
-                className="h-10 px-6 rounded-xl font-medium"
-                style={{ background: '#10b981', color: '#000' }}
-                onClick={() => toast.info('Save functionality coming in next update')}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Recording
+              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Save MEA Recording</h3>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Save analysis to folder.</p>
+              <Button className="h-10 px-6 rounded-xl" style={{ background: '#10b981', color: '#000' }} onClick={() => toast.info('Save coming soon')}>
+                <Save className="w-4 h-4 mr-2" /> Save Recording
               </Button>
             </div>
           </TabsContent>
           
-          {/* ============================================================
-              EXPORT TAB
-          ============================================================ */}
           <TabsContent value="export" className="space-y-6">
-            <div 
-              className="glass-surface-subtle rounded-xl p-8 text-center"
-            >
+            <div className="glass-surface-subtle rounded-xl p-8 text-center">
               <FileSpreadsheet className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-primary)' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>
-                Export MEA Data
-              </h3>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-                Export spike rates, burst rates, and per-electrode data for the selected well.
-              </p>
+              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Export MEA Data</h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Export spike and burst data.</p>
               <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  className="h-10 px-5 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
-                  onClick={() => toast.info('Excel export coming soon')}
-                >
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Excel (.xlsx)
+                <Button variant="outline" className="h-10 px-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }} onClick={() => toast.info('Excel export coming soon')}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-10 px-5 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
-                  onClick={() => toast.info('PDF export coming soon')}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  PDF Report
+                <Button variant="outline" className="h-10 px-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }} onClick={() => toast.info('PDF export coming soon')}>
+                  <FileText className="w-4 h-4 mr-2" /> PDF
                 </Button>
               </div>
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 }
