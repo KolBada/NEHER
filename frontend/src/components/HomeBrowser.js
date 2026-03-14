@@ -785,7 +785,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Sections with drop zones */}
             {sections.map((section, index) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -986,97 +986,107 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             
             {/* Unsectioned Folders */}
             {sortedFolders.filter(f => !f.section_id).length > 0 && (
-              <div className="grid gap-2">
+              <div className="mt-6">
                 {sections.length > 0 && (
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Unsorted</span>
                     <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
                   </div>
                 )}
-                {sortedFolders.filter(f => !f.section_id).map((folder) => (
-              <Card 
-                key={folder.id}
-                className="glass-surface cursor-pointer group transition-all hover:translate-y-[-1px]"
-                style={{ borderRadius: '12px' }}
-                data-testid={`folder-${folder.id}`}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
-              >
-                <CardContent className="p-4 flex items-center gap-4" onClick={() => loadRecordings(folder.id)}>
-                  <div 
-                    className={`w-11 h-11 rounded-xl ${getFolderBgClass(folder.color)} flex items-center justify-center transition-all group-hover:scale-105`}
-                    style={{ 
-                      boxShadow: `0 0 24px ${folder.color === 'amber' ? 'rgba(245,158,11,0.3)' : folder.color === 'emerald' ? 'rgba(16,185,129,0.3)' : folder.color === 'sky' ? 'rgba(14,165,233,0.3)' : folder.color === 'violet' ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.15)'}`,
-                    }}
-                  >
-                    <FolderOpen className={`w-6 h-6 ${getFolderColorClass(folder.color)}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.83rem' }}>
-                      {folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
-                        <MoreVertical className="w-4 h-4 text-zinc-500" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
-                      <DropdownMenuItem 
-                        className="text-xs"
-                        onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
+                {/* Unsorted folders in a unified glass container like sections */}
+                <div 
+                  className="rounded-xl overflow-hidden"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.02)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <div className="px-4 py-3 space-y-1">
+                    {sortedFolders.filter(f => !f.section_id).map((folder) => (
+                      <div 
+                        key={folder.id}
+                        className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer group transition-all"
+                        style={{ background: 'transparent' }}
+                        data-testid={`folder-${folder.id}`}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        onClick={() => loadRecordings(folder.id)}
                       >
-                        <Palette className="w-3.5 h-3.5 mr-2" />
-                        Change Color
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFolderToRename(folder);
-                          setRenameFolderName(folder.name);
-                          setRenameFolderOpen(true);
-                        }}
-                      >
-                        <Pencil className="w-3.5 h-3.5 mr-2" />
-                        Rename
-                      </DropdownMenuItem>
-                      {sections.length > 0 && (
-                        <>
-                          <DropdownMenuSeparator className="bg-zinc-800" />
-                          <DropdownMenuLabel className="text-xs text-zinc-500">Move to Section</DropdownMenuLabel>
-                          {sections.map(s => (
+                        <div 
+                          className={`w-8 h-8 rounded-lg ${getFolderBgClass(folder.color)} flex items-center justify-center transition-all group-hover:scale-105`}
+                          style={{ 
+                            boxShadow: `0 0 16px ${folder.color === 'amber' ? 'rgba(245,158,11,0.2)' : folder.color === 'emerald' ? 'rgba(16,185,129,0.2)' : folder.color === 'sky' ? 'rgba(14,165,233,0.2)' : folder.color === 'violet' ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                          }}
+                        >
+                          <FolderOpen className={`w-4 h-4 ${getFolderColorClass(folder.color)}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{folder.name}</h3>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{folder.recording_count} recording{folder.recording_count !== 1 ? 's' : ''}</p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                              <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
                             <DropdownMenuItem 
-                              key={s.id}
                               className="text-xs"
-                              onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, s.id); }}
+                              onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
                             >
-                              <Layers className="w-3.5 h-3.5 mr-2" />
-                              {s.name}
+                              <Palette className="w-3.5 h-3.5 mr-2" />
+                              Change Color
                             </DropdownMenuItem>
-                          ))}
-                        </>
-                      )}
-                      <DropdownMenuSeparator className="bg-zinc-800" />
-                      <DropdownMenuItem 
-                        className="text-xs text-red-400 focus:text-red-400"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFolderToDelete(folder);
-                          setDeleteFolderOpen(true);
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
-                </CardContent>
-              </Card>
-            ))}
+                            <DropdownMenuItem 
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFolderToRename(folder);
+                                setRenameFolderName(folder.name);
+                                setRenameFolderOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            {sections.length > 0 && (
+                              <>
+                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuLabel className="text-xs text-zinc-500">Move to Section</DropdownMenuLabel>
+                                {sections.map(s => (
+                                  <DropdownMenuItem 
+                                    key={s.id}
+                                    className="text-xs"
+                                    onClick={(e) => { e.stopPropagation(); handleAssignFolderToSection(folder, s.id); }}
+                                  >
+                                    <Layers className="w-3.5 h-3.5 mr-2" />
+                                    {s.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+                            <DropdownMenuSeparator className="bg-zinc-800" />
+                            <DropdownMenuItem 
+                              className="text-xs text-red-400 focus:text-red-400"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFolderToDelete(folder);
+                                setDeleteFolderOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
