@@ -492,13 +492,24 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
           <div className="flex justify-between items-center pt-4">
             <Button 
               variant="ghost" 
+              size="sm"
               onClick={onBack}
-              className="rounded-lg"
+              className="h-9 px-4 rounded-xl transition-all"
               style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.14)',
                 color: 'var(--text-secondary)',
-                padding: '10px 20px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
               }}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -506,7 +517,25 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
             </Button>
             <Button
               data-testid="upload-btn"
-              className="btn-start-analysis btn-start-analysis-sem"
+              size="sm"
+              className="h-9 px-4 rounded-xl transition-all"
+              style={{
+                background: 'rgba(244, 206, 162, 0.12)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(244, 206, 162, 0.35)',
+                color: '#F4CEA2',
+                boxShadow: '0 0 20px rgba(244, 206, 162, 0.15)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(244, 206, 162, 0.20)';
+                e.currentTarget.style.borderColor = 'rgba(244, 206, 162, 0.50)';
+                e.currentTarget.style.boxShadow = '0 0 25px rgba(244, 206, 162, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(244, 206, 162, 0.12)';
+                e.currentTarget.style.borderColor = 'rgba(244, 206, 162, 0.35)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(244, 206, 162, 0.15)';
+              }}
               onClick={handleUpload}
               disabled={loading || selectedFiles.length === 0}
             >

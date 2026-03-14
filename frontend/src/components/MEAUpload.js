@@ -812,13 +812,24 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
             <div className="flex justify-between items-center pt-4">
               <Button 
                 variant="ghost" 
+                size="sm"
                 onClick={onBack}
-                className="rounded-lg"
+                className="h-9 px-4 rounded-xl transition-all"
                 style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  background: 'rgba(255,255,255,0.06)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.14)',
                   color: 'var(--text-secondary)',
-                  padding: '10px 20px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -827,7 +838,25 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
               <Button
                 onClick={parseAllFiles}
                 disabled={!allFilesPresent || parsing}
-                className="btn-start-analysis btn-start-analysis-mea"
+                size="sm"
+                className="h-9 px-4 rounded-xl transition-all"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                  boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(16, 185, 129, 0.20)';
+                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.50)';
+                  e.currentTarget.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.15)';
+                }}
                 data-testid="mea-parse-btn"
               >
                 {parsing ? (
