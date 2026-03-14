@@ -103,6 +103,7 @@
         background: radial-gradient(ellipse at 20% 50%, #0a1628 0%, #050c1a 60%, #02080f 100%);
         min-height: 100vh;
         color: var(--text-primary);
+        overflow-y: scroll; /* Always show scrollbar to prevent layout shift */
     }
     body {
         font-family: var(--font-body);
