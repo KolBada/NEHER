@@ -1366,7 +1366,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
       <div className="neher-glow-orbs" />
       
       {/* Content container */}
-      <div className="relative z-10 p-6 max-w-5xl mx-auto">
+      <div className="relative z-10 p-6 max-w-7xl mx-auto">
         {/* Header - same branding as home page */}
         <header className="header-border pb-6 mb-8">
           <div className="flex items-start justify-between">

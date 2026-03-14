@@ -1018,7 +1018,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       {/* Tabs */}
       <Tabs defaultValue="spontaneous" className="w-full">
         <TabsList 
-          className="h-10 mb-6 rounded-xl p-1"
+          className="h-10 mb-6 rounded-xl p-1 gap-2"
           style={{
             background: 'rgba(255, 255, 255, 0.03)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -1573,6 +1573,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
                                     domain={hraYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
                                     allowDataOverflow={true}
+                                    tickFormatter={(value) => Number.isFinite(value) ? (Number.isInteger(value) ? value : value.toFixed(Math.min(4, Math.max(0, -Math.floor(Math.log10(Math.abs(value))) + 3)))) : value}
                                   />
                                   <RechartsTooltip 
                                     contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', backdropFilter: 'blur(8px)' }}
@@ -1929,6 +1930,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
                                     domain={hrvYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
                                     allowDataOverflow={true}
+                                    tickFormatter={(value) => Number.isFinite(value) ? (Number.isInteger(value) ? value : value.toFixed(Math.min(4, Math.max(0, -Math.floor(Math.log10(Math.abs(value))) + 3)))) : value}
                                   />
                                   <RechartsTooltip 
                                     contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', backdropFilter: 'blur(8px)' }}
