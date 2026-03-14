@@ -1590,11 +1590,11 @@ function App() {
       <header 
         className="sticky top-0 z-20 px-6 py-3"
         style={{ 
-          background: 'rgba(12, 12, 14, 0.85)', 
+          background: 'rgba(2, 8, 15, 0.75)', 
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 4px 32px rgba(0, 0, 0, 0.4)',
+          borderBottom: '1px solid rgba(20, 184, 166, 0.15)',
+          boxShadow: '0 4px 32px rgba(0, 0, 0, 0.3)',
         }}
         data-testid="app-header"
       >
@@ -1919,10 +1919,10 @@ function App() {
         <div 
           className="sticky top-[57px] z-10 px-6 py-3"
           style={{
-            background: 'rgba(12, 12, 14, 0.85)',
+            background: 'rgba(2, 8, 15, 0.75)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid rgba(168, 85, 247, 0.15)',
           }}
         >
           <ScrollArea className="max-h-[150px]">
