@@ -265,9 +265,9 @@ export default function DetectionPanel({
         <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Actions */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {!isValidated ? (
-            <>
+            <div className="space-y-3">
               <Button
                 data-testid="re-detect-btn"
                 variant="secondary"
@@ -293,7 +293,7 @@ export default function DetectionPanel({
               >
                 Validate Beats
               </Button>
-            </>
+            </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>

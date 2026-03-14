@@ -378,7 +378,8 @@ function TraceViewer({
 
   return (
     <div 
-      className="glass-surface-subtle rounded-xl" 
+      className="rounded-xl" 
+      style={{ background: '#0a0a0b', border: '1px solid rgba(255,255,255,0.08)' }}
       data-testid="trace-viewer" 
       ref={containerRef}
     >
@@ -390,14 +391,14 @@ function TraceViewer({
             size="sm"
             className={`h-7 text-xs rounded-lg ${
               editMode
-                ? 'text-white'
+                ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                 : 'hover:text-zinc-100'
             }`}
-            style={{
-              background: editMode ? '#18181b' : '#0a0a0b',
-              border: '1px solid rgba(255,255,255,0.15)',
-              color: editMode ? '#22d3ee' : 'var(--text-secondary)'
-            }}
+            style={!editMode ? {
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: 'var(--text-secondary)'
+            } : {}}
             onClick={() => {
               setEditMode(!editMode);
               setSelectedBeatIdx(null);
