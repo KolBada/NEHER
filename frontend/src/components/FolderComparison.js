@@ -946,7 +946,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           }}
         >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>RECORDINGS</p>
-          <p className="text-2xl font-semibold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-display)' }}>{summary?.recording_count || 0}</p>
+          <p className="text-2xl font-semibold" style={{ color: '#ffffff', fontFamily: 'var(--font-display)' }}>{summary?.recording_count || 0}</p>
         </div>
         <div 
           className="p-4 rounded-xl"
@@ -962,7 +962,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#10b981', fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)' }}>
             {summary?.hspo_age_range?.min !== null 
               ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
               : '—'}
@@ -983,7 +983,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold" style={{ color: '#10b981', fontFamily: 'var(--font-display)' }}>
             {summary?.hco_age_range?.min !== null 
               ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
               : '—'}
@@ -1002,7 +1002,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           }}
         >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>FUSION AGE RANGE</p>
-          <p className="text-lg font-semibold" style={{ color: '#a78bfa', fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold" style={{ color: '#ffffff', fontFamily: 'var(--font-display)' }}>
             {summary?.fusion_age_range?.min !== null 
               ? `${summary.fusion_age_range.min} - ${summary.fusion_age_range.max} days`
               : '—'}
@@ -1080,25 +1080,25 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-800">
-                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                        <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee', borderLeft: '1px solid rgba(6, 182, 212, 0.2)' }}>
                           <InfoTip text="Mean Beat Frequency during minute 1-2 of recording (without drug or stimuli)">Baseline BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee' }}>
                           <InfoTip text="Root Mean Square of Successive Differences (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(RMSSD<sub>70</sub>)</span></InfoTip>
                         </th>
-                        <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee' }}>
                           <InfoTip text="Standard Deviation of NN intervals (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(SDNN<sub>70</sub>)</span></InfoTip>
                         </th>
-                        <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30 whitespace-nowrap">
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee', borderRight: '1px solid rgba(6, 182, 212, 0.2)' }}>
                           <InfoTip text="% of successive NN > 50ms (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline pNN50<sub>70</sub></span></InfoTip>
                         </th>
-                        <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">{drug.name} BF</th>
-                        <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">{drug.name} ln(RMSSD<sub>70</sub>)</span></th>
-                        <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">{drug.name} ln(SDNN<sub>70</sub>)</span></th>
-                        <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap"><span className="whitespace-nowrap">{drug.name} pNN50<sub>70</sub></span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderLeft: '1px solid rgba(192, 132, 252, 0.2)' }}>{drug.name} BF</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(RMSSD<sub>70</sub>)</span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(SDNN<sub>70</sub>)</span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderRight: '1px solid rgba(192, 132, 252, 0.2)' }}><span className="whitespace-nowrap">{drug.name} pNN50<sub>70</sub></span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1406,10 +1406,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 </div>
                 
                 {/* Expandable Per Metrics Section for HRA */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                   <button
                     onClick={() => setHraPerMetricExpanded(!hraPerMetricExpanded)}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    className="flex items-center gap-2 text-sm transition-colors py-1"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
                     data-testid="expand-hra-per-metric"
                   >
                     <ChevronRight 
@@ -1423,9 +1426,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       hraPerMetricExpanded ? 'max-h-[8000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {/* Metric Selector */}
-                    <div className="mb-4 p-3 bg-zinc-900/60 rounded-lg">
-                      <p className="text-xs text-zinc-400 mb-2">Select metrics to display:</p>
+                    {/* Metric Selector - Glassmorphic */}
+                    <div 
+                      className="mb-4 p-4 rounded-xl"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(16px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                      }}
+                    >
+                      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Select metrics to display:</p>
                       <div className="flex flex-wrap gap-2">
                         {hraMetricDefs.map((metric) => (
                           <button
@@ -1434,11 +1445,30 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               ...prev,
                               [metric.key]: !prev[metric.key]
                             }))}
-                            className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
-                              selectedHraMetrics[metric.key]
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                            }`}
+                            className="px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1"
+                            style={{
+                              background: selectedHraMetrics[metric.key] 
+                                ? 'rgba(245, 158, 11, 0.25)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              backdropFilter: 'blur(8px)',
+                              border: selectedHraMetrics[metric.key]
+                                ? '1px solid rgba(245, 158, 11, 0.5)'
+                                : '1px solid rgba(255, 255, 255, 0.12)',
+                              color: selectedHraMetrics[metric.key] ? '#fbbf24' : 'var(--text-secondary)',
+                              boxShadow: selectedHraMetrics[metric.key] ? '0 0 12px rgba(245, 158, 11, 0.2)' : 'none',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!selectedHraMetrics[metric.key]) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!selectedHraMetrics[metric.key]) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                              }
+                            }}
                             data-testid={`select-hra-metric-${metric.key}`}
                           >
                             <InfoTip text={metric.tooltip}>
@@ -1452,24 +1482,34 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     {Object.values(selectedHraMetrics).some(v => v) ? (
                       <div className="space-y-6">
                         {perMetricHRAData.filter(m => selectedHraMetrics[m.key]).map((metricData) => (
-                          <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
+                          <div 
+                            key={metricData.key} 
+                            className="rounded-xl p-4"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.025)',
+                              backdropFilter: 'blur(16px) saturate(180%)',
+                              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                            }}
+                          >
                             <h4 className={`text-sm font-semibold mb-3 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
                               {metricData.label}
                             </h4>
                             
-                            {/* Visualization Chart */}
+                            {/* Visualization Chart with Y-axis zoom */}
                             <div className="h-48 mb-4">
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                                  <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                  <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
                                   <YAxis 
-                                    stroke="#a1a1aa" 
-                                    tick={{ fontSize: 10 }} 
+                                    stroke="#71717a" 
+                                    tick={{ fontSize: 10, fill: '#a1a1aa' }} 
                                     domain={metricData.yDomain || ['auto', 'auto']}
+                                    allowDataOverflow={true}
                                   />
                                   <RechartsTooltip 
-                                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
+                                    contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', backdropFilter: 'blur(8px)' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
                                   <Legend 
@@ -1553,15 +1593,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <div className="overflow-x-auto">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="border-b border-zinc-800">
-                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 1</th>
-                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 2</th>
-                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 3</th>
-                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 4</th>
-                                    <th className={`text-center py-2 px-2 font-medium ${metricData.color === 'cyan' ? 'text-cyan-400 bg-cyan-950/30' : 'text-amber-400 bg-amber-950/30'}`}>Stim 5</th>
-                                    <th className="text-center py-2 px-2 font-medium text-yellow-400 bg-yellow-950/30">Average</th>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24', borderLeft: metricData.color === 'cyan' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 1</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 2</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 3</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 4</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24', borderRight: metricData.color === 'cyan' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 5</th>
+                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.12)', backdropFilter: 'blur(8px)', color: '#facc15', borderLeft: '1px solid rgba(234, 179, 8, 0.2)' }}>Average</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1661,10 +1701,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 </div>
                 
                 {/* Expandable Per Metrics Section for HRV */}
-                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                   <button
                     onClick={() => setHrvPerMetricExpanded(!hrvPerMetricExpanded)}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    className="flex items-center gap-2 text-sm transition-colors py-1"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
                     data-testid="expand-hrv-per-metric"
                   >
                     <ChevronRight 
@@ -1678,9 +1721,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       hrvPerMetricExpanded ? 'max-h-[5000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {/* Metric Selector */}
-                    <div className="mb-4 p-3 bg-zinc-900/60 rounded-lg">
-                      <p className="text-xs text-zinc-400 mb-2">Select metrics to display:</p>
+                    {/* Metric Selector - Glassmorphic */}
+                    <div 
+                      className="mb-4 p-4 rounded-xl"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(16px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                      }}
+                    >
+                      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Select metrics to display:</p>
                       <div className="flex flex-wrap gap-2">
                         {hrvMetricDefs.map((metric) => (
                           <button
@@ -1689,11 +1740,30 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               ...prev,
                               [metric.key]: !prev[metric.key]
                             }))}
-                            className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
-                              selectedHrvMetrics[metric.key]
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                            }`}
+                            className="px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1"
+                            style={{
+                              background: selectedHrvMetrics[metric.key] 
+                                ? 'rgba(245, 158, 11, 0.25)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              backdropFilter: 'blur(8px)',
+                              border: selectedHrvMetrics[metric.key]
+                                ? '1px solid rgba(245, 158, 11, 0.5)'
+                                : '1px solid rgba(255, 255, 255, 0.12)',
+                              color: selectedHrvMetrics[metric.key] ? '#fbbf24' : 'var(--text-secondary)',
+                              boxShadow: selectedHrvMetrics[metric.key] ? '0 0 12px rgba(245, 158, 11, 0.2)' : 'none',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!selectedHrvMetrics[metric.key]) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!selectedHrvMetrics[metric.key]) {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                              }
+                            }}
                             data-testid={`select-hrv-metric-${metric.key}`}
                           >
                             <InfoTip text={metric.tooltip}>
@@ -1707,24 +1777,34 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     {Object.values(selectedHrvMetrics).some(v => v) ? (
                       <div className="space-y-6">
                         {perMetricHRVData.filter(m => selectedHrvMetrics[m.key]).map((metricData) => (
-                          <div key={metricData.key} className="bg-zinc-900/40 rounded-lg p-3">
+                          <div 
+                            key={metricData.key} 
+                            className="rounded-xl p-4"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.025)',
+                              backdropFilter: 'blur(16px) saturate(180%)',
+                              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                            }}
+                          >
                             <h4 className="text-sm font-semibold text-amber-400 mb-3">
                               {metricData.label}
                             </h4>
                             
-                            {/* Visualization Chart */}
+                            {/* Visualization Chart with Y-axis zoom */}
                             <div className="h-48 mb-4">
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                                  <XAxis dataKey="stim" stroke="#a1a1aa" tick={{ fontSize: 10 }} />
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                  <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
                                   <YAxis 
-                                    stroke="#a1a1aa" 
-                                    tick={{ fontSize: 10 }} 
+                                    stroke="#71717a" 
+                                    tick={{ fontSize: 10, fill: '#a1a1aa' }} 
                                     domain={metricData.yDomain || ['auto', 'auto']}
+                                    allowDataOverflow={true}
                                   />
                                   <RechartsTooltip 
-                                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '6px' }}
+                                    contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', backdropFilter: 'blur(8px)' }}
                                     labelStyle={{ color: '#fbbf24' }}
                                   />
                                   <Legend 
@@ -1782,15 +1862,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <div className="overflow-x-auto">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="border-b border-zinc-800">
-                                    <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                                    <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 1</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 2</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 3</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 4</th>
-                                    <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Stim 5</th>
-                                    <th className="text-center py-2 px-2 font-medium text-yellow-400 bg-yellow-950/30">Median</th>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderLeft: '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 1</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 2</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 3</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 4</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderRight: '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 5</th>
+                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.12)', backdropFilter: 'blur(8px)', color: '#facc15', borderLeft: '1px solid rgba(234, 179, 8, 0.2)' }}>Median</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1845,7 +1925,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
         {/* Metadata Tab */}
         <TabsContent value="metadata">
-          <div className="glass-surface-subtle rounded-xl">
+          <div 
+            className="rounded-xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.025)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+            }}
+          >
             <div className="p-4 pb-2">
               <span className="text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Recording Metadata</span>
             </div>
@@ -1853,22 +1942,22 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-zinc-800">
-                      <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Recording</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Date</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-emerald-400 bg-emerald-950/30 whitespace-nowrap">
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Date</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(244, 206, 162, 0.12)', backdropFilter: 'blur(8px)', color: '#F4CEA2', borderLeft: '1px solid rgba(244, 206, 162, 0.2)' }}>
                         <InfoTip text="human Spinal Organoids">hSpO Info</InfoTip>
                       </th>
-                      <th className="text-left py-2 px-1.5 font-medium text-emerald-400 bg-emerald-950/30 whitespace-nowrap">
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(16, 185, 129, 0.12)', backdropFilter: 'blur(8px)', color: '#34d399', borderLeft: '1px solid rgba(16, 185, 129, 0.2)', borderRight: '1px solid rgba(16, 185, 129, 0.2)' }}>
                         <InfoTip text="human Cardiac Organoids">hCO Info</InfoTip>
                       </th>
-                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Fusion</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-purple-400 bg-purple-950/30 whitespace-nowrap">Drug Info</th>
-                      <th className="text-left py-2 px-1.5 font-medium text-amber-400 bg-amber-950/30 whitespace-nowrap">
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Fusion</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderLeft: '1px solid rgba(192, 132, 252, 0.2)', borderRight: '1px solid rgba(192, 132, 252, 0.2)' }}>Drug Info</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderLeft: '1px solid rgba(245, 158, 11, 0.2)', borderRight: '1px solid rgba(245, 158, 11, 0.2)' }}>
                         Light Stim Info
                       </th>
-                      <th className="text-left py-2 px-1.5 font-medium text-zinc-400 bg-zinc-900/50 whitespace-nowrap">Notes</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
