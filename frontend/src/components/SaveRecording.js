@@ -201,23 +201,24 @@ export default function SaveRecording({
   return (
     <div className="space-y-4">
       {/* Organoid/Cell Information */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium" style={{ fontFamily: 'Manrope' }}>
+      <div className="glass-surface-subtle rounded-xl">
+        <div className="p-4 pb-2">
+          <span className="text-sm" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
             Organoid/Cell Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </span>
+        </div>
+        <div className="p-4 pt-2 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Recording Date */}
             <div className="space-y-1">
-              <Label className="text-[10px] text-zinc-400">Recording Date</Label>
+              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Date</Label>
               <div className="relative">
                 <Input
                   type="date"
                   value={recordingDate || ''}
                   onChange={(e) => setRecordingDate(e.target.value)}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                  className="text-xs h-8 font-data rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                 />
               </div>
             </div>
@@ -226,12 +227,13 @@ export default function SaveRecording({
           {/* Organoid/Cell entries */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-[10px] text-zinc-400">Sample Information</Label>
+              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Sample Information</Label>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={addOrganoidEntry}
-                className="h-6 px-2 text-[10px] text-emerald-400 hover:text-emerald-300"
+                className="h-6 px-2 text-[10px] rounded-lg transition-all"
+                style={{ color: 'var(--sem-accent)', background: 'rgba(0,201,122,0.1)' }}
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Add Sample
@@ -243,15 +245,16 @@ export default function SaveRecording({
               const hasTransfection = expandedTransfection[idx] || info.transfection?.technique;
               
               return (
-                <div key={idx} className="p-3 bg-zinc-900/50 rounded-sm border border-zinc-800 space-y-2 mb-3">
+                <div key={idx} className="p-3 rounded-xl space-y-2 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-zinc-400">Sample {organoidInfo.length > 1 ? idx + 1 : '1'}</span>
+                    <span className="text-xs" style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-secondary)' }}>Sample {organoidInfo.length > 1 ? idx + 1 : '1'}</span>
                     {organoidInfo.length > 1 && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeOrganoidEntry(idx)}
-                        className="h-6 w-6 p-0 text-zinc-500 hover:text-red-400"
+                        className="h-6 w-6 p-0 hover:bg-red-500/10"
+                        style={{ color: 'var(--text-tertiary)' }}
                       >
                         <X className="w-3 h-3" />
                       </Button>
@@ -261,12 +264,12 @@ export default function SaveRecording({
                   {/* Organoid/Cell Type */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-zinc-500">Organoid/Cell Type</Label>
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Organoid/Cell Type</Label>
                       <Select
                         value={info.cell_type || ''}
                         onValueChange={(value) => handleOrganoidChange(idx, 'cell_type', value)}
                       >
-                        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8">
+                        <SelectTrigger className="text-xs h-8 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -278,12 +281,13 @@ export default function SaveRecording({
                     </div>
                     {info.cell_type === 'other' && (
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-zinc-500">Specify Type</Label>
+                        <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Specify Type</Label>
                         <Input
                           placeholder="e.g., Human iPSC-CM"
                           value={info.other_cell_type || ''}
                           onChange={(e) => handleOrganoidChange(idx, 'other_cell_type', e.target.value)}
-                          className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                          className="text-xs h-8 font-data rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                         />
                       </div>
                     )}
@@ -292,38 +296,41 @@ export default function SaveRecording({
                   {/* Line Name and Passage Number */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-zinc-500">Line Name</Label>
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Line Name</Label>
                       <Input
                         placeholder="e.g., CPVT, WT, F11"
                         value={info.line_name || ''}
                         onChange={(e) => handleOrganoidChange(idx, 'line_name', e.target.value)}
-                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                        className="text-xs h-8 font-data rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-zinc-500">Passage #</Label>
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Passage #</Label>
                       <Input
                         type="number"
                         min="0"
                         placeholder="P#"
                         value={info.passage_number || ''}
                         onChange={(e) => handleOrganoidChange(idx, 'passage_number', e.target.value)}
-                        className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                        className="text-xs h-8 font-data rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                       />
                     </div>
                   </div>
                   
                   {/* Differentiation Date */}
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-zinc-500">Differentiation Date</Label>
+                    <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Differentiation Date</Label>
                     <Input
                       type="date"
                       value={info.birth_date || ''}
                       onChange={(e) => handleOrganoidChange(idx, 'birth_date', e.target.value)}
-                      className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                      className="text-xs h-8 font-data rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                     />
                     {ageAtRecording !== null && (
-                      <p className="text-[10px] text-emerald-400 font-data">
+                      <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
                         Age at recording: D{ageAtRecording}
                       </p>
                     )}
@@ -335,23 +342,24 @@ export default function SaveRecording({
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleTransfection(idx)}
-                      className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-200 w-full justify-between"
+                      className="h-6 px-2 text-[10px] w-full justify-between hover:bg-white/5"
+                      style={{ color: 'var(--text-secondary)' }}
                     >
-                      <span>Transfection/Transduction <span className="text-zinc-600">(optional)</span></span>
+                      <span>Transfection/Transduction <span style={{ color: 'var(--text-tertiary)' }}>(optional)</span></span>
                       {hasTransfection ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                     </Button>
                     
                     {hasTransfection && (
-                      <div className="pl-2 border-l-2 border-zinc-700 space-y-2">
+                      <div className="pl-2 space-y-2" style={{ borderLeft: '2px solid rgba(255,255,255,0.10)' }}>
                         {/* Technique */}
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-zinc-500">Technique</Label>
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Technique</Label>
                             <Select
                               value={info.transfection?.technique || ''}
                               onValueChange={(value) => handleTransfectionChange(idx, 'technique', value)}
                             >
-                              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8">
+                              <SelectTrigger className="text-xs h-8 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
                                 <SelectValue placeholder="Select technique" />
                               </SelectTrigger>
                               <SelectContent>
@@ -366,12 +374,13 @@ export default function SaveRecording({
                           {/* Other technique input */}
                           {info.transfection?.technique === 'other' && (
                             <div className="space-y-1">
-                              <Label className="text-[10px] text-zinc-500">Specify Technique</Label>
+                              <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Specify Technique</Label>
                               <Input
                                 placeholder="Enter technique"
                                 value={info.transfection?.other_technique || ''}
                                 onChange={(e) => handleTransfectionChange(idx, 'other_technique', e.target.value)}
-                                className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                                className="text-xs h-8 font-data rounded-lg"
+                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                               />
                             </div>
                           )}
@@ -380,36 +389,39 @@ export default function SaveRecording({
                         {/* Name and Amount */}
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-zinc-500">Name</Label>
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Name</Label>
                             <Input
                               placeholder="e.g., ChR2-GFP"
                               value={info.transfection?.name || ''}
                               onChange={(e) => handleTransfectionChange(idx, 'name', e.target.value)}
-                              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                              className="text-xs h-8 font-data rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[10px] text-zinc-500">Amount (µL)</Label>
+                            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Amount (µL)</Label>
                             <Input
                               placeholder="e.g., 5"
                               value={info.transfection?.amount || ''}
                               onChange={(e) => handleTransfectionChange(idx, 'amount', e.target.value)}
-                              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                              className="text-xs h-8 font-data rounded-lg"
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                             />
                           </div>
                         </div>
                         
                         {/* Transfection Date */}
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-zinc-500">Date of Transfection/Transduction</Label>
+                          <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Date of Transfection/Transduction</Label>
                           <Input
                             type="date"
                             value={info.transfection?.date || ''}
                             onChange={(e) => handleTransfectionChange(idx, 'date', e.target.value)}
-                            className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+                            className="text-xs h-8 font-data rounded-lg"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                           />
                           {transfectionDays !== null && (
-                            <p className="text-[10px] text-emerald-400 font-data">
+                            <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
                               Days since transfection: {transfectionDays}
                             </p>
                           )}
@@ -424,17 +436,18 @@ export default function SaveRecording({
           
           {/* Fusion Date - Shared for all samples */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-zinc-400">
-              {organoidInfo.length >= 2 ? 'Fusion Date' : 'Fusion Media Start'} <span className="text-zinc-600">(optional{organoidInfo.length >= 2 ? ' - applies to all samples' : ''})</span>
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+              {organoidInfo.length >= 2 ? 'Fusion Date' : 'Fusion Media Start'} <span style={{ color: 'var(--text-tertiary)' }}>(optional{organoidInfo.length >= 2 ? ' - applies to all samples' : ''})</span>
             </Label>
             <Input
               type="date"
               value={fusionDate || ''}
               onChange={(e) => setFusionDate(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs h-8 font-data"
+              className="text-xs h-8 font-data rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
             />
             {fusionDate && recordingDate && (
-              <p className="text-[10px] text-emerald-400 font-data">
+              <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
                 {organoidInfo.length >= 2 ? 'Days since fusion' : 'Day since in fusion media'}: {calculateDays(fusionDate, recordingDate)}
               </p>
             )}
@@ -442,78 +455,82 @@ export default function SaveRecording({
 
           {/* Description */}
           <div className="space-y-1">
-            <Label className="text-[10px] text-zinc-400">Description / Notes</Label>
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Description / Notes</Label>
             <Textarea
               placeholder="Additional notes about the recording..."
               value={recordingDescription || ''}
               onChange={(e) => setRecordingDescription(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-200 text-xs font-data min-h-[60px] resize-none"
+              className="text-xs font-data min-h-[60px] resize-none rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Save Recording Card */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-zinc-300 flex items-center gap-2">
-            <Save className="w-4 h-4 text-emerald-500" />
-            {existingRecordingId ? 'Update Recording' : 'Save Recording'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="glass-surface-subtle rounded-xl">
+        <div className="p-4 pb-2">
+          <div className="flex items-center gap-2">
+            <Save className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
+              {existingRecordingId ? 'Update Recording' : 'Save Recording'}
+            </span>
+          </div>
+        </div>
+        <div className="p-4 pt-2 space-y-4">
           {/* Recording Name */}
           <div className="space-y-2">
-            <Label className="text-xs text-zinc-500">Recording Name</Label>
+            <Label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Recording Name</Label>
             <Input
               value={recordingName}
               onChange={(e) => onRecordingNameChange?.(e.target.value)}
               placeholder="Enter recording name"
-              className="bg-zinc-950 border-zinc-800 h-9 text-sm"
+              className="h-9 text-sm rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
             />
           </div>
 
           {!existingRecordingId && (
             <>
-              <Separator className="bg-zinc-800" />
+              <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
               {/* Folder Selection */}
               <div className="space-y-3">
-                <Label className="text-xs text-zinc-500">Save Location</Label>
+                <Label className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Save Location</Label>
                 
                 <RadioGroup value={mode} onValueChange={setMode} className="space-y-3">
                   {/* Existing Folder Option */}
                   <div className="flex items-start space-x-3">
                     <RadioGroupItem value="existing" id="existing" className="mt-1" />
                     <div className="flex-1">
-                      <Label htmlFor="existing" className="text-sm text-zinc-300 cursor-pointer">
+                      <Label htmlFor="existing" className="text-sm cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
                         Existing Folder
                       </Label>
                       {mode === 'existing' && (
                         <div className="mt-2">
                           {loading ? (
-                            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                               <Loader2 className="w-4 h-4 animate-spin" />
                               Loading folders...
                             </div>
                           ) : folders.length === 0 ? (
-                            <p className="text-xs text-zinc-600">No folders yet. Create one below.</p>
+                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No folders yet. Create one below.</p>
                           ) : (
-                            <ScrollArea className="h-32 border border-zinc-800 rounded-sm">
+                            <ScrollArea className="h-32 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                               <div className="p-1">
                                 {folders.map((folder) => (
                                   <div
                                     key={folder.id}
-                                    className={`flex items-center gap-2 p-2 rounded-sm cursor-pointer transition-colors ${
-                                      selectedFolderId === folder.id 
-                                        ? 'bg-cyan-900/30 border border-cyan-700' 
-                                        : 'hover:bg-zinc-800/50'
-                                    }`}
+                                    className="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all"
+                                    style={{
+                                      background: selectedFolderId === folder.id ? 'rgba(0, 201, 122, 0.15)' : 'transparent',
+                                      border: selectedFolderId === folder.id ? '1px solid rgba(0, 201, 122, 0.4)' : '1px solid transparent'
+                                    }}
                                     onClick={() => setSelectedFolderId(folder.id)}
                                   >
-                                    <FolderOpen className={`w-4 h-4 ${selectedFolderId === folder.id ? 'text-cyan-400' : 'text-amber-500'}`} />
-                                    <span className="text-sm text-zinc-300 flex-1">{folder.name}</span>
-                                    <span className="text-xs text-zinc-600">{folder.recording_count} rec</span>
+                                    <FolderOpen className="w-4 h-4" style={{ color: selectedFolderId === folder.id ? 'var(--sem-accent)' : '#f59e0b' }} />
+                                    <span className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>{folder.name}</span>
+                                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{folder.recording_count} rec</span>
                                   </div>
                                 ))}
                               </div>
@@ -528,8 +545,8 @@ export default function SaveRecording({
                   <div className="flex items-start space-x-3">
                     <RadioGroupItem value="new" id="new" className="mt-1" />
                     <div className="flex-1">
-                      <Label htmlFor="new" className="text-sm text-zinc-300 cursor-pointer flex items-center gap-2">
-                        <FolderPlus className="w-4 h-4 text-emerald-500" />
+                      <Label htmlFor="new" className="text-sm cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <FolderPlus className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
                         Create New Folder
                       </Label>
                       {mode === 'new' && (
@@ -538,7 +555,8 @@ export default function SaveRecording({
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
                             placeholder="New folder name"
-                            className="bg-zinc-950 border-zinc-800 h-8 text-sm"
+                            className="h-8 text-sm rounded-lg"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                             autoFocus
                           />
                         </div>
@@ -552,7 +570,8 @@ export default function SaveRecording({
 
           {/* Save Button */}
           <Button
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-10 mt-4"
+            className="w-full h-10 mt-4 rounded-lg font-medium"
+            style={{ background: 'var(--sem-accent)', color: '#02080f' }}
             onClick={handleSave}
             disabled={saving || (!existingRecordingId && mode === 'existing' && !selectedFolderId) || (!existingRecordingId && mode === 'new' && !newFolderName.trim())}
             data-testid="save-recording-btn"
@@ -569,8 +588,8 @@ export default function SaveRecording({
               </span>
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

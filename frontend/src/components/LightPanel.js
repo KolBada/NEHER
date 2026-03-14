@@ -40,33 +40,35 @@ function formatTimeConfig(minutes) {
 
 function MetricCard({ label, value, unit, tooltip, color }) {
   // Determine the label and value color classes based on color prop
-  const labelColorClass = color === 'cyan' ? 'text-cyan-400' : 'text-zinc-500';
-  const valueColorClass = color === 'cyan' ? 'text-cyan-300' : 'text-zinc-100';
-  const bgColorClass = color === 'cyan' ? 'bg-cyan-950/30 border-cyan-900/50' : 'bg-zinc-900/50 border-zinc-800';
+  const labelColor = color === 'cyan' ? '#22d3ee' : 'var(--text-secondary)';
+  const valueColor = color === 'cyan' ? '#67e8f9' : 'var(--text-primary)';
+  const bgStyle = color === 'cyan' 
+    ? { background: 'rgba(34, 211, 238, 0.08)', border: '1px solid rgba(34, 211, 238, 0.25)' }
+    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' };
   
   return (
-    <div className={`${bgColorClass} border rounded-sm p-3`}>
-      <p className={`text-[9px] uppercase tracking-wider font-bold ${labelColorClass} flex items-center gap-1`}>
+    <div className="rounded-xl p-3" style={bgStyle}>
+      <p className="text-[9px] uppercase tracking-wider font-medium flex items-center gap-1" style={{ color: labelColor, letterSpacing: '0.08em', fontFamily: 'var(--font-display)' }}>
         {label}
         {tooltip && (
           <TooltipProvider delayDuration={100}>
             <ShadcnTooltip>
               <TooltipTrigger asChild>
                 <button type="button" className="inline-flex">
-                  <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-white">
+              <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
                 <p>{tooltip}</p>
               </TooltipContent>
             </ShadcnTooltip>
           </TooltipProvider>
         )}
       </p>
-      <p className={`text-base font-data ${valueColorClass} mt-1`}>
+      <p className="text-base font-data mt-1" style={{ color: valueColor, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
         {value !== null && value !== undefined ? (typeof value === 'number' ? value.toFixed(3) : value) : '\u2014'}
       </p>
-      {unit && <p className="text-[9px] text-zinc-500 mt-0.5">{unit}</p>}
+      {unit && <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{unit}</p>}
     </div>
   );
 }
@@ -741,17 +743,17 @@ function LightPanel({
       {/* Enable/Disable Light Stim */}
       {/* BF Chart - Always visible */}
       {metrics && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+        <div className="glass-surface-subtle rounded-xl">
+          <div className="p-3 pb-2">
+            <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                Beat Frequency (Filtered) - bpm vs min
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span> - bpm vs min
                 {/* Beats badge - emerald */}
-                <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
+                <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#10b981', color: '#10b981' }}>
                   {bfChartData.length} beats
                 </Badge>
                 {isLightEnabled && displayPulses && (
-                  <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+                  <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
                     {displayPulses.length} stims
                   </Badge>
                 )}
@@ -766,31 +768,31 @@ function LightPanel({
                   </Badge>
                 ))}
                 {isLightEnabled && pulsesModified && (
-                  <Badge variant="outline" className="font-data text-[9px] border-orange-700 text-orange-400">
+                  <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#f97316', color: '#f97316' }}>
                     Modified
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomIn} title="Zoom In">
-                  <Plus className="w-3 h-3 text-zinc-500" />
+                  <Plus className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={handleZoomOut} disabled={!isZoomed} title="Zoom Out">
-                  <Minus className="w-3 h-3 text-zinc-500" />
+                  <Minus className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
                 </Button>
                 {isZoomed && (
-                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-zinc-400" onClick={handleResetZoom}>
+                  <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px]" style={{ color: 'var(--text-secondary)' }} onClick={handleResetZoom}>
                     <RotateCcw className="w-3 h-3 mr-1" />Reset
                   </Button>
                 )}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
+            </div>
+          </div>
+          <div className="p-2 pt-0">
             {/* Edit mode indicator */}
             {isLightEnabled && editMode && selectedPulseIdx !== null && (
-              <div className="mb-2 p-2 bg-yellow-950/30 border border-yellow-700/50 rounded-sm">
-                <p className="text-[10px] text-yellow-400 text-center">
+              <div className="mb-2 p-2 rounded-lg" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                <p className="text-[10px] text-center" style={{ color: '#fbbf24' }}>
                   Click on the chart to set the <strong>{editMode === 'start' ? 'START' : 'END'}</strong> of Stim {selectedPulseIdx + 1}
                 </p>
               </div>
@@ -1021,34 +1023,36 @@ function LightPanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                      className="h-7 text-xs rounded-lg transition-all"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}
                       onClick={handleResetPulses}
                     >
                       <RotateCcw className="w-3 h-3 mr-1" /> Reset
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-black"
+                      className="h-7 text-xs rounded-lg"
+                      style={{ background: '#f59e0b', color: '#02080f' }}
                       onClick={handleApplyPulseChanges}
                     >
                       Apply Changes & Recompute
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Light Stimulation Analysis Header - Below the chart */}
-          <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
-            <CardContent className="py-3">
+          <div className="glass-surface-subtle rounded-xl mt-4">
+            <div className="py-3 px-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Zap className={`w-4 h-4 ${isLightEnabled ? 'text-yellow-400' : 'text-zinc-600'}`} />
-                  <span className="text-sm font-medium text-zinc-200">Light Stimulation Analysis</span>
+                  <Zap className="w-4 h-4" style={{ color: isLightEnabled ? '#fbbf24' : 'var(--text-tertiary)' }} />
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Light Stimulation Analysis</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-zinc-500">
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                     {isLightEnabled ? 'Enabled' : 'Disabled'}
                   </Label>
                   <Switch
@@ -1058,36 +1062,37 @@ function LightPanel({
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Rest of Light Stim content - only show when enabled */}
           {isLightEnabled && (
             <>
               {/* Light Stimulation Configuration */}
-              <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs text-zinc-400">Configuration</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="glass-surface-subtle rounded-xl">
+                <div className="p-4 pb-2">
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Configuration</span>
+                </div>
+                <div className="p-4 pt-2">
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-zinc-500">Approx. Start (s)</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Approx. Start (s)</Label>
                   <Input
                     data-testid="light-start-time"
                     type="number"
                     value={localParams.startTime}
                     onChange={(e) => updateParam('startTime', parseFloat(e.target.value) || 0)}
-                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    className="h-7 text-xs font-data rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-zinc-500">Pulse Duration (s)</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Pulse Duration (s)</Label>
                   <Select
                     value={String(localParams.pulseDuration)}
                     onValueChange={(v) => updateParam('pulseDuration', parseInt(v))}
                   >
-                    <SelectTrigger data-testid="light-pulse-duration" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                    <SelectTrigger data-testid="light-pulse-duration" className="h-7 text-xs font-data rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1097,12 +1102,12 @@ function LightPanel({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-zinc-500">Intervals</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Intervals</Label>
                   <Select
                     value={localParams.interval}
                     onValueChange={(v) => updateParam('interval', v)}
                   >
-                    <SelectTrigger data-testid="light-interval" className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                    <SelectTrigger data-testid="light-interval" className="h-7 text-xs font-data rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1113,24 +1118,26 @@ function LightPanel({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-zinc-500">Pulses</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Pulses</Label>
                   <Input
                     data-testid="light-n-pulses"
                     type="number"
                     value={localParams.nPulses}
                     onChange={(e) => updateParam('nPulses', parseInt(e.target.value) || 5)}
-                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    className="h-7 text-xs font-data rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                     min={1} max={20}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-zinc-500">Search Range (s)</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Search Range (s)</Label>
                   <Input
                     data-testid="light-search-range"
                     type="number"
                     value={localParams.searchRange || 20}
                     onChange={(e) => updateParam('searchRange', parseFloat(e.target.value) || 20)}
-                    className="h-7 text-xs font-data bg-zinc-950 border-zinc-800 rounded-sm"
+                    className="h-7 text-xs font-data rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                   />
                 </div>
               </div>
@@ -1142,15 +1149,15 @@ function LightPanel({
                     checked={localParams.autoDetect}
                     onCheckedChange={(v) => updateParam('autoDetect', v)}
                   />
-                  <Label className="text-[10px] text-zinc-400">AI light stim detector</Label>
+                  <Label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>AI light stim detector</Label>
                   <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-600 hover:text-zinc-400 cursor-help" />
+                          <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100 max-w-[250px]">
+                      <TooltipContent side="right" className="text-xs glass-surface z-50 max-w-[250px]" style={{ color: 'var(--text-primary)' }}>
                         When ON, uses AI to detect stim boundaries by analyzing BF patterns (peaks, drops, trend changes). When OFF, uses only the manual settings.
                       </TooltipContent>
                     </ShadcnTooltip>
@@ -1161,7 +1168,8 @@ function LightPanel({
               <div className="flex gap-2 flex-wrap">
                 <Button
                   data-testid="detect-pulses-btn"
-                  className="h-7 text-xs rounded-sm bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
+                  className="h-7 text-xs rounded-lg font-medium"
+                  style={{ background: '#f59e0b', color: '#02080f' }}
                   onClick={() => {
                     setLocalPulses(null);
                     setOriginalPulses(null);
@@ -1177,7 +1185,8 @@ function LightPanel({
                     <Button
                       data-testid="compute-light-hrv-btn"
                       variant="secondary"
-                      className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                      className="h-7 text-xs rounded-lg transition-all"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
                       onClick={onComputeLightHRV}
                       disabled={loading}
                     >
@@ -1186,7 +1195,8 @@ function LightPanel({
                     <Button
                       data-testid="compute-light-response-btn"
                       variant="secondary"
-                      className="h-7 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                      className="h-7 text-xs rounded-lg transition-all"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
                       onClick={onComputeLightResponse}
                       disabled={loading}
                     >
@@ -1195,43 +1205,43 @@ function LightPanel({
                   </>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Pulse list */}
           {displayPulses && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Detected Light Stims
-                  <Badge variant="outline" className="font-data text-[10px] border-yellow-700 text-yellow-400">
+            <div className="glass-surface-subtle rounded-xl">
+              <div className="p-4 pb-2">
+                <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Detected Light Stims</span>
+                  <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
                     {displayPulses.length} stims
                   </Badge>
                   {displayPulses.length >= 2 && (
-                    <span className="text-[10px] font-data text-zinc-500">
+                    <span className="text-[10px] font-data" style={{ color: 'var(--text-tertiary)' }}>
                       Intervals: {displayPulses.slice(0, -1).map((p, i) => `${(displayPulses[i+1].start_sec - p.end_sec).toFixed(0)}s`).join(' \u2192 ')}
                     </span>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </div>
+              </div>
+              <div className="p-4 pt-2">
                 {/* Visual pulse cards */}
                 <div className="grid grid-cols-5 gap-2 mb-4">
                   {displayPulses.map((p, i) => (
                     <div 
                       key={i} 
-                      className={`bg-zinc-900/50 border rounded-sm p-2 text-center cursor-pointer transition-colors ${
-                        selectedPulseIdx === i 
-                          ? 'border-yellow-500 bg-yellow-950/20' 
-                          : 'border-zinc-800 hover:border-zinc-700'
-                      }`}
+                      className="rounded-lg p-2 text-center cursor-pointer transition-all"
+                      style={{
+                        background: selectedPulseIdx === i ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.03)',
+                        border: selectedPulseIdx === i ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255,255,255,0.08)'
+                      }}
                       onClick={() => setSelectedPulseIdx(selectedPulseIdx === i ? null : i)}
                     >
-                      <p className="text-[9px] text-zinc-500">Stim {i + 1}</p>
-                      <p className="text-[10px] font-data text-yellow-400">
+                      <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>Stim {i + 1}</p>
+                      <p className="text-[10px] font-data" style={{ color: '#f59e0b' }}>
                         {formatTimeConfig(p.start_min)} - {formatTimeConfig(p.end_min)} min
                       </p>
-                      <p className="text-[9px] font-data text-zinc-500">
+                      <p className="text-[9px] font-data" style={{ color: 'var(--text-tertiary)' }}>
                         ({((p.end_min - p.start_min) * 60).toFixed(1)}s)
                       </p>
                     </div>
@@ -1244,40 +1254,42 @@ function LightPanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                      className="h-7 text-xs rounded-lg transition-all"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}
                       onClick={handleResetPulses}
                     >
                       <RotateCcw className="w-3 h-3 mr-1" /> Reset
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-black"
+                      className="h-7 text-xs rounded-lg"
+                      style={{ background: '#f59e0b', color: '#02080f' }}
                       onClick={handleApplyPulseChanges}
                     >
                       Apply Changes & Recompute
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Light Induced Heart Rate Adaptation - using BPM */}
           {lightResponse && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Light Induced Heart Rate Adaptation
+            <div className="glass-surface-subtle rounded-xl mt-4">
+              <div className="p-4 pb-2">
+                <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Light Induced Heart Rate Adaptation</span>
                   <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                      <TooltipContent side="right" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
                         <p className="font-semibold mb-1">Heart Rate Adaptation Calculation:</p>
-                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
+                        <ul className="list-disc pl-3 space-y-0.5">
                           <li><strong>Baseline BF:</strong> Mean BF from -2 to -1 min before first stim (shared for all stims)</li>
                           <li><strong>Peak%:</strong> 100 × Peak BF / Baseline BF</li>
                           <li><strong>Amplitude:</strong> Peak BF - Last BF in stim window</li>
@@ -1286,9 +1298,9 @@ function LightPanel({
                       </TooltipContent>
                     </ShadcnTooltip>
                   </TooltipProvider>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </div>
+              </div>
+              <div className="p-4 pt-2">
                 {/* Mean Heart Rate Adaptation metrics - readout (average of 5 stims) */}
                 {avgHra && (
                   <div className="space-y-2 mb-4">
@@ -1434,10 +1446,10 @@ function LightPanel({
                           <TableCell className="text-[10px] font-data text-zinc-300 py-1">
                             {s && s.amplitude != null ? s.amplitude.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                          <TableCell className="text-[10px] font-data py-1" style={{ color: 'var(--text-secondary)' }}>
                             {s && s.dec_norm_pct != null ? s.dec_norm_pct.toFixed(1) : '\u2014'}
                           </TableCell>
-                          <TableCell className="text-[10px] font-data text-zinc-300 py-1">
+                          <TableCell className="text-[10px] font-data py-1" style={{ color: 'var(--text-secondary)' }}>
                             {s && s.rate_of_change != null ? s.rate_of_change.toFixed(4) : '\u2014'}
                           </TableCell>
                         </TableRow>
@@ -1445,26 +1457,26 @@ function LightPanel({
                     </TableBody>
                   </Table>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Light HRV results (using NN_70) - Median style */}
           {lightHrv && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  Light-Induced HRV (NN₇₀, median across pulses)
+            <div className="glass-surface-subtle rounded-xl mt-4">
+              <div className="p-4 pb-2">
+                <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Light-Induced HRV (NN₇₀, median across pulses)</span>
                   <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                      <TooltipContent side="right" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
                         <p className="font-semibold mb-1">Light HRV Formula:</p>
-                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
+                        <ul className="list-disc pl-3 space-y-0.5">
                           <li><strong>NN₇₀ = NN × (857 / median(NN))</strong> for each stim</li>
                           <li>Each stim uses its OWN median NN as reference</li>
                           <li>SDNN, RMSSD, pNN50 computed from normalized NN₇₀</li>
@@ -1473,9 +1485,9 @@ function LightPanel({
                       </TooltipContent>
                     </ShadcnTooltip>
                   </TooltipProvider>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </div>
+              </div>
+              <div className="p-4 pt-2">
                 {/* Readout (median of 5 stims) */}
                 {medianHrv && (
                   <div className="grid grid-cols-3 gap-2 mb-4">
@@ -1498,24 +1510,24 @@ function LightPanel({
                   </div>
                 )}
 
-                <Separator className="bg-zinc-800 my-3" />
-                <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation HRV (using NN₇₀)</p>
+                <Separator style={{ background: 'rgba(255,255,255,0.08)', margin: '12px 0' }} />
+                <p className="text-[10px] mb-2 uppercase tracking-wider" style={{ color: 'var(--text-tertiary)', letterSpacing: '0.08em' }}>Per-Stimulation HRV (using NN₇₀)</p>
                 <ScrollArea className="h-[160px]">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
-                        <TableHead className="text-[10px] font-data text-zinc-500 h-7">
+                      <TableRow style={{ borderColor: 'rgba(255,255,255,0.08)' }} className="hover:bg-transparent">
+                        <TableHead className="text-[10px] font-data h-7" style={{ color: 'var(--text-tertiary)' }}>Stim</TableHead>
+                        <TableHead className="text-[10px] font-data h-7" style={{ color: 'var(--text-tertiary)' }}>
                           <span className="flex items-center gap-1">
                             ln(RMSSD₇₀)
                             <TooltipProvider delayDuration={100}>
                               <ShadcnTooltip>
                                 <TooltipTrigger asChild>
                                   <button type="button" className="inline-flex">
-                                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                                    <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                                <TooltipContent side="top" className="text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
                                   Log-transformed RMSSD₇₀
                                 </TooltipContent>
                               </ShadcnTooltip>
@@ -1577,29 +1589,29 @@ function LightPanel({
                     </TableBody>
                   </Table>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Corrected Light-Induced HRV (Detrended) Section */}
           {lightHrv && displayPulses && (
-            <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-emerald-500" />
-                  Corrected Light-Induced HRV (Detrended)
+            <div className="glass-surface-subtle rounded-xl mt-4">
+              <div className="p-4 pb-2">
+                <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <TrendingDown className="w-4 h-4" style={{ color: '#10b981' }} />
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Corrected Light-Induced HRV (Detrended)</span>
                   <TooltipProvider delayDuration={100}>
                     <ShadcnTooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex">
-                          <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                          <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-sm text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                      <TooltipContent side="right" className="max-w-sm text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
                         <p className="font-semibold mb-1">Detrending Purpose:</p>
-                        <p className="text-zinc-300 mb-2">Removes slow deterministic adaptation curve (peak → decay or delayed rise in CPVT) so HRV reflects true beat-to-beat irregularity only.</p>
+                        <p className="mb-2" style={{ color: 'var(--text-secondary)' }}>Removes slow deterministic adaptation curve (peak → decay or delayed rise in CPVT) so HRV reflects true beat-to-beat irregularity only.</p>
                         <p className="font-semibold mb-1">Algorithm:</p>
-                        <ul className="list-disc pl-3 space-y-0.5 text-zinc-200">
+                        <ul className="list-disc pl-3 space-y-0.5">
                           <li>Convert BF → NN: NN_k = 60000 / BF_k</li>
                           <li>Normalize: NN₇₀ = NN × (857 / median(NN))</li>
                           <li>Apply Robust LOESS smoothing (span ~25%)</li>
@@ -1609,18 +1621,18 @@ function LightPanel({
                       </TooltipContent>
                     </ShadcnTooltip>
                   </TooltipProvider>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </div>
+              </div>
+              <div className="p-4 pt-2">
                 {/* Configuration and Compute Button */}
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex items-center gap-2">
-                    <Label className="text-[10px] text-zinc-500">LOESS Span:</Label>
+                    <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>LOESS Span:</Label>
                     <Select
                       value={String(loessFrac)}
                       onValueChange={(v) => onLoessFracChange(parseFloat(v))}
                     >
-                      <SelectTrigger className="h-6 w-20 text-[10px] font-data bg-zinc-950 border-zinc-800 rounded-sm">
+                      <SelectTrigger className="h-6 w-20 text-[10px] font-data rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1637,7 +1649,8 @@ function LightPanel({
                   </div>
                   <Button
                     data-testid="compute-detrended-hrv-btn"
-                    className="h-7 text-xs rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                    className="h-7 text-xs rounded-lg font-medium"
+                    style={{ background: '#10b981', color: 'white' }}
                     onClick={() => onComputeLightHRVDetrended(loessFrac)}
                     disabled={loading}
                   >
@@ -1653,7 +1666,7 @@ function LightPanel({
                       <>
                         {/* Show LOESS span used */}
                         <div className="mb-2">
-                          <Badge variant="outline" className="text-[9px] border-zinc-700 text-zinc-400">
+                          <Badge variant="outline" className="text-[9px]" style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
                             LOESS Span: {Math.round((lightHrvDetrended.loess_frac_used || 0.25) * 100)}%
                           </Badge>
                         </div>
@@ -1754,12 +1767,12 @@ function LightPanel({
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-6 text-zinc-600 text-sm">
+                  <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                     Click "Compute Detrended HRV" above to calculate corrected HRV metrics with trend removal.
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
             </>
           )}
