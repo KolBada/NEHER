@@ -64,7 +64,7 @@ function InfoTooltip({ text }) {
         </TooltipTrigger>
         <TooltipContent 
           side="bottom" 
-          className="max-w-sm bg-zinc-900 border-zinc-700 text-zinc-300 text-xs p-3"
+          className="glass-tooltip"
         >
           {text}
         </TooltipContent>
@@ -689,7 +689,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       {folderSortBy === 'alpha' ? 'A-Z' : folderSortBy === 'created' ? 'Created' : 'Modified'}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                  <DropdownMenuContent align="end" className="glass-dropdown">
                 <DropdownMenuItem 
                   className={`text-xs ${folderSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
                   onClick={() => setFolderSortBy('modified')}
@@ -886,7 +886,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                             <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                        <DropdownMenuContent align="end" className="glass-dropdown">
                           <DropdownMenuItem 
                             className="text-xs"
                             onClick={() => {
@@ -947,7 +947,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                                     <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                                <DropdownMenuContent align="end" className="glass-dropdown">
                                   <DropdownMenuItem 
                                     className="text-xs"
                                     onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
@@ -1062,7 +1062,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                               <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                          <DropdownMenuContent align="end" className="glass-dropdown">
                             <DropdownMenuItem 
                               className="text-xs"
                               onClick={(e) => { e.stopPropagation(); setFolderToColor(folder); setColorPickerOpen(true); }}
@@ -1399,7 +1399,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                 {recordingSortBy === 'alpha' ? 'A-Z' : recordingSortBy === 'created' ? 'Created' : 'Modified'}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+            <DropdownMenuContent align="end" className="glass-dropdown">
               <DropdownMenuItem 
                 className={`text-xs ${recordingSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
                 onClick={() => setRecordingSortBy('modified')}
@@ -1526,7 +1526,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                             <MoreVertical className="w-4 h-4 text-zinc-500" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                        <DropdownMenuContent align="end" className="glass-dropdown">
                           <DropdownMenuItem 
                             className="text-xs"
                             onClick={(e) => {

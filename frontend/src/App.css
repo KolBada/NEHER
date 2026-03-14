@@ -419,3 +419,48 @@
   border-color: rgba(255, 255, 255, 0.6);
   box-shadow: 0 0 16px currentColor;
 }
+
+/* Glassmorphism Dropdown Menu */
+.glass-dropdown {
+  background: rgba(10, 22, 40, 0.92) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-top-color: rgba(255, 255, 255, 0.18) !important;
+  border-left-color: rgba(255, 255, 255, 0.14) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 6px !important;
+}
+
+.glass-dropdown [role="menuitem"] {
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  color: var(--text-primary) !important;
+  transition: all 0.15s;
+}
+
+.glass-dropdown [role="menuitem"]:hover,
+.glass-dropdown [role="menuitem"]:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.glass-dropdown [role="separator"] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  margin: 6px 0 !important;
+}
+
+/* Glassmorphism Tooltip */
+.glass-tooltip {
+  background: rgba(10, 22, 40, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  color: var(--text-secondary) !important;
+  padding: 10px 14px !important;
+  max-width: 280px;
+  font-size: 0.8rem !important;
+  line-height: 1.5;
+}
