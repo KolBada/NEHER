@@ -244,11 +244,11 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
 
   return (
     <div className="flex items-center justify-center min-h-[70vh] relative" data-testid="upload-page">
-      {/* Ambient SEM glow orb */}
+      {/* Ambient SSE glow orb */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
-            background: 'radial-gradient(circle, rgba(0, 201, 122, 0.40) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(244, 206, 162, 0.35) 0%, transparent 70%)',
             filter: 'blur(100px)'
           }}
         />
