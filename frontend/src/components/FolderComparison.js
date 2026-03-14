@@ -752,8 +752,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      <div className="neher-home-bg min-h-screen">
+        <div className="neher-glow-orbs" />
+        <div className="relative z-10 flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent-teal)' }} />
+        </div>
       </div>
     );
   }
@@ -761,71 +764,135 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const { summary, recordings, spontaneous_averages, light_hra_averages, light_hrv_averages } = comparisonData || {};
 
   return (
-    <div className={embedded ? "p-2" : "p-6 max-w-7xl mx-auto"} data-testid="folder-comparison">
-      {/* Header - only show when not embedded */}
-      {!embedded && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 rounded-lg transition-all hover:translate-y-[-1px]"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                color: 'var(--text-secondary)',
-              }}
-              onClick={onBack}
-              data-testid="back-to-folder-btn"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
-            </Button>
-            <div>
-              <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison: {folder.name}</h2>
-              <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>{summary?.recording_count || 0} recordings</p>
+    <div className={embedded ? "p-2" : "neher-home-bg min-h-screen"} data-testid="folder-comparison">
+      {/* Ambient glow orbs - same as home page */}
+      {!embedded && <div className="neher-glow-orbs" />}
+      
+      {/* Content container */}
+      <div className={embedded ? "" : "relative z-10 p-6 max-w-7xl mx-auto"}>
+        {/* Header - NEHER branding - only show when not embedded */}
+        {!embedded && (
+          <header className="header-border pb-6 mb-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="font-display text-4xl font-semibold text-white tracking-tight">
+                  NEHER
+                </h1>
+              </div>
+              <div className="text-right">
+                <p className="font-body text-xs tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                  by Kolia H. Badarello
+                </p>
+                <p className="font-body text-sm uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                  Cardiac Electrophysiology Analysis Platform
+                </p>
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Toolbar - only show when not embedded */}
+        {!embedded && (
+          <div 
+            className="glass-surface-subtle p-4 mb-6 rounded-xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+              borderTopColor: 'rgba(255, 255, 255, 0.16)',
+              borderLeftColor: 'rgba(255, 255, 255, 0.12)',
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-4 rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: 'var(--text-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                  onClick={onBack}
+                  data-testid="back-to-folder-btn"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <div>
+                  <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison: {folder.name}</h2>
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>{summary?.recording_count || 0} recordings</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportXlsx}
+                  disabled={exporting || !recordings?.length}
+                  className="h-9 text-xs rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    color: '#10b981',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.20)';
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.50)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+                  }}
+                  data-testid="export-xlsx-btn"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
+                  Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPdf}
+                  disabled={exporting || !recordings?.length}
+                  className="h-9 text-xs rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#ef4444',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.20)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.50)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                  }}
+                  data-testid="export-pdf-btn"
+                >
+                  <FileText className="w-3.5 h-3.5 mr-1.5" />
+                  PDF
+                </Button>
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportXlsx}
-              disabled={exporting || !recordings?.length}
-              className="h-8 text-xs rounded-lg transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                color: 'var(--text-secondary)',
-              }}
-              data-testid="export-xlsx-btn"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" style={{ color: '#10b981' }} />
-              Excel
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPdf}
-              disabled={exporting || !recordings?.length}
-              className="h-8 text-xs rounded-lg transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                color: 'var(--text-secondary)',
-              }}
-              data-testid="export-pdf-btn"
-            >
-              <FileText className="w-3.5 h-3.5 mr-1.5" style={{ color: '#ef4444' }} />
-              PDF
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* Export buttons for embedded mode - smaller and inline */}
       {embedded && (
@@ -867,11 +934,31 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="glass-surface-subtle p-4 rounded-xl">
+        <div 
+          className="p-4 rounded-xl"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+          }}
+        >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>RECORDINGS</p>
           <p className="text-2xl font-semibold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-display)' }}>{summary?.recording_count || 0}</p>
         </div>
-        <div className="glass-surface-subtle p-4 rounded-xl">
+        <div 
+          className="p-4 rounded-xl"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+          }}
+        >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
           </p>
@@ -882,7 +969,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           </p>
           <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hspo_age_range?.n || 0}</p>
         </div>
-        <div className="glass-surface-subtle p-4 rounded-xl">
+        <div 
+          className="p-4 rounded-xl"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+          }}
+        >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
           </p>
@@ -893,7 +990,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           </p>
           <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hco_age_range?.n || 0}</p>
         </div>
-        <div className="glass-surface-subtle p-4 rounded-xl">
+        <div 
+          className="p-4 rounded-xl"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+          }}
+        >
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>FUSION AGE RANGE</p>
           <p className="text-lg font-semibold" style={{ color: '#a78bfa', fontFamily: 'var(--font-display)' }}>
             {summary?.fusion_age_range?.min !== null 
@@ -907,31 +1014,35 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       {/* Tabs */}
       <Tabs defaultValue="spontaneous" className="w-full">
         <TabsList 
-          className="h-9 mb-4 rounded-xl p-1"
+          className="h-10 mb-6 rounded-xl p-1"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(16px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)',
           }}
         >
           <TabsTrigger 
             value="spontaneous" 
-            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            style={{ fontFamily: 'var(--font-body)' }}
           >
             <Activity className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} />
             Spontaneous Activity
           </TabsTrigger>
           <TabsTrigger 
             value="light-stimulus" 
-            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            style={{ fontFamily: 'var(--font-body)' }}
           >
             <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
             Light Stimulus
           </TabsTrigger>
           <TabsTrigger 
             value="metadata" 
-            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            style={{ fontFamily: 'var(--font-body)' }}
           >
             Metadata
           </TabsTrigger>
@@ -943,7 +1054,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           {(uniqueDrugs.length > 0 ? uniqueDrugs : [{ key: 'default', name: 'Drug' }]).map((drug, drugIdx) => (
             <div 
               key={drug.key} 
-              className={`glass-surface-subtle rounded-xl ${drugIdx > 0 ? 'mt-4' : ''}`}
+              className={`rounded-xl ${drugIdx > 0 ? 'mt-4' : ''}`}
+              style={{
+                background: 'rgba(255, 255, 255, 0.025)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+              }}
             >
               <div className="p-4 pb-2">
                 <div className="flex items-center gap-3">
@@ -1871,6 +1989,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
