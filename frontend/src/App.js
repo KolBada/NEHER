@@ -2237,7 +2237,6 @@ function App() {
 
           {/* Save Recording Tab */}
           <TabsContent value="save">
-            <div className="max-w-lg mx-auto">
               <SaveRecording
                 getAnalysisState={buildAnalysisState}
                 onSaveComplete={handleSaveComplete}
@@ -2254,7 +2253,6 @@ function App() {
                 recordingDescription={recordingDescription}
                 setRecordingDescription={handleRecordingDescriptionChange}
               />
-            </div>
           </TabsContent>
         </Tabs>
       </main>
