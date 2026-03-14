@@ -1738,9 +1738,9 @@ function App() {
                     variant="outline" 
                     className="h-7 text-[11px] px-3 rounded-lg cursor-pointer transition-all hover:bg-white/10"
                     style={{
-                      background: 'rgba(168, 85, 247, 0.08)',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
-                      color: '#a855f7',
+                      background: (selectedDrugs.length + otherDrugs.length > 0) ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.06)',
+                      border: (selectedDrugs.length + otherDrugs.length > 0) ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.12)',
+                      color: (selectedDrugs.length + otherDrugs.length > 0) ? '#a855f7' : 'var(--text-secondary)',
                     }}
                   >
                     <FlaskConical className="w-3 h-3 mr-1.5" /> 
@@ -1969,54 +1969,131 @@ function App() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Drug boxes - separate box next to tabs */}
+            {/* Drug boxes - separate box next to tabs with editable inputs */}
             {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-              <div 
-                className="h-9 flex items-center gap-2 px-2 rounded-xl"
-                style={{
-                  background: 'rgba(168, 85, 247, 0.08)',
-                  border: '1px solid rgba(168, 85, 247, 0.20)',
-                }}
-              >
+              <div className="flex items-center gap-2">
                 {selectedDrugs.map((drugKey, idx) => {
                   const config = DRUG_CONFIG[drugKey];
                   const settings = drugSettings[drugKey] || {};
                   const colorConfigs = [
-                    { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
-                    { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                    { bg: 'rgba(168, 85, 247, 0.10)', border: 'rgba(168, 85, 247, 0.30)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.8)' },
+                    { bg: 'rgba(192, 132, 252, 0.10)', border: 'rgba(192, 132, 252, 0.30)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.8)' },
                   ];
                   const colorStyle = colorConfigs[idx % colorConfigs.length];
                   return (
                     <div 
                       key={drugKey} 
-                      className="flex items-center gap-2 h-7 px-2 rounded-lg text-[10px]"
-                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      className="flex items-center gap-2 h-9 px-3 rounded-xl text-[10px]"
+                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}` }}
                     >
-                      <FlaskConical className="w-3 h-3" />
-                      <span className="font-medium">{config.name}</span>
-                      <span style={{ opacity: 0.7 }}>{settings.concentration || config.defaultConc}µM</span>
-                      <span style={{ opacity: 0.7 }}>Start:{settings.perfusionStart ?? 3}</span>
-                      <span style={{ opacity: 0.7 }}>Delay:{settings.perfusionTime ?? 3}</span>
-                      {settings.perfusionEnd && <span style={{ opacity: 0.7 }}>End:{settings.perfusionEnd}</span>}
+                      <FlaskConical className="w-3 h-3" style={{ color: colorStyle.color }} />
+                      <span className="font-medium" style={{ color: colorStyle.color }}>{config.name}</span>
+                      <div className="h-4 w-px" style={{ background: colorStyle.border }} />
+                      <Input
+                        type="text"
+                        value={settings.concentration !== undefined ? settings.concentration : config.defaultConc}
+                        onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
+                        className="h-5 w-12 text-[9px] bg-black/40 rounded px-1 text-center"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>µM</span>
+                      <span style={{ color: colorStyle.labelColor }}>Start:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>Delay:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>End:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={settings.perfusionEnd ?? ''}
+                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                        placeholder="—"
+                      />
                     </div>
                   );
                 })}
                 {otherDrugs.map((drug, idx) => {
                   const colorIdx = selectedDrugs.length + idx;
                   const colorConfigs = [
-                    { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
-                    { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                    { bg: 'rgba(168, 85, 247, 0.10)', border: 'rgba(168, 85, 247, 0.30)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.8)' },
+                    { bg: 'rgba(192, 132, 252, 0.10)', border: 'rgba(192, 132, 252, 0.30)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.8)' },
                   ];
                   const colorStyle = colorConfigs[colorIdx % colorConfigs.length];
                   return (
                     <div 
                       key={drug.id} 
-                      className="flex items-center gap-2 h-7 px-2 rounded-lg text-[10px]"
-                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      className="flex items-center gap-2 h-9 px-3 rounded-xl text-[10px]"
+                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}` }}
                     >
-                      <FlaskConical className="w-3 h-3" />
-                      <span className="font-medium">{drug.name || 'Other'}</span>
-                      <span style={{ opacity: 0.7 }}>{drug.concentration}µM</span>
+                      <FlaskConical className="w-3 h-3" style={{ color: colorStyle.color }} />
+                      <Input
+                        value={drug.name}
+                        onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
+                        className="h-5 w-16 text-[9px] bg-black/40 rounded px-1"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                        placeholder="Name"
+                      />
+                      <div className="h-4 w-px" style={{ background: colorStyle.border }} />
+                      <Input
+                        value={drug.concentration}
+                        onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
+                        className="h-5 w-12 text-[9px] bg-black/40 rounded px-1 text-center"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>µM</span>
+                      <span style={{ color: colorStyle.labelColor }}>Start:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={drug.perfusionStart}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>Delay:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={drug.perfusionTime}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                      />
+                      <span style={{ color: colorStyle.labelColor }}>End:</span>
+                      <Input
+                        type="number"
+                        step="1"
+                        value={drug.perfusionEnd ?? ''}
+                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
+                        className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center number-input-white-arrows"
+                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                        placeholder="—"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 rounded hover:bg-red-500/20"
+                        style={{ color: colorStyle.labelColor }}
+                        onClick={() => removeOtherDrug(drug.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
                     </div>
                   );
                 })}
