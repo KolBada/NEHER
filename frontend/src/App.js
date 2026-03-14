@@ -1586,11 +1586,11 @@ function App() {
       
       <Toaster theme="dark" position="top-right" />
 
-      {/* Header - Glassmorphic top bar */}
+      {/* Header - Fixed top bar */}
       <header 
-        className="sticky top-0 z-20 px-6 py-3"
+        className="fixed top-0 left-0 right-0 z-50 px-6 py-3"
         style={{ 
-          background: 'rgba(2, 8, 15, 0.75)', 
+          background: 'rgba(2, 8, 15, 0.85)', 
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           borderBottom: '1px solid rgba(20, 184, 166, 0.15)',
@@ -1917,9 +1917,9 @@ function App() {
       {/* Per-drug settings - only shown when drugs are selected */}
       {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
         <div 
-          className="sticky top-[57px] z-10 px-6 py-3"
+          className="fixed top-[57px] left-0 right-0 z-40 px-6 py-3"
           style={{
-            background: 'rgba(2, 8, 15, 0.75)',
+            background: 'rgba(2, 8, 15, 0.85)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             borderBottom: '1px solid rgba(168, 85, 247, 0.15)',
@@ -2086,8 +2086,8 @@ function App() {
         </div>
       )}
 
-      {/* Main content */}
-      <main className="p-6 pt-4 relative z-10">
+      {/* Main content - with top padding for fixed header */}
+      <main className="p-6 pt-20 relative z-10">
         <Tabs defaultValue="trace" className="w-full">
           <TabsList 
             className="h-9 mb-6 rounded-xl p-1 gap-1"
