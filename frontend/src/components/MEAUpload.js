@@ -740,7 +740,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute w-[600px] h-[600px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              background: 'radial-gradient(circle, rgba(0, 184, 196, 0.35) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%)',
               filter: 'blur(100px)'
             }}
           />
@@ -763,7 +763,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                   <Badge 
                     variant="outline" 
                     className="font-data text-xs"
-                    style={{ borderColor: 'rgba(0, 184, 196, 0.4)', color: '#00b8c4' }}
+                    style={{ borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10b981' }}
                   >
                     {selectedCount} wells selected
                   </Badge>
@@ -807,7 +807,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                           style={{ 
                             borderBottom: '1px solid rgba(255,255,255,0.05)',
                             opacity: selectedWells[well.well_id] ? 1 : 0.4,
-                            background: selectedWells[well.well_id] ? 'rgba(0, 184, 196, 0.05)' : 'transparent'
+                            background: selectedWells[well.well_id] ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
                           }}
                           onClick={() => toggleWellSelection(well.well_id)}
                         >
@@ -819,7 +819,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </td>
-                          <td className="py-3 px-4 font-mono font-medium" style={{ color: '#00b8c4' }}>{well.well_id}</td>
+                          <td className="py-3 px-4 font-mono font-medium" style={{ color: '#10b981' }}>{well.well_id}</td>
                           <td className="py-3 px-4 text-center font-data" style={{ color: 'var(--text-secondary)' }}>
                             {well.n_active_electrodes} / {well.n_electrodes}
                           </td>
@@ -850,7 +850,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                   }}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <Settings2 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <Settings2 className="w-4 h-4" style={{ color: '#10b981' }} />
                     <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
                       Electrode Filter
                     </span>
@@ -909,7 +909,7 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                   }}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <Settings2 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <Settings2 className="w-4 h-4" style={{ color: '#10b981' }} />
                     <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
                       Binning Settings
                     </span>
@@ -1009,9 +1009,9 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
                   disabled={selectedCount === 0}
                   className="h-10 px-6 rounded-xl font-medium transition-all"
                   style={{
-                    background: selectedCount > 0 ? '#00b8c4' : 'rgba(255,255,255,0.1)',
+                    background: selectedCount > 0 ? '#10b981' : 'rgba(255,255,255,0.1)',
                     color: selectedCount > 0 ? '#000' : 'var(--text-tertiary)',
-                    boxShadow: selectedCount > 0 ? '0 0 25px rgba(0, 184, 196, 0.3)' : 'none',
+                    boxShadow: selectedCount > 0 ? '0 0 25px rgba(16, 185, 129, 0.3)' : 'none',
                   }}
                   data-testid="mea-run-analysis-btn"
                 >
