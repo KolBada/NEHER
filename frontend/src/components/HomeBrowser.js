@@ -652,7 +652,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
           <div className="glass-surface-subtle p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--sem-accent)' }} />
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent-green)' }} />
                 <h2 className="font-body text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
                   Saved Recordings
                 </h2>
@@ -739,7 +739,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               onClick={() => setCreateSectionOpen(true)}
               data-testid="create-section-btn"
             >
-              <Layers className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--sem-accent)' }} />
+              <Layers className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--accent-teal)' }} />
               New Section
             </Button>
             <Button
@@ -766,7 +766,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               onClick={() => setCreateFolderOpen(true)}
               data-testid="create-folder-btn"
             >
-              <FolderPlus className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--sem-accent)' }} />
+              <FolderPlus className="w-3.5 h-3.5 mr-1.5" style={{ color: 'var(--accent-teal)' }} />
               New Folder
             </Button>
           </div>
@@ -785,7 +785,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Sections with drop zones */}
             {sections.map((section, index) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -893,7 +893,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                     
                     {/* Section Folders - inside the section box */}
                     {section.expanded && (
-                      <div className="px-4 pb-3 space-y-1">
+                      <div className="px-4 pt-3 pb-4 space-y-1">
                         {sectionFolders.length === 0 ? (
                           <p className="text-xs py-3 pl-6" style={{ color: 'var(--text-tertiary)' }}>No folders in this section</p>
                         ) : (
