@@ -30,7 +30,13 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 
 ## Recent Changes (December 2025)
 
-### Glassmorphism UI Updates (Latest)
+### Color Theme Update + Section Layout (Latest)
+1. **SSE color changed to pink/salmon** (`#f472b6`) - Previously green/emerald
+2. **MEA color changed to emerald** (`#10b981`) - Previously teal
+3. **Section folders now inside section box** - All folders of a section are contained within a unified glass container
+4. **Folder rows simplified** - Folders inside sections are now simple rows with hover states instead of separate cards
+
+### Glassmorphism UI Updates
 Applied glassmorphism styling across key UI elements:
 
 1. **Home Page - Section Rows**: Added subtle glass background (`rgba(255,255,255,0.025)`) with hover states and accent-colored chevrons

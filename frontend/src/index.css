@@ -33,23 +33,23 @@
         /* Glassmorphism Design System */
         --color-bg-base: #02080f;
         
-        /* SEM — emerald */
-        --sem-accent: #00c97a;
-        --sem-accent-dim: rgba(0, 201, 122, 0.18);
-        --sem-accent-glow: rgba(0, 201, 122, 0.35);
-        --sem-border: rgba(0, 201, 122, 0.30);
-        --sem-border-hover: rgba(0, 201, 122, 0.65);
-        --sem-text: #00c97a;
-        --sem-text-dim: rgba(0, 201, 122, 0.70);
+        /* SSE — pink/salmon */
+        --sem-accent: #f472b6;
+        --sem-accent-dim: rgba(244, 114, 182, 0.18);
+        --sem-accent-glow: rgba(244, 114, 182, 0.35);
+        --sem-border: rgba(244, 114, 182, 0.30);
+        --sem-border-hover: rgba(244, 114, 182, 0.65);
+        --sem-text: #f472b6;
+        --sem-text-dim: rgba(244, 114, 182, 0.70);
 
-        /* MEA — teal */
-        --mea-accent: #00b8c4;
-        --mea-accent-dim: rgba(0, 184, 196, 0.18);
-        --mea-accent-glow: rgba(0, 184, 196, 0.35);
-        --mea-border: rgba(0, 184, 196, 0.30);
-        --mea-border-hover: rgba(0, 184, 196, 0.65);
-        --mea-text: #00b8c4;
-        --mea-text-dim: rgba(0, 184, 196, 0.70);
+        /* MEA — emerald */
+        --mea-accent: #10b981;
+        --mea-accent-dim: rgba(16, 185, 129, 0.18);
+        --mea-accent-glow: rgba(16, 185, 129, 0.35);
+        --mea-border: rgba(16, 185, 129, 0.30);
+        --mea-border-hover: rgba(16, 185, 129, 0.65);
+        --mea-text: #10b981;
+        --mea-text-dim: rgba(16, 185, 129, 0.70);
 
         /* Neutral text */
         --text-primary: rgba(255, 255, 255, 0.92);
