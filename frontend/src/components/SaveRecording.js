@@ -226,14 +226,14 @@ export default function SaveRecording({
 
           {/* Organoid/Cell entries */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Sample Information</Label>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={addOrganoidEntry}
                 className="h-6 px-2 text-[10px] rounded-lg transition-all"
-                style={{ color: 'var(--sem-accent)', background: 'rgba(0,201,122,0.1)' }}
+                style={{ color: 'white', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 <Plus className="w-3 h-3 mr-1" />
                 Add Sample
@@ -330,7 +330,7 @@ export default function SaveRecording({
                       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                     />
                     {ageAtRecording !== null && (
-                      <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
+                      <p className="text-[10px] font-data" style={{ color: info.cell_type === 'hSpO' ? '#10b981' : info.cell_type === 'hCO' ? '#22d3ee' : 'var(--text-secondary)' }}>
                         Age at recording: D{ageAtRecording}
                       </p>
                     )}
@@ -421,7 +421,7 @@ export default function SaveRecording({
                             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                           />
                           {transfectionDays !== null && (
-                            <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
+                            <p className="text-[10px] font-data" style={{ color: 'white' }}>
                               Days since transfection: {transfectionDays}
                             </p>
                           )}
@@ -447,7 +447,7 @@ export default function SaveRecording({
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
             />
             {fusionDate && recordingDate && (
-              <p className="text-[10px] font-data" style={{ color: 'var(--sem-accent)' }}>
+              <p className="text-[10px] font-data" style={{ color: 'white' }}>
                 {organoidInfo.length >= 2 ? 'Days since fusion' : 'Day since in fusion media'}: {calculateDays(fusionDate, recordingDate)}
               </p>
             )}
@@ -471,7 +471,7 @@ export default function SaveRecording({
       <div className="glass-surface-subtle rounded-xl">
         <div className="p-4 pb-2">
           <div className="flex items-center gap-2">
-            <Save className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
+            <Save className="w-4 h-4" style={{ color: existingRecordingId ? '#10b981' : 'var(--sem-accent)' }} />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
               {existingRecordingId ? 'Update Recording' : 'Save Recording'}
             </span>
@@ -571,7 +571,7 @@ export default function SaveRecording({
           {/* Save Button */}
           <Button
             className="w-full h-10 mt-4 rounded-lg font-medium"
-            style={{ background: 'var(--sem-accent)', color: '#02080f' }}
+            style={{ background: existingRecordingId ? '#10b981' : 'var(--sem-accent)', color: '#02080f' }}
             onClick={handleSave}
             disabled={saving || (!existingRecordingId && mode === 'existing' && !selectedFolderId) || (!existingRecordingId && mode === 'new' && !newFolderName.trim())}
             data-testid="save-recording-btn"

@@ -394,9 +394,9 @@ function TraceViewer({
                 : 'hover:text-zinc-100'
             }`}
             style={{
-              background: editMode ? '#0891b2' : 'rgba(255,255,255,0.04)',
-              border: editMode ? 'none' : '1px solid rgba(255,255,255,0.1)',
-              color: editMode ? 'white' : 'var(--text-secondary)'
+              background: editMode ? '#18181b' : '#0a0a0b',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: editMode ? '#22d3ee' : 'var(--text-secondary)'
             }}
             onClick={() => {
               setEditMode(!editMode);
@@ -587,8 +587,8 @@ function TraceViewer({
           <Brush
             dataKey="time"
             height={20}
-            stroke="#52525b"
-            fill="#0c0c0e"
+            stroke="rgba(255,255,255,0.15)"
+            fill="transparent"
             tickFormatter={(v) => v.toFixed(1)}
             startIndex={brushIndices.start}
             endIndex={brushIndices.end}

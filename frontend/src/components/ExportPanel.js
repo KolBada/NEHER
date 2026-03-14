@@ -229,7 +229,7 @@ export default function ExportPanel({
           {metrics && (
             <>
               <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
-              <div className="space-y-2">
+              <div className="space-y-2 mt-6">
                 <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: 'var(--text-tertiary)' }}>Summary Preview</p>
                 <div 
                   className="rounded-lg p-3 font-data text-xs space-y-1"
@@ -238,13 +238,13 @@ export default function ExportPanel({
                   {recordingName && (
                     <div className="flex justify-between">
                       <span>Recording Name</span>
-                      <span style={{ color: '#10b981' }}>{recordingName}</span>
+                      <span style={{ color: 'white' }}>{recordingName}</span>
                     </div>
                   )}
                   {originalFilename && (
                     <div className="flex justify-between py-1">
                       <span>Original File</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{originalFilename}</span>
+                      <span style={{ color: 'white' }}>{originalFilename}</span>
                     </div>
                   )}
                   {recordingDate && (

@@ -594,8 +594,8 @@ function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke="#52525b"
-                  fill="#0c0c0e" 
+                  stroke="rgba(255,255,255,0.15)"
+                  fill="transparent" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={bfBrushIndices.start}
                   endIndex={bfBrushIndices.end}
@@ -699,8 +699,8 @@ function AnalysisPanel({
                 <Brush 
                   dataKey="time" 
                   height={20} 
-                  stroke="#52525b"
-                  fill="#0c0c0e" 
+                  stroke="rgba(255,255,255,0.15)"
+                  fill="transparent" 
                   tickFormatter={(v) => v.toFixed(1)}
                   startIndex={nnBrushIndices.start}
                   endIndex={nnBrushIndices.end}
@@ -713,55 +713,54 @@ function AnalysisPanel({
         </div>
       </div>
 
-      {/* Spontaneous Activity Analysis - Header + Controls joined */}
-      <div>
+      {/* Spontaneous Activity Analysis - Unified Section with accent line */}
+      <div 
+        className="glass-surface-subtle rounded-xl overflow-hidden"
+        style={{
+          borderLeft: drugPresent ? '3px solid #d946ef' : '3px solid #22d3ee',
+        }}
+      >
         {/* Header */}
-        <div className="glass-surface-subtle rounded-xl rounded-b-none" style={{ borderBottom: 'none' }}>
-          <div className="py-3 px-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" style={{ color: '#22d3ee' }} />
-              <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem' }}>Spontaneous Activity Analysis (BF & HRV)</span>
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className="inline-flex">
-                      <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
-                    <p className="font-medium mb-2">BF & HRV Metrics</p>
-                    <p className="mb-2">
-                      <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
-                    </p>
-                    <p className="mb-2">
-                      <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
-                    <p className="mb-2">
-                      <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
-                    </p>
-                    <p>
-                      The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              {/* Auto-computing indicator - shows only when loading */}
-              {analysisLoading && (
-                <div className="ml-auto flex items-center gap-1 text-xs" style={{ color: '#22d3ee' }}>
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Computing...</span>
-                </div>
-              )}
-            </div>
+        <div className="py-3 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" style={{ color: '#a855f7' }} />
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem' }}>Spontaneous Activity Analysis (BF & HRV)</span>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="inline-flex">
+                    <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
+                  <p className="font-medium mb-2">BF & HRV Metrics</p>
+                  <p className="mb-2">
+                    <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
+                  </p>
+                  <p className="mb-2">
+                    <strong>HRV (Heart Rate Variability):</strong> Metrics computed using sliding 3-min windows with NN intervals normalized to 70 bpm. Includes RMSSD, SDNN, and pNN50.</p>
+                  <p className="mb-2">
+                    <strong>Per-minute table:</strong> Shows HRV for each minute's 3-min sliding window (e.g., minute 0 = 0-3min window, minute 1 = 1-4min window).
+                  </p>
+                  <p>
+                    The values may differ because the baseline uses a fixed range while per-minute uses overlapping sliding windows.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {/* Auto-computing indicator - shows only when loading */}
+            {analysisLoading && (
+              <div className="ml-auto flex items-center gap-1 text-xs" style={{ color: '#22d3ee' }}>
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span>Computing...</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Divider line - full width */}
-        <div className="h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-
         {/* Controls */}
-        <div className="glass-surface-subtle rounded-xl rounded-t-none" style={{ borderTop: 'none' }}>
-          <div className="pt-4 px-4 pb-4">
+        <div className="pt-4 px-4 pb-4">
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
@@ -1336,7 +1335,6 @@ function AnalysisPanel({
             </TabsContent>
           </Tabs>
         </div>
-      </div>
       </div>
     </div>
   );

@@ -56,7 +56,16 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ### Glassmorphism UI/UX Overhaul - Phase 3 (December 2025 - Latest)
 
-**Latest Fix (December 2025):**
+**Latest UI Polish Pass (December 2025):**
+- **Top Bar:** Improved sticky top bar with darker glassmorphic background for better differentiation
+- **Drug Boxes:** Compact inline drug chips without running bar effect, properly spaced
+- **Tab Bar:** Cleaner tab styling, removed unnecessary inner effects
+- **Trace Tab:** Edit Beats button now uses black/dark background for differentiation; Brush sliders now transparent
+- **Spontaneous Activity Tab:** Fused section with cyan/magenta accent line based on drug state; Purple icon
+- **Save Recording Tab:** +Add Sample button white, proper spacing; hSpO styling emerald, hCO cyan; Update button emerald
+- **Export Tab:** Summary Preview has more spacing; Recording names white
+
+**Previous Fix (December 2025):**
 - Aligned MEA upload card with SSE upload card by adding `pt-16` top padding
 - Changed SSE "Analyze File" button from green gradient to neutral glassmorphic style
 
