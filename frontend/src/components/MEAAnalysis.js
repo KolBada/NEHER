@@ -37,10 +37,12 @@ import { Toaster, toast } from 'sonner';
 // DRUG CONFIGURATION (matching SSE)
 // ============================================================================
 const DRUG_CONFIG = {
-  isoproterenol: { name: 'Isoproterenol', defaultConc: '100', unit: 'nM' },
-  carbachol: { name: 'Carbachol', defaultConc: '10', unit: 'µM' },
-  nifedipine: { name: 'Nifedipine', defaultConc: '1', unit: 'µM' },
-  e4031: { name: 'E-4031', defaultConc: '1', unit: 'µM' },
+  tetrodotoxin: { name: 'Tetrodotoxin', defaultConc: '1', unit: 'µM' },
+  isoproterenol: { name: 'Isoproterenol', defaultConc: '1', unit: 'µM' },
+  acetylcholine: { name: 'Acetylcholine', defaultConc: '1', unit: 'µM' },
+  propranolol: { name: 'Propranolol', defaultConc: '5', unit: 'µM' },
+  nepicastat: { name: 'Nepicastat', defaultConc: '30', unit: 'µM' },
+  ruxolitinib: { name: 'Ruxolitinib', defaultConc: '2', unit: 'µM' },
 };
 
 // ============================================================================
@@ -167,10 +169,10 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
   return (
     <div className="h-48">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
-          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'insideLeft', offset: 5, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
           <Line type="monotone" dataKey="spike_rate_hz" stroke="#00b8c4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -187,10 +189,10 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
   return (
     <div className="h-48">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
-          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'insideLeft', offset: 5, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
           <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -281,28 +283,112 @@ const CorrelationScatter = memo(function CorrelationScatter({ spikeData, burstDa
     return spikeData.map((sr, i) => ({
       x: sr.spike_rate_hz,
       y: burstData[i]?.burst_rate_bpm || 0,
-    })).filter(d => !isNaN(d.x) && !isNaN(d.y));
+    })).filter(d => !isNaN(d.x) && !isNaN(d.y) && d.x > 0 && d.y > 0);
   }, [spikeData, burstData]);
+  
+  // Compute linear regression for trend line
+  const regression = useMemo(() => {
+    if (scatterData.length < 2) return null;
+    
+    const n = scatterData.length;
+    const sumX = scatterData.reduce((acc, d) => acc + d.x, 0);
+    const sumY = scatterData.reduce((acc, d) => acc + d.y, 0);
+    const sumXY = scatterData.reduce((acc, d) => acc + d.x * d.y, 0);
+    const sumX2 = scatterData.reduce((acc, d) => acc + d.x * d.x, 0);
+    const sumY2 = scatterData.reduce((acc, d) => acc + d.y * d.y, 0);
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    // Pearson correlation coefficient
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    const r = denominator !== 0 ? numerator / denominator : 0;
+    
+    // t-statistic and p-value approximation
+    const t = r * Math.sqrt((n - 2) / (1 - r * r));
+    // Two-tailed p-value approximation using t-distribution (simplified)
+    const df = n - 2;
+    const p = df > 0 ? Math.exp(-0.717 * Math.abs(t) - 0.416 * t * t / df) : 1;
+    
+    const xMin = Math.min(...scatterData.map(d => d.x));
+    const xMax = Math.max(...scatterData.map(d => d.x));
+    
+    return {
+      slope,
+      intercept,
+      r,
+      p: Math.max(0.001, Math.min(1, p)), // Clamp p-value
+      n,
+      lineData: [
+        { x: xMin, y: slope * xMin + intercept },
+        { x: xMax, y: slope * xMax + intercept },
+      ]
+    };
+  }, [scatterData]);
   
   if (!scatterData.length) {
     return <div className="h-56 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>Insufficient data</div>;
   }
+  
   return (
-    <div>
+    <div className="relative">
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 30 }}>
+          <ScatterChart margin={{ top: 10, right: 20, left: 55, bottom: 35 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="x" type="number" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} name="Spike Rate (Hz)" />
-            <YAxis dataKey="y" type="number" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} name="Burst Rate (bpm)" />
-            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+            <XAxis 
+              dataKey="x" 
+              type="number" 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              label={{ value: 'Spike Rate (Hz)', position: 'insideBottom', offset: -8, fontSize: 9, fill: '#71717a' }} 
+            />
+            <YAxis 
+              dataKey="y" 
+              type="number" 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 9, fill: '#71717a' }} 
+            />
+            <RechartsTooltip 
+              contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} 
+              formatter={(value, name) => [value.toFixed(3), name === 'x' ? 'Spike Rate' : 'Burst Rate']}
+            />
             <Scatter data={scatterData} fill="#10b981" isAnimationActive={false} />
+            {/* Regression Line */}
+            {regression && regression.lineData && (
+              <Scatter 
+                data={regression.lineData} 
+                line={{ stroke: '#f59e0b', strokeWidth: 2 }} 
+                shape={() => null}
+                isAnimationActive={false} 
+              />
+            )}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      {correlation?.r !== null && (
-        <div className="text-center text-[10px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
-          r = {correlation.r.toFixed(3)} | n = {correlation.n} bins
+      {/* Pearson r/p inset */}
+      {regression && (
+        <div 
+          className="absolute top-3 right-4 px-3 py-2 rounded-lg text-[10px] font-data"
+          style={{ 
+            background: 'rgba(0, 0, 0, 0.7)', 
+            border: '1px solid rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div style={{ color: '#10b981' }}>
+            <span style={{ color: 'var(--text-tertiary)' }}>r = </span>
+            <span className="font-semibold">{regression.r.toFixed(3)}</span>
+          </div>
+          <div style={{ color: regression.p < 0.05 ? '#22d3ee' : 'var(--text-tertiary)' }}>
+            <span style={{ color: 'var(--text-tertiary)' }}>p </span>
+            {regression.p < 0.001 ? '< 0.001' : `= ${regression.p.toFixed(3)}`}
+          </div>
+          <div style={{ color: 'var(--text-tertiary)' }}>
+            n = {regression.n}
+          </div>
         </div>
       )}
     </div>
