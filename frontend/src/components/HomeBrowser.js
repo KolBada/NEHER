@@ -785,7 +785,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Sections with drop zones */}
             {sections.map((section, index) => {
               const sectionFolders = sortedFolders.filter(f => f.section_id === section.id);
@@ -986,7 +986,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             
             {/* Unsectioned Folders */}
             {sortedFolders.filter(f => !f.section_id).length > 0 && (
-              <div className="mt-6">
+              <div className="mt-8">
                 {sections.length > 0 && (
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Unsorted</span>
@@ -1003,11 +1003,11 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                     border: '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
-                  <div className="px-4 py-3 space-y-1">
+                  <div className="px-4 pt-3 pb-4 space-y-1">
                     {sortedFolders.filter(f => !f.section_id).map((folder) => (
                       <div 
                         key={folder.id}
-                        className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer group transition-all"
+                        className="flex items-center gap-3 p-2.5 pl-6 rounded-lg cursor-pointer group transition-all"
                         style={{ background: 'transparent' }}
                         data-testid={`folder-${folder.id}`}
                         onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
