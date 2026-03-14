@@ -1583,8 +1583,13 @@ function App() {
       <Toaster theme="dark" position="top-right" />
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-800 px-4 py-2"
-              style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+      <header className="sticky top-0 z-20 px-4 py-2"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.03)', 
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.10)'
+              }}
               data-testid="app-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1597,7 +1602,7 @@ function App() {
             >
               <Home className="w-4 h-4 text-zinc-400" />
             </Button>
-            <h1 className="text-base font-semibold tracking-tight" style={{ fontFamily: 'Manrope' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
               NEHER
             </h1>
             <Separator orientation="vertical" className="h-5 bg-zinc-700" />
@@ -1646,7 +1651,17 @@ function App() {
               </Select>
             )}
             {activeFile && (
-              <Badge variant="outline" className="h-6 font-data text-[10px] border-zinc-700 text-zinc-400 px-2">
+              <Badge 
+                variant="outline" 
+                className="h-6 text-[10px] px-2"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.10)',
+                  borderRadius: '6px',
+                  fontFamily: "'SF Mono', 'Fira Code', monospace",
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 {activeFile.filename} &middot; {activeFile.duration_sec.toFixed(1)}s &middot; {activeFile.sample_rate}Hz
               </Badge>
             )}
@@ -1656,7 +1671,8 @@ function App() {
               data-testid="recording-name-input"
               value={recordingName}
               onChange={(e) => setRecordingName(e.target.value)}
-              className="h-6 w-56 text-[10px] font-data bg-transparent border-none text-zinc-300 px-2 focus:bg-zinc-800/50 focus:ring-1 focus:ring-zinc-700"
+              className="h-6 w-56 text-[10px] bg-transparent border-none px-2 focus:bg-zinc-800/50 focus:ring-1 focus:ring-zinc-700"
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}
               placeholder="Recording name..."
             />
             

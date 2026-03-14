@@ -769,10 +769,11 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-3 rounded-lg transition-all"
+              className="h-8 px-3 rounded-lg transition-all hover:translate-y-[-1px]"
               style={{
                 background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.14)',
                 color: 'var(--text-secondary)',
               }}
               onClick={onBack}
@@ -782,8 +783,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               Back
             </Button>
             <div>
-              <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Comparison: {folder.name}</h2>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{summary?.recording_count || 0} recordings</p>
+              <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison: {folder.name}</h2>
+              <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>{summary?.recording_count || 0} recordings</p>
             </div>
           </div>
           
@@ -866,47 +867,35 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div 
-          className="glass-surface-subtle p-4 rounded-xl"
-          style={{ borderLeft: '3px solid var(--accent-teal)' }}
-        >
-          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>RECORDINGS</p>
-          <p className="text-2xl font-semibold" style={{ color: 'var(--accent-teal)' }}>{summary?.recording_count || 0}</p>
+        <div className="glass-surface-subtle p-4 rounded-xl">
+          <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>RECORDINGS</p>
+          <p className="text-2xl font-semibold" style={{ color: 'var(--accent-teal)', fontFamily: 'var(--font-display)' }}>{summary?.recording_count || 0}</p>
         </div>
-        <div 
-          className="glass-surface-subtle p-4 rounded-xl"
-          style={{ borderLeft: '3px solid #10b981' }}
-        >
-          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>
+        <div className="glass-surface-subtle p-4 rounded-xl">
+          <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#10b981' }}>
+          <p className="text-lg font-semibold" style={{ color: '#10b981', fontFamily: 'var(--font-display)' }}>
             {summary?.hspo_age_range?.min !== null 
               ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
               : '—'}
           </p>
           <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hspo_age_range?.n || 0}</p>
         </div>
-        <div 
-          className="glass-surface-subtle p-4 rounded-xl"
-          style={{ borderLeft: '3px solid #F4CEA2' }}
-        >
-          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>
+        <div className="glass-surface-subtle p-4 rounded-xl">
+          <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#F4CEA2' }}>
+          <p className="text-lg font-semibold" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)' }}>
             {summary?.hco_age_range?.min !== null 
               ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
               : '—'}
           </p>
           <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hco_age_range?.n || 0}</p>
         </div>
-        <div 
-          className="glass-surface-subtle p-4 rounded-xl"
-          style={{ borderLeft: '3px solid #a78bfa' }}
-        >
-          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>FUSION AGE RANGE</p>
-          <p className="text-lg font-semibold" style={{ color: '#a78bfa' }}>
+        <div className="glass-surface-subtle p-4 rounded-xl">
+          <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>FUSION AGE RANGE</p>
+          <p className="text-lg font-semibold" style={{ color: '#a78bfa', fontFamily: 'var(--font-display)' }}>
             {summary?.fusion_age_range?.min !== null 
               ? `${summary.fusion_age_range.min} - ${summary.fusion_age_range.max} days`
               : '—'}
@@ -955,11 +944,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             <div 
               key={drug.key} 
               className={`glass-surface-subtle rounded-xl ${drugIdx > 0 ? 'mt-4' : ''}`}
-              style={{ borderLeft: '3px solid #d946ef' }}
             >
               <div className="p-4 pb-2">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Spontaneous Activity Comparison</span>
+                  <span className="text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Spontaneous Activity Comparison</span>
                   {uniqueDrugs.length > 0 && (
                     <Badge 
                       className="text-[10px] px-2 py-0.5"
@@ -1129,12 +1117,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         <TabsContent value="light-stimulus">
           <div className="space-y-4">
             {/* HRA Table */}
-            <div 
-              className="glass-surface-subtle rounded-xl"
-              style={{ borderLeft: '3px solid #f59e0b' }}
-            >
+            <div className="glass-surface-subtle rounded-xl">
               <div className="p-4 pb-2">
-                <span className="text-sm font-medium" style={{ color: '#fbbf24' }}>Light-Induced Heart Rate Adaptation (HRA)</span>
+                <span className="text-sm" style={{ color: '#fbbf24', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Light-Induced Heart Rate Adaptation (HRA)</span>
               </div>
               <div className="p-4 pt-2">
                 <div className="overflow-x-auto">
@@ -1510,12 +1495,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             </div>
 
             {/* Corrected HRV Table */}
-            <div 
-              className="glass-surface-subtle rounded-xl"
-              style={{ borderLeft: '3px solid #f59e0b' }}
-            >
+            <div className="glass-surface-subtle rounded-xl">
               <div className="p-4 pb-2">
-                <span className="text-sm font-medium" style={{ color: '#fbbf24' }}>Corrected Light-Induced Heart Rate Variability (HRV)</span>
+                <span className="text-sm" style={{ color: '#fbbf24', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Corrected Light-Induced Heart Rate Variability (HRV)</span>
               </div>
               <div className="p-4 pt-2">
                 <div className="overflow-x-auto">
@@ -1745,12 +1727,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
         {/* Metadata Tab */}
         <TabsContent value="metadata">
-          <div 
-            className="glass-surface-subtle rounded-xl"
-            style={{ borderLeft: '3px solid var(--accent-teal)' }}
-          >
+          <div className="glass-surface-subtle rounded-xl">
             <div className="p-4 pb-2">
-              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Recording Metadata</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Recording Metadata</span>
             </div>
             <div className="p-4 pt-2">
               <div className="overflow-x-auto">

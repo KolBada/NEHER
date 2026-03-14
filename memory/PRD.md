@@ -54,17 +54,43 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ## Recent Changes (December 2025)
 
-### Glassmorphism Complete UI Overhaul (Latest)
-- Applied glass styling to ALL remaining pages (Comparison, Single Recording, Export)
-- Added colored left borders to all panels for visual hierarchy
-- Updated tabs to use glass background with backdrop blur
-- Colored icons in tab triggers (peach BPM, amber Light, green Save, teal Export)
-- Updated export buttons with colored backgrounds (green Excel, red PDF)
-- Consistent badge styling across all views
+### Glassmorphism UI/UX Overhaul - Phase 2 (Latest)
+1. **Typography System Unified:**
+   - Added Space Grotesk (400, 500, 600) for display text (titles, headings)
+   - Added DM Sans (400, 500) for body text
+   - Applied CSS variables `--font-display` and `--font-body` globally
 
-### Fixed: MEA CSV Parsing for Axion Biosystems Format
-- **Problem**: Parser expected standard CSV but Axion files have mixed metadata/data format
-- **Solution**: Custom `parseAxionCSV()` function with well ID extraction
+2. **Comparison Page Cleanup:**
+   - Removed colored left border lines from all stat cards (RECORDINGS, hSpOs, hCOs, FUSION AGE)
+   - Removed left borders from Spontaneous Activity, Light Stimulus, and Metadata sections
+   - Updated typography with proper font families and weights
+
+3. **Single Recording Page:**
+   - Top navigation bar now has glassmorphism with backdrop blur
+   - File info badge uses monospace font
+   - Recording name input properly styled
+
+4. **Trace Tab (Beat Detection Sidebar):**
+   - Full glassmorphism applied to Detection Panel
+   - Threshold section highlighted with amber tint
+   - Signal stats cards with glass styling
+   - Preset buttons (Default/Strict/Loose) with glass styling
+
+5. **Spontaneous Activity Tab:**
+   - Removed colored left borders from BF and NN chart panels
+   - Removed border from "Spontaneous Activity Analysis" header
+   - Removed border from "Evolution of HRV Metrics" section
+   - Removed border from "Per-Minute Metrics" section
+
+6. **Export Tab:**
+   - Removed colored left borders from all sections
+   - Applied glass styling to available data cards
+
+### Previous Glassmorphism Updates
+- Home page sections and folders
+- SSE and MEA upload pages
+- Folder recordings view
+- Dialogs and dropdown menus
 
 ## Pending Tasks
 

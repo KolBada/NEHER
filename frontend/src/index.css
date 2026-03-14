@@ -88,7 +88,14 @@
     }
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=DM+Sans:wght@400;500&display=swap');
+
 @layer base {
+    :root {
+        --font-display: 'Space Grotesk', sans-serif;
+        --font-body: 'DM Sans', sans-serif;
+    }
+    
     * {
         @apply border-border;
     }
@@ -98,10 +105,11 @@
         color: var(--text-primary);
     }
     body {
-        font-family: 'Inter', sans-serif;
+        font-family: var(--font-body);
     }
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Manrope', sans-serif;
+        font-family: var(--font-display);
+        font-weight: 600;
     }
 }
 

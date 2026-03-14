@@ -502,14 +502,11 @@ function AnalysisPanel({
 
       {/* BF + NN charts (filtered) with light stim highlights and zoom */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" ref={chartContainerRef}>
-        <div 
-          className="glass-surface-subtle rounded-xl"
-          style={{ borderLeft: '3px solid #F4CEA2' }}
-        >
+        <div className="glass-surface-subtle rounded-xl">
           <div className="p-3 pb-2">
             <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                <span style={{ color: '#F4CEA2' }}>Beat Frequency (Filtered)</span> - bpm vs min
+                <span style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Beat Frequency (Filtered)</span> - bpm vs min
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -610,14 +607,11 @@ function AnalysisPanel({
           </div>
         </div>
 
-        <div 
-          className="glass-surface-subtle rounded-xl"
-          style={{ borderLeft: '3px solid #a78bfa' }}
-        >
+        <div className="glass-surface-subtle rounded-xl">
           <div className="p-3 pb-2">
             <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                <span style={{ color: '#c0c0c0' }}>NN Intervals (Filtered)</span> - ms vs min
+                <span style={{ color: '#c0c0c0', fontFamily: 'var(--font-display)', fontWeight: 500 }}>NN Intervals (Filtered)</span> - ms vs min
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -722,14 +716,11 @@ function AnalysisPanel({
       {/* Spontaneous Activity Analysis - Header + Controls joined */}
       <div>
         {/* Header */}
-        <div 
-          className="glass-surface-subtle rounded-xl rounded-b-none"
-          style={{ borderLeft: '3px solid #22d3ee', borderBottom: 'none' }}
-        >
+        <div className="glass-surface-subtle rounded-xl rounded-b-none" style={{ borderBottom: 'none' }}>
           <div className="py-3 px-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" style={{ color: '#22d3ee' }} />
-              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Spontaneous Activity Analysis (BF & HRV)</span>
+              <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem' }}>Spontaneous Activity Analysis (BF & HRV)</span>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -769,10 +760,7 @@ function AnalysisPanel({
         <div className="h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Controls */}
-        <div 
-          className="glass-surface-subtle rounded-xl rounded-t-none"
-          style={{ borderLeft: '3px solid #22d3ee', borderTop: 'none' }}
-        >
+        <div className="glass-surface-subtle rounded-xl rounded-t-none" style={{ borderTop: 'none' }}>
           <div className="pt-4 px-4 pb-4">
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
@@ -1157,13 +1145,10 @@ function AnalysisPanel({
 
       {/* Evolution of HRV Metrics */}
       {hrvChartData.length > 0 && (
-        <div 
-          className="glass-surface-subtle rounded-xl mt-4"
-          style={{ borderLeft: '3px solid #fa8072' }}
-        >
+        <div className="glass-surface-subtle rounded-xl mt-4">
           <div className="p-3 pb-2">
             <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-              <span style={{ color: '#fa8072' }}>Evolution of HRV Metrics</span>
+              <span style={{ color: '#fa8072', fontFamily: 'var(--font-display)', fontWeight: 500 }}>Evolution of HRV Metrics</span>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1220,13 +1205,10 @@ function AnalysisPanel({
       )}
 
       {/* Per-minute metrics table */}
-      <div 
-        className="glass-surface-subtle rounded-xl mt-4"
-        style={{ borderLeft: '3px solid var(--accent-teal)' }}
-      >
+      <div className="glass-surface-subtle rounded-xl mt-4">
         <div className="p-3 pb-2">
           <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-            Per-Minute Metrics
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}>Per-Minute Metrics</span>
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>

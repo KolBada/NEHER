@@ -379,7 +379,6 @@ function TraceViewer({
   return (
     <div 
       className="glass-surface-subtle rounded-xl" 
-      style={{ borderLeft: '3px solid #c0c0c0' }}
       data-testid="trace-viewer" 
       ref={containerRef}
     >

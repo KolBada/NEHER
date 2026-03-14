@@ -1,10 +1,8 @@
 import { Loader2, RefreshCw, Check, RotateCcw, Filter, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,23 +28,24 @@ export default function DetectionPanel({
   const filterUpper = filterParams?.upperPct ?? 200;
 
   return (
-    <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm" data-testid="detection-panel">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium tracking-tight" style={{ fontFamily: 'Manrope' }}>
+    <div className="glass-surface rounded-xl" data-testid="detection-panel">
+      <div className="p-4 pb-3">
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
           Beat Detection
-        </CardTitle>
-      </CardHeader>
+        </h3>
+      </div>
       <TooltipProvider delayDuration={100}>
-      <CardContent className="space-y-5">
+      <div className="px-4 pb-4 space-y-5">
         {/* Threshold Direction - Positive or Negative */}
         <div className="space-y-2">
-          <Label className="text-xs text-zinc-400 text-center block">Threshold Direction</Label>
+          <Label className="text-xs text-center block" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.78rem' }}>Threshold Direction</Label>
           <div className="flex gap-2 justify-center">
             <Button
               data-testid="threshold-positive-btn"
               variant={!params.invert ? "default" : "outline"}
               size="sm"
-              className={`w-24 h-8 text-xs ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-24 h-8 text-xs ${!params.invert ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+              style={params.invert ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' } : {}}
               onClick={() => onChange({ ...params, invert: false })}
               disabled={isValidated}
             >
@@ -56,25 +55,26 @@ export default function DetectionPanel({
               data-testid="threshold-negative-btn"
               variant={params.invert ? "default" : "outline"}
               size="sm"
-              className={`w-24 h-8 text-xs ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : 'border-zinc-700 text-zinc-400'}`}
+              className={`w-24 h-8 text-xs ${params.invert ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+              style={!params.invert ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' } : {}}
               onClick={() => onChange({ ...params, invert: true })}
               disabled={isValidated}
             >
               Negative
             </Button>
           </div>
-          <p className="text-[9px] text-zinc-500 italic text-center">
+          <p className="text-[9px] italic text-center" style={{ color: 'var(--text-tertiary)' }}>
             {params.invert ? 'Detect peaks below the threshold' : 'Detect peaks above the threshold'}
           </p>
         </div>
 
-        <Separator className="bg-zinc-800" />
+        <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Min Distance */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-zinc-400">Min Distance (s)</Label>
-            <span className="text-[10px] font-data text-zinc-300">
+            <Label className="text-xs" style={{ color: 'var(--text-secondary)' }}>Min Distance (s)</Label>
+            <span className="text-[10px] font-data" style={{ color: 'var(--text-primary)' }}>
               {minDist.toFixed(2)}s
             </span>
           </div>
@@ -91,15 +91,15 @@ export default function DetectionPanel({
         </div>
 
         {/* Threshold - More prominent with direct input */}
-        <div className="space-y-2 p-2 bg-amber-950/20 border border-amber-900/50 rounded-sm">
+        <div className="space-y-2 p-2 rounded-lg" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <Label className="text-xs text-amber-400 font-semibold">Threshold (mV)</Label>
+              <Label className="text-xs font-semibold" style={{ color: '#fbbf24' }}>Threshold (mV)</Label>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="w-3 h-3 text-amber-600 cursor-help" />
+                  <Info className="w-3 h-3 cursor-help" style={{ color: '#f59e0b' }} />
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700 text-white">
+                <TooltipContent side="right" className="max-w-[220px] text-xs glass-surface" style={{ color: 'var(--text-primary)' }}>
                   <p>{params.invert 
                     ? 'Voltage level for beat detection. Only peaks BELOW this value will be detected as beats.' 
                     : 'Voltage level for beat detection. Only peaks ABOVE this value will be detected as beats.'}
@@ -120,7 +120,8 @@ export default function DetectionPanel({
                   }
                 }}
                 placeholder="auto"
-                className="h-6 w-20 text-[10px] font-data bg-zinc-900 border-zinc-700 text-zinc-200"
+                className="h-6 w-20 text-[10px] font-data"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
                 disabled={isValidated}
               />
             </div>
@@ -135,7 +136,7 @@ export default function DetectionPanel({
             disabled={isValidated}
             className="accent-amber-500"
           />
-          <p className="text-[9px] text-amber-600 italic">
+          <p className="text-[9px] italic" style={{ color: '#f59e0b' }}>
             Shown as dashed amber line on trace
           </p>
         </div>
@@ -144,17 +145,17 @@ export default function DetectionPanel({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <Label className="text-xs text-zinc-400">Prominence</Label>
+              <Label className="text-xs" style={{ color: 'var(--text-secondary)' }}>Prominence</Label>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="w-3 h-3 text-zinc-500 cursor-help" />
+                  <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[220px] text-xs bg-zinc-900 border-zinc-700 text-white">
+                <TooltipContent side="right" className="max-w-[220px] text-xs glass-surface" style={{ color: 'var(--text-primary)' }}>
                   <p>Minimum height difference between a peak and its surrounding signal. Higher values = only detect more prominent/distinct beats.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
-            <span className="text-[10px] font-data text-zinc-300">
+            <span className="text-[10px] font-data" style={{ color: 'var(--text-primary)' }}>
               {prominence !== null ? prominence.toFixed(3) : 'auto'}
             </span>
           </div>
@@ -169,22 +170,22 @@ export default function DetectionPanel({
           />
         </div>
 
-        <Separator className="bg-zinc-800" />
+        <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
         
         {/* Artifact Filter Strictness */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Filter className="w-3 h-3 text-zinc-500" />
-            <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Artifact Filter</p>
+            <Filter className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
+            <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Artifact Filter</p>
           </div>
-          <p className="text-[9px] text-zinc-500">
+          <p className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>
             Keep beats where BF is within {filterLower}% - {filterUpper}% of local median
           </p>
           
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[10px] text-zinc-400">Lower Bound (%)</Label>
-              <span className="text-[10px] font-data text-zinc-300">{filterLower}%</span>
+              <Label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Lower Bound (%)</Label>
+              <span className="text-[10px] font-data" style={{ color: 'var(--text-primary)' }}>{filterLower}%</span>
             </div>
             <Slider
               data-testid="filter-lower-slider"
@@ -199,8 +200,8 @@ export default function DetectionPanel({
           
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[10px] text-zinc-400">Upper Bound (%)</Label>
-              <span className="text-[10px] font-data text-zinc-300">{filterUpper}%</span>
+              <Label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Upper Bound (%)</Label>
+              <span className="text-[10px] font-data" style={{ color: 'var(--text-primary)' }}>{filterUpper}%</span>
             </div>
             <Slider
               data-testid="filter-upper-slider"
@@ -216,21 +217,24 @@ export default function DetectionPanel({
           <div className="flex gap-1 flex-wrap">
             <Badge 
               variant="outline" 
-              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              className="text-[9px] font-data cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', borderRadius: '6px' }}
               onClick={() => !isValidated && onFilterChange?.({ lowerPct: 50, upperPct: 200 })}
             >
               Default (50-200%)
             </Badge>
             <Badge 
               variant="outline" 
-              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              className="text-[9px] font-data cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', borderRadius: '6px' }}
               onClick={() => !isValidated && onFilterChange?.({ lowerPct: 70, upperPct: 150 })}
             >
               Strict (70-150%)
             </Badge>
             <Badge 
               variant="outline" 
-              className="text-[9px] font-data border-zinc-700 text-zinc-400 cursor-pointer hover:bg-zinc-800"
+              className="text-[9px] font-data cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', borderRadius: '6px' }}
               onClick={() => !isValidated && onFilterChange?.({ lowerPct: 30, upperPct: 250 })}
             >
               Loose (30-250%)
@@ -238,11 +242,11 @@ export default function DetectionPanel({
           </div>
         </div>
 
-        <Separator className="bg-zinc-800" />
+        <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Signal Stats */}
         <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500 mb-2">Signal</p>
+          <p className="text-[10px] uppercase tracking-wider font-medium mb-2" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Signal</p>
           <div className="grid grid-cols-2 gap-2">
             {[
               ['Min', stats.min.toFixed(2)],
@@ -250,15 +254,15 @@ export default function DetectionPanel({
               ['Mean', stats.mean.toFixed(2)],
               ['Std', stats.std.toFixed(3)],
             ].map(([label, val]) => (
-              <div key={label} className="bg-zinc-900/50 p-2 rounded-sm">
-                <p className="text-[9px] text-zinc-500 uppercase">{label}</p>
-                <p className="text-xs font-data text-zinc-300">{val}</p>
+              <div key={label} className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-[9px] uppercase" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
+                <p className="text-xs font-data" style={{ color: 'var(--text-primary)' }}>{val}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <Separator className="bg-zinc-800" />
+        <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Actions */}
         <div className="space-y-2">
@@ -267,7 +271,8 @@ export default function DetectionPanel({
               <Button
                 data-testid="re-detect-btn"
                 variant="secondary"
-                className="w-full h-8 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                className="w-full h-8 text-xs rounded-lg transition-all"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
                 onClick={onDetect}
                 disabled={detectLoading}
               >
@@ -281,7 +286,8 @@ export default function DetectionPanel({
 
               <Button
                 data-testid="validate-btn"
-                className="w-full h-8 text-xs rounded-sm font-medium bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+                className="w-full h-8 text-xs rounded-lg font-medium"
+                style={{ background: 'var(--sem-accent)', color: '#02080f' }}
                 onClick={onValidate}
                 disabled={!beats || beats.length < 2}
               >
@@ -290,14 +296,15 @@ export default function DetectionPanel({
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 p-2 bg-green-950/30 border border-green-800/50 rounded-sm">
-                <Check className="w-3 h-3 text-green-400" />
-                <span className="text-xs text-green-400">Beats validated ({beats ? beats.length : 0})</span>
+              <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <Check className="w-3 h-3" style={{ color: '#10b981' }} />
+                <span className="text-xs" style={{ color: '#10b981' }}>Beats validated ({beats ? beats.length : 0})</span>
               </div>
               <Button
                 data-testid="unvalidate-btn"
                 variant="secondary"
-                className="w-full h-8 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300"
+                className="w-full h-8 text-xs rounded-lg transition-all"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }}
                 onClick={onUnvalidate}
               >
                 <RotateCcw className="w-3 h-3 mr-1" />
@@ -306,8 +313,8 @@ export default function DetectionPanel({
             </>
           )}
         </div>
-      </CardContent>
+      </div>
       </TooltipProvider>
-    </Card>
+    </div>
   );
 }

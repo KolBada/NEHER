@@ -24,10 +24,7 @@ export default function ExportPanel({
   return (
     <div className="space-y-4" data-testid="export-panel">
       {/* Recording Info */}
-      <div 
-        className="glass-surface-subtle rounded-xl py-3 px-4"
-        style={{ borderLeft: '3px solid var(--accent-teal)' }}
-      >
+      <div className="glass-surface-subtle rounded-xl py-3 px-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Name:</span>
@@ -55,12 +52,9 @@ export default function ExportPanel({
         </div>
       </div>
 
-      <div 
-        className="glass-surface-subtle rounded-xl"
-        style={{ borderLeft: '3px solid var(--accent-teal)' }}
-      >
+      <div className="glass-surface-subtle rounded-xl">
         <div className="p-4 pb-2">
-          <span className="text-sm font-medium" style={{ fontFamily: 'Manrope', color: 'var(--text-primary)' }}>
+          <span className="text-sm" style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}>
             Export Results
           </span>
         </div>
