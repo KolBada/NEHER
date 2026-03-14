@@ -793,7 +793,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
               const isBeingDragged = draggedSection?.id === section.id;
               
               return (
-                <div key={section.id} className="relative">
+                <div key={section.id} className="relative mb-4">
                   {/* Drop zone BEFORE this section (only show when dragging) */}
                   {isDragging && !isBeingDragged && (
                     <div 
