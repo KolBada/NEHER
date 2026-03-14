@@ -581,42 +581,20 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Selected drug badges with concentration and Perf. Start */}
+            {/* Selected drug badges - simplified to just name and X */}
             {selectedDrugs.map((drugKey) => {
               const cfg = DRUG_CONFIG[drugKey];
-              const settings = drugSettings[drugKey] || {};
               return (
-                <div 
-                  key={drugKey}
-                  className="flex items-center gap-1.5 h-7 px-2 rounded-lg"
-                  style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.40)' }}
+                <Badge 
+                  key={drugKey} 
+                  variant="outline" 
+                  className="h-7 text-[11px] px-3 rounded-lg transition-all hover:scale-105 cursor-pointer"
+                  style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.40)', color: '#a855f7' }}
+                  onClick={() => toggleDrug(drugKey)}
                 >
-                  <span className="text-[11px] font-medium" style={{ color: '#a855f7' }}>{cfg.name}</span>
-                  <Input
-                    type="text"
-                    value={settings.concentration ?? cfg.defaultConc}
-                    onChange={(e) => setDrugSettings(prev => ({ ...prev, [drugKey]: { ...prev[drugKey], concentration: e.target.value } }))}
-                    className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center"
-                    style={{ border: '1px solid rgba(168, 85, 247, 0.30)', color: '#a855f7' }}
-                  />
-                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>{cfg.unit}</span>
-                  <div className="w-px h-4 mx-1" style={{ background: 'rgba(168, 85, 247, 0.3)' }} />
-                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>Perf.</span>
-                  <Input
-                    type="number"
-                    value={settings.perfusionStart ?? 3}
-                    onChange={(e) => setDrugSettings(prev => ({ ...prev, [drugKey]: { ...prev[drugKey], perfusionStart: parseFloat(e.target.value) || 0 } }))}
-                    className="h-5 w-10 text-[9px] bg-black/40 rounded px-1 text-center"
-                    style={{ border: '1px solid rgba(168, 85, 247, 0.30)', color: '#a855f7' }}
-                  />
-                  <span className="text-[9px]" style={{ color: 'rgba(168, 85, 247, 0.7)' }}>min</span>
-                  <button 
-                    onClick={() => toggleDrug(drugKey)}
-                    className="ml-1 p-0.5 rounded hover:bg-white/10 transition-colors"
-                  >
-                    <X className="w-3 h-3" style={{ color: '#a855f7' }} />
-                  </button>
-                </div>
+                  {cfg.name}
+                  <X className="w-3 h-3 ml-1.5" />
+                </Badge>
               );
             })}
           </div>
@@ -990,7 +968,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         {selectedDrugs.length > 0 ? (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Perf Time:</Label>
+                              <Label className="text-[9px] w-16" style={{ color: 'var(--text-secondary)' }}>Perf. Start:</Label>
                               <Input
                                 type="number"
                                 value={drugPerfTime}
@@ -1002,7 +980,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               <span className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>min</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Readout:</Label>
+                              <Label className="text-[9px] w-16" style={{ color: 'var(--text-secondary)' }}>Perf. Time:</Label>
                               <Input
                                 type="number"
                                 value={drugReadoutMinute}
@@ -1019,48 +997,48 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         )}
                       </div>
                       
-                      {/* Readout Metrics */}
+                      {/* Readout Metrics - More Prominent */}
                       <div 
-                        className="p-3 rounded-xl"
-                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}
+                        className="p-4 rounded-xl"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
                       >
-                        <p className="text-[9px] uppercase tracking-wider font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[10px] uppercase tracking-wider font-medium mb-4" style={{ color: 'var(--text-secondary)' }}>
                           Readout Metrics
                         </p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-6">
                           {/* Spike Column */}
-                          <div className="space-y-2">
-                            <p className="text-[8px] uppercase" style={{ color: '#00b8c4' }}>Spike</p>
-                            <div className="text-[10px]">
-                              <span style={{ color: 'var(--text-tertiary)' }}>Baseline: </span>
-                              <span className="font-data" style={{ color: '#22d3ee' }}>
-                                {wellAnalysis.baselineSpikeHz?.toFixed(3) ?? '—'} Hz
-                              </span>
+                          <div className="space-y-3">
+                            <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#00b8c4' }}>Spike</p>
+                            <div>
+                              <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
+                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
+                                {wellAnalysis.baselineSpikeHz?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">Hz</span>
+                              </p>
                             </div>
                             {drugEnabled && selectedDrugs.length > 0 && (
-                              <div className="text-[10px]">
-                                <span style={{ color: 'var(--text-tertiary)' }}>Drug: </span>
-                                <span className="font-data" style={{ color: '#a855f7' }}>
-                                  {wellAnalysis.drugSpikeHz?.toFixed(3) ?? '—'} Hz
-                                </span>
+                              <div>
+                                <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Drug</p>
+                                <p className="text-base font-data font-semibold" style={{ color: '#a855f7' }}>
+                                  {wellAnalysis.drugSpikeHz?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">Hz</span>
+                                </p>
                               </div>
                             )}
                           </div>
                           {/* Burst Column */}
-                          <div className="space-y-2">
-                            <p className="text-[8px] uppercase" style={{ color: '#f97316' }}>Burst</p>
-                            <div className="text-[10px]">
-                              <span style={{ color: 'var(--text-tertiary)' }}>Baseline: </span>
-                              <span className="font-data" style={{ color: '#22d3ee' }}>
-                                {wellAnalysis.baselineBurstBpm?.toFixed(3) ?? '—'} bpm
-                              </span>
+                          <div className="space-y-3">
+                            <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#f97316' }}>Burst</p>
+                            <div>
+                              <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
+                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
+                                {wellAnalysis.baselineBurstBpm?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">bpm</span>
+                              </p>
                             </div>
                             {drugEnabled && selectedDrugs.length > 0 && (
-                              <div className="text-[10px]">
-                                <span style={{ color: 'var(--text-tertiary)' }}>Drug: </span>
-                                <span className="font-data" style={{ color: '#a855f7' }}>
-                                  {wellAnalysis.drugBurstBpm?.toFixed(3) ?? '—'} bpm
-                                </span>
+                              <div>
+                                <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Drug</p>
+                                <p className="text-base font-data font-semibold" style={{ color: '#a855f7' }}>
+                                  {wellAnalysis.drugBurstBpm?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">bpm</span>
+                                </p>
                               </div>
                             )}
                           </div>
