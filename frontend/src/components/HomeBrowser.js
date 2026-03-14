@@ -882,8 +882,8 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button draggable="false" variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
-                            <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                          <Button draggable="false" variant="ghost" size="sm" className="glass-menu-btn h-6 w-6 p-0 rounded-md opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="w-3.5 h-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="glass-dropdown">
@@ -943,8 +943,8 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
-                                    <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                                  <Button variant="ghost" size="sm" className="glass-menu-btn h-7 w-7 p-0 rounded-md opacity-0 group-hover:opacity-100">
+                                    <MoreVertical className="w-3.5 h-3.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="glass-dropdown">
@@ -1058,8 +1058,8 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
-                              <MoreVertical className="w-3.5 h-3.5 text-zinc-500" />
+                            <Button variant="ghost" size="sm" className="glass-menu-btn h-7 w-7 p-0 rounded-md opacity-0 group-hover:opacity-100">
+                              <MoreVertical className="w-3.5 h-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-dropdown">
@@ -1522,8 +1522,8 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       <span className="text-[10px] text-zinc-600">{formatDate(recording.updated_at)}</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
-                            <MoreVertical className="w-4 h-4 text-zinc-500" />
+                          <Button variant="ghost" size="sm" className="glass-menu-btn h-8 w-8 p-0 rounded-md opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="glass-dropdown">

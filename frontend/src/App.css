@@ -464,3 +464,29 @@
   font-size: 0.8rem !important;
   line-height: 1.5;
 }
+
+/* Glassmorphism Menu Trigger Button */
+.glass-menu-btn {
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.2s;
+}
+
+.glass-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.glass-menu-btn:focus {
+  background: rgba(255, 255, 255, 0.10) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.3) !important;
+}
+
+.glass-menu-btn svg {
+  color: var(--text-tertiary);
+  transition: color 0.2s;
+}
+
+.glass-menu-btn:hover svg {
+  color: var(--text-primary);
+}
