@@ -834,6 +834,10 @@ function AnalysisPanel({
                     Readout Time Range: {Math.floor(baselineHrvMinute)}-{Math.floor(baselineHrvMinute) + 3}min
                   </Badge>
                 </div>
+                <div className="text-[8px] mt-2" style={{ color: baselineEnabled ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>
+                  <div>Input = Baseline Readout Start Time</div>
+                  <div className="h-[6px]"></div>
+                </div>
               </div>
             </div>
 
@@ -1015,21 +1019,32 @@ function AnalysisPanel({
               </div>
             ) : (
               /* Show disabled placeholder when no drugs selected */
-              <div className="p-3 rounded-sm border bg-zinc-900/50 border-zinc-700/50 opacity-75 w-[340px]">
+              <div 
+                className="p-3 rounded-xl w-[340px]"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)', 
+                  border: '1px solid rgba(255,255,255,0.10)'
+                }}
+              >
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[9px] uppercase tracking-wider font-bold text-zinc-400">
+                  <p className="text-[9px] uppercase tracking-wider font-medium" style={{ color: 'var(--text-tertiary)', letterSpacing: '0.08em' }}>
                     Drug Readout
                   </p>
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled
-                    className="h-5 px-2 text-[9px] rounded-full bg-zinc-700 text-zinc-500"
+                    className="h-5 px-2 text-[9px] rounded-full transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      color: 'var(--text-tertiary)',
+                      border: '1px solid rgba(255,255,255,0.10)'
+                    }}
                   >
                     OFF
                   </Button>
                 </div>
-                <p className="text-[8px] text-zinc-500">Add a drug to enable drug readout</p>
+                <p className="text-[8px]" style={{ color: 'var(--text-tertiary)' }}>Add a drug to enable drug readout</p>
               </div>
             )}
           </div>
