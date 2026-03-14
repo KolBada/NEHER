@@ -1914,229 +1914,115 @@ function App() {
         </div>
       </header>
 
-      {/* Per-drug settings - only shown when drugs are selected */}
-      {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
-        <div 
-          className="fixed top-[57px] left-0 right-0 z-40 px-6 py-3"
-          style={{
-            background: 'rgba(2, 8, 15, 0.85)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            borderBottom: '1px solid rgba(168, 85, 247, 0.15)',
-          }}
-        >
-          <ScrollArea className="max-h-[150px]">
-            <div className="flex flex-wrap gap-3">
-              {/* Predefined drugs with settings */}
-              {selectedDrugs.map((drugKey, idx) => {
-                const config = DRUG_CONFIG[drugKey];
-                const settings = drugSettings[drugKey] || {};
-                // Color schemes matching the top bar badges
-                const colorConfigs = [
-                  { bg: 'rgba(168, 85, 247, 0.10)', border: 'rgba(168, 85, 247, 0.30)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.8)' },
-                  { bg: 'rgba(192, 132, 252, 0.10)', border: 'rgba(192, 132, 252, 0.30)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.8)' },
-                  { bg: 'rgba(124, 58, 237, 0.10)', border: 'rgba(124, 58, 237, 0.30)', color: '#7c3aed', labelColor: 'rgba(124, 58, 237, 0.8)' },
-                  { bg: 'rgba(139, 92, 246, 0.10)', border: 'rgba(139, 92, 246, 0.30)', color: '#8b5cf6', labelColor: 'rgba(139, 92, 246, 0.8)' },
-                ];
-                const colorStyle = colorConfigs[idx % colorConfigs.length];
-                return (
-                  <div 
-                    key={drugKey} 
-                    className="flex items-center gap-3 h-8 px-3 rounded-xl relative z-10"
-                    style={{ 
-                      background: colorStyle.bg,
-                      border: `1px solid ${colorStyle.border}`,
-                    }}
-                  >
-                    <span className="text-xs font-medium" style={{ color: colorStyle.color, fontFamily: 'var(--font-display)' }}>{config.name}</span>
-                    <div className="h-4 w-px" style={{ background: colorStyle.border }} />
-                    <div className="flex items-center gap-1">
-                      <Input
-                        data-testid={`drug-${drugKey}-concentration`}
-                        type="text"
-                        value={settings.concentration !== undefined ? settings.concentration : config.defaultConc}
-                        onChange={(e) => updateDrugSetting(drugKey, 'concentration', e.target.value)}
-                        className="h-6 w-14 text-[10px] bg-black/40 rounded-md px-1.5"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>µM</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" style={{ color: colorStyle.labelColor }} />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>Start:</span>
-                      <Input
-                        data-testid={`drug-${drugKey}-perfusion-start`}
-                        type="number"
-                        step="1"
-                        value={settings.perfusionStart !== undefined ? settings.perfusionStart : 3}
-                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>Delay:</span>
-                      <Input
-                        data-testid={`drug-${drugKey}-perfusion-time`}
-                        type="number"
-                        step="1"
-                        value={settings.perfusionTime !== undefined ? settings.perfusionTime : 3}
-                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>End:</span>
-                      <Input
-                        data-testid={`drug-${drugKey}-perfusion-end`}
-                        type="number"
-                        step="1"
-                        value={settings.perfusionEnd ?? ''}
-                        onChange={(e) => updateDrugSetting(drugKey, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                        placeholder="—"
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>min</span>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {/* Other drugs */}
-              {otherDrugs.map((drug, idx) => {
-                // Continue color index from predefined drugs
-                const colorIdx = selectedDrugs.length + idx;
-                const colorConfigs = [
-                  { bg: 'rgba(168, 85, 247, 0.10)', border: 'rgba(168, 85, 247, 0.30)', color: '#a855f7', labelColor: 'rgba(168, 85, 247, 0.8)' },
-                  { bg: 'rgba(192, 132, 252, 0.10)', border: 'rgba(192, 132, 252, 0.30)', color: '#c084fc', labelColor: 'rgba(192, 132, 252, 0.8)' },
-                  { bg: 'rgba(124, 58, 237, 0.10)', border: 'rgba(124, 58, 237, 0.30)', color: '#7c3aed', labelColor: 'rgba(124, 58, 237, 0.8)' },
-                  { bg: 'rgba(139, 92, 246, 0.10)', border: 'rgba(139, 92, 246, 0.30)', color: '#8b5cf6', labelColor: 'rgba(139, 92, 246, 0.8)' },
-                ];
-                const colorStyle = colorConfigs[colorIdx % colorConfigs.length];
-                return (
-                  <div 
-                    key={drug.id} 
-                    className="flex items-center gap-3 h-8 px-3 rounded-xl"
-                    style={{ 
-                      background: colorStyle.bg,
-                      border: `1px solid ${colorStyle.border}`,
-                    }}
-                  >
-                    <Input
-                      value={drug.name}
-                      onChange={(e) => updateOtherDrug(drug.id, 'name', e.target.value)}
-                      className="h-6 w-24 text-[10px] bg-black/40 rounded-md px-1.5"
-                      style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      placeholder="Drug name"
-                    />
-                    <div className="h-4 w-px" style={{ background: colorStyle.border }} />
-                    <div className="flex items-center gap-1">
-                      <Input
-                        value={drug.concentration}
-                        onChange={(e) => updateOtherDrug(drug.id, 'concentration', e.target.value)}
-                        className="h-6 w-14 text-[10px] bg-black/40 rounded-md px-1.5"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>µM</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" style={{ color: colorStyle.labelColor }} />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>Start:</span>
-                      <Input
-                        type="number"
-                        step="1"
-                        value={drug.perfusionStart}
-                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionStart', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>Delay:</span>
-                      <Input
-                        type="number"
-                        step="1"
-                        value={drug.perfusionTime}
-                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionTime', parseFloat(e.target.value) || 0)}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>End:</span>
-                      <Input
-                        type="number"
-                        step="1"
-                        value={drug.perfusionEnd ?? ''}
-                        onChange={(e) => updateOtherDrug(drug.id, 'perfusionEnd', e.target.value === '' ? null : parseFloat(e.target.value))}
-                        className="h-6 w-12 text-[10px] bg-black/40 rounded-md px-1.5 number-input-white-arrows"
-                        style={{ border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
-                        placeholder="—"
-                      />
-                      <span className="text-[10px]" style={{ color: colorStyle.labelColor }}>min</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 ml-1 rounded-md hover:bg-red-500/20"
-                      style={{ color: colorStyle.labelColor }}
-                      onClick={() => removeOtherDrug(drug.id)}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
 
       {/* Main content - with top padding for fixed header */}
       <main className="p-6 pt-20 relative z-10">
         <Tabs defaultValue="trace" className="w-full">
-          <TabsList 
-            className="h-9 mb-6 rounded-xl p-1 gap-1"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.10)',
-            }}
-            data-testid="main-tabs"
-          >
-            <TabsTrigger 
-              value="trace" 
-              className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
-              data-testid="tab-trace"
+          {/* Tab bar and drug boxes side by side */}
+          <div className="flex items-center gap-3 mb-6">
+            <TabsList 
+              className="h-9 rounded-xl p-1 gap-1"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.10)',
+              }}
+              data-testid="main-tabs"
             >
-              <Activity className="w-3.5 h-3.5" /> Trace
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analysis" 
-              className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-[rgba(244,206,162,0.15)] data-[state=active]:text-[#F4CEA2] data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
-              disabled={!isValidated} 
-              data-testid="tab-analysis"
-            >
-              <BarChart3 className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
-            </TabsTrigger>
-            <TabsTrigger 
-              value="light" 
-              className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
-              disabled={!isValidated} 
-              data-testid="tab-light"
-            >
-              <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} /> Light Stimulus
-            </TabsTrigger>
-            <TabsTrigger 
-              value="save" 
-              className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
-              disabled={!isValidated} 
-              data-testid="tab-save"
-            >
-              <Save className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> Save Recording
-            </TabsTrigger>
-            <TabsTrigger 
-              value="export" 
-              className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-teal-500/15 data-[state=active]:text-teal-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
-              disabled={!isValidated} 
-              data-testid="tab-export"
-            >
-              <Download className="w-3.5 h-3.5" style={{ color: 'var(--accent-teal)' }} /> Export
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger 
+                value="trace" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+                data-testid="tab-trace"
+              >
+                <Activity className="w-3.5 h-3.5" /> Trace
+              </TabsTrigger>
+              <TabsTrigger 
+                value="analysis" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-[rgba(244,206,162,0.15)] data-[state=active]:text-[#F4CEA2] data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+                disabled={!isValidated} 
+                data-testid="tab-analysis"
+              >
+                <BarChart3 className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
+              </TabsTrigger>
+              <TabsTrigger 
+                value="light" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+                disabled={!isValidated} 
+                data-testid="tab-light"
+              >
+                <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} /> Light Stimulus
+              </TabsTrigger>
+              <TabsTrigger 
+                value="save" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+                disabled={!isValidated} 
+                data-testid="tab-save"
+              >
+                <Save className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> Save Recording
+              </TabsTrigger>
+              <TabsTrigger 
+                value="export" 
+                className="h-7 px-3 text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-teal-500/15 data-[state=active]:text-teal-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200 data-[state=inactive]:hover:bg-white/5"
+                disabled={!isValidated} 
+                data-testid="tab-export"
+              >
+                <Download className="w-3.5 h-3.5" style={{ color: 'var(--accent-teal)' }} /> Export
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Drug boxes - separate box next to tabs */}
+            {(selectedDrugs.length > 0 || otherDrugs.length > 0) && (
+              <div 
+                className="h-9 flex items-center gap-2 px-2 rounded-xl"
+                style={{
+                  background: 'rgba(168, 85, 247, 0.08)',
+                  border: '1px solid rgba(168, 85, 247, 0.20)',
+                }}
+              >
+                {selectedDrugs.map((drugKey, idx) => {
+                  const config = DRUG_CONFIG[drugKey];
+                  const settings = drugSettings[drugKey] || {};
+                  const colorConfigs = [
+                    { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
+                    { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                  ];
+                  const colorStyle = colorConfigs[idx % colorConfigs.length];
+                  return (
+                    <div 
+                      key={drugKey} 
+                      className="flex items-center gap-2 h-7 px-2 rounded-lg text-[10px]"
+                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                    >
+                      <FlaskConical className="w-3 h-3" />
+                      <span className="font-medium">{config.name}</span>
+                      <span style={{ opacity: 0.7 }}>{settings.concentration || config.defaultConc}µM</span>
+                      <span style={{ opacity: 0.7 }}>Start:{settings.perfusionStart ?? 3}</span>
+                      <span style={{ opacity: 0.7 }}>Delay:{settings.perfusionTime ?? 3}</span>
+                      {settings.perfusionEnd && <span style={{ opacity: 0.7 }}>End:{settings.perfusionEnd}</span>}
+                    </div>
+                  );
+                })}
+                {otherDrugs.map((drug, idx) => {
+                  const colorIdx = selectedDrugs.length + idx;
+                  const colorConfigs = [
+                    { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.40)', color: '#a855f7' },
+                    { bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.40)', color: '#c084fc' },
+                  ];
+                  const colorStyle = colorConfigs[colorIdx % colorConfigs.length];
+                  return (
+                    <div 
+                      key={drug.id} 
+                      className="flex items-center gap-2 h-7 px-2 rounded-lg text-[10px]"
+                      style={{ background: colorStyle.bg, border: `1px solid ${colorStyle.border}`, color: colorStyle.color }}
+                    >
+                      <FlaskConical className="w-3 h-3" />
+                      <span className="font-medium">{drug.name || 'Other'}</span>
+                      <span style={{ opacity: 0.7 }}>{drug.concentration}µM</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Trace Tab */}
           <TabsContent value="trace">

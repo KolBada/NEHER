@@ -760,13 +760,15 @@ function AnalysisPanel({
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className={`p-3 rounded-lg border transition-all duration-200 w-[340px] ${
-              baselineEnabled 
-                ? 'border-cyan-800/50' 
-                : 'border-zinc-700/50 opacity-75'
-            }`} style={{ background: baselineEnabled ? 'rgba(34, 211, 238, 0.1)' : 'rgba(255,255,255,0.02)' }}>
+            <div 
+              className="p-3 rounded-xl transition-all duration-200 w-[340px]"
+              style={{ 
+                background: baselineEnabled ? 'rgba(34, 211, 238, 0.08)' : 'rgba(255,255,255,0.03)', 
+                border: baselineEnabled ? '1px solid rgba(34, 211, 238, 0.25)' : '1px solid rgba(255,255,255,0.10)'
+              }}
+            >
               <div className="flex items-center justify-between mb-3">
-                <p className={`text-[9px] uppercase tracking-wider font-bold`} style={{ color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)' }}>
+                <p className="text-[9px] uppercase tracking-wider font-medium" style={{ color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)', letterSpacing: '0.08em' }}>
                   Baseline Readout
                 </p>
                 <div className="flex items-center gap-2">
@@ -775,13 +777,12 @@ function AnalysisPanel({
                     size="sm"
                     onClick={() => onBaselineCardiacArrestChange(!baselineCardiacArrest)}
                     disabled={!baselineEnabled}
-                    className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                      !baselineEnabled
-                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                        : baselineCardiacArrest 
-                          ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40' 
-                          : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
-                    }`}
+                    className="h-5 px-2 text-[9px] rounded-full transition-all"
+                    style={{
+                      background: !baselineEnabled ? 'rgba(255,255,255,0.05)' : baselineCardiacArrest ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                      color: !baselineEnabled ? 'var(--text-tertiary)' : baselineCardiacArrest ? '#ef4444' : '#10b981',
+                      border: !baselineEnabled ? '1px solid rgba(255,255,255,0.10)' : baselineCardiacArrest ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
+                    }}
                   >
                     {baselineCardiacArrest ? 'Cardiac Arrest' : 'Beating'}
                   </Button>
@@ -789,11 +790,12 @@ function AnalysisPanel({
                     variant="ghost"
                     size="sm"
                     onClick={() => onBaselineEnabledChange(!baselineEnabled)}
-                    className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                      baselineEnabled 
-                        ? 'bg-cyan-600/30 text-cyan-300 hover:bg-cyan-600/40' 
-                        : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                    }`}
+                    className="h-5 px-2 text-[9px] rounded-full transition-all"
+                    style={{
+                      background: baselineEnabled ? 'rgba(34, 211, 238, 0.2)' : 'rgba(255,255,255,0.08)',
+                      color: baselineEnabled ? '#22d3ee' : 'var(--text-secondary)',
+                      border: baselineEnabled ? '1px solid rgba(34, 211, 238, 0.3)' : '1px solid rgba(255,255,255,0.15)'
+                    }}
                   >
                     {baselineEnabled ? 'ON' : 'OFF'}
                   </Button>
@@ -801,39 +803,37 @@ function AnalysisPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
+                  <Label className="text-[9px] w-8" style={{ color: baselineEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>BF:</Label>
                   <Input
                     type="number"
                     step="1"
                     value={baselineBfMinute}
                     onChange={(e) => onBaselineBfMinuteChange(parseFloat(e.target.value) || 1)}
-                    className="w-16 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
+                    className="w-16 h-6 text-[10px] font-data rounded-lg number-input-white-arrows"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34, 211, 238, 0.2)', color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)' }}
                     disabled={!baselineEnabled}
                   />
-                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-700 text-zinc-500'}`}>
+                  <span className="text-[9px]" style={{ color: baselineEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>min</span>
+                  <Badge variant="outline" className="text-[8px] rounded-lg px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(34, 211, 238, 0.2)', color: baselineEnabled ? 'rgba(34, 211, 238, 0.8)' : 'var(--text-tertiary)' }}>
                     Readout Time Range: {Math.floor(baselineBfMinute)}-{Math.floor(baselineBfMinute) + 1}min
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label className={`text-[9px] w-8 ${baselineEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                  <Label className="text-[9px] w-8" style={{ color: baselineEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>HRV:</Label>
                   <Input
                     type="number"
                     step="1"
                     value={baselineHrvMinute}
                     onChange={(e) => onBaselineHrvMinuteChange(parseFloat(e.target.value) || 0)}
-                    className="w-16 h-6 text-[10px] font-data bg-zinc-950 border-zinc-700 rounded-sm number-input-white-arrows"
+                    className="w-16 h-6 text-[10px] font-data rounded-lg number-input-white-arrows"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34, 211, 238, 0.2)', color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)' }}
                     disabled={!baselineEnabled}
                   />
-                  <span className={`text-[9px] ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
-                  <Badge variant="outline" className={`text-[8px] ${baselineEnabled ? 'border-cyan-700/50 text-cyan-400/80' : 'border-zinc-700 text-zinc-500'}`}>
+                  <span className="text-[9px]" style={{ color: baselineEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>min</span>
+                  <Badge variant="outline" className="text-[8px] rounded-lg px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(34, 211, 238, 0.2)', color: baselineEnabled ? 'rgba(34, 211, 238, 0.8)' : 'var(--text-tertiary)' }}>
                     Readout Time Range: {Math.floor(baselineHrvMinute)}-{Math.floor(baselineHrvMinute) + 3}min
                   </Badge>
                 </div>
-                <p className={`text-[8px] mt-2 ${baselineEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                  Input = Baseline Readout Start Time
-                </p>
-                <div className="h-[6px]"></div>
               </div>
             </div>
 
@@ -897,17 +897,20 @@ function AnalysisPanel({
                   };
                   
                   return (
-                    <div key={drugKey} className={`p-3 rounded-sm border transition-all duration-200 w-[340px] ${
-                      isDrugEnabled 
-                        ? `${colors.bg} ${colors.border}` 
-                        : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
-                    }`}>
+                    <div 
+                      key={drugKey} 
+                      className="p-3 rounded-xl transition-all duration-200 w-[340px]"
+                      style={{ 
+                        background: isDrugEnabled ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255,255,255,0.03)', 
+                        border: isDrugEnabled ? '1px solid rgba(168, 85, 247, 0.25)' : '1px solid rgba(255,255,255,0.10)'
+                      }}
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <p className={`text-[9px] uppercase tracking-wider font-bold ${isDrugEnabled ? colors.text : 'text-zinc-400'}`}>
+                          <p className="text-[9px] uppercase tracking-wider font-medium" style={{ color: isDrugEnabled ? '#a855f7' : 'var(--text-tertiary)', letterSpacing: '0.08em' }}>
                             Drug Readout
                           </p>
-                          <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${isDrugEnabled ? colors.badge : 'border-zinc-600 bg-zinc-800/30 text-zinc-400'}`}>
+                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)', border: isDrugEnabled ? '1px solid rgba(168, 85, 247, 0.3)' : '1px solid rgba(255,255,255,0.10)', color: isDrugEnabled ? '#a855f7' : 'var(--text-tertiary)' }}>
                             {drugName}
                           </Badge>
                         </div>
@@ -917,13 +920,12 @@ function AnalysisPanel({
                             size="sm"
                             onClick={() => updatePerDrugSetting('cardiacArrest', !perDrugSettings.cardiacArrest)}
                             disabled={!isDrugEnabled}
-                            className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                              !isDrugEnabled
-                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                : perDrugSettings.cardiacArrest 
-                                  ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40' 
-                                  : 'bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/40'
-                            }`}
+                            className="h-5 px-2 text-[9px] rounded-full transition-all"
+                            style={{
+                              background: !isDrugEnabled ? 'rgba(255,255,255,0.05)' : perDrugSettings.cardiacArrest ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                              color: !isDrugEnabled ? 'var(--text-tertiary)' : perDrugSettings.cardiacArrest ? '#ef4444' : '#10b981',
+                              border: !isDrugEnabled ? '1px solid rgba(255,255,255,0.10)' : perDrugSettings.cardiacArrest ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
+                            }}
                           >
                             {perDrugSettings.cardiacArrest ? 'Cardiac Arrest' : 'Beating'}
                           </Button>
@@ -932,11 +934,12 @@ function AnalysisPanel({
                             size="sm"
                             data-testid={`drug-readout-toggle-${idx}`}
                             onClick={toggleDrugEnabled}
-                            className={`h-5 px-2 text-[9px] rounded-full transition-all ${
-                              isDrugEnabled 
-                                ? `${colors.bg} ${colors.textLight} hover:opacity-80` 
-                                : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
-                            }`}
+                            className="h-5 px-2 text-[9px] rounded-full transition-all"
+                            style={{
+                              background: isDrugEnabled ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.08)',
+                              color: isDrugEnabled ? '#a855f7' : 'var(--text-secondary)',
+                              border: isDrugEnabled ? '1px solid rgba(168, 85, 247, 0.3)' : '1px solid rgba(255,255,255,0.15)'
+                            }}
                           >
                             {isDrugEnabled ? 'ON' : 'OFF'}
                           </Button>
@@ -944,42 +947,44 @@ function AnalysisPanel({
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>BF:</Label>
+                          <Label className="text-[9px] w-8" style={{ color: isDrugEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>BF:</Label>
                           <Input
                             type="number"
                             step="1"
                             value={bfReadoutValue}
                             onChange={(e) => updatePerDrugSetting('bfReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
-                            className={`w-16 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
+                            className="w-16 h-6 text-[10px] font-data rounded-lg disabled:opacity-50 number-input-white-arrows"
+                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(168, 85, 247, 0.2)', color: isDrugEnabled ? '#a855f7' : 'var(--text-tertiary)' }}
                             placeholder="0"
                           />
-                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                          <span className="text-[9px]" style={{ color: isDrugEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>min</span>
                           {isDrugEnabled && String(bfReadoutValue).trim() !== '' && (
-                            <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
+                            <Badge variant="outline" className="text-[8px] rounded-lg px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(168, 85, 247, 0.2)', color: 'rgba(168, 85, 247, 0.8)' }}>
                               Readout Time Range: {Math.floor(parseFloat(bfReadoutValue || 0) + perfStart + perfDelay)}-{Math.floor(parseFloat(bfReadoutValue || 0) + perfStart + perfDelay + 1)}min
                             </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className={`text-[9px] w-8 ${isDrugEnabled ? 'text-zinc-400' : 'text-zinc-500'}`}>HRV:</Label>
+                          <Label className="text-[9px] w-8" style={{ color: isDrugEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>HRV:</Label>
                           <Input
                             type="number"
                             step="1"
                             value={hrvReadoutValue}
                             onChange={(e) => updatePerDrugSetting('hrvReadoutMinute', e.target.value)}
                             disabled={!isDrugEnabled}
-                            className={`w-16 h-6 text-[10px] font-data bg-zinc-950 rounded-sm disabled:opacity-50 number-input-white-arrows ${isDrugEnabled ? colors.border : 'border-zinc-800'}`}
+                            className="w-16 h-6 text-[10px] font-data rounded-lg disabled:opacity-50 number-input-white-arrows"
+                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(168, 85, 247, 0.2)', color: isDrugEnabled ? '#a855f7' : 'var(--text-tertiary)' }}
                             placeholder="0"
                           />
-                          <span className={`text-[9px] ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>min</span>
+                          <span className="text-[9px]" style={{ color: isDrugEnabled ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>min</span>
                           {isDrugEnabled && String(hrvReadoutValue).trim() !== '' && (
-                            <Badge variant="outline" className={`text-[8px] ${colors.border} ${colors.text}/80`}>
+                            <Badge variant="outline" className="text-[8px] rounded-lg px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(168, 85, 247, 0.2)', color: 'rgba(168, 85, 247, 0.8)' }}>
                               Readout Time Range: {Math.floor(parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay)}-{Math.floor(parseFloat(hrvReadoutValue || 0) + perfStart + perfDelay + 3)}min
                             </Badge>
                           )}
                         </div>
-                        <div className={`text-[8px] mt-2 ${isDrugEnabled ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                        <div className="text-[8px] mt-2" style={{ color: isDrugEnabled ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>
                           <div className="flex items-center gap-1">
                             <span>Input = Perf. Time</span>
                           </div>
@@ -990,10 +995,10 @@ function AnalysisPanel({
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button type="button" className="inline-flex">
-                                      <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
+                                      <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                                  <TooltipContent side="top" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
                                     <p className="mb-1"><strong>Perf. Start:</strong> Time point at which drug perfusion begins</p>
                                     <p className="mb-1"><strong>Perf. Delay:</strong> Transit time for drug to reach tissue</p>
                                     <p><strong>Perf. Time:</strong> Duration for drug effect to manifest</p>
