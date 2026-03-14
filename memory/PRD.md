@@ -2,7 +2,7 @@
 
 ## Overview
 A full-stack electrophysiology analysis tool supporting two workflows:
-- **SEM (Sharp Extracellular Microelectrode)**: For `.abf` files from cardiac activity recordings
+- **SSE (Sharp Single Electrode)**: For `.abf` files from cardiac activity recordings
 - **MEA (Multi-Electrode Array)**: For `.csv` files from neuronal organoid/neuro-cardiac assembloid recordings
 
 ## Tech Stack
@@ -21,52 +21,55 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 - Burst detection (electrode and network level)
 - Environmental data parsing
 
-### UI/UX (Partial)
-- Glassmorphism dark theme applied to:
-  - Home page (`HomeBrowser.js`)
-  - SEM upload page (`FileUpload.js`)
-  - MEA upload page (`MEAUpload.js`)
-- Google Fonts integration (Space Grotesk, DM Sans)
+### Glassmorphism UI/UX (COMPLETE - December 2025)
+Applied comprehensive glassmorphism dark theme across ALL pages:
+
+**Color Scheme:**
+- F4CEA2 (peach): Cardiac/BPM indicators
+- Emerald (#10b981): Neuronal/Spike indicators, positive states
+- Cyan (#22d3ee): Baseline metrics
+- Magenta (#d946ef): Drug-related indicators
+- Amber (#f59e0b): Light stimulus indicators
+- Green: Saved/ON/Positive/Beating states
+- Red (#ef4444): Unsaved/OFF/Negative/Cardiac Arrest states
+- Orange: Edit mode
+- Teal: Small action icons (New Section, New Folder)
+- Silver (#c0c0c0): Trace/Beat detection
+- Brown: NN intervals
+
+**Pages with Glassmorphism:**
+1. **Home Page** (`HomeBrowser.js`): Section rows, folder rows, toolbar buttons, dialogs, dropdown menus
+2. **SSE Upload Page** (`FileUpload.js`): Centered upload box, matching buttons
+3. **MEA Upload Page** (`MEAUpload.js`): Fixed Axion CSV parsing, matching layout
+4. **Folder Recordings Page**: Glass-styled recording list items, action buttons, context menus
+5. **Comparison Page** (`FolderComparison.js`): Summary cards with colored borders, tabs, data tables
+6. **Single Recording Page** (`App.js`): Main tabs with glass styling and colored icons
+7. **Trace Tab** (`TraceViewer.js`): Glass panel with silver border for trace display
+8. **Spontaneous Activity Tab** (`AnalysisPanel.js`): BF/NN charts, baseline/drug readouts, HRV evolution
+9. **Export Tab** (`ExportPanel.js`): Available data cards, format descriptions, export buttons
+
+**Glass CSS Classes:**
+- `.glass-surface`: Main glass panel with backdrop blur
+- `.glass-surface-subtle`: Subtle glass background for cards
 
 ## Recent Changes (December 2025)
 
-### Color Theme Update + Section Layout (Latest)
-1. **SSE color changed to pink/salmon** (`#f472b6`) - Previously green/emerald
-2. **MEA color changed to emerald** (`#10b981`) - Previously teal
-3. **Section folders now inside section box** - All folders of a section are contained within a unified glass container
-4. **Folder rows simplified** - Folders inside sections are now simple rows with hover states instead of separate cards
-
-### Glassmorphism UI Updates
-Applied glassmorphism styling across key UI elements:
-
-1. **Home Page - Section Rows**: Added subtle glass background (`rgba(255,255,255,0.025)`) with hover states and accent-colored chevrons
-2. **Home Page - Folder Rows**: Updated to use `.glass-surface` class with 12px border-radius and hover effects
-3. **Home Page - Toolbar Buttons**: A-Z, New Section, New Folder buttons now have glass styling with backdrop blur and accent-colored icons
-4. **Drug Dropdown Menu**: Glass popover with blur effect, proper spacing, and accent color for "Other (custom)"
-5. **Drug Config Bar**: Full-width glass bar with backdrop blur when drugs are selected
-6. **SEM Upload Page**: Restructured to match MEA layout - title "Upload SEM Data", required files checklist, Back/Analyze buttons
-7. **Removed "Back to Home" Links**: Both SEM and MEA upload pages now use footer Back buttons only
+### Glassmorphism Complete UI Overhaul (Latest)
+- Applied glass styling to ALL remaining pages (Comparison, Single Recording, Export)
+- Added colored left borders to all panels for visual hierarchy
+- Updated tabs to use glass background with backdrop blur
+- Colored icons in tab triggers (peach BPM, amber Light, green Save, teal Export)
+- Updated export buttons with colored backgrounds (green Excel, red PDF)
+- Consistent badge styling across all views
 
 ### Fixed: MEA CSV Parsing for Axion Biosystems Format
-- **Problem**: Parser expected standard CSV but Axion files have:
-  - Metadata in columns 1-2
-  - Data in columns 3+
-  - Well ID embedded in Electrode column (e.g., `A2_44`)
-- **Solution**: 
-  - New `parseAxionCSV()` function to handle mixed format
-  - New `extractWellFromElectrode()` to parse electrode strings
-  - New `parseSpikeCountsAxion()` for wide-format spike counts
+- **Problem**: Parser expected standard CSV but Axion files have mixed metadata/data format
+- **Solution**: Custom `parseAxionCSV()` function with well ID extraction
 
 ## Pending Tasks
 
-### P1 - High Priority
-- Apply glassmorphism theme to remaining pages:
-  - `MEAAnalysis.js`
-  - `AnalysisPanel.js`
-  - `FolderComparison.js`
-
 ### P2 - Medium Priority
-- Refactor oversized files (`export_utils.py`, `LightPanel.js`)
+- Refactor oversized files (`HomeBrowser.js` >1700 lines, `export_utils.py`, `LightPanel.js`)
 - Fix Section Drag-and-Drop (recurring)
 - Fix Excel export corruption (recurring)
 
@@ -85,17 +88,20 @@ Applied glassmorphism styling across key UI elements:
     ├── public/
     │   └── index.html
     └── src/
-        ├── App.js
-        ├── App.css
-        ├── index.css
+        ├── App.js           # Main tabs glassmorphism
+        ├── App.css          # Glass helper classes
+        ├── index.css        # CSS color variables
         └── components/
-            ├── HomeBrowser.js
-            ├── FileUpload.js
-            ├── MEAUpload.js      # Main fix location
-            ├── MEAAnalysis.js
-            ├── AnalysisPanel.js
-            ├── FolderComparison.js
-            └── ui/               # Shadcn components
+            ├── HomeBrowser.js      # Home page (>1700 lines)
+            ├── FileUpload.js       # SSE upload
+            ├── MEAUpload.js        # MEA upload with Axion parsing
+            ├── MEAAnalysis.js      # MEA analysis view
+            ├── AnalysisPanel.js    # Spontaneous Activity tab
+            ├── FolderComparison.js # Comparison page
+            ├── TraceViewer.js      # Trace display
+            ├── LightPanel.js       # Light stimulus analysis
+            ├── ExportPanel.js      # Export tab
+            └── ui/                 # Shadcn components
 ```
 
 ## MEA CSV Format (Axion Biosystems)

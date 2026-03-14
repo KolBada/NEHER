@@ -1974,27 +1974,54 @@ function App() {
       {/* Main content */}
       <main className="p-4 md:p-6 pt-2">
         <Tabs defaultValue="trace" className="w-full">
-          <TabsList className="bg-[#0c0c0e] border border-zinc-800 rounded-sm h-9 mb-4"
-                    data-testid="main-tabs">
-            <TabsTrigger value="trace" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
-                         data-testid="tab-trace">
-              <Activity className="w-3 h-3" /> Trace
+          <TabsList 
+            className="h-9 mb-4 rounded-xl p-1"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+            data-testid="main-tabs"
+          >
+            <TabsTrigger 
+              value="trace" 
+              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              data-testid="tab-trace"
+            >
+              <Activity className="w-3.5 h-3.5" style={{ color: '#c0c0c0' }} /> Trace
             </TabsTrigger>
-            <TabsTrigger value="analysis" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
-                         disabled={!isValidated} data-testid="tab-analysis">
-              <BarChart3 className="w-3 h-3" /> Spontaneous Activity
+            <TabsTrigger 
+              value="analysis" 
+              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              disabled={!isValidated} 
+              data-testid="tab-analysis"
+            >
+              <BarChart3 className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} /> Spontaneous Activity
             </TabsTrigger>
-            <TabsTrigger value="light" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
-                         disabled={!isValidated} data-testid="tab-light">
-              <Zap className="w-3 h-3" /> Light Stimulus
+            <TabsTrigger 
+              value="light" 
+              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              disabled={!isValidated} 
+              data-testid="tab-light"
+            >
+              <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} /> Light Stimulus
             </TabsTrigger>
-            <TabsTrigger value="save" className="text-xs rounded-sm gap-1 data-[state=active]:bg-emerald-800"
-                         disabled={!isValidated} data-testid="tab-save">
-              <Save className="w-3 h-3" /> Save Recording
+            <TabsTrigger 
+              value="save" 
+              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              disabled={!isValidated} 
+              data-testid="tab-save"
+            >
+              <Save className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> Save Recording
             </TabsTrigger>
-            <TabsTrigger value="export" className="text-xs rounded-sm gap-1 data-[state=active]:bg-zinc-800"
-                         disabled={!isValidated} data-testid="tab-export">
-              <Download className="w-3 h-3" /> Export
+            <TabsTrigger 
+              value="export" 
+              className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+              disabled={!isValidated} 
+              data-testid="tab-export"
+            >
+              <Download className="w-3.5 h-3.5" style={{ color: 'var(--accent-teal)' }} /> Export
             </TabsTrigger>
           </TabsList>
 

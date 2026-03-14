@@ -24,109 +24,157 @@ export default function ExportPanel({
   return (
     <div className="space-y-4" data-testid="export-panel">
       {/* Recording Info */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardContent className="py-3">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-zinc-500">Recording Name:</span>
-              <Input
-                data-testid="export-recording-name-input"
-                value={recordingName}
-                onChange={(e) => onRecordingNameChange?.(e.target.value)}
-                className="h-6 w-48 text-[10px] font-data bg-zinc-950 border-zinc-700 text-emerald-400 px-2 rounded-sm"
-                placeholder="Enter recording name..."
-              />
-            </div>
-            {originalFilename && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-zinc-500">ABF File:</span>
-                <Badge variant="outline" className="font-data text-[10px] border-zinc-700 text-zinc-400">
-                  {originalFilename}
-                </Badge>
-              </div>
-            )}
+      <div 
+        className="glass-surface-subtle rounded-xl py-3 px-4"
+        style={{ borderLeft: '3px solid var(--accent-teal)' }}
+      >
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Name:</span>
+            <Input
+              data-testid="export-recording-name-input"
+              value={recordingName}
+              onChange={(e) => onRecordingNameChange?.(e.target.value)}
+              className="h-6 w-48 text-[10px] font-data px-2 rounded-lg"
+              style={{ 
+                background: 'rgba(255,255,255,0.03)', 
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#10b981'
+              }}
+              placeholder="Enter recording name..."
+            />
           </div>
-        </CardContent>
-      </Card>
+          {originalFilename && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>ABF File:</span>
+              <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
+                {originalFilename}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </div>
 
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium" style={{ fontFamily: 'Manrope' }}>
+      <div 
+        className="glass-surface-subtle rounded-xl"
+        style={{ borderLeft: '3px solid var(--accent-teal)' }}
+      >
+        <div className="p-4 pb-2">
+          <span className="text-sm font-medium" style={{ fontFamily: 'Manrope', color: 'var(--text-primary)' }}>
             Export Results
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-zinc-500">
+          </span>
+        </div>
+        <div className="p-4 pt-2 space-y-4">
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             Export analysis results including per-beat data, per-minute metrics, baseline metrics, drug metrics, and light stimulation data.
           </p>
 
           {/* Available data summary */}
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Available Data</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: 'var(--text-tertiary)' }}>Available Data</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className={`p-2 rounded-sm border ${hasData ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-xs font-data text-zinc-300 font-medium">Per-Beat</p>
-                <p className={`text-xs font-data ${hasData ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ 
+                  background: hasData ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)',
+                  border: hasData ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <p className="text-xs font-data font-medium" style={{ color: 'var(--text-secondary)' }}>Per-Beat</p>
+                <p className="text-xs font-data" style={{ color: hasData ? '#10b981' : 'var(--text-tertiary)' }}>
                   {hasData ? `${metrics.n_total} beats detected` : 'No data'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasPerMinute ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-xs font-data text-zinc-300 font-medium">Per-Minute</p>
-                <p className={`text-xs font-data ${hasPerMinute ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ 
+                  background: hasPerMinute ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)',
+                  border: hasPerMinute ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <p className="text-xs font-data font-medium" style={{ color: 'var(--text-secondary)' }}>Per-Minute</p>
+                <p className="text-xs font-data" style={{ color: hasPerMinute ? '#10b981' : 'var(--text-tertiary)' }}>
                   {hasPerMinute ? `${perMinuteData.length} rows` : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasBaseline ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-xs font-data text-zinc-300 font-medium">Baseline Metrics</p>
-                <p className={`text-xs font-data ${hasBaseline ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ 
+                  background: hasBaseline ? 'rgba(34, 211, 238, 0.1)' : 'rgba(255,255,255,0.02)',
+                  border: hasBaseline ? '1px solid rgba(34, 211, 238, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <p className="text-xs font-data font-medium" style={{ color: 'var(--text-secondary)' }}>Baseline Metrics</p>
+                <p className="text-xs font-data" style={{ color: hasBaseline ? '#22d3ee' : 'var(--text-tertiary)' }}>
                   {hasBaseline ? 'Available' : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasDrugMetrics ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-xs font-data text-zinc-300 font-medium">Drug Metrics</p>
-                <p className={`text-xs font-data ${hasDrugMetrics ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ 
+                  background: hasDrugMetrics ? 'rgba(217, 70, 239, 0.1)' : 'rgba(255,255,255,0.02)',
+                  border: hasDrugMetrics ? '1px solid rgba(217, 70, 239, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <p className="text-xs font-data font-medium" style={{ color: 'var(--text-secondary)' }}>Drug Metrics</p>
+                <p className="text-xs font-data" style={{ color: hasDrugMetrics ? '#d946ef' : 'var(--text-tertiary)' }}>
                   {hasDrugMetrics ? 'Available' : 'Not available'}
                 </p>
               </div>
-              <div className={`p-2 rounded-sm border ${hasLight ? 'border-emerald-800 bg-emerald-950/20' : 'border-zinc-800 bg-zinc-900/30'}`}>
-                <p className="text-xs font-data text-zinc-300 font-medium">Light Metrics</p>
-                <p className={`text-xs font-data ${hasLight ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ 
+                  background: hasLight ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.02)',
+                  border: hasLight ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <p className="text-xs font-data font-medium" style={{ color: 'var(--text-secondary)' }}>Light Metrics</p>
+                <p className="text-xs font-data" style={{ color: hasLight ? '#f59e0b' : 'var(--text-tertiary)' }}>
                   {hasLight ? 'Available' : 'Not available'}
                 </p>
               </div>
             </div>
           </div>
 
-          <Separator className="bg-zinc-800" />
+          <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
 
           {/* Export format description */}
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Export Formats</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: 'var(--text-tertiary)' }}>Export Formats</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm">
+              <div 
+                className="p-3 rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-4 h-4 text-zinc-400" />
-                  <span className="text-xs font-medium text-zinc-300">CSV</span>
+                  <FileText className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                  <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>CSV</span>
                 </div>
-                <p className="text-[10px] text-zinc-500">
+                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                   Simple comma-separated format. Per-beat data only. Good for importing into other software.
                 </p>
               </div>
-              <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm">
+              <div 
+                className="p-3 rounded-lg"
+                style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-medium text-zinc-300">Excel (XLSX)</span>
+                  <FileSpreadsheet className="w-4 h-4" style={{ color: '#10b981' }} />
+                  <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Excel (XLSX)</span>
                 </div>
-                <p className="text-[10px] text-zinc-500">
+                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                   Multi-sheet workbook with formatted tables. Includes: Summary, Per-Beat, Per-Minute, Baseline, Drug, Light Metrics.
                 </p>
               </div>
-              <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm">
+              <div 
+                className="p-3 rounded-lg"
+                style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+              >
                 <div className="flex items-center gap-2 mb-2">
-                  <FileDown className="w-4 h-4 text-red-400" />
-                  <span className="text-xs font-medium text-zinc-300">PDF Report</span>
+                  <FileDown className="w-4 h-4" style={{ color: '#ef4444' }} />
+                  <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>PDF Report</span>
                 </div>
-                <p className="text-[10px] text-zinc-500">
+                <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                   Professional report with graphs. BF chart, NN chart, HRV evolution, summary table. Print-ready.
                 </p>
               </div>
@@ -138,7 +186,12 @@ export default function ExportPanel({
             <Button
               data-testid="export-csv-btn"
               variant="secondary"
-              className="h-10 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 gap-2"
+              className="h-10 text-xs rounded-lg gap-2 transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'var(--text-secondary)'
+              }}
               onClick={onExportCsv}
               disabled={!hasData || loading}
             >
@@ -149,7 +202,12 @@ export default function ExportPanel({
             <Button
               data-testid="export-xlsx-btn"
               variant="secondary"
-              className="h-10 text-xs rounded-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 gap-2"
+              className="h-10 text-xs rounded-lg gap-2 transition-all"
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#10b981'
+              }}
               onClick={onExportXlsx}
               disabled={!hasData || loading}
             >
@@ -159,7 +217,12 @@ export default function ExportPanel({
 
             <Button
               data-testid="export-pdf-btn"
-              className="h-10 text-xs rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-200 gap-2 font-medium"
+              className="h-10 text-xs rounded-lg gap-2 font-medium transition-all"
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#fca5a5'
+              }}
               onClick={onExportPdf}
               disabled={!hasData || loading}
             >
@@ -171,29 +234,32 @@ export default function ExportPanel({
           {/* Summary preview */}
           {metrics && (
             <>
-              <Separator className="bg-zinc-800" />
+              <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-500">Summary Preview</p>
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-sm p-3 font-data text-xs text-zinc-400 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: 'var(--text-tertiary)' }}>Summary Preview</p>
+                <div 
+                  className="rounded-lg p-3 font-data text-xs space-y-1"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}
+                >
                   {recordingName && (
                     <div className="flex justify-between">
                       <span>Recording Name</span>
-                      <span className="text-emerald-400">{recordingName}</span>
+                      <span style={{ color: '#10b981' }}>{recordingName}</span>
                     </div>
                   )}
                   {originalFilename && (
                     <div className="flex justify-between py-1">
                       <span>Original File</span>
-                      <span className="text-zinc-300">{originalFilename}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{originalFilename}</span>
                     </div>
                   )}
                   {recordingDate && (
                     <div className="flex justify-between">
                       <span>Recording Date</span>
-                      <span className="text-zinc-200">{recordingDate}</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{recordingDate}</span>
                     </div>
                   )}
-                  <Separator className="bg-zinc-800 my-1" />
+                  <Separator style={{ background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
                   <div className="flex justify-between items-center">
                     <span className="flex items-center gap-1">
                       Beats Detected
@@ -250,7 +316,7 @@ export default function ExportPanel({
                   </div>
                   <div className="flex justify-between">
                     <span>Filter Range</span>
-                    <span className="text-zinc-300">
+                    <span style={{ color: 'var(--text-secondary)' }}>
                       {metrics.filter_settings?.lower_pct || 50}%-{metrics.filter_settings?.upper_pct || 200}%
                     </span>
                   </div>
@@ -258,8 +324,8 @@ export default function ExportPanel({
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

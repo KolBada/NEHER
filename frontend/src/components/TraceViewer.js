@@ -377,18 +377,28 @@ function TraceViewer({
   const xDomain = zoomDomain || [timeBounds.min, timeBounds.max];
 
   return (
-    <div className="bg-black border border-zinc-800 rounded-sm" data-testid="trace-viewer" ref={containerRef}>
-      <div className="flex items-center justify-between gap-2 p-2">
+    <div 
+      className="glass-surface-subtle rounded-xl" 
+      style={{ borderLeft: '3px solid #c0c0c0' }}
+      data-testid="trace-viewer" 
+      ref={containerRef}
+    >
+      <div className="flex items-center justify-between gap-2 p-3">
         <div className="flex items-center gap-2">
           <Button
             data-testid="edit-mode-btn"
             variant={editMode ? 'default' : 'ghost'}
             size="sm"
-            className={`h-7 text-xs rounded-sm ${
+            className={`h-7 text-xs rounded-lg ${
               editMode
-                ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                : 'text-zinc-400 hover:text-zinc-100'
+                ? 'text-white'
+                : 'hover:text-zinc-100'
             }`}
+            style={{
+              background: editMode ? '#0891b2' : 'rgba(255,255,255,0.04)',
+              border: editMode ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              color: editMode ? 'white' : 'var(--text-secondary)'
+            }}
             onClick={() => {
               setEditMode(!editMode);
               setSelectedBeatIdx(null);
@@ -404,7 +414,8 @@ function TraceViewer({
                 data-testid="add-beat-hint"
                 variant="outline"
                 size="sm"
-                className="h-6 text-[10px] rounded-sm border-green-700 text-green-400 hover:bg-green-950"
+                className="h-6 text-[10px] rounded-lg"
+                style={{ borderColor: 'rgba(34, 197, 94, 0.4)', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}
                 disabled
               >
                 <Plus className="w-3 h-3 mr-1" />
@@ -414,7 +425,8 @@ function TraceViewer({
                 data-testid="remove-beat-hint"
                 variant="outline"
                 size="sm"
-                className="h-6 text-[10px] rounded-sm border-red-700 text-red-400 hover:bg-red-950"
+                className="h-6 text-[10px] rounded-lg"
+                style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}
                 disabled
               >
                 <Trash2 className="w-3 h-3 mr-1" />
@@ -423,12 +435,12 @@ function TraceViewer({
             </>
           )}
           {/* Beats badge - silver */}
-          <Badge variant="outline" className="font-data text-[10px] border-zinc-500 text-zinc-400">
+          <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#c0c0c0', color: '#c0c0c0' }}>
             {beats ? beats.length : 0} beats
           </Badge>
           {/* Stims badge - amber - only when light enabled */}
           {lightEnabled && lightPulses && lightPulses.length > 0 && (
-            <Badge variant="outline" className="font-data text-[10px] border-amber-700 text-amber-400">
+            <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
               {lightPulses.length} stims
             </Badge>
           )}
@@ -447,7 +459,8 @@ function TraceViewer({
               data-testid="remove-beat-btn"
               variant="destructive"
               size="sm"
-              className="h-6 text-[10px] rounded-sm gap-1"
+              className="h-6 text-[10px] rounded-lg gap-1"
+              style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
               onClick={handleRemoveSelected}
             >
               <Trash2 className="w-3 h-3" />
@@ -459,7 +472,8 @@ function TraceViewer({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+            className="h-6 w-6 p-0 hover:text-zinc-300"
+            style={{ color: 'var(--text-secondary)' }}
             onClick={handleZoomIn}
             title="Zoom In"
           >
@@ -468,7 +482,8 @@ function TraceViewer({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+            className="h-6 w-6 p-0 hover:text-zinc-300"
+            style={{ color: 'var(--text-secondary)' }}
             onClick={handleZoomOut}
             disabled={!isZoomed}
             title="Zoom Out"
@@ -480,7 +495,8 @@ function TraceViewer({
               data-testid="reset-zoom-btn"
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[10px] text-zinc-400 hover:text-zinc-200"
+              className="h-6 px-2 text-[10px] hover:text-zinc-200"
+              style={{ color: 'var(--text-secondary)' }}
               onClick={handleResetZoom}
             >
               <RotateCcw className="w-3 h-3 mr-1" />

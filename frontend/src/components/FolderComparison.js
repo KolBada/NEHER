@@ -769,7 +769,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2"
+              className="h-8 px-3 rounded-lg transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'var(--text-secondary)',
+              }}
               onClick={onBack}
               data-testid="back-to-folder-btn"
             >
@@ -777,8 +782,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               Back
             </Button>
             <div>
-              <h2 className="text-lg font-medium text-zinc-100">Comparison: {folder.name}</h2>
-              <p className="text-xs text-zinc-500">{summary?.recording_count || 0} recordings</p>
+              <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Comparison: {folder.name}</h2>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{summary?.recording_count || 0} recordings</p>
             </div>
           </div>
           
@@ -788,10 +793,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               size="sm"
               onClick={handleExportXlsx}
               disabled={exporting || !recordings?.length}
-              className="h-8 text-xs border-zinc-700"
+              className="h-8 text-xs rounded-lg transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                color: 'var(--text-secondary)',
+              }}
               data-testid="export-xlsx-btn"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" style={{ color: '#10b981' }} />
               Excel
             </Button>
             <Button
@@ -799,10 +810,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               size="sm"
               onClick={handleExportPdf}
               disabled={exporting || !recordings?.length}
-              className="h-8 text-xs border-zinc-700"
+              className="h-8 text-xs rounded-lg transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                color: 'var(--text-secondary)',
+              }}
               data-testid="export-pdf-btn"
             >
-              <FileText className="w-3.5 h-3.5 mr-1.5" />
+              <FileText className="w-3.5 h-3.5 mr-1.5" style={{ color: '#ef4444' }} />
               PDF
             </Button>
           </div>
@@ -817,10 +834,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             size="sm"
             onClick={handleExportXlsx}
             disabled={exporting || !recordings?.length}
-            className="h-7 text-xs border-zinc-700"
+            className="h-7 text-xs rounded-lg transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              color: 'var(--text-secondary)',
+            }}
             data-testid="export-xlsx-btn"
           >
-            <FileSpreadsheet className="w-3 h-3 mr-1" />
+            <FileSpreadsheet className="w-3 h-3 mr-1" style={{ color: '#10b981' }} />
             Excel
           </Button>
           <Button
@@ -828,10 +850,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             size="sm"
             onClick={handleExportPdf}
             disabled={exporting || !recordings?.length}
-            className="h-7 text-xs border-zinc-700"
+            className="h-7 text-xs rounded-lg transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              color: 'var(--text-secondary)',
+            }}
             data-testid="export-pdf-btn"
           >
-            <FileText className="w-3 h-3 mr-1" />
+            <FileText className="w-3 h-3 mr-1" style={{ color: '#ef4444' }} />
             PDF
           </Button>
         </div>
@@ -839,63 +866,84 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">RECORDINGS</p>
-            <p className="text-2xl font-semibold text-zinc-100">{summary?.recording_count || 0}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">
-              <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
-            </p>
-            <p className="text-lg font-semibold text-zinc-100">
-              {summary?.hspo_age_range?.min !== null 
-                ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
-                : '—'}
-            </p>
-            <p className="text-[10px] text-zinc-500">n = {summary?.hspo_age_range?.n || 0}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">
-              <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
-            </p>
-            <p className="text-lg font-semibold text-zinc-100">
-              {summary?.hco_age_range?.min !== null 
-                ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
-                : '—'}
-            </p>
-            <p className="text-[10px] text-zinc-500">n = {summary?.hco_age_range?.n || 0}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900/50 border-zinc-800 rounded-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] text-zinc-500 tracking-wider mb-1">FUSION AGE RANGE</p>
-            <p className="text-lg font-semibold text-zinc-100">
-              {summary?.fusion_age_range?.min !== null 
-                ? `${summary.fusion_age_range.min} - ${summary.fusion_age_range.max} days`
-                : '—'}
-            </p>
-            <p className="text-[10px] text-zinc-500">n = {summary?.fusion_age_range?.n || 0}</p>
-          </CardContent>
-        </Card>
+        <div 
+          className="glass-surface-subtle p-4 rounded-xl"
+          style={{ borderLeft: '3px solid var(--accent-teal)' }}
+        >
+          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>RECORDINGS</p>
+          <p className="text-2xl font-semibold" style={{ color: 'var(--accent-teal)' }}>{summary?.recording_count || 0}</p>
+        </div>
+        <div 
+          className="glass-surface-subtle p-4 rounded-xl"
+          style={{ borderLeft: '3px solid #10b981' }}
+        >
+          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>
+            <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
+          </p>
+          <p className="text-lg font-semibold" style={{ color: '#10b981' }}>
+            {summary?.hspo_age_range?.min !== null 
+              ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
+              : '—'}
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hspo_age_range?.n || 0}</p>
+        </div>
+        <div 
+          className="glass-surface-subtle p-4 rounded-xl"
+          style={{ borderLeft: '3px solid #F4CEA2' }}
+        >
+          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>
+            <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
+          </p>
+          <p className="text-lg font-semibold" style={{ color: '#F4CEA2' }}>
+            {summary?.hco_age_range?.min !== null 
+              ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
+              : '—'}
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.hco_age_range?.n || 0}</p>
+        </div>
+        <div 
+          className="glass-surface-subtle p-4 rounded-xl"
+          style={{ borderLeft: '3px solid #a78bfa' }}
+        >
+          <p className="text-[10px] tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>FUSION AGE RANGE</p>
+          <p className="text-lg font-semibold" style={{ color: '#a78bfa' }}>
+            {summary?.fusion_age_range?.min !== null 
+              ? `${summary.fusion_age_range.min} - ${summary.fusion_age_range.max} days`
+              : '—'}
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>n = {summary?.fusion_age_range?.n || 0}</p>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="spontaneous" className="w-full">
-        <TabsList className="bg-zinc-900 border border-zinc-800 rounded-sm mb-4">
-          <TabsTrigger value="spontaneous" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
-            <Activity className="w-3.5 h-3.5 mr-1.5" />
+        <TabsList 
+          className="h-9 mb-4 rounded-xl p-1"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <TabsTrigger 
+            value="spontaneous" 
+            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+          >
+            <Activity className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} />
             Spontaneous Activity
           </TabsTrigger>
-          <TabsTrigger value="light-stimulus" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
-            <Zap className="w-3.5 h-3.5 mr-1.5" />
+          <TabsTrigger 
+            value="light-stimulus" 
+            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-300 data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+          >
+            <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
             Light Stimulus
           </TabsTrigger>
-          <TabsTrigger value="metadata" className="text-xs data-[state=active]:bg-zinc-800 rounded-sm">
+          <TabsTrigger 
+            value="metadata" 
+            className="text-xs rounded-lg gap-1.5 transition-all data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=inactive]:text-zinc-400 data-[state=inactive]:hover:text-zinc-200"
+          >
             Metadata
           </TabsTrigger>
         </TabsList>
@@ -904,18 +952,25 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         <TabsContent value="spontaneous">
           {/* Create a card for each unique drug (or one default if no drugs) */}
           {(uniqueDrugs.length > 0 ? uniqueDrugs : [{ key: 'default', name: 'Drug' }]).map((drug, drugIdx) => (
-            <Card key={drug.key} className={`bg-zinc-900/30 border-zinc-800 rounded-sm ${drugIdx > 0 ? 'mt-4' : ''}`}>
-              <CardHeader className="pb-2">
+            <div 
+              key={drug.key} 
+              className={`glass-surface-subtle rounded-xl ${drugIdx > 0 ? 'mt-4' : ''}`}
+              style={{ borderLeft: '3px solid #d946ef' }}
+            >
+              <div className="p-4 pb-2">
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-sm font-medium text-zinc-300">Spontaneous Activity Comparison</CardTitle>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Spontaneous Activity Comparison</span>
                   {uniqueDrugs.length > 0 && (
-                    <Badge className="bg-purple-600 text-white text-[10px] px-2 py-0.5">
+                    <Badge 
+                      className="text-[10px] px-2 py-0.5"
+                      style={{ background: 'rgba(217, 70, 239, 0.3)', color: '#f0abfc', border: '1px solid rgba(217, 70, 239, 0.5)' }}
+                    >
                       {drug.name}
                     </Badge>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="p-4 pt-2">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -1065,8 +1120,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </TabsContent>
 
@@ -1074,11 +1129,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         <TabsContent value="light-stimulus">
           <div className="space-y-4">
             {/* HRA Table */}
-            <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-300">Light-Induced Heart Rate Adaptation (HRA)</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div 
+              className="glass-surface-subtle rounded-xl"
+              style={{ borderLeft: '3px solid #f59e0b' }}
+            >
+              <div className="p-4 pb-2">
+                <span className="text-sm font-medium" style={{ color: '#fbbf24' }}>Light-Induced Heart Rate Adaptation (HRA)</span>
+              </div>
+              <div className="p-4 pt-2">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -1448,15 +1506,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Corrected HRV Table */}
-            <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-300">Corrected Light-Induced Heart Rate Variability (HRV)</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div 
+              className="glass-surface-subtle rounded-xl"
+              style={{ borderLeft: '3px solid #f59e0b' }}
+            >
+              <div className="p-4 pb-2">
+                <span className="text-sm font-medium" style={{ color: '#fbbf24' }}>Corrected Light-Induced Heart Rate Variability (HRV)</span>
+              </div>
+              <div className="p-4 pt-2">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -1677,18 +1738,21 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </TabsContent>
 
         {/* Metadata Tab */}
         <TabsContent value="metadata">
-          <Card className="bg-zinc-900/30 border-zinc-800 rounded-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-300">Recording Metadata</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div 
+            className="glass-surface-subtle rounded-xl"
+            style={{ borderLeft: '3px solid var(--accent-teal)' }}
+          >
+            <div className="p-4 pb-2">
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Recording Metadata</span>
+            </div>
+            <div className="p-4 pt-2">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -1824,8 +1888,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

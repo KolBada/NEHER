@@ -502,11 +502,14 @@ function AnalysisPanel({
 
       {/* BF + NN charts (filtered) with light stim highlights and zoom */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" ref={chartContainerRef}>
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+        <div 
+          className="glass-surface-subtle rounded-xl"
+          style={{ borderLeft: '3px solid #F4CEA2' }}
+        >
+          <div className="p-3 pb-2">
+            <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                Beat Frequency (Filtered) - bpm vs min
+                <span style={{ color: '#F4CEA2' }}>Beat Frequency (Filtered)</span> - bpm vs min
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -514,17 +517,17 @@ function AnalysisPanel({
                         <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                    <TooltipContent side="top" className="max-w-xs text-xs z-50 glass-surface" style={{ color: 'var(--text-primary)' }}>
                       <p>Beat frequency (BF) = 60000 / NN interval. Filtered using artifact rejection to remove outliers.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Badge variant="outline" className="font-data text-[9px] border-emerald-700 text-emerald-400">
+                <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#10b981', color: '#10b981' }}>
                   {metrics.n_kept} beats
                 </Badge>
                 {/* Light stim badge - amber - only when light stim is enabled */}
                 {lightEnabled && lightPulses && lightPulses.length > 0 && (
-                  <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+                  <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
                     {lightPulses.length} stims
                   </Badge>
                 )}
@@ -552,9 +555,9 @@ function AnalysisPanel({
                   </Button>
                 )}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
+            </div>
+          </div>
+          <div className="p-2 pt-0">
             <ResponsiveContainer width="100%" height={270}>
               <LineChart data={filteredBfData} margin={{ top: 10, right: 35, left: 15, bottom: 35 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
@@ -604,14 +607,17 @@ function AnalysisPanel({
                 />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center justify-between">
+        <div 
+          className="glass-surface-subtle rounded-xl"
+          style={{ borderLeft: '3px solid #a78bfa' }}
+        >
+          <div className="p-3 pb-2">
+            <div className="text-xs flex items-center justify-between" style={{ color: 'var(--text-secondary)' }}>
               <div className="flex items-center gap-2">
-                NN Intervals (Filtered) - ms vs min
+                <span style={{ color: '#c0c0c0' }}>NN Intervals (Filtered)</span> - ms vs min
                 <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -619,17 +625,17 @@ function AnalysisPanel({
                         <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs text-xs bg-zinc-900 border-zinc-700 z-50 text-zinc-100">
+                    <TooltipContent side="top" className="max-w-xs text-xs z-50 glass-surface" style={{ color: 'var(--text-primary)' }}>
                       <p>NN intervals = time between successive beats in milliseconds. Used for HRV calculations.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Badge variant="outline" className="font-data text-[9px] border-zinc-500 text-zinc-400">
+                <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#71717a', color: '#71717a' }}>
                   {metrics.n_kept} intervals
                 </Badge>
                 {/* Light stim badge - amber - only when light stim is enabled */}
                 {lightEnabled && lightPulses && lightPulses.length > 0 && (
-                  <Badge variant="outline" className="font-data text-[9px] border-amber-700 text-amber-400">
+                  <Badge variant="outline" className="font-data text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
                     {lightPulses.length} stims
                   </Badge>
                 )}
@@ -657,9 +663,9 @@ function AnalysisPanel({
                   </Button>
                 )}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
+            </div>
+          </div>
+          <div className="p-2 pt-0">
             <ResponsiveContainer width="100%" height={270}>
               <LineChart data={filteredNnData} margin={{ top: 10, right: 35, left: 15, bottom: 35 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
@@ -709,18 +715,21 @@ function AnalysisPanel({
                 />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Spontaneous Activity Analysis - Header + Controls joined */}
       <div>
         {/* Header */}
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-b-none border-b-0">
-          <CardContent className="py-3">
+        <div 
+          className="glass-surface-subtle rounded-xl rounded-b-none"
+          style={{ borderLeft: '3px solid #22d3ee', borderBottom: 'none' }}
+        >
+          <div className="py-3 px-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium text-zinc-200">Spontaneous Activity Analysis (BF & HRV)</span>
+              <BarChart3 className="w-4 h-4" style={{ color: '#22d3ee' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Spontaneous Activity Analysis (BF & HRV)</span>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -728,7 +737,7 @@ function AnalysisPanel({
                       <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                  <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
                     <p className="font-medium mb-2">BF & HRV Metrics</p>
                     <p className="mb-2">
                       <strong>BF (Beat Frequency):</strong> Heart rate in beats per minute (bpm), computed as the inverse of inter-beat intervals.
@@ -747,31 +756,34 @@ function AnalysisPanel({
               
               {/* Auto-computing indicator - shows only when loading */}
               {analysisLoading && (
-                <div className="ml-auto flex items-center gap-1 text-cyan-400 text-xs">
+                <div className="ml-auto flex items-center gap-1 text-xs" style={{ color: '#22d3ee' }}>
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   <span>Computing...</span>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Divider line - full width */}
-        <div className="h-px bg-zinc-700" />
+        <div className="h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         {/* Controls */}
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm rounded-t-none border-t-0">
-          <CardContent className="pt-4">
+        <div 
+          className="glass-surface-subtle rounded-xl rounded-t-none"
+          style={{ borderLeft: '3px solid #22d3ee', borderTop: 'none' }}
+        >
+          <div className="pt-4 px-4 pb-4">
           {/* Controls row */}
           <div className="flex flex-wrap items-start gap-4 mb-4">
             {/* Baseline settings - single minute readouts */}
-            <div className={`p-3 rounded-sm border transition-all duration-200 w-[340px] ${
+            <div className={`p-3 rounded-lg border transition-all duration-200 w-[340px] ${
               baselineEnabled 
-                ? 'bg-cyan-950/20 border-cyan-800/50' 
-                : 'bg-zinc-900/50 border-zinc-700/50 opacity-75'
-            }`}>
+                ? 'border-cyan-800/50' 
+                : 'border-zinc-700/50 opacity-75'
+            }`} style={{ background: baselineEnabled ? 'rgba(34, 211, 238, 0.1)' : 'rgba(255,255,255,0.02)' }}>
               <div className="flex items-center justify-between mb-3">
-                <p className={`text-[9px] uppercase tracking-wider font-bold ${baselineEnabled ? 'text-cyan-400' : 'text-zinc-400'}`}>
+                <p className={`text-[9px] uppercase tracking-wider font-bold`} style={{ color: baselineEnabled ? '#22d3ee' : 'var(--text-tertiary)' }}>
                   Baseline Readout
                 </p>
                 <div className="flex items-center gap-2">
@@ -1140,15 +1152,18 @@ function AnalysisPanel({
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Evolution of HRV Metrics */}
       {hrvChartData.length > 0 && (
-        <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
-              Evolution of HRV Metrics
+        <div 
+          className="glass-surface-subtle rounded-xl mt-4"
+          style={{ borderLeft: '3px solid #fa8072' }}
+        >
+          <div className="p-3 pb-2">
+            <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+              <span style={{ color: '#fa8072' }}>Evolution of HRV Metrics</span>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1156,14 +1171,14 @@ function AnalysisPanel({
                       <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-zinc-900 border-zinc-700 text-xs px-2 py-1 max-w-xs text-white z-50">
+                  <TooltipContent side="right" className="glass-surface text-xs px-2 py-1 max-w-xs z-50" style={{ color: 'var(--text-primary)' }}>
                     <p>Time evolution of HRV metrics computed over 3-minute sliding windows, normalized to 70 bpm.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </div>
+          </div>
+          <div className="p-3 pt-0">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {[
                 { key: 'ln_rmssd70', label: 'ln(RMSSD₇₀)', sublabel: '3-min window, normalized to 70 bpm', color: CHART_COLORS.lnRmssd },
@@ -1200,14 +1215,17 @@ function AnalysisPanel({
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Per-minute metrics table */}
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm mt-4">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xs text-zinc-400 flex items-center gap-2">
+      <div 
+        className="glass-surface-subtle rounded-xl mt-4"
+        style={{ borderLeft: '3px solid var(--accent-teal)' }}
+      >
+        <div className="p-3 pb-2">
+          <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
             Per-Minute Metrics
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -1216,22 +1234,28 @@ function AnalysisPanel({
                     <Info className="w-3 h-3 text-zinc-500 hover:text-zinc-300 cursor-help" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="w-72 bg-zinc-900 border-zinc-700 text-zinc-100 text-[10px] p-3 z-50">
-                  <p className="font-medium mb-2 text-zinc-100">Table Columns Explained</p>
-                  <p className="text-zinc-200 mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
-                  <p className="text-zinc-200"><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
+                <TooltipContent side="right" className="w-72 glass-surface text-[10px] p-3 z-50" style={{ color: 'var(--text-primary)' }}>
+                  <p className="font-medium mb-2">Table Columns Explained</p>
+                  <p className="mb-1"><strong>Beats, BF, NN, NN₇₀:</strong> Values for that specific 1-minute window.</p>
+                  <p><strong>SDNN₇₀, RMSSD₇₀, pNN50₇₀:</strong> Computed over a 3-minute sliding window starting at that minute (e.g., row "0-1 min" uses data from 0-3 min).</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
+        </div>
+        <div className="p-3 pt-0">
           <Tabs defaultValue="per-minute">
-            <TabsList className="bg-zinc-900/50 border border-zinc-800 h-7 mb-3">
-              <TabsTrigger value="per-minute" className="text-[10px] rounded-sm h-5 data-[state=active]:bg-zinc-700">
+            <TabsList 
+              className="h-7 mb-3 rounded-lg p-1"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              <TabsTrigger value="per-minute" className="text-[10px] rounded-md h-5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
                 Per Minute
               </TabsTrigger>
-              <TabsTrigger value="per-beat" className="text-[10px] rounded-sm h-5 data-[state=active]:bg-zinc-700">
+              <TabsTrigger value="per-beat" className="text-[10px] rounded-md h-5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
                 Per Beat
               </TabsTrigger>
             </TabsList>
@@ -1329,8 +1353,8 @@ function AnalysisPanel({
               </ScrollArea>
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       </div>
     </div>
   );
