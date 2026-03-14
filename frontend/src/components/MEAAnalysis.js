@@ -210,10 +210,10 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+        <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'insideLeft', fontSize: 9, fill: '#71717a' }} />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <Scatter data={data} fill={color} shape={(props) => (
             <line x1={props.cx} x2={props.cx} y1={props.cy - 2} y2={props.cy + 2} stroke={color} strokeWidth={1} />
           )} isAnimationActive={false} />
@@ -242,10 +242,10 @@ const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, durati
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+        <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'insideLeft', fontSize: 9, fill: '#71717a' }} />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <Scatter 
             data={scatterData} 
             fill={color} 
@@ -965,11 +965,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                 {/* Row 3: Readout Configuration with Integrated Metrics */}
                 <div 
                   className="glass-surface-subtle rounded-xl overflow-hidden"
-                  style={{ borderLeft: '3px solid #22d3ee' }}
+                  style={{ borderLeft: `3px solid ${selectedDrugs.length > 0 ? '#a855f7' : '#22d3ee'}` }}
                 >
                   <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4" style={{ color: '#22d3ee' }} />
+                      <Activity className="w-4 h-4" style={{ color: selectedDrugs.length > 0 ? '#a855f7' : '#22d3ee' }} />
                       <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
                         Readout Configuration
                       </span>
