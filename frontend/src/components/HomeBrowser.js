@@ -1520,21 +1520,21 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                   size="sm"
                   className="h-9 text-xs rounded-xl transition-all"
                   style={{
-                    background: 'rgba(16, 185, 129, 0.12)',
+                    background: 'rgba(20, 184, 166, 0.12)',
                     backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    color: 'var(--mea-accent)',
-                    boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(20, 184, 166, 0.35)',
+                    color: 'var(--accent-teal)',
+                    boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.20)';
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.50)';
-                    e.currentTarget.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.25)';
+                    e.currentTarget.style.background = 'rgba(20, 184, 166, 0.20)';
+                    e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.50)';
+                    e.currentTarget.style.boxShadow = '0 0 25px rgba(20, 184, 166, 0.25)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)';
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.35)';
-                    e.currentTarget.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.15)';
+                    e.currentTarget.style.background = 'rgba(20, 184, 166, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.35)';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.15)';
                   }}
                   onClick={() => {
                     setComparisonKey(Date.now());
