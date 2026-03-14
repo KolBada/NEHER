@@ -436,18 +436,6 @@ export default function SaveRecording({
               );
             })}
           </div>
-
-          {/* Description */}
-          <div className="space-y-1">
-            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Description / Notes</Label>
-            <Textarea
-              placeholder="Additional notes about the recording..."
-              value={recordingDescription || ''}
-              onChange={(e) => setRecordingDescription(e.target.value)}
-              className="text-xs font-data min-h-[60px] resize-none rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-            />
-          </div>
         </div>
       </div>
 
@@ -484,6 +472,18 @@ export default function SaveRecording({
               onChange={(e) => onRecordingNameChange?.(e.target.value)}
               placeholder="Enter recording name"
               className="h-9 text-sm rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+            />
+          </div>
+
+          {/* Description / Notes */}
+          <div className="space-y-1">
+            <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Description / Notes</Label>
+            <Textarea
+              placeholder="Additional notes about the recording..."
+              value={recordingDescription || ''}
+              onChange={(e) => setRecordingDescription(e.target.value)}
+              className="text-xs font-data min-h-[60px] resize-none rounded-lg"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
             />
           </div>
