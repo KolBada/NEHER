@@ -481,12 +481,15 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         }
         
         if (wellId && wellSet.has(wellId)) {
+          // Use row.stop directly if available, otherwise calculate from start + duration
+          const startTime = row.timestamp || row.start;
+          const stopTime = row.stop || (startTime + (row.duration || 0));
           burstsByWell[wellId].push({
             electrode: row.electrode,
-            start: row.timestamp || row.start,
-            stop: (row.timestamp || row.start) + (row.duration || 0),
+            start: startTime,
+            stop: stopTime,
             spike_count: row.spike_count,
-            duration: row.duration,
+            duration: row.duration || (stopTime - startTime),
           });
         }
       });
@@ -509,12 +512,15 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       networkBurstsRaw.forEach(row => {
         const wellId = normalizeWellId(row.well);
         if (wellId && wellSet.has(wellId)) {
+          // Use row.stop directly if available, otherwise calculate from start + duration
+          const startTime = row.timestamp || row.start;
+          const stopTime = row.stop || (startTime + (row.duration || 0));
           networkBurstsByWell[wellId].push({
-            start: row.timestamp || row.start,
-            stop: (row.timestamp || row.start) + (row.duration || 0),
+            start: startTime,
+            stop: stopTime,
             electrode_count: row.electrode_count,
             spike_count: row.spike_count,
-            duration: row.duration,
+            duration: row.duration || (stopTime - startTime),
           });
         }
       });

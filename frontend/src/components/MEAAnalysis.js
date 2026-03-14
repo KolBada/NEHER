@@ -200,21 +200,75 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
   );
 });
 
-const RasterPlot = memo(function RasterPlot({ data, electrodes, duration, type }) {
+const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, duration }) {
   if (!data?.length || !electrodes?.length) {
-    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No raster data</div>;
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
   }
-  const color = type === 'spike' ? '#00b8c4' : '#f97316';
+  const color = '#00b8c4';
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
-          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} />
+          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'insideLeft', fontSize: 9, fill: '#71717a' }} />
           <Scatter data={data} fill={color} shape={(props) => (
             <line x1={props.cx} x2={props.cx} y1={props.cy - 2} y2={props.cy + 2} stroke={color} strokeWidth={1} />
           )} isAnimationActive={false} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
+const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, duration }) {
+  // Burst raster shows horizontal lines from start to stop for each burst
+  if (!data?.length || !electrodes?.length) {
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
+  }
+  const color = '#f97316';
+  
+  // Transform burst data to scatter points (use midpoint for positioning)
+  const scatterData = data.map((b, idx) => ({
+    time: (b.start + b.stop) / 2, // midpoint for X positioning
+    startTime: b.start,
+    stopTime: b.stop,
+    electrodeIndex: b.electrodeIndex,
+    key: idx,
+  }));
+  
+  return (
+    <div className="h-36">
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 10, right: 20, left: 40, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'insideLeft', fontSize: 9, fill: '#71717a' }} />
+          <Scatter 
+            data={scatterData} 
+            fill={color} 
+            shape={(props) => {
+              // Calculate x positions for start and stop times
+              // props.xAxis.scale gives us the scale function
+              const xScale = props.xAxis?.scale;
+              if (!xScale) {
+                // Fallback: draw a vertical tick at the midpoint
+                return <line x1={props.cx} x2={props.cx} y1={props.cy - 3} y2={props.cy + 3} stroke={color} strokeWidth={2} />;
+              }
+              const x1 = xScale(props.payload.startTime);
+              const x2 = xScale(props.payload.stopTime);
+              // Draw horizontal line for burst duration
+              return <line x1={x1} x2={x2} y1={props.cy} y2={props.cy} stroke={color} strokeWidth={2} strokeLinecap="round" />;
+            }} 
+            isAnimationActive={false} 
+          />
+          <RechartsTooltip 
+            contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} 
+            formatter={(value, name, props) => {
+              const payload = props.payload;
+              return [`${payload.startTime?.toFixed(2)}s - ${payload.stopTime?.toFixed(2)}s`, 'Duration'];
+            }}
+          />
         </ScatterChart>
       </ResponsiveContainer>
     </div>
@@ -322,6 +376,15 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const active_electrodes = well.active_electrodes || [];
     const duration_s = well.duration_s || 0;
     
+    // Debug logging for burst data
+    console.log('[MEA Debug] Well:', selectedWell, {
+      spikeCount: spikes.length,
+      burstCount: electrode_bursts.length,
+      activeElectrodes: active_electrodes.length,
+      duration_s,
+      sampleBurst: electrode_bursts[0],
+    });
+    
     if (active_electrodes.length === 0 || duration_s <= 0) {
       return { well, spikeRateBins: [], burstRateBins: [], spikeRaster: [], burstRaster: [] };
     }
@@ -330,6 +393,14 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const burstRateBins = computeBurstRate(electrode_bursts, active_electrodes, currentParams.burstBinS, duration_s);
     const spikeRaster = buildSpikeRaster(spikes, active_electrodes);
     const burstRaster = buildBurstRaster(electrode_bursts, active_electrodes);
+    
+    console.log('[MEA Debug] Computed:', {
+      spikeRateBinsCount: spikeRateBins.length,
+      burstRateBinsCount: burstRateBins.length,
+      spikeRasterCount: spikeRaster.length,
+      burstRasterCount: burstRaster.length,
+      sampleBurstRaster: burstRaster[0],
+    });
     
     // Baseline metrics (using shared minute)
     const blStart = (baselineMinute - 1) * 60;
@@ -809,7 +880,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <RasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} type="spike" />
+                      <SpikeRasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
                     </div>
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
@@ -820,7 +891,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <RasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} type="burst" />
+                      <BurstRasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
                     </div>
                   </div>
                 </div>
