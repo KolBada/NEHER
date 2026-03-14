@@ -175,7 +175,7 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
-          <Line type="monotone" dataKey="spike_rate_hz" stroke="#00b8c4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -206,7 +206,7 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
   }
-  const color = '#00b8c4';
+  const color = '#10b981';
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
@@ -433,6 +433,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       spikeBinS: wp.spikeBinS ?? config?.spike_bin_s ?? 5,
       burstBinS: wp.burstBinS ?? config?.burst_bin_s ?? 30,
       minHz: wp.minHz ?? 0.01,
+      maxHz: wp.maxHz ?? null, // null means no limit
     };
   }, [selectedWell, wellParams, config]);
 
@@ -589,9 +590,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   onClick={() => setSelectedWell(wellId)}
                   className="h-7 px-2.5 rounded-lg font-mono text-[11px] transition-all"
                   style={selectedWell === wellId ? {
-                    background: '#00b8c4',
+                    background: '#10b981',
                     color: '#000',
-                    boxShadow: '0 0 12px rgba(0, 184, 196, 0.4)',
+                    boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
                   } : {
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.10)',
@@ -796,10 +797,10 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           <TabsContent value="parameters" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Spike Trace - 2/3 Width */}
-              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                 <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
                     <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
                       Spike Trace — All Electrodes
                     </span>
@@ -818,7 +819,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
                       Analysis Parameters
                     </span>
-                    <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
+                    <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
                       {selectedWell}
                     </Badge>
                   </div>
@@ -856,16 +857,32 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   {/* Electrode Filter */}
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Electrode Filter</Label>
-                    <div className="space-y-1">
-                      <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Min Firing Rate (Hz)</Label>
-                      <Input
-                        type="number"
-                        value={currentParams.minHz}
-                        onChange={(e) => updateWellParam('minHz', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs font-data rounded-lg"
-                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
-                        min={0} step={0.01}
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Min Firing Rate (Hz)</Label>
+                        <Input
+                          type="number"
+                          value={currentParams.minHz}
+                          onChange={(e) => updateWellParam('minHz', parseFloat(e.target.value) || 0)}
+                          className="h-8 text-xs font-data rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                          min={0} step={0.01}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Max Firing Rate (Hz)</Label>
+                        <Input
+                          type="text"
+                          value={currentParams.maxHz === null ? '' : currentParams.maxHz}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            updateWellParam('maxHz', val === '' ? null : parseFloat(val) || null);
+                          }}
+                          className="h-8 text-xs font-data rounded-lg"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-primary)' }}
+                          placeholder="No limit"
+                        />
+                      </div>
                     </div>
                   </div>
                   
@@ -873,7 +890,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   <div className="pt-2 space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                     <div className="flex justify-between">
                       <span>Active Electrodes:</span>
-                      <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
+                      <span style={{ color: '#10b981' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total Spikes:</span>
@@ -888,7 +905,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   {/* Rerun Button */}
                   <Button
                     className="w-full h-9 rounded-xl font-medium mt-4"
-                    style={{ background: '#00b8c4', color: '#000' }}
+                    style={{ background: '#10b981', color: '#000' }}
                     onClick={() => {
                       setIsComputing(true);
                       toast.success(`Parameters updated for ${selectedWell}`);
@@ -912,10 +929,10 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
               <>
                 {/* Row 1: Spike Trace + Burst Trace */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                        <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
                         <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
                       </div>
                     </div>
@@ -938,10 +955,10 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                 
                 {/* Row 2: Spike Raster + Burst Raster */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                        <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
                         <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
                       </div>
                     </div>
@@ -1089,10 +1106,10 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <div className="grid grid-cols-2 gap-6">
                           {/* Spike Column */}
                           <div className="space-y-3">
-                            <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#00b8c4' }}>Spike</p>
+                            <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#10b981' }}>Spike</p>
                             <div>
                               <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
-                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
+                              <p className="text-base font-data font-semibold" style={{ color: '#34d399' }}>
                                 {wellAnalysis.baselineSpikeHz?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">Hz</span>
                               </p>
                             </div>
@@ -1110,7 +1127,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             <p className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: '#f97316' }}>Burst</p>
                             <div>
                               <p className="text-[9px] mb-1" style={{ color: 'var(--text-tertiary)' }}>Baseline</p>
-                              <p className="text-base font-data font-semibold" style={{ color: '#22d3ee' }}>
+                              <p className="text-base font-data font-semibold" style={{ color: '#fb923c' }}>
                                 {wellAnalysis.baselineBurstBpm?.toFixed(3) ?? '—'} <span className="text-xs font-normal opacity-70">bpm</span>
                               </p>
                             </div>
@@ -1167,8 +1184,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           <TableHeader>
                             <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                               <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Minute</TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: '#00b8c4' }}>Spike Rate (Hz)</TableHead>
-                              <TableHead className="text-[10px] text-right" style={{ color: '#00b8c4' }}>Spike Count</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#10b981' }}>Spike Rate (Hz)</TableHead>
+                              <TableHead className="text-[10px] text-right" style={{ color: '#10b981' }}>Spike Count</TableHead>
                               <TableHead className="text-[10px] text-right" style={{ color: '#f97316' }}>Burst Rate (bpm)</TableHead>
                               <TableHead className="text-[10px] text-right" style={{ color: '#f97316' }}>Burst Count</TableHead>
                             </TableRow>
@@ -1177,7 +1194,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             {wellAnalysis.perMinuteCombined.map((row) => (
                               <TableRow key={row.minute} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                 <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.minute}</TableCell>
-                                <TableCell className="text-xs font-data text-right" style={{ color: '#00b8c4' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
+                                <TableCell className="text-xs font-data text-right" style={{ color: '#10b981' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.spike_count}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: '#f97316' }}>{row.burst_rate_bpm.toFixed(3)}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.burst_count}</TableCell>
@@ -1191,7 +1208,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {/* Spike Per-Bin */}
                         <div>
-                          <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#00b8c4' }}>Spike Per Bin</h4>
+                          <h4 className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: '#10b981' }}>Spike Per Bin</h4>
                           <ScrollArea className="h-48 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                             <Table>
                               <TableHeader>
@@ -1205,7 +1222,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                                 {wellAnalysis.spikeRateBins.map((row, i) => (
                                   <TableRow key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                     <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.bin_start}</TableCell>
-                                    <TableCell className="text-xs font-data text-right" style={{ color: '#00b8c4' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
+                                    <TableCell className="text-xs font-data text-right" style={{ color: '#10b981' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
                                     <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.spike_count}</TableCell>
                                   </TableRow>
                                 ))}
