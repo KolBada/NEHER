@@ -13,7 +13,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check, FolderOpen, Loader2 } from 'lucide-react';
+import { Activity, BarChart3, Zap, Download, FileAudio, RotateCcw, Save, FlaskConical, Clock, Plus, X, Home, Minus, Check, FolderOpen, Loader2, FileSpreadsheet, FileText, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -1624,7 +1624,7 @@ function App() {
               data-testid="home-btn"
             >
               <Home className="w-4 h-4 mr-2" />
-              Back
+              Home
             </Button>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
               NEHER
@@ -2279,33 +2279,70 @@ function App() {
       {/* Comparison Dialog */}
       <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent 
-          className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden rounded-2xl"
+          className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden rounded-2xl p-0"
           style={{
-            background: 'rgba(12, 12, 14, 0.95)',
+            background: 'rgba(12, 12, 14, 0.98)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           }}
         >
-          <DialogHeader className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <DialogTitle className="flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-              <div 
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ 
-                  background: 'rgba(20, 184, 166, 0.15)',
-                  border: '1px solid rgba(20, 184, 166, 0.3)',
-                }}
-              >
-                <BarChart3 className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
+          {/* Hide default close button, we'll use Back button */}
+          <div className="sr-only">
+            <DialogHeader>
+              <DialogTitle>Comparison</DialogTitle>
+            </DialogHeader>
+          </div>
+          
+          {/* Custom toolbar matching the comparison page */}
+          <div 
+            className="p-4"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.10)',
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-4 rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: 'var(--text-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                  onClick={() => setShowComparisonDialog(false)}
+                  data-testid="comparison-back-btn"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <div>
+                  <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+                    Comparison: {savedFolderName || 'Loading...'}
+                  </h2>
+                </div>
               </div>
-              <div>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison</span>
-                <span className="text-sm ml-2" style={{ color: 'var(--text-tertiary)' }}>{savedFolderName || 'Loading...'}</span>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[calc(90vh-100px)] pt-4">
+            </div>
+          </div>
+          
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-4">
             {savedFolderId && (
               <FolderComparison 
                 folder={{ id: savedFolderId, name: savedFolderName || '' }}
