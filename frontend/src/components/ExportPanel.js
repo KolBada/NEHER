@@ -28,18 +28,9 @@ export default function ExportPanel({
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Recording Name:</span>
-            <Input
-              data-testid="export-recording-name-input"
-              value={recordingName}
-              onChange={(e) => onRecordingNameChange?.(e.target.value)}
-              className="h-6 w-48 text-[10px] font-data px-2 rounded-lg"
-              style={{ 
-                background: 'rgba(255,255,255,0.03)', 
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#10b981'
-              }}
-              placeholder="Enter recording name..."
-            />
+            <Badge variant="outline" className="font-data text-[10px]" style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}>
+              {recordingName || 'Untitled'}
+            </Badge>
           </div>
           {originalFilename && (
             <div className="flex items-center gap-2">

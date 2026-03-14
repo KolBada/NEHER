@@ -764,7 +764,8 @@ function AnalysisPanel({
               className="p-3 rounded-xl transition-all duration-200 w-[340px]"
               style={{ 
                 background: baselineEnabled ? 'rgba(34, 211, 238, 0.08)' : 'rgba(255,255,255,0.03)', 
-                border: baselineEnabled ? '1px solid rgba(34, 211, 238, 0.25)' : '1px solid rgba(255,255,255,0.10)'
+                border: baselineEnabled ? '1px solid rgba(34, 211, 238, 0.25)' : '1px solid rgba(255,255,255,0.10)',
+                paddingBottom: (selectedDrugs && selectedDrugs.length > 0) ? '20px' : '12px'
               }}
             >
               <div className="flex items-center justify-between mb-3">
