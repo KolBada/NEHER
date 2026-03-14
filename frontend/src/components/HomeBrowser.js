@@ -1580,7 +1580,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </div>
           ) : (
             <ScrollArea className="h-[calc(100vh-380px)]">
-              <div className="space-y-5">
+              <div className="flex flex-col gap-4 pb-4">
                 {sortedRecordings.map((recording, index) => (
                   <div 
                     key={recording.id}
@@ -1592,6 +1592,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                       borderTopColor: 'rgba(255,255,255,0.12)',
                       borderLeftColor: 'rgba(255,255,255,0.10)',
                       boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                      marginBottom: '4px',
                       animation: `fadeUp 0.4s ease ${index * 0.05}s both`,
                     }}
                     onMouseEnter={(e) => {
