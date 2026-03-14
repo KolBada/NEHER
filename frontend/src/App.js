@@ -2281,7 +2281,7 @@ function App() {
         <DialogContent 
           className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden rounded-2xl p-0"
           style={{
-            background: 'rgba(12, 12, 14, 0.98)',
+            background: 'rgba(8, 12, 24, 0.98)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -2307,37 +2307,9 @@ function App() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-4 rounded-xl transition-all"
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.14)',
-                    color: 'var(--text-secondary)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                  onClick={() => setShowComparisonDialog(false)}
-                  data-testid="comparison-back-btn"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-                <div>
-                  <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                    Comparison: {savedFolderName || 'Loading...'}
-                  </h2>
-                </div>
+                <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+                  Comparison: {savedFolderName || 'Loading...'}
+                </h2>
               </div>
             </div>
           </div>
