@@ -541,10 +541,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       <header 
         className="fixed top-0 left-0 right-0 z-50 px-6 py-3"
         style={{
-          background: 'rgba(12, 12, 14, 0.92)',
+          background: 'rgba(2, 8, 15, 0.85)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: '1px solid rgba(20, 184, 166, 0.15)',
+          boxShadow: '0 4px 32px rgba(0, 0, 0, 0.3)',
         }}
       >
         <div className="flex items-center justify-between max-w-[1800px] mx-auto">
