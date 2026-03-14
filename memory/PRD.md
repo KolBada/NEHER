@@ -76,6 +76,35 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ## Recent Changes (December 2025)
 
+### MEA Analysis Page Redesign - Session 26 (December 2025)
+
+**Bug Fixes:**
+- Fixed burst data parsing in `MEAUpload.js` (lines 483-497, 509-523)
+  - Now correctly uses `row.stop` field when available instead of calculating from duration
+  - Properly handles electrode_burst_list.csv with start/stop columns
+- Created separate `SpikeRasterPlot` and `BurstRasterPlot` components in `MEAAnalysis.js`
+  - Spike raster shows vertical ticks at spike timestamps
+  - Burst raster shows horizontal bars from start to stop times
+
+**MEA Analysis Components Implemented:**
+1. **Parameters Tab:** Spike trace chart, bin size controls, electrode filter, well info, validate button
+2. **Spontaneous Activity Tab:**
+   - Spike Trace + Burst Trace charts (side by side)
+   - Spike Raster + Burst Raster plots (side by side)
+   - Readout Configuration box (baseline & drug settings)
+   - Spike-Burst Correlation scatter plot
+   - Per-Minute / Per-Bin metric tables with toggle switch
+3. **Light Stimulus Tab:** Placeholder with light enable toggle
+4. **Save Recording Tab:** Placeholder with save button
+5. **Export Tab:** Placeholder with Excel/PDF buttons
+
+**Verified Working (Test Report #26):**
+- MEA Upload page loads correctly with 5 required CSV files
+- Glassmorphism styling matches app theme
+- File drop zone functional with .csv filter
+- Back button navigation
+- Analyze Files button state management
+
 ### Glassmorphism UI/UX Overhaul - Phase 3 (December 2025 - Latest)
 
 **Light Stimulus Tab Overhaul (December 2025):**
@@ -151,9 +180,17 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ## Pending Tasks
 
+### P0 - In Progress (MEA Redesign)
+- [ ] Build MEA Light Stimulus Tab - implement light stimulus analysis matching SSE workflow
+- [ ] Build MEA Save Recording Tab - adapt SSE SaveRecording.js for MEA data
+- [ ] Build MEA Export Tab - adapt SSE ExportPanel.js for MEA data
+
 ### P1 - Verified/Completed
 - ✅ Light Stimulus tab UI overhaul (fused sections, amber accent, glassmorphism)
 - ✅ SSE uploaded file state styling (already glassmorphic in FileUpload.js)
+- ✅ MEA burst data parsing fix (December 2025)
+- ✅ MEA Spontaneous Activity tab implementation (December 2025)
+- ✅ MEA Parameters tab implementation (December 2025)
 
 ### P2 - Medium Priority
 - Refactor oversized files (`HomeBrowser.js` >1700 lines, `export_utils.py`, `LightPanel.js`)

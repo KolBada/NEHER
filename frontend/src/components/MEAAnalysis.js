@@ -376,15 +376,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const active_electrodes = well.active_electrodes || [];
     const duration_s = well.duration_s || 0;
     
-    // Debug logging for burst data
-    console.log('[MEA Debug] Well:', selectedWell, {
-      spikeCount: spikes.length,
-      burstCount: electrode_bursts.length,
-      activeElectrodes: active_electrodes.length,
-      duration_s,
-      sampleBurst: electrode_bursts[0],
-    });
-    
     if (active_electrodes.length === 0 || duration_s <= 0) {
       return { well, spikeRateBins: [], burstRateBins: [], spikeRaster: [], burstRaster: [] };
     }
@@ -393,14 +384,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const burstRateBins = computeBurstRate(electrode_bursts, active_electrodes, currentParams.burstBinS, duration_s);
     const spikeRaster = buildSpikeRaster(spikes, active_electrodes);
     const burstRaster = buildBurstRaster(electrode_bursts, active_electrodes);
-    
-    console.log('[MEA Debug] Computed:', {
-      spikeRateBinsCount: spikeRateBins.length,
-      burstRateBinsCount: burstRateBins.length,
-      spikeRasterCount: spikeRaster.length,
-      burstRasterCount: burstRaster.length,
-      sampleBurstRaster: burstRaster[0],
-    });
     
     // Baseline metrics (using shared minute)
     const blStart = (baselineMinute - 1) * 60;
