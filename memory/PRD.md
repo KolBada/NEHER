@@ -54,7 +54,20 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 
 ## Recent Changes (December 2025)
 
-### Glassmorphism UI/UX Overhaul - Phase 2 (Latest)
+### Glassmorphism UI/UX Overhaul - Phase 3 (December 2025 - Latest)
+
+**Surface 1: Folder Page Visual Overhaul**
+- Added NEHER header branding to Folder page (matching Home page)
+- Applied `neher-home-bg` background with glow orbs for ambient atmosphere
+- Created glassmorphism toolbar with styled Back button, folder name, and action buttons
+- Recording rows now have glass styling with translucent backgrounds, subtle borders, and hover effects
+- Recording icon backgrounds color-coded by source type (SSE=peach, MEA=emerald)
+- All badges (beats, duration, light stim, drug) use rounded-full pill styling
+- Comparison button has emerald glow effect
+- Empty state has glass card styling
+- Page now visually matches the Home page's premium glassmorphism aesthetic
+
+### Glassmorphism UI/UX Overhaul - Phase 2
 1. **Typography System Unified:**
    - Added Space Grotesk (400, 500, 600) for display text (titles, headings)
    - Added DM Sans (400, 500) for body text

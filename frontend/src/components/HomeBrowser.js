@@ -1361,316 +1361,433 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
 
   // Folder view - show recordings in selected folder
   return (
-    <div className="p-6 max-w-4xl mx-auto" data-testid="folder-view">
-      {/* Header with back button */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 rounded-lg transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: 'var(--text-secondary)',
-            }}
-            onClick={() => { setView('home'); setSelectedFolder(null); loadFolders(); }}
-            data-testid="back-to-home-btn"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
-            <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{selectedFolder?.name}</h2>
-            <Badge 
-              variant="outline" 
-              className="text-xs"
-              style={{ 
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              {recordings.length} recording{recordings.length !== 1 ? 's' : ''}
-            </Badge>
+    <div className="neher-home-bg" data-testid="folder-view">
+      {/* Ambient glow orbs - same as home page */}
+      <div className="neher-glow-orbs" />
+      
+      {/* Content container */}
+      <div className="relative z-10 p-6 max-w-5xl mx-auto">
+        {/* Header - same branding as home page */}
+        <header className="header-border pb-6 mb-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="font-display text-4xl font-semibold text-white tracking-tight">
+                NEHER
+              </h1>
+            </div>
+            <div className="text-right">
+              <p className="font-body text-xs tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                by Kolia H. Badarello
+              </p>
+              <p className="font-body text-sm uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                Cardiac Electrophysiology Analysis Platform
+              </p>
+            </div>
           </div>
-        </div>
-        
-        {/* Comparison Button */}
-        <div className="flex items-center gap-2">
-          {/* Sort Recordings Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        </header>
+
+        {/* Folder toolbar - glass styled */}
+        <div 
+          className="glass-surface-subtle p-4 mb-6 rounded-xl"
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
+            borderTopColor: 'rgba(255, 255, 255, 0.16)',
+            borderLeftColor: 'rgba(255, 255, 255, 0.12)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-8 text-xs rounded-lg transition-all"
+                className="h-9 px-4 rounded-xl transition-all"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.06)',
                   backdropFilter: 'blur(12px)',
                   border: '1px solid rgba(255,255,255,0.14)',
                   color: 'var(--text-secondary)',
                 }}
-                data-testid="sort-recordings-btn"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+                onClick={() => { setView('home'); setSelectedFolder(null); loadFolders(); }}
+                data-testid="back-to-home-btn"
               >
-                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
-                {recordingSortBy === 'alpha' ? 'A-Z' : recordingSortBy === 'created' ? 'Created' : 'Modified'}
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="glass-dropdown">
-              <DropdownMenuItem 
-                className={`text-xs ${recordingSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
-                onClick={() => setRecordingSortBy('modified')}
-              >
-                <Clock className="w-3.5 h-3.5 mr-2" />
-                Last Modified
-                {recordingSortBy === 'modified' && <Check className="w-3.5 h-3.5 ml-auto" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className={`text-xs ${recordingSortBy === 'alpha' ? 'bg-zinc-800' : ''}`}
-                onClick={() => setRecordingSortBy('alpha')}
-              >
-                <SortAsc className="w-3.5 h-3.5 mr-2" />
-                Alphabetical (A-Z)
-                {recordingSortBy === 'alpha' && <Check className="w-3.5 h-3.5 ml-auto" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className={`text-xs ${recordingSortBy === 'created' ? 'bg-zinc-800' : ''}`}
-                onClick={() => setRecordingSortBy('created')}
-              >
-                <Calendar className="w-3.5 h-3.5 mr-2" />
-                Date Created
-                {recordingSortBy === 'created' && <Check className="w-3.5 h-3.5 ml-auto" />}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Comparison Button */}
-          {recordings.length >= 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs rounded-lg transition-all"
-              style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: 'var(--mea-accent)',
-              }}
-              onClick={() => {
-                setComparisonKey(Date.now());
-                setView('comparison');
-              }}
-              data-testid="comparison-btn"
-            >
-              <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-              Comparison
-            </Button>
-          )}
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ 
+                    background: 'rgba(20, 184, 166, 0.15)',
+                    boxShadow: '0 0 20px rgba(20, 184, 166, 0.2)',
+                  }}
+                >
+                  <FolderOpen className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedFolder?.name}</h2>
+                </div>
+                <Badge 
+                  variant="outline" 
+                  className="text-xs px-3 py-1 rounded-full"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {recordings.length} recording{recordings.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {/* Sort Recordings Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 text-xs rounded-xl transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      color: 'var(--text-secondary)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                    data-testid="sort-recordings-btn"
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+                    {recordingSortBy === 'alpha' ? 'A-Z' : recordingSortBy === 'created' ? 'Created' : 'Modified'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="glass-dropdown">
+                  <DropdownMenuItem 
+                    className={`text-xs ${recordingSortBy === 'modified' ? 'bg-zinc-800' : ''}`}
+                    onClick={() => setRecordingSortBy('modified')}
+                  >
+                    <Clock className="w-3.5 h-3.5 mr-2" />
+                    Last Modified
+                    {recordingSortBy === 'modified' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={`text-xs ${recordingSortBy === 'alpha' ? 'bg-zinc-800' : ''}`}
+                    onClick={() => setRecordingSortBy('alpha')}
+                  >
+                    <SortAsc className="w-3.5 h-3.5 mr-2" />
+                    Alphabetical (A-Z)
+                    {recordingSortBy === 'alpha' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={`text-xs ${recordingSortBy === 'created' ? 'bg-zinc-800' : ''}`}
+                    onClick={() => setRecordingSortBy('created')}
+                  >
+                    <Calendar className="w-3.5 h-3.5 mr-2" />
+                    Date Created
+                    {recordingSortBy === 'created' && <Check className="w-3.5 h-3.5 ml-auto" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Comparison Button */}
+              {recordings.length >= 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    color: 'var(--mea-accent)',
+                    boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.20)';
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.50)';
+                    e.currentTarget.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.25)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.15)';
+                  }}
+                  onClick={() => {
+                    setComparisonKey(Date.now());
+                    setView('comparison');
+                  }}
+                  data-testid="comparison-btn"
+                >
+                  <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                  Comparison
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
-        </div>
-      ) : recordings.length === 0 ? (
+        {/* Recordings list - glass panel */}
         <div 
-          className="rounded-xl p-8 text-center"
+          className="glass-surface-subtle p-6 rounded-xl"
           style={{
-            background: 'rgba(255,255,255,0.02)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255, 255, 255, 0.025)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
           }}
         >
-          <FileAudio className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No recordings in this folder</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Save an analysis to add it here</p>
-        </div>
-      ) : (
-        <ScrollArea className="h-[calc(100vh-200px)]">
-          <div className="space-y-3">
-            {sortedRecordings.map((recording) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-teal)' }} />
+            </div>
+          ) : recordings.length === 0 ? (
+            <div className="text-center py-12">
               <div 
-                key={recording.id}
-                className="rounded-xl cursor-pointer group transition-all hover:translate-y-[-1px]"
-                style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  backdropFilter: 'blur(12px)',
+                className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                style={{ 
+                  background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.08)',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
-                data-testid={`recording-${recording.id}`}
               >
-                <div className="p-4" onClick={() => handleOpenRecording(recording)}>
-                  <div className="flex items-start gap-4">
-                    <div 
-                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}
-                    >
-                      <FileAudio className="w-5 h-5" style={{ color: 'var(--text-tertiary)' }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{recording.name}</h3>
-                        {/* Source type badge */}
-                        {recording.source_type === 'MEA' && (
-                          <Badge 
-                            className="text-[9px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(16, 185, 129, 0.15)',
-                              border: '1px solid rgba(16, 185, 129, 0.3)',
-                              color: 'var(--mea-accent)',
-                            }}
-                          >
-                            MEA
-                          </Badge>
-                        )}
+                <FileAudio className="w-8 h-8" style={{ color: 'var(--text-tertiary)' }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>No recordings in this folder</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Save an analysis to add it here</p>
+            </div>
+          ) : (
+            <ScrollArea className="h-[calc(100vh-380px)]">
+              <div className="space-y-3">
+                {sortedRecordings.map((recording, index) => (
+                  <div 
+                    key={recording.id}
+                    className="rounded-xl cursor-pointer group transition-all hover:translate-y-[-2px]"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderTopColor: 'rgba(255,255,255,0.12)',
+                      borderLeftColor: 'rgba(255,255,255,0.10)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                      animation: `fadeUp 0.4s ease ${index * 0.05}s both`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.3), 0 0 20px rgba(20, 184, 166, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+                    }}
+                    data-testid={`recording-${recording.id}`}
+                  >
+                    <div className="p-4" onClick={() => handleOpenRecording(recording)}>
+                      <div className="flex items-start gap-4">
+                        <div 
+                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
+                          style={{ 
+                            background: recording.source_type === 'MEA' 
+                              ? 'rgba(16, 185, 129, 0.15)' 
+                              : 'rgba(244, 206, 162, 0.12)',
+                            border: recording.source_type === 'MEA'
+                              ? '1px solid rgba(16, 185, 129, 0.25)'
+                              : '1px solid rgba(244, 206, 162, 0.20)',
+                            boxShadow: recording.source_type === 'MEA'
+                              ? '0 0 15px rgba(16, 185, 129, 0.15)'
+                              : '0 0 15px rgba(244, 206, 162, 0.12)',
+                          }}
+                        >
+                          <FileAudio className="w-5 h-5" style={{ 
+                            color: recording.source_type === 'MEA' ? 'var(--mea-accent)' : 'var(--sem-accent)' 
+                          }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{recording.name}</h3>
+                            {/* Source type badge */}
+                            {recording.source_type === 'MEA' && (
+                              <Badge 
+                                className="text-[9px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  color: 'var(--mea-accent)',
+                                }}
+                              >
+                                MEA
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs truncate mb-2.5" style={{ color: 'var(--text-tertiary)' }}>{recording.filename}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {/* SEM: Show beats count */}
+                            {recording.source_type !== 'MEA' && recording.n_beats > 0 && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(244, 206, 162, 0.1)',
+                                  border: '1px solid rgba(244, 206, 162, 0.25)',
+                                  color: 'var(--sem-accent)',
+                                }}
+                              >
+                                <Activity className="w-3 h-3 mr-1" />
+                                {recording.n_beats} beats
+                              </Badge>
+                            )}
+                            {/* MEA: Show electrodes count */}
+                            {recording.source_type === 'MEA' && recording.n_electrodes > 0 && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                                  color: 'var(--mea-accent)',
+                                }}
+                              >
+                                <Activity className="w-3 h-3 mr-1" />
+                                {recording.n_electrodes} electrodes
+                              </Badge>
+                            )}
+                            {recording.duration_sec > 0 && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(255,255,255,0.04)',
+                                  border: '1px solid rgba(255,255,255,0.12)',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formatDuration(recording.duration_sec)}
+                              </Badge>
+                            )}
+                            {recording.has_light_stim && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(245, 158, 11, 0.1)',
+                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                  color: '#f59e0b',
+                                }}
+                              >
+                                <Zap className="w-3 h-3 mr-1" />
+                                Light Stim
+                              </Badge>
+                            )}
+                            {recording.has_drug_analysis && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(168, 85, 247, 0.1)',
+                                  border: '1px solid rgba(168, 85, 247, 0.25)',
+                                  color: '#a855f7',
+                                }}
+                              >
+                                <Pill className="w-3 h-3 mr-1" />
+                                Drug
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{formatDate(recording.updated_at)}</span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" className="glass-menu-btn h-8 w-8 p-0 rounded-lg opacity-0 group-hover:opacity-100">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass-dropdown">
+                              <DropdownMenuItem 
+                                className="text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecordingToRename(recording);
+                                  setRenameRecordingName(recording.name);
+                                  setRenameRecordingOpen(true);
+                                }}
+                              >
+                                <Pencil className="w-3.5 h-3.5 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecordingToMove(recording);
+                                  setMoveTargetFolder('');
+                                  setMoveRecordingOpen(true);
+                                }}
+                              >
+                                <MoveRight className="w-3.5 h-3.5 mr-2" />
+                                Move to Folder
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-zinc-800" />
+                              <DropdownMenuItem 
+                                className="text-xs text-red-400 focus:text-red-400"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecordingToDelete(recording);
+                                  setDeleteRecordingOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" style={{ color: 'var(--text-tertiary)' }} />
+                        </div>
                       </div>
-                      <p className="text-xs truncate mb-2" style={{ color: 'var(--text-tertiary)' }}>{recording.filename}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {/* SEM: Show beats count */}
-                        {recording.source_type !== 'MEA' && recording.n_beats > 0 && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(244, 206, 162, 0.1)',
-                              border: '1px solid rgba(244, 206, 162, 0.25)',
-                              color: 'var(--sem-accent)',
-                            }}
-                          >
-                            <Activity className="w-3 h-3 mr-1" />
-                            {recording.n_beats} beats
-                          </Badge>
-                        )}
-                        {/* MEA: Show electrodes count */}
-                        {recording.source_type === 'MEA' && recording.n_electrodes > 0 && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(16, 185, 129, 0.1)',
-                              border: '1px solid rgba(16, 185, 129, 0.25)',
-                              color: 'var(--mea-accent)',
-                            }}
-                          >
-                            <Activity className="w-3 h-3 mr-1" />
-                            {recording.n_electrodes} electrodes
-                          </Badge>
-                        )}
-                        {recording.duration_sec > 0 && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(255,255,255,0.04)',
-                              border: '1px solid rgba(255,255,255,0.12)',
-                              color: 'var(--text-secondary)',
-                            }}
-                          >
-                            <Clock className="w-3 h-3 mr-1" />
-                            {formatDuration(recording.duration_sec)}
-                          </Badge>
-                        )}
-                        {recording.has_light_stim && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(245, 158, 11, 0.1)',
-                              border: '1px solid rgba(245, 158, 11, 0.25)',
-                              color: '#f59e0b',
-                            }}
-                          >
-                            <Zap className="w-3 h-3 mr-1" />
-                            Light Stim
-                          </Badge>
-                        )}
-                        {recording.has_drug_analysis && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0"
-                            style={{ 
-                              background: 'rgba(168, 85, 247, 0.1)',
-                              border: '1px solid rgba(168, 85, 247, 0.25)',
-                              color: '#a855f7',
-                            }}
-                          >
-                            <Pill className="w-3 h-3 mr-1" />
-                            Drug
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{formatDate(recording.updated_at)}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="glass-menu-btn h-8 w-8 p-0 rounded-md opacity-0 group-hover:opacity-100">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="glass-dropdown">
-                          <DropdownMenuItem 
-                            className="text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRecordingToRename(recording);
-                              setRenameRecordingName(recording.name);
-                              setRenameRecordingOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-3.5 h-3.5 mr-2" />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRecordingToMove(recording);
-                              setMoveTargetFolder('');
-                              setMoveRecordingOpen(true);
-                            }}
-                          >
-                            <MoveRight className="w-3.5 h-3.5 mr-2" />
-                            Move to Folder
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-zinc-800" />
-                          <DropdownMenuItem 
-                            className="text-xs text-red-400 focus:text-red-400"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRecordingToDelete(recording);
-                              setDeleteRecordingOpen(true);
-                            }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-
-      {/* MEA Population Analysis - show when folder contains MEA recordings */}
-      {recordings.filter(r => r.source_type === 'MEA').length >= 2 && (
-        <div className="mt-6">
-          <MEAPopulationAnalysis 
-            folderId={selectedFolder?.id} 
-            recordings={recordings} 
-          />
+            </ScrollArea>
+          )}
         </div>
-      )}
+
+        {/* MEA Population Analysis - show when folder contains MEA recordings */}
+        {recordings.filter(r => r.source_type === 'MEA').length >= 2 && (
+          <div className="mt-6">
+            <MEAPopulationAnalysis 
+              folderId={selectedFolder?.id} 
+              recordings={recordings} 
+            />
+          </div>
+        )}
+      </div>
+      {/* End of content container */}
 
       {/* Rename Recording Dialog */}
       <Dialog open={renameRecordingOpen} onOpenChange={setRenameRecordingOpen}>
