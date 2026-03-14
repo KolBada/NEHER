@@ -966,7 +966,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Spinal Organoids">hSpOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold" style={{ color: '#10b981', fontFamily: 'var(--font-display)' }}>
             {summary?.hspo_age_range?.min !== null 
               ? `${summary.hspo_age_range.min} - ${summary.hspo_age_range.max} days`
               : '—'}
@@ -987,7 +987,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           <p className="text-[10px] tracking-wider mb-1 uppercase font-medium" style={{ color: 'var(--text-secondary)', letterSpacing: '0.10em', fontFamily: 'var(--font-display)' }}>
             <InfoTip text="human Cardiac Organoids">hCOs</InfoTip> AGE RANGE
           </p>
-          <p className="text-lg font-semibold" style={{ color: '#10b981', fontFamily: 'var(--font-display)' }}>
+          <p className="text-lg font-semibold" style={{ color: '#F4CEA2', fontFamily: 'var(--font-display)' }}>
             {summary?.hco_age_range?.min !== null 
               ? `${summary.hco_age_range.min} - ${summary.hco_age_range.max} days`
               : '—'}
@@ -1029,15 +1029,16 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
         >
           <TabsTrigger 
             value="spontaneous" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
             style={{ fontFamily: 'var(--font-body)' }}
+            data-state-style="true"
           >
             <Activity className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} />
             Spontaneous Activity
           </TabsTrigger>
           <TabsTrigger 
             value="light-stimulus" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
@@ -1045,7 +1046,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           </TabsTrigger>
           <TabsTrigger 
             value="metadata" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=active]:shadow-lg"
+            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             Metadata
@@ -1084,25 +1085,25 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
-                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee', borderLeft: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
                           <InfoTip text="Mean Beat Frequency during minute 1-2 of recording (without drug or stimuli)">Baseline BF</InfoTip>
                         </th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee' }}>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
                           <InfoTip text="Root Mean Square of Successive Differences (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(RMSSD<sub>70</sub>)</span></InfoTip>
                         </th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee' }}>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
                           <InfoTip text="Standard Deviation of NN intervals (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline ln(SDNN<sub>70</sub>)</span></InfoTip>
                         </th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.12)', backdropFilter: 'blur(8px)', color: '#22d3ee', borderRight: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
                           <InfoTip text="% of successive NN > 50ms (normalized to 70 bpm)"><span className="whitespace-nowrap">Baseline pNN50<sub>70</sub></span></InfoTip>
                         </th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderLeft: '1px solid rgba(192, 132, 252, 0.2)' }}>{drug.name} BF</th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(RMSSD<sub>70</sub>)</span></th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(SDNN<sub>70</sub>)</span></th>
-                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderRight: '1px solid rgba(192, 132, 252, 0.2)' }}><span className="whitespace-nowrap">{drug.name} pNN50<sub>70</sub></span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>{drug.name} BF</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(RMSSD<sub>70</sub>)</span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} ln(SDNN<sub>70</sub>)</span></th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}><span className="whitespace-nowrap">{drug.name} pNN50<sub>70</sub></span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1504,10 +1505,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => {
-                                    const current = hraYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
-                                    const range = (current[1] - current[0]) * 0.8;
-                                    const mid = (current[0] + current[1]) / 2;
-                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                    // Calculate min/max from actual data to keep all traces visible
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.baseline, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = hraYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom in by 20% but ensure all data points stay visible
+                                    const newRange = Math.max(currentRange * 0.8, dataRange * 1.05);
+                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
                                   }}
                                   className="p-1.5 rounded-lg transition-all"
                                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -1519,10 +1528,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const current = hraYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
-                                    const range = (current[1] - current[0]) * 1.25;
-                                    const mid = (current[0] + current[1]) / 2;
-                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                    // Calculate min/max from actual data
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.baseline, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = hraYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom out by 25%
+                                    const newRange = currentRange * 1.25;
+                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
                                   }}
                                   className="p-1.5 rounded-lg transition-all"
                                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -1642,15 +1659,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <div className="overflow-x-auto">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
-                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24', borderLeft: metricData.color === 'cyan' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 1</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 2</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 3</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 4</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24', borderRight: metricData.color === 'cyan' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 5</th>
-                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.12)', backdropFilter: 'blur(8px)', color: '#facc15', borderLeft: '1px solid rgba(234, 179, 8, 0.2)' }}>Average</th>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(245, 158, 11, 0.08)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 1</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(245, 158, 11, 0.08)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 2</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(245, 158, 11, 0.08)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 3</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(245, 158, 11, 0.08)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 4</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: metricData.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(245, 158, 11, 0.08)', color: metricData.color === 'cyan' ? '#22d3ee' : '#fbbf24' }}>Stim 5</th>
+                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.08)', color: '#facc15' }}>Average</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1844,10 +1861,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => {
-                                    const current = hrvYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
-                                    const range = (current[1] - current[0]) * 0.8;
-                                    const mid = (current[0] + current[1]) / 2;
-                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                    // Calculate min/max from actual data to keep all traces visible
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimMedian, d.stimMedian].filter(v => v != null && !isNaN(v)));
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = hrvYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom in by 20% but ensure all data points stay visible
+                                    const newRange = Math.max(currentRange * 0.8, dataRange * 1.05);
+                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
                                   }}
                                   className="p-1.5 rounded-lg transition-all"
                                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -1859,10 +1884,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const current = hrvYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
-                                    const range = (current[1] - current[0]) * 1.25;
-                                    const mid = (current[0] + current[1]) / 2;
-                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                    // Calculate min/max from actual data
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimMedian, d.stimMedian].filter(v => v != null && !isNaN(v)));
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = hrvYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom out by 25%
+                                    const newRange = currentRange * 1.25;
+                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
                                   }}
                                   className="p-1.5 rounded-lg transition-all"
                                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -1956,15 +1989,15 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             <div className="overflow-x-auto">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
-                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderLeft: '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 1</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 2</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 3</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24' }}>Stim 4</th>
-                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderRight: '1px solid rgba(245, 158, 11, 0.2)' }}>Stim 5</th>
-                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.12)', backdropFilter: 'blur(8px)', color: '#facc15', borderLeft: '1px solid rgba(234, 179, 8, 0.2)' }}>Median</th>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Stim 1</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Stim 2</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Stim 3</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Stim 4</th>
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Stim 5</th>
+                                    <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(234, 179, 8, 0.08)', color: '#facc15' }}>Median</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -2036,22 +2069,22 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-tertiary)' }}></th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Recording</th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Date</th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(244, 206, 162, 0.12)', backdropFilter: 'blur(8px)', color: '#F4CEA2', borderLeft: '1px solid rgba(244, 206, 162, 0.2)' }}>
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Date</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#34d399' }}>
                         <InfoTip text="human Spinal Organoids">hSpO Info</InfoTip>
                       </th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(16, 185, 129, 0.12)', backdropFilter: 'blur(8px)', color: '#34d399', borderLeft: '1px solid rgba(16, 185, 129, 0.2)', borderRight: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(244, 206, 162, 0.08)', color: '#F4CEA2' }}>
                         <InfoTip text="human Cardiac Organoids">hCO Info</InfoTip>
                       </th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Fusion</th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.12)', backdropFilter: 'blur(8px)', color: '#c4b5fd', borderLeft: '1px solid rgba(192, 132, 252, 0.2)', borderRight: '1px solid rgba(192, 132, 252, 0.2)' }}>Drug Info</th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(245, 158, 11, 0.12)', backdropFilter: 'blur(8px)', color: '#fbbf24', borderLeft: '1px solid rgba(245, 158, 11, 0.2)', borderRight: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Fusion</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>Drug Info</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                         Light Stim Info
                       </th>
-                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(8px)', color: 'var(--text-secondary)' }}>Notes</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
