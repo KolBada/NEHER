@@ -1580,7 +1580,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
             </div>
           ) : (
             <ScrollArea className="h-[calc(100vh-380px)]">
-              <div className="space-y-3">
+              <div className="space-y-5">
                 {sortedRecordings.map((recording, index) => (
                   <div 
                     key={recording.id}
