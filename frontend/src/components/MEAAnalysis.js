@@ -707,38 +707,38 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           {/* ============================================================
               PARAMETERS TAB
           ============================================================ */}
-          <TabsContent value="parameters" className="space-y-4">
-            {/* Spike Trace - Full Width */}
-            <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
-              <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
-                  <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                    Spike Trace — All Electrodes
-                  </span>
+          <TabsContent value="parameters" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Spike Trace - 2/3 Width */}
+              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #00b8c4' }}>
+                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                      Spike Trace — All Electrodes
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
                 </div>
               </div>
-              <div className="p-4">
-                <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
-              </div>
-            </div>
-            
-            {/* Parameters Panel - Full Width Below */}
-            <div className="glass-surface-subtle rounded-xl overflow-hidden">
-              <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                  <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                    Analysis Parameters
-                  </span>
-                  <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
-                    {selectedWell}
-                  </Badge>
+              
+              {/* Parameters Panel - 1/3 Width */}
+              <div className="glass-surface-subtle rounded-xl overflow-hidden">
+                <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2">
+                    <Settings2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
+                      Analysis Parameters
+                    </span>
+                    <Badge className="ml-auto text-[9px]" style={{ background: 'rgba(0, 184, 196, 0.15)', color: '#00b8c4' }}>
+                      {selectedWell}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Binning Section */}
+                <div className="p-4 space-y-4">
+                  {/* Bin Sizes */}
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Binning</Label>
                     <div className="grid grid-cols-2 gap-3">
@@ -767,7 +767,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </div>
                   </div>
                   
-                  {/* Electrode Filter Section */}
+                  {/* Electrode Filter */}
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Electrode Filter</Label>
                     <div className="space-y-1">
@@ -783,41 +783,36 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </div>
                   </div>
                   
-                  {/* Well Info Section */}
-                  <div className="space-y-3">
-                    <Label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Well Info</Label>
-                    <div className="space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                      <div className="flex justify-between">
-                        <span>Active Electrodes:</span>
-                        <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total Spikes:</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>{wellAnalysis?.well?.total_spikes?.toLocaleString() || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Duration:</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>{(duration / 60).toFixed(1)} min</span>
-                      </div>
+                  {/* Well Info */}
+                  <div className="pt-2 space-y-2 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="flex justify-between">
+                      <span>Active Electrodes:</span>
+                      <span style={{ color: '#00b8c4' }}>{wellAnalysis?.well?.n_active_electrodes || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Spikes:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{wellAnalysis?.well?.total_spikes?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Duration:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{(duration / 60).toFixed(1)} min</span>
                     </div>
                   </div>
                   
-                  {/* Validate Button Section */}
-                  <div className="flex items-end">
-                    <Button
-                      className="w-full h-10 rounded-xl font-medium"
-                      style={{ background: '#00b8c4', color: '#000' }}
-                      onClick={() => {
-                        setIsComputing(true);
-                        toast.success(`Parameters updated for ${selectedWell}`);
-                        setTimeout(() => setIsComputing(false), 500);
-                      }}
-                      disabled={isComputing}
-                    >
-                      {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                      Validate Parameters
-                    </Button>
-                  </div>
+                  {/* Rerun Button */}
+                  <Button
+                    className="w-full h-9 rounded-xl font-medium mt-4"
+                    style={{ background: '#00b8c4', color: '#000' }}
+                    onClick={() => {
+                      setIsComputing(true);
+                      toast.success(`Parameters updated for ${selectedWell}`);
+                      setTimeout(() => setIsComputing(false), 500);
+                    }}
+                    disabled={isComputing}
+                  >
+                    {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                    Validate Parameters
+                  </Button>
                 </div>
               </div>
             </div>
