@@ -243,7 +243,7 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh] relative" data-testid="upload-page">
+    <div className="flex items-center justify-center min-h-[70vh] pt-16 relative" data-testid="upload-page">
       {/* Ambient SSE glow orb */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute w-[500px] h-[500px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -263,7 +263,14 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
         </CardHeader>
         <CardContent className="space-y-6">
           {uploadError && (
-            <div className="p-3 bg-red-950/30 border border-red-800 rounded-lg flex items-center gap-2 text-red-400 text-xs">
+            <div 
+              className="p-3 rounded-xl flex items-center gap-2 text-xs"
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+              }}
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{uploadError}</span>
             </div>
@@ -320,12 +327,28 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
           </div>
 
           {selectedFiles.length > 0 && (
-            <div className="space-y-2 animate-slide-up">
+            <div className="space-y-3 animate-slide-up">
               {/* Fusion mode indicator */}
               {selectedFiles.length > 1 && (
-                <div className="flex items-center gap-2 p-3 bg-emerald-950/30 border border-emerald-800/50 rounded-sm mb-3">
-                  <Badge className="bg-emerald-600 text-white text-[10px]">FUSION MODE</Badge>
-                  <span className="text-xs text-emerald-300">
+                <div 
+                  className="flex items-center gap-2 p-3 rounded-xl mb-3"
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                  }}
+                >
+                  <Badge 
+                    className="text-[10px] px-2 py-0.5 rounded-full"
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.3)',
+                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      color: '#34d399',
+                    }}
+                  >
+                    FUSION MODE
+                  </Badge>
+                  <span className="text-xs" style={{ color: '#6ee7b7' }}>
                     {selectedFiles.length} recordings will be combined in order shown below
                   </span>
                 </div>
@@ -333,11 +356,11 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
               
               {/* File count indicator */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                   {selectedFiles.length} / {MAX_FILES_FOR_FUSION} files {selectedFiles.length > 1 && '(drag to reorder)'}
                 </span>
                 {selectedFiles.length > 1 && (
-                  <span className="text-[10px] text-zinc-600">
+                  <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                     Order: Recording 1 → Recording {selectedFiles.length}
                   </span>
                 )}
@@ -352,30 +375,54 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
                   onDragLeave={handleFileDragLeave}
                   onDrop={(e) => handleFileDrop(e, i)}
                   onDragEnd={handleFileDragEnd}
-                  className={`flex flex-col p-3 bg-zinc-900/50 border rounded-sm transition-all ${
-                    dragOverIndex === i 
-                      ? 'border-purple-500 bg-purple-950/20' 
+                  className={`flex flex-col p-3 rounded-xl transition-all ${selectedFiles.length > 1 ? 'cursor-move' : ''}`}
+                  style={{
+                    background: dragOverIndex === i 
+                      ? 'rgba(168, 85, 247, 0.15)' 
                       : draggedFileIndex === i 
-                        ? 'border-zinc-600 opacity-50' 
-                        : 'border-zinc-800'
-                  } ${selectedFiles.length > 1 ? 'cursor-move' : ''}`}
+                        ? 'rgba(255, 255, 255, 0.02)' 
+                        : 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(12px)',
+                    border: dragOverIndex === i 
+                      ? '1px solid rgba(168, 85, 247, 0.4)' 
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderTopColor: dragOverIndex !== i ? 'rgba(255, 255, 255, 0.12)' : undefined,
+                    opacity: draggedFileIndex === i ? 0.5 : 1,
+                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
+                  }}
                   data-testid={`selected-file-${i}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {selectedFiles.length > 1 && (
                         <div className="flex items-center gap-1">
-                          <GripVertical className="w-3 h-3 text-zinc-600" />
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-zinc-700 text-zinc-400">
+                          <GripVertical className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} />
+                          <Badge 
+                            variant="outline" 
+                            className="text-[9px] px-1.5 py-0 rounded-full"
+                            style={{
+                              background: 'rgba(244, 206, 162, 0.12)',
+                              border: '1px solid rgba(244, 206, 162, 0.25)',
+                              color: 'var(--sem-accent)',
+                            }}
+                          >
                             {i + 1}
                           </Badge>
                         </div>
                       )}
-                      <FileAudio className="w-4 h-4 text-zinc-400" />
-                      <span className="text-xs font-data text-zinc-300">{f.name}</span>
+                      <div 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{
+                          background: 'rgba(244, 206, 162, 0.12)',
+                          border: '1px solid rgba(244, 206, 162, 0.2)',
+                        }}
+                      >
+                        <FileAudio className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
+                      </div>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-primary)' }}>{f.name}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-zinc-500 font-data mr-2">
+                      <span className="text-[10px] font-mono mr-2" style={{ color: 'var(--text-tertiary)' }}>
                         {formatFileSize(f.size)}
                       </span>
                       {selectedFiles.length > 1 && (
@@ -383,7 +430,13 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                            className="h-7 w-7 p-0 rounded-lg transition-all"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: 'var(--text-tertiary)',
+                              opacity: i === 0 ? 0.3 : 1,
+                            }}
                             onClick={(e) => { e.stopPropagation(); moveFileUp(i); }}
                             disabled={i === 0}
                             data-testid={`move-up-${i}`}
@@ -393,7 +446,13 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
+                            className="h-7 w-7 p-0 rounded-lg transition-all"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: 'var(--text-tertiary)',
+                              opacity: i === selectedFiles.length - 1 ? 0.3 : 1,
+                            }}
                             onClick={(e) => { e.stopPropagation(); moveFileDown(i); }}
                             disabled={i === selectedFiles.length - 1}
                             data-testid={`move-down-${i}`}
@@ -405,7 +464,12 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300"
+                        className="h-7 w-7 p-0 rounded-lg transition-all"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          color: 'var(--text-tertiary)',
+                        }}
                         onClick={(e) => { e.stopPropagation(); removeFile(i); }}
                         data-testid={`remove-file-${i}`}
                       >
@@ -416,7 +480,7 @@ export default function FileUpload({ onUpload, loading, appName = 'NEHER', onBac
                   {fileProgress[f.name] !== undefined && fileProgress[f.name] < 100 && (
                     <div className="mt-2">
                       <Progress value={fileProgress[f.name]} className="h-1" />
-                      <p className="text-[10px] text-zinc-500 mt-1">Reading file... {fileProgress[f.name]}%</p>
+                      <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>Reading file... {fileProgress[f.name]}%</p>
                     </div>
                   )}
                 </div>
