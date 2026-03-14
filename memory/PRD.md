@@ -21,6 +21,28 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 - Burst detection (electrode and network level)
 - Environmental data parsing
 
+### Phase 9: MEA Workflow Redesign (December 2025)
+**Workflow Simplification:**
+- Removed "Configure MEA Analysis" page entirely
+- Select Wells page now includes: Electrode Filter + Binning Settings
+- New flow: Upload CSVs → Select Wells (with config) → Run Analysis → MEA Analysis
+
+**New MEA Analysis Page Architecture:**
+- Fixed glassmorphic top bar with well selector chips
+- 4 tabs only (matching SSE structure): Spontaneous Activity, Light Stimulus, Save Recording, Export
+
+**Spontaneous Activity Tab:**
+- Row 1: Spike Trace + Burst Trace (glassmorphic charts)
+- Row 2: Spike Raster + Burst Raster
+- Row 3: Readout Configuration (baseline & drug windows for spike/burst)
+- Row 4: Metric cards (baseline/drug spike/burst rates)
+- Row 5: Spike/Burst distribution bar charts
+- Row 6: Spike-Burst Correlation scatter plot (full width)
+- Row 7: Per-Minute / Per-Bin tables with toggle switch
+
+**Light Stimulus Tab:** Structure ready for light-induced analysis
+**Save Recording & Export Tabs:** Placeholder UI matching SSE patterns
+
 ### Glassmorphism UI/UX (COMPLETE - December 2025)
 Applied comprehensive glassmorphism dark theme across ALL pages:
 

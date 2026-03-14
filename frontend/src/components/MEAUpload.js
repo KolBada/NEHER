@@ -1,8 +1,36 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, CheckCircle, XCircle, Loader2, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Loader2, ChevronRight, ArrowLeft, Play, Settings2, Info } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// Info tooltip component
+function InfoTip({ text, children }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center cursor-help">
+            {children}
+            <Info className="w-3 h-3 ml-1" style={{ color: 'var(--text-tertiary)' }} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs glass-surface z-50" style={{ color: 'var(--text-primary)' }}>
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 // Expected MEA CSV files
 const EXPECTED_FILES = [
@@ -613,8 +641,17 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
       ...parsedData,
       wells: filteredWells,
       selected_wells: selectedWellIds,
+      // Include binning settings for MEAAnalysis
+      binning_config: {
+        spike_bin_s: spikeBinSize,
+        burst_bin_s: burstBinSize,
+      },
     });
   };
+
+  // Binning configuration state
+  const [spikeBinSize, setSpikeBinSize] = useState(5);
+  const [burstBinSize, setBurstBinSize] = useState(30);
 
   // Get file icon based on status
   const getFileIcon = (fileName) => {
@@ -634,96 +671,293 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
     const selectedCount = Object.values(selectedWells).filter(v => v).length;
     
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card className="bg-zinc-900/50 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-xl text-zinc-100">Select Wells for Analysis</CardTitle>
-            <p className="text-sm text-zinc-500">
-              {wells.length} wells detected • {selectedCount} selected • 
-              Electrode filter: ≥{electrodeFilter.min_hz} Hz
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Well list */}
-              <div className="bg-zinc-950/50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-zinc-500 text-xs border-b border-zinc-800">
-                      <th className="text-left py-2 px-2">Select</th>
-                      <th className="text-left py-2 px-2">Well</th>
-                      <th className="text-center py-2 px-2">Active Electrodes</th>
-                      <th className="text-center py-2 px-2">Mean Rate (Hz)</th>
-                      <th className="text-center py-2 px-2">Total Spikes</th>
-                      <th className="text-center py-2 px-2">Duration (s)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {wells.map(well => (
-                      <tr 
-                        key={well.well_id} 
-                        className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${
-                          !selectedWells[well.well_id] ? 'opacity-50' : ''
-                        }`}
-                      >
-                        <td className="py-2 px-2">
-                          <Checkbox
-                            checked={selectedWells[well.well_id]}
-                            onCheckedChange={() => toggleWellSelection(well.well_id)}
-                            data-testid={`well-checkbox-${well.well_id}`}
-                          />
-                        </td>
-                        <td className="py-2 px-2 text-sky-400 font-mono">{well.well_id}</td>
-                        <td className="py-2 px-2 text-center text-zinc-300">
-                          {well.n_active_electrodes} / {well.n_electrodes}
-                        </td>
-                        <td className="py-2 px-2 text-center text-zinc-300">
-                          {well.mean_firing_rate_hz.toFixed(2)}
-                        </td>
-                        <td className="py-2 px-2 text-center text-zinc-300">
-                          {well.total_spikes.toLocaleString()}
-                        </td>
-                        <td className="py-2 px-2 text-center text-zinc-300">
-                          {well.duration_s.toFixed(1)}
-                        </td>
+      <div className="flex items-center justify-center min-h-[70vh] pt-16 relative" data-testid="mea-select-wells-page">
+        {/* Ambient MEA glow orb */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-[600px] h-[600px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{
+              background: 'radial-gradient(circle, rgba(0, 184, 196, 0.35) 0%, transparent 70%)',
+              filter: 'blur(100px)'
+            }}
+          />
+        </div>
+        
+        <div className="w-full max-w-5xl mx-auto p-6 relative z-10">
+          <div className="glass-surface rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-6 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-display" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                    Select Wells for Analysis
+                  </h1>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    {wells.length} wells detected • Configure analysis settings below
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge 
+                    variant="outline" 
+                    className="font-data text-xs"
+                    style={{ borderColor: 'rgba(0, 184, 196, 0.4)', color: '#00b8c4' }}
+                  >
+                    {selectedCount} wells selected
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className="font-data text-xs"
+                    style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'var(--text-tertiary)' }}
+                  >
+                    Filter: ≥{electrodeFilter.min_hz} Hz
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Well Selection Table */}
+              <div 
+                className="rounded-xl overflow-hidden"
+                style={{ 
+                  background: 'rgba(255,255,255,0.02)', 
+                  border: '1px solid rgba(255,255,255,0.08)' 
+                }}
+              >
+                <div className="max-h-72 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0" style={{ background: 'rgba(12, 12, 14, 0.95)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Select</th>
+                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Well</th>
+                        <th className="text-center py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Active Electrodes</th>
+                        <th className="text-center py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Mean Rate (Hz)</th>
+                        <th className="text-center py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Total Spikes</th>
+                        <th className="text-center py-3 px-4 text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Duration (s)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {wells.map(well => (
+                        <tr 
+                          key={well.well_id} 
+                          className="transition-all cursor-pointer"
+                          style={{ 
+                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            opacity: selectedWells[well.well_id] ? 1 : 0.4,
+                            background: selectedWells[well.well_id] ? 'rgba(0, 184, 196, 0.05)' : 'transparent'
+                          }}
+                          onClick={() => toggleWellSelection(well.well_id)}
+                        >
+                          <td className="py-3 px-4">
+                            <Checkbox
+                              checked={selectedWells[well.well_id]}
+                              onCheckedChange={() => toggleWellSelection(well.well_id)}
+                              data-testid={`well-checkbox-${well.well_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className="py-3 px-4 font-mono font-medium" style={{ color: '#00b8c4' }}>{well.well_id}</td>
+                          <td className="py-3 px-4 text-center font-data" style={{ color: 'var(--text-secondary)' }}>
+                            {well.n_active_electrodes} / {well.n_electrodes}
+                          </td>
+                          <td className="py-3 px-4 text-center font-data" style={{ color: 'var(--text-secondary)' }}>
+                            {well.mean_firing_rate_hz.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-center font-data" style={{ color: 'var(--text-secondary)' }}>
+                            {well.total_spikes.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-center font-data" style={{ color: 'var(--text-secondary)' }}>
+                            {well.duration_s.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Analysis Settings - Electrode Filter & Binning */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Electrode Filter */}
+                <div 
+                  className="rounded-xl p-4"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: '1px solid rgba(255,255,255,0.08)' 
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings2 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
+                      Electrode Filter
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <InfoTip text="Minimum firing rate threshold. Electrodes below this rate are excluded.">
+                          Min Firing Rate (Hz)
+                        </InfoTip>
+                      </Label>
+                      <Input
+                        type="number"
+                        value={electrodeFilter.min_hz}
+                        onChange={(e) => setElectrodeFilter(prev => ({ ...prev, min_hz: parseFloat(e.target.value) || 0 }))}
+                        className="h-8 text-xs font-data rounded-lg"
+                        style={{ 
+                          background: 'rgba(255,255,255,0.06)', 
+                          border: '1px solid rgba(255,255,255,0.12)', 
+                          color: 'var(--text-primary)' 
+                        }}
+                        min={0}
+                        step={0.01}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <InfoTip text="Maximum firing rate threshold. Leave empty for no upper limit.">
+                          Max Firing Rate (Hz)
+                        </InfoTip>
+                      </Label>
+                      <Input
+                        type="number"
+                        value={electrodeFilter.max_hz || ''}
+                        onChange={(e) => setElectrodeFilter(prev => ({ ...prev, max_hz: parseFloat(e.target.value) || '' }))}
+                        className="h-8 text-xs font-data rounded-lg"
+                        style={{ 
+                          background: 'rgba(255,255,255,0.06)', 
+                          border: '1px solid rgba(255,255,255,0.12)', 
+                          color: 'var(--text-primary)' 
+                        }}
+                        min={0}
+                        step={0.01}
+                        placeholder="No limit"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Binning Settings */}
+                <div 
+                  className="rounded-xl p-4"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: '1px solid rgba(255,255,255,0.08)' 
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings2 className="w-4 h-4" style={{ color: '#00b8c4' }} />
+                    <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>
+                      Binning Settings
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <InfoTip text="Time bin size for spike rate calculation (1-60 seconds).">
+                          Spike Bin Size (s)
+                        </InfoTip>
+                      </Label>
+                      <Input
+                        type="number"
+                        value={spikeBinSize}
+                        onChange={(e) => setSpikeBinSize(Math.min(60, Math.max(1, parseInt(e.target.value) || 5)))}
+                        className="h-8 text-xs font-data rounded-lg"
+                        style={{ 
+                          background: 'rgba(255,255,255,0.06)', 
+                          border: '1px solid rgba(255,255,255,0.12)', 
+                          color: 'var(--text-primary)' 
+                        }}
+                        min={1}
+                        max={60}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <InfoTip text="Time bin size for burst rate calculation (5-120 seconds).">
+                          Burst Bin Size (s)
+                        </InfoTip>
+                      </Label>
+                      <Input
+                        type="number"
+                        value={burstBinSize}
+                        onChange={(e) => setBurstBinSize(Math.min(120, Math.max(5, parseInt(e.target.value) || 30)))}
+                        className="h-8 text-xs font-data rounded-lg"
+                        style={{ 
+                          background: 'rgba(255,255,255,0.06)', 
+                          border: '1px solid rgba(255,255,255,0.12)', 
+                          color: 'var(--text-primary)' 
+                        }}
+                        min={5}
+                        max={120}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
               
               {/* Error message */}
               {parseError && (
-                <div className="p-3 bg-red-950/30 border border-red-500/30 rounded text-red-400 text-sm">
+                <div 
+                  className="p-3 rounded-lg text-sm"
+                  style={{ 
+                    background: 'rgba(239, 68, 68, 0.1)', 
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171'
+                  }}
+                >
                   {parseError}
                 </div>
               )}
               
               {/* Actions */}
-              <div className="flex justify-between items-center pt-4">
+              <div className="flex justify-between items-center pt-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: 'var(--text-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                   onClick={() => {
                     setParsedData(null);
                     setFiles({});
                     setFileStatus({});
                   }}
                 >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Upload Different Files
                 </Button>
                 <Button
                   onClick={handleProceed}
                   disabled={selectedCount === 0}
-                  className="bg-sky-600 hover:bg-sky-500"
-                  data-testid="mea-proceed-btn"
+                  className="h-10 px-6 rounded-xl font-medium transition-all"
+                  style={{
+                    background: selectedCount > 0 ? '#00b8c4' : 'rgba(255,255,255,0.1)',
+                    color: selectedCount > 0 ? '#000' : 'var(--text-tertiary)',
+                    boxShadow: selectedCount > 0 ? '0 0 25px rgba(0, 184, 196, 0.3)' : 'none',
+                  }}
+                  data-testid="mea-run-analysis-btn"
                 >
-                  Continue with {selectedCount} Wells
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <Play className="w-4 h-4 mr-2" />
+                  Run Analysis
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }

@@ -30,7 +30,6 @@ import LightPanel from '@/components/LightPanel';
 import ExportPanel from '@/components/ExportPanel';
 import HomeBrowser from '@/components/HomeBrowser';
 import MEAUpload from '@/components/MEAUpload';
-import MEAConfig from '@/components/MEAConfig';
 import MEAAnalysis from '@/components/MEAAnalysis';
 import SaveRecording from '@/components/SaveRecording';
 import FolderComparison from '@/components/FolderComparison';
@@ -1520,26 +1519,20 @@ function App() {
         <MEAUpload 
           onDataParsed={(data) => {
             setMeaData(data);
-            setAppView('mea-config');
-          }}
-          onBack={() => setAppView('home')}
-        />
-      </div>
-    );
-  }
-
-  // MEA Config view
-  if (appView === 'mea-config') {
-    return (
-      <div className="min-h-screen">
-        <Toaster theme="dark" position="top-right" />
-        <MEAConfig 
-          meaData={meaData}
-          onConfigured={(config) => {
-            setMeaConfig(config);
+            // Skip MEAConfig - go directly to analysis with embedded config
+            setMeaConfig({
+              // Default config values (will be managed in MEAAnalysis)
+              baseline_start_s: 0,
+              baseline_end_s: 60,
+              light_enabled: false,
+              drug_enabled: false,
+              // Use binning from Select Wells page
+              spike_bin_s: data.binning_config?.spike_bin_s || 5,
+              burst_bin_s: data.binning_config?.burst_bin_s || 30,
+            });
             setAppView('mea-analysis');
           }}
-          onBack={() => setAppView('mea-upload')}
+          onBack={() => setAppView('home')}
         />
       </div>
     );
