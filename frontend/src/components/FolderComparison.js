@@ -71,6 +71,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   // Global excluded recordings - applies to ALL tables and exports
   const [excludedRecordings, setExcludedRecordings] = useState({});  // { recordingId: true }
   
+  // Y-axis zoom state for Per Metrics charts
+  const [hraYAxisZoom, setHraYAxisZoom] = useState({});  // { metricKey: { min, max } }
+  const [hrvYAxisZoom, setHrvYAxisZoom] = useState({});  // { metricKey: { min, max } }
+  
   // Toggle a recording's inclusion/exclusion (global)
   const toggleRecording = useCallback((recordingId) => {
     setExcludedRecordings(prev => ({
@@ -1171,17 +1175,17 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-zinc-800">
-                            <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                            <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(RMSSD) (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline ln(SDNN) (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline pNN50 (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">{drug.name} BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">{drug.name} ln(RMSSD) (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">{drug.name} ln(SDNN) (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-purple-400 bg-purple-950/30">{drug.name} pNN50 (%)</th>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline BF (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline ln(RMSSD) (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline ln(SDNN) (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline pNN50 (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>{drug.name} BF (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>{drug.name} ln(RMSSD) (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>{drug.name} ln(SDNN) (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>{drug.name} pNN50 (%)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1243,43 +1247,43 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-800">
-                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                        <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-1 font-medium text-cyan-400 bg-cyan-950/30">
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
                           <InfoTip text="Mean Beat Frequency from -2 to -1 min before first light stimulation">Baseline BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Average Beat Frequency during light stimulation">Avg BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Normalized Avg: 100 × Avg/Baseline">Avg %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Maximum Beat Frequency reached during light stimulation">Peak BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Normalized Peak: 100 × Peak/Baseline">Peak %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Time To Peak (1st stim)">TTP 1st</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Time To Peak (average)">TTP Avg</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Beat Frequency at the end of the stimulation period, before the drop">Rec. BF</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Recovery %: 100 × Recovery/Baseline">Rec. %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Amplitude: Peak BF − Recovery BF">Amp.</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Decrease %: 100 × Amplitude / Peak BF">Dec. %</InfoTip>
                         </th>
-                        <th className="text-center py-2 px-1 font-medium text-amber-400 bg-amber-950/30">
+                        <th className="text-center py-2.5 px-1 font-medium rounded-tr-lg" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>
                           <InfoTip text="Slope of BF during stimulation, normalized by mean BF">RoC</InfoTip>
                         </th>
                       </tr>
@@ -1361,13 +1365,13 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-zinc-800">
-                            <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                            <th className="text-left py-2 px-2 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                            <th className="text-center py-2 px-2 font-medium text-cyan-400 bg-cyan-950/30">Baseline BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Avg BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Peak BF (%)</th>
-                            <th className="text-center py-2 px-2 font-medium text-amber-400 bg-amber-950/30">Recovery BF (%)</th>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline BF (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Avg BF (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Peak BF (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Recovery BF (%)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1492,9 +1496,54 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               border: '1px solid rgba(255, 255, 255, 0.08)',
                             }}
                           >
-                            <h4 className={`text-sm font-semibold mb-3 ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                              {metricData.label}
-                            </h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className={`text-sm font-semibold ${metricData.color === 'cyan' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                {metricData.label}
+                              </h4>
+                              {/* Y-axis zoom controls */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    const current = hraYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
+                                    const range = (current[1] - current[0]) * 0.8;
+                                    const mid = (current[0] + current[1]) / 2;
+                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom In Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const current = hraYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
+                                    const range = (current[1] - current[0]) * 1.25;
+                                    const mid = (current[0] + current[1]) / 2;
+                                    setHraYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom Out Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => setHraYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Reset Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                              </div>
+                            </div>
                             
                             {/* Visualization Chart with Y-axis zoom */}
                             <div className="h-48 mb-4">
@@ -1505,7 +1554,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <YAxis 
                                     stroke="#71717a" 
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
-                                    domain={metricData.yDomain || ['auto', 'auto']}
+                                    domain={hraYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
                                     allowDataOverflow={true}
                                   />
                                   <RechartsTooltip 
@@ -1661,12 +1710,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-800">
-                        <th className="text-left py-2 px-1 font-medium text-zinc-400 bg-zinc-900/50 w-8"></th>
-                        <th className="text-left py-2 px-3 font-medium text-zinc-400 bg-zinc-900/50">Recording</th>
-                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(RMSSD<sub>70</sub>) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">ln(SDNN<sub>70</sub>) corr.</th>
-                        <th className="text-center py-2 px-3 font-medium text-amber-400 bg-amber-950/30">pNN50<sub>70</sub> corr. (%)</th>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-3 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-3 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>ln(RMSSD<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2.5 px-3 font-medium" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>ln(SDNN<sub>70</sub>) corr.</th>
+                        <th className="text-center py-2.5 px-3 font-medium rounded-tr-lg" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>pNN50<sub>70</sub> corr. (%)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1787,9 +1836,54 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                               border: '1px solid rgba(255, 255, 255, 0.08)',
                             }}
                           >
-                            <h4 className="text-sm font-semibold text-amber-400 mb-3">
-                              {metricData.label}
-                            </h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-amber-400">
+                                {metricData.label}
+                              </h4>
+                              {/* Y-axis zoom controls */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    const current = hrvYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
+                                    const range = (current[1] - current[0]) * 0.8;
+                                    const mid = (current[0] + current[1]) / 2;
+                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom In Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const current = hrvYAxisZoom[metricData.key] || metricData.yDomain || [0, 100];
+                                    const range = (current[1] - current[0]) * 1.25;
+                                    const mid = (current[0] + current[1]) / 2;
+                                    setHrvYAxisZoom(prev => ({ ...prev, [metricData.key]: [mid - range/2, mid + range/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom Out Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => setHrvYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Reset Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                              </div>
+                            </div>
                             
                             {/* Visualization Chart with Y-axis zoom */}
                             <div className="h-48 mb-4">
@@ -1800,7 +1894,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <YAxis 
                                     stroke="#71717a" 
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
-                                    domain={metricData.yDomain || ['auto', 'auto']}
+                                    domain={hrvYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
                                     allowDataOverflow={true}
                                   />
                                   <RechartsTooltip 
