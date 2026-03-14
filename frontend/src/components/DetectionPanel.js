@@ -287,7 +287,7 @@ export default function DetectionPanel({
               <Button
                 data-testid="validate-btn"
                 className="w-full h-8 text-xs rounded-lg font-medium"
-                style={{ background: 'var(--sem-accent)', color: '#02080f' }}
+                style={{ background: '#10b981', color: '#02080f' }}
                 onClick={onValidate}
                 disabled={!beats || beats.length < 2}
               >
