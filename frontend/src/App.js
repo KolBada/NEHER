@@ -1601,17 +1601,30 @@ function App() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 w-8 p-0 rounded-lg transition-all hover:bg-white/10"
+              className="h-9 text-xs rounded-xl transition-all"
               style={{
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                color: 'var(--text-secondary)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
               }}
               onClick={handleGoHome}
               data-testid="home-btn"
             >
-              <Home className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              <Home className="w-4 h-4 mr-2" />
+              Back
             </Button>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
               NEHER
@@ -1858,20 +1871,23 @@ function App() {
             {savedFolderId && (
               <Button
                 data-testid="go-to-folder-btn"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8 text-xs px-3 rounded-lg transition-all"
+                className="h-9 text-xs px-3 rounded-xl transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.14)',
                   color: 'var(--text-secondary)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
                   e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
                   e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onClick={() => {
@@ -1888,22 +1904,25 @@ function App() {
             {savedFolderId && (
               <Button
                 data-testid="comparison-btn"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8 text-xs px-3 rounded-lg transition-all"
+                className="h-9 text-xs px-3 rounded-xl transition-all"
                 style={{
                   background: 'rgba(20, 184, 166, 0.12)',
+                  backdropFilter: 'blur(12px)',
                   border: '1px solid rgba(20, 184, 166, 0.35)',
                   color: 'var(--accent-teal)',
-                  boxShadow: '0 0 15px rgba(20, 184, 166, 0.10)',
+                  boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(20, 184, 166, 0.20)';
-                  e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.20)';
+                  e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.50)';
+                  e.currentTarget.style.boxShadow = '0 0 25px rgba(20, 184, 166, 0.25)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'rgba(20, 184, 166, 0.12)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(20, 184, 166, 0.10)';
+                  e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.35)';
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(20, 184, 166, 0.15)';
                 }}
                 onClick={() => setShowComparisonDialog(true)}
               >
@@ -2259,14 +2278,34 @@ function App() {
 
       {/* Comparison Dialog */}
       <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
-        <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden bg-zinc-950 border-zinc-800">
-          <DialogHeader>
-            <DialogTitle className="text-zinc-200 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-emerald-500" />
-              Comparison: {savedFolderName || 'Loading...'}
+        <DialogContent 
+          className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden rounded-2xl"
+          style={{
+            background: 'rgba(12, 12, 14, 0.95)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <DialogHeader className="pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <DialogTitle className="flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+              <div 
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ 
+                  background: 'rgba(20, 184, 166, 0.15)',
+                  border: '1px solid rgba(20, 184, 166, 0.3)',
+                }}
+              >
+                <BarChart3 className="w-5 h-5" style={{ color: 'var(--accent-teal)' }} />
+              </div>
+              <div>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison</span>
+                <span className="text-sm ml-2" style={{ color: 'var(--text-tertiary)' }}>{savedFolderName || 'Loading...'}</span>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[calc(85vh-100px)]">
+          <div className="overflow-y-auto max-h-[calc(90vh-100px)] pt-4">
             {savedFolderId && (
               <FolderComparison 
                 folder={{ id: savedFolderId, name: savedFolderName || '' }}
