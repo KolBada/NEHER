@@ -172,7 +172,7 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
         <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'insideLeft', offset: 5, fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
           <Line type="monotone" dataKey="spike_rate_hz" stroke="#00b8c4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -192,7 +192,7 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
         <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'insideLeft', offset: 5, fontSize: 9, fill: '#71717a' }} />
+          <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
           <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -1126,19 +1126,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                
-                {/* Spike-Burst Correlation */}
-                <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
-                  <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
-                      <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike–Burst Correlation</span>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <CorrelationScatter spikeData={wellAnalysis.spikeRateBins} burstData={wellAnalysis.burstRateBins} correlation={wellAnalysis.correlation} />
                   </div>
                 </div>
                 
