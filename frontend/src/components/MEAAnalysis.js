@@ -278,21 +278,23 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
 
 const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, duration, lightPulses, drugWindow, zoomDomain }) {
   // Burst raster shows horizontal lines from start to stop for each burst
-  if (!data?.length || !electrodes?.length) {
-    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
-  }
   const color = '#f97316';
-  const nElectrodes = electrodes.length;
+  const nElectrodes = electrodes?.length || 0;
   const domain = zoomDomain || [0, duration];
   
   // Transform burst data to scatter points (use midpoint for positioning)
-  const scatterData = useMemo(() => data.map((b, idx) => ({
+  // NOTE: useMemo must be called unconditionally before any early return
+  const scatterData = useMemo(() => (data || []).map((b, idx) => ({
     time: (b.start + b.stop) / 2, // midpoint for X positioning
     startTime: b.start,
     stopTime: b.stop,
     electrodeIndex: b.electrodeIndex,
     key: idx,
   })), [data]);
+  
+  if (!data?.length || !electrodes?.length) {
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
+  }
   
   return (
     <div className="h-36">
@@ -540,7 +542,19 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const duration_s = well.duration_s || 0;
     
     if (active_electrodes.length === 0 || duration_s <= 0) {
-      return { well, spikeRateBins: [], burstRateBins: [], spikeRaster: [], burstRaster: [] };
+      return { 
+        well: { ...well, active_electrodes, duration_s }, 
+        spikeRateBins: [], 
+        burstRateBins: [], 
+        spikeRaster: [], 
+        burstRaster: [],
+        baselineSpikeHz: null,
+        baselineBurstBpm: null,
+        drugSpikeHz: null,
+        drugBurstBpm: null,
+        correlation: { r: null, n: 0 },
+        perMinuteCombined: [],
+      };
     }
     
     const spikeRateBins = computeSpikeRate(spikes, active_electrodes, currentParams.spikeBinS, duration_s);
@@ -1038,18 +1052,33 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           ============================================================ */}
           <TabsContent value="parameters" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Spike Trace - 2/3 Width */}
-              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
+              {/* All Electrodes Traces - 2/3 Width */}
+              <div className="lg:col-span-2 glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid var(--text-secondary)' }}>
                 <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
+                    <TrendingUp className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                     <span className="text-sm font-display font-medium" style={{ color: 'var(--text-primary)' }}>
-                      Spike Trace — All Electrodes
+                      All Electrodes Trace
                     </span>
                   </div>
                 </div>
-                <div className="p-4">
-                  <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                <div className="p-4 space-y-4">
+                  {/* Spike Trace */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full" style={{ background: '#10b981' }} />
+                      <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#10b981' }}>Spike</span>
+                    </div>
+                    <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                  </div>
+                  {/* Burst Trace */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} />
+                      <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>Burst</span>
+                    </div>
+                    <BurstTraceChart data={wellAnalysis?.burstRateBins} duration={duration} drugWindow={drugWindow} />
+                  </div>
                 </div>
               </div>
               
@@ -1195,7 +1224,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   </div>
                 </div>
                 
-                {/* Row 2: Spike Raster + Burst Raster */}
+                {/* Row 2: Spike Raster + Burst Raster with Drug Overlays */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1205,7 +1234,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <SpikeRasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                      <SpikeRasterPlot 
+                        data={wellAnalysis.spikeRaster} 
+                        electrodes={wellAnalysis.well?.active_electrodes || []} 
+                        duration={duration}
+                        drugWindow={drugWindow}
+                      />
                     </div>
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
@@ -1216,12 +1250,15 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <BurstRasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                      <BurstRasterPlot 
+                        data={wellAnalysis.burstRaster} 
+                        electrodes={wellAnalysis.well?.active_electrodes || []} 
+                        duration={duration}
+                        drugWindow={drugWindow}
+                      />
                     </div>
                   </div>
                 </div>
-                
-                {/* Row 3: Readout Configuration with Integrated Metrics */}
                 <div 
                   className="glass-surface-subtle rounded-xl overflow-hidden"
                   style={{ borderLeft: `3px solid ${selectedDrugs.length > 0 ? '#a855f7' : '#22d3ee'}` }}
@@ -1718,7 +1755,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     
-                    {/* Pulse adjustment controls for Burst Trace */}
+                    {/* Pulse adjustment controls for Burst Trace - SSE-style unified with Spike */}
                     {selectedPulseIdx !== null && lightPulses && (
                       <div 
                         className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg"
@@ -1731,20 +1768,24 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         </span>
                         <div className="h-4 w-px bg-zinc-700" />
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-zinc-700" onClick={() => handleAdjustPulseBySeconds(-5)}>
-                            <ChevronLeft className="w-3 h-3" />
-                          </Button>
-                          <span className="text-[9px] text-zinc-500 px-1">±5s</span>
-                          <Button variant="outline" size="sm" className="h-6 w-6 p-0 border-zinc-700" onClick={() => handleAdjustPulseBySeconds(5)}>
-                            <ChevronRight className="w-3 h-3" />
-                          </Button>
+                          <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
+                            className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                            onClick={() => setEditMode(editMode === 'start' ? null : 'start')}
+                          >Start</Button>
+                          <Button variant={editMode === 'end' ? 'default' : 'outline'} size="sm" 
+                            className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
+                            onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
+                          >End</Button>
                         </div>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-zinc-500" onClick={() => { setSelectedPulseIdx(null); setEditMode(null); }}>
+                          <X className="w-3 h-3 mr-1" /> Deselect
+                        </Button>
                       </div>
                     )}
                   </div>
                 </div>
                 
-                {/* Row 2: Spike Raster + Burst Raster */}
+                {/* Row 2: Spike Raster + Burst Raster with Light Overlays */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1754,7 +1795,14 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <SpikeRasterPlot data={wellAnalysis.spikeRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                      <SpikeRasterPlot 
+                        data={wellAnalysis.spikeRaster} 
+                        electrodes={wellAnalysis.well?.active_electrodes || []} 
+                        duration={duration}
+                        lightPulses={lightEnabled ? lightPulses : null}
+                        drugWindow={drugWindow}
+                        zoomDomain={lightZoomDomain}
+                      />
                     </div>
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
@@ -1765,12 +1813,17 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <BurstRasterPlot data={wellAnalysis.burstRaster} electrodes={wellAnalysis.well?.active_electrodes || []} duration={duration} />
+                      <BurstRasterPlot 
+                        data={wellAnalysis.burstRaster} 
+                        electrodes={wellAnalysis.well?.active_electrodes || []} 
+                        duration={duration}
+                        lightPulses={lightEnabled ? lightPulses : null}
+                        drugWindow={drugWindow}
+                        zoomDomain={lightZoomDomain}
+                      />
                     </div>
                   </div>
                 </div>
-                
-                {/* Light Stimulation Analysis Block */}
                 <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f59e0b' }}>
                   {/* Header */}
                   <div className="py-3 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -2012,7 +2065,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         </div>
                       </div>
                       
-                      {/* Per-Stim Table */}
+                      {/* Per-Stim Table with Extended Columns */}
                       <hr className="border-zinc-700/50 my-3" />
                       <p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider">Per-Stimulation Metrics</p>
                       <ScrollArea className="max-h-[250px]">
@@ -2020,12 +2073,18 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           <TableHeader>
                             <TableRow className="border-zinc-800 hover:bg-transparent">
                               <TableHead className="text-[10px] font-data text-zinc-500 h-7">Stim</TableHead>
-                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">Baseline Spike</TableHead>
+                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">BL Spike</TableHead>
                               <TableHead className="text-[10px] font-data text-emerald-400 h-7">Avg Spike</TableHead>
                               <TableHead className="text-[10px] font-data text-emerald-400 h-7">Max Spike</TableHead>
-                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">Baseline Burst</TableHead>
+                              <TableHead className="text-[10px] font-data text-emerald-400 h-7">Spike Δ%</TableHead>
+                              <TableHead className="text-[10px] font-data text-emerald-400 h-7">Peak Spike Δ%</TableHead>
+                              <TableHead className="text-[10px] font-data text-emerald-400 h-7">T→Peak Spike</TableHead>
+                              <TableHead className="text-[10px] font-data text-cyan-400 h-7">BL Burst</TableHead>
                               <TableHead className="text-[10px] font-data text-orange-400 h-7">Avg Burst</TableHead>
                               <TableHead className="text-[10px] font-data text-orange-400 h-7">Max Burst</TableHead>
+                              <TableHead className="text-[10px] font-data text-orange-400 h-7">Burst Δ%</TableHead>
+                              <TableHead className="text-[10px] font-data text-orange-400 h-7">Peak Burst Δ%</TableHead>
+                              <TableHead className="text-[10px] font-data text-orange-400 h-7">T→Peak Burst</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2039,9 +2098,15 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                                 <TableCell className="text-[10px] font-data text-cyan-300 py-1">{s?.baselineSpikeHz?.toFixed(3) ?? '—'}</TableCell>
                                 <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.avgSpikeHz?.toFixed(3) ?? '—'}</TableCell>
                                 <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.maxSpikeHz?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.spikeChangePct?.toFixed(1) ?? '—'}%</TableCell>
+                                <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.maxSpikeChangePct?.toFixed(1) ?? '—'}%</TableCell>
+                                <TableCell className="text-[10px] font-data text-emerald-300 py-1">{s?.spikeTimeToPeak?.toFixed(1) ?? '—'}s</TableCell>
                                 <TableCell className="text-[10px] font-data text-cyan-300 py-1">{s?.baselineBurstBpm?.toFixed(3) ?? '—'}</TableCell>
                                 <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.avgBurstBpm?.toFixed(3) ?? '—'}</TableCell>
                                 <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.maxBurstBpm?.toFixed(3) ?? '—'}</TableCell>
+                                <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.burstChangePct?.toFixed(1) ?? '—'}%</TableCell>
+                                <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.maxBurstChangePct?.toFixed(1) ?? '—'}%</TableCell>
+                                <TableCell className="text-[10px] font-data text-orange-300 py-1">{s?.burstTimeToPeak?.toFixed(1) ?? '—'}s</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
