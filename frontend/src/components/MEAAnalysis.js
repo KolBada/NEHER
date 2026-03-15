@@ -247,18 +247,26 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
   );
 });
 
-const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, duration }) {
+const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, duration, lightPulses, drugWindow, zoomDomain }) {
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
   }
   const color = '#10b981';
+  const nElectrodes = electrodes.length;
+  const domain = zoomDomain || [0, duration];
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+          <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+          {/* Drug window overlay */}
+          {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+          {/* Light pulse overlays */}
+          {lightPulses && lightPulses.map((pulse, i) => (
+            <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+          ))}
           <Scatter data={data} fill={color} shape={(props) => (
             <line x1={props.cx} x2={props.cx} y1={props.cy - 2} y2={props.cy + 2} stroke={color} strokeWidth={1} />
           )} isAnimationActive={false} />
@@ -268,29 +276,37 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
   );
 });
 
-const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, duration }) {
+const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, duration, lightPulses, drugWindow, zoomDomain }) {
   // Burst raster shows horizontal lines from start to stop for each burst
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
   }
   const color = '#f97316';
+  const nElectrodes = electrodes.length;
+  const domain = zoomDomain || [0, duration];
   
   // Transform burst data to scatter points (use midpoint for positioning)
-  const scatterData = data.map((b, idx) => ({
+  const scatterData = useMemo(() => data.map((b, idx) => ({
     time: (b.start + b.stop) / 2, // midpoint for X positioning
     startTime: b.start,
     stopTime: b.stop,
     electrodeIndex: b.electrodeIndex,
     key: idx,
-  }));
+  })), [data]);
   
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="time" type="number" domain={[0, duration]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
-          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, electrodes.length - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Electrode', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+          <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+          <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+          {/* Drug window overlay */}
+          {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+          {/* Light pulse overlays */}
+          {lightPulses && lightPulses.map((pulse, i) => (
+            <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+          ))}
           <Scatter 
             data={scatterData} 
             fill={color} 
@@ -672,33 +688,50 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       const maxBurstBin = burstInWindow.find(b => b.burst_rate_bpm === maxBurstBpm);
       const burstTimeToPeak = maxBurstBin ? maxBurstBin.time - pStart : 0;
       
+      // Per-stim delta percentages (new formula: 100 * value / baseline)
+      const spikeChangePct = baselineSpikeHz > 0 ? 100 * avgSpikeHz / baselineSpikeHz : 0;
+      const maxSpikeChangePct = baselineSpikeHz > 0 ? 100 * maxSpikeHz / baselineSpikeHz : 0;
+      const burstChangePct = baselineBurstBpm > 0 ? 100 * avgBurstBpm / baselineBurstBpm : 0;
+      const maxBurstChangePct = baselineBurstBpm > 0 ? 100 * maxBurstBpm / baselineBurstBpm : 0;
+      
       return {
         baselineSpikeHz,
         avgSpikeHz,
         maxSpikeHz,
         spikeTimeToPeak,
+        spikeChangePct,
+        maxSpikeChangePct,
         baselineBurstBpm,
         avgBurstBpm,
         maxBurstBpm,
         burstTimeToPeak,
+        burstChangePct,
+        maxBurstChangePct,
       };
     });
     
     // Compute averaged metrics
     const n = perStim.length;
+    const avgSpikeHzTotal = perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n;
+    const maxSpikeHzTotal = perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n;
+    const avgBurstBpmTotal = perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n;
+    const maxBurstBpmTotal = perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n;
+    
     const avg = {
       baselineSpikeHz,
-      avgSpikeHz: perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n,
-      maxSpikeHz: perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n,
+      avgSpikeHz: avgSpikeHzTotal,
+      maxSpikeHz: maxSpikeHzTotal,
       spikeTimeToPeak: perStim.reduce((s, p) => s + p.spikeTimeToPeak, 0) / n,
-      spikeChangePct: baselineSpikeHz > 0 ? 100 * (perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n - baselineSpikeHz) / baselineSpikeHz : 0,
-      maxSpikeChangePct: baselineSpikeHz > 0 ? 100 * (perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n - baselineSpikeHz) / baselineSpikeHz : 0,
+      // NEW FORMULA: 100 * avg / baseline
+      spikeChangePct: baselineSpikeHz > 0 ? 100 * avgSpikeHzTotal / baselineSpikeHz : 0,
+      maxSpikeChangePct: baselineSpikeHz > 0 ? 100 * maxSpikeHzTotal / baselineSpikeHz : 0,
       baselineBurstBpm,
-      avgBurstBpm: perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n,
-      maxBurstBpm: perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n,
+      avgBurstBpm: avgBurstBpmTotal,
+      maxBurstBpm: maxBurstBpmTotal,
       burstTimeToPeak: perStim.reduce((s, p) => s + p.burstTimeToPeak, 0) / n,
-      burstChangePct: baselineBurstBpm > 0 ? 100 * (perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n - baselineBurstBpm) / baselineBurstBpm : 0,
-      maxBurstChangePct: baselineBurstBpm > 0 ? 100 * (perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n - baselineBurstBpm) / baselineBurstBpm : 0,
+      // NEW FORMULA: 100 * avg / baseline
+      burstChangePct: baselineBurstBpm > 0 ? 100 * avgBurstBpmTotal / baselineBurstBpm : 0,
+      maxBurstChangePct: baselineBurstBpm > 0 ? 100 * maxBurstBpmTotal / baselineBurstBpm : 0,
     };
     
     setLightMetrics({ perStim, avg });
