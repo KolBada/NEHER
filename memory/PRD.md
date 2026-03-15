@@ -141,6 +141,21 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 - **Three-Panel View:** Updated Panel A/B/C detrending charts to glassmorphic styling with proper color-coded headers (emerald for Panel A, secondary for Panel B, amber for Panel C)
 - **Chart Tooltips:** Updated all tooltips to glassmorphic style with backdrop blur
 
+**Final MEA Light Stimulus Polish Pass (December 2025):**
+Comprehensive UI/UX polish implementing SSE-style features:
+1. **Unified Stim Editor Controls:** Both spike and burst traces now have identical SSE-style Start/End buttons (removed +/- 5s from burst trace)
+2. **Light Boxes on Rasters:** Yellow stimulus overlay boxes now appear on both spike and burst rasters in Light Stimulus tab
+3. **Synchronized Zoom:** All 4 charts in Light Stimulus tab share `lightZoomDomain` state for synchronized zoom/pan
+4. **Corrected Metric Formulas:** Changed from `100 * (avg - baseline) / baseline` to `100 * avg / baseline`
+5. **Extended Per-Stim Table:** Added 6 new columns: Spike Δ%, Burst Δ%, Peak Spike Δ%, Peak Burst Δ%, Time→Peak Spike, Time→Peak Burst
+6. **Raster Y-Axis Labels:** Now show "Electrode (n=X)" format where X is electrode count
+7. **Drug Boxes in Spontaneous Activity:** Purple drug overlay boxes appear on rasters when drug is selected
+8. **Parameters Tab:** Now shows stacked Spike and Burst traces in "All Electrodes Trace" section
+
+**Bug Fixes (December 2025):**
+- Fixed React hooks violation: Moved `useMemo` in BurstRasterPlot before early return (was causing app crash)
+- Fixed crash with 0 active electrodes: Added all required properties to wellAnalysis early return object
+
 **Latest UI Polish Pass (December 2025):**
 - **Top Bar:** Improved sticky top bar with darker glassmorphic background for better differentiation
 - **Drug Boxes:** Compact inline drug chips without running bar effect, properly spaced
@@ -216,6 +231,15 @@ Applied comprehensive glassmorphism dark theme across ALL pages:
 - ✅ MEA burst data parsing fix (December 2025)
 - ✅ MEA Spontaneous Activity tab implementation (December 2025)
 - ✅ MEA Parameters tab implementation (December 2025)
+- ✅ MEA Light Stimulus tab full implementation with SSE-style features (December 2025)
+- ✅ Unified stim editor controls across spike/burst traces (December 2025)
+- ✅ Synchronized zoom/pan across Light Stimulus charts (December 2025)
+- ✅ Extended per-stim metrics table with additional columns (December 2025)
+- ✅ Drug/Light overlay boxes on rasters (December 2025)
+
+### P1 - High Priority (Upcoming)
+- Build MEA Save Recording tab (adapt from SSE SaveRecording.js)
+- Build MEA Export tab (adapt from SSE ExportPanel.js)
 
 ### P2 - Medium Priority
 - Refactor oversized files (`HomeBrowser.js` >1700 lines, `export_utils.py`, `LightPanel.js`)
