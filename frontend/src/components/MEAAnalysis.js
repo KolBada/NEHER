@@ -2183,39 +2183,34 @@ export default function MEAAnalysis({
       </header>
       
       {/* ================================================================
-          BACKGROUND AMBIENT LIGHTS - Behind all content
+          BACKGROUND AMBIENT LIGHTS - Behind all content (matching SSE style)
       ================================================================ */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-        {/* Primary ambient light - top-left (emerald/teal) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        {/* Primary ambient light - top-left (emerald/teal - MEA accent) */}
         <div 
-          className="absolute -top-40 -left-40 w-[900px] h-[900px] rounded-full"
+          className="absolute -top-20 -left-20 w-[700px] h-[700px] rounded-full"
           style={{ 
-            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(6, 182, 212, 0.25) 40%, transparent 70%)',
-            filter: 'blur(100px)',
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(6, 182, 212, 0.1) 40%, transparent 70%)',
+            opacity: 0.25,
+            filter: 'blur(60px)',
           }} 
         />
         {/* Secondary ambient light - bottom-right (blue/cyan) */}
         <div 
-          className="absolute -bottom-40 -right-40 w-[900px] h-[900px] rounded-full"
+          className="absolute -bottom-20 -right-20 w-[700px] h-[700px] rounded-full"
           style={{ 
-            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(59, 130, 246, 0.2) 40%, transparent 70%)',
-            filter: 'blur(100px)',
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, rgba(59, 130, 246, 0.15) 40%, transparent 70%)',
+            opacity: 0.2,
+            filter: 'blur(60px)',
           }} 
         />
-        {/* Center accent - emerald glow */}
+        {/* Center accent - subtle emerald glow */}
         <div 
-          className="absolute top-1/3 left-1/2 w-[1000px] h-[600px] rounded-full"
+          className="absolute top-1/4 left-1/2 w-[800px] h-[500px] rounded-full"
           style={{ 
-            background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.3) 0%, transparent 60%)',
+            background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.15) 0%, transparent 60%)',
             transform: 'translateX(-50%)',
-            filter: 'blur(120px)',
-          }} 
-        />
-        {/* Top-right accent - subtle cyan */}
-        <div 
-          className="absolute top-20 right-1/4 w-[500px] h-[500px] rounded-full"
-          style={{ 
-            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 60%)',
+            opacity: 0.15,
             filter: 'blur(80px)',
           }} 
         />
