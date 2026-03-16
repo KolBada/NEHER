@@ -3270,6 +3270,7 @@ export default function MEAAnalysis({
       {/* Comparison Modal */}
       <Dialog open={showComparisonModal} onOpenChange={setShowComparisonModal}>
         <DialogContent 
+          hideCloseButton
           className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0"
           style={{ 
             background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
@@ -3277,7 +3278,7 @@ export default function MEAAnalysis({
             boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
           }}
         >
-          {/* Close button in top-right - positioned above the default one */}
+          {/* Close button in top-right */}
           <button
             onClick={() => setShowComparisonModal(false)}
             className="absolute top-4 right-4 z-[60] p-2 rounded-lg hover:bg-white/10 transition-colors"
