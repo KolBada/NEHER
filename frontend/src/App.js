@@ -2005,7 +2005,39 @@ function App() {
 
       {/* Main content - with top padding for fixed header */}
       <main className="p-6 pt-20 relative z-10">
-        <Tabs defaultValue="trace" className="w-full">
+        {/* Background Glass Lights - SSE ambient glow */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+          {/* Primary ambient light - top-left (warm peach/gold - SSE accent) */}
+          <div 
+            className="absolute -top-20 -left-20 w-[700px] h-[700px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(244, 206, 162, 0.25) 0%, rgba(168, 85, 247, 0.1) 40%, transparent 70%)',
+              opacity: 0.25,
+              filter: 'blur(60px)',
+            }} 
+          />
+          {/* Secondary ambient light - bottom-right (blue/cyan) */}
+          <div 
+            className="absolute -bottom-20 -right-20 w-[700px] h-[700px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, rgba(59, 130, 246, 0.15) 40%, transparent 70%)',
+              opacity: 0.2,
+              filter: 'blur(60px)',
+            }} 
+          />
+          {/* Center accent - subtle warm glow */}
+          <div 
+            className="absolute top-1/4 left-1/2 w-[800px] h-[500px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(ellipse, rgba(244, 206, 162, 0.15) 0%, transparent 60%)',
+              transform: 'translateX(-50%)',
+              opacity: 0.15,
+              filter: 'blur(80px)',
+            }} 
+          />
+        </div>
+        
+        <Tabs defaultValue="trace" className="w-full relative z-10">
           {/* Tab bar and drug boxes side by side */}
           <div className="flex items-center gap-3 mb-6">
             <TabsList 
@@ -2349,24 +2381,51 @@ function App() {
       <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent 
           hideCloseButton
-          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0"
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
-            border: '1px solid rgba(20, 184, 166, 0.15)',
-            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
+            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.95) 0%, rgba(5, 15, 35, 0.98) 50%, rgba(2, 8, 20, 0.95) 100%)',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.15)',
+            borderLeftColor: 'rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.7), 0 0 100px rgba(244, 206, 162, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            borderRadius: '24px',
           }}
         >
+          {/* Background ambient lights for modal */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
+            <div 
+              className="absolute -top-20 -left-20 w-[500px] h-[500px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(244, 206, 162, 0.2) 0%, transparent 60%)',
+                filter: 'blur(60px)',
+              }} 
+            />
+            <div 
+              className="absolute -bottom-20 -right-20 w-[500px] h-[500px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 60%)',
+                filter: 'blur(60px)',
+              }} 
+            />
+          </div>
+          
           {/* Close button in top-right */}
           <button
             onClick={() => setShowComparisonDialog(false)}
-            className="absolute top-4 right-4 z-[60] p-2 rounded-lg hover:bg-white/10 transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="absolute top-4 right-4 z-[60] p-2 rounded-xl hover:bg-white/10 transition-colors"
+            style={{ 
+              color: 'var(--text-secondary)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
             data-testid="close-comparison-dialog"
           >
             <X className="w-5 h-5" />
           </button>
           
-          <div className="h-full overflow-auto p-6">
+          <div className="h-full overflow-auto p-6 relative z-10">
             {savedFolderId && (
               <FolderComparison 
                 folder={{ id: savedFolderId, name: savedFolderName || '' }}

@@ -2186,41 +2186,90 @@ export default function MEAAnalysis({
           MAIN CONTENT
       ================================================================ */}
       <main className="p-6 pt-20 relative z-10 max-w-[1800px] mx-auto">
-        {/* Background Glass Lights - subtle ambient glow matching glassmorphism aesthetic */}
+        {/* Background Glass Lights - enhanced ambient glow matching glassmorphism aesthetic */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-          {/* Subtle ambient light in the top-left area (teal/emerald) */}
+          {/* Primary ambient light - top-left (emerald/teal) - SSE style */}
           <div 
-            className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.08]" 
-            style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, transparent 60%)' }} 
+            className="absolute -top-20 -left-20 w-[700px] h-[700px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(6, 182, 212, 0.15) 40%, transparent 70%)',
+              opacity: 0.25,
+              filter: 'blur(60px)',
+            }} 
           />
-          {/* Subtle ambient light in the bottom-right area (blue) */}
+          {/* Secondary ambient light - bottom-right (blue/cyan) */}
           <div 
-            className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full opacity-[0.06]" 
-            style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 60%)' }} 
+            className="absolute -bottom-20 -right-20 w-[700px] h-[700px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, rgba(59, 130, 246, 0.15) 40%, transparent 70%)',
+              opacity: 0.2,
+              filter: 'blur(60px)',
+            }} 
           />
-          {/* Tab-specific accent light (very subtle) */}
+          {/* Center accent - subtle emerald glow */}
+          <div 
+            className="absolute top-1/4 left-1/2 w-[800px] h-[500px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.2) 0%, transparent 60%)',
+              transform: 'translateX(-50%)',
+              opacity: 0.15,
+              filter: 'blur(80px)',
+            }} 
+          />
+          {/* Tab-specific accent lights */}
+          {activeTab === 'parameters' && (
+            <div 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 60%)', 
+                transform: 'translateX(-50%)',
+                opacity: 0.12,
+                filter: 'blur(40px)',
+              }} 
+            />
+          )}
           {activeTab === 'spontaneous' && (
             <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
-              style={{ background: 'radial-gradient(circle, rgba(244, 206, 162, 0.6) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+              className="absolute top-1/3 left-1/2 w-[700px] h-[700px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(244, 206, 162, 0.5) 0%, rgba(16, 185, 129, 0.2) 50%, transparent 70%)', 
+                transform: 'translateX(-50%)',
+                opacity: 0.15,
+                filter: 'blur(50px)',
+              }} 
             />
           )}
           {activeTab === 'light' && (
             <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.05]" 
-              style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+              className="absolute top-1/3 left-1/2 w-[700px] h-[700px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, rgba(250, 204, 21, 0.2) 50%, transparent 70%)', 
+                transform: 'translateX(-50%)',
+                opacity: 0.18,
+                filter: 'blur(50px)',
+              }} 
             />
           )}
           {activeTab === 'save' && (
             <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
-              style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(20, 184, 166, 0.2) 50%, transparent 70%)', 
+                transform: 'translateX(-50%)',
+                opacity: 0.12,
+                filter: 'blur(40px)',
+              }} 
             />
           )}
           {activeTab === 'export' && (
             <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
-              style={{ background: 'radial-gradient(circle, rgba(20, 184, 166, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(20, 184, 166, 0.5) 0%, rgba(6, 182, 212, 0.2) 50%, transparent 70%)', 
+                transform: 'translateX(-50%)',
+                opacity: 0.12,
+                filter: 'blur(40px)',
+              }} 
             />
           )}
         </div>
@@ -3546,24 +3595,51 @@ export default function MEAAnalysis({
       <Dialog open={showComparisonModal} onOpenChange={setShowComparisonModal}>
         <DialogContent 
           hideCloseButton
-          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0"
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 overflow-hidden"
           style={{ 
-            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
-            border: '1px solid rgba(20, 184, 166, 0.15)',
-            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
+            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.95) 0%, rgba(5, 15, 35, 0.98) 50%, rgba(2, 8, 20, 0.95) 100%)',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTopColor: 'rgba(255, 255, 255, 0.15)',
+            borderLeftColor: 'rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.7), 0 0 100px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            borderRadius: '24px',
           }}
         >
+          {/* Background ambient lights for modal */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl" style={{ zIndex: 0 }}>
+            <div 
+              className="absolute -top-20 -left-20 w-[500px] h-[500px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 60%)',
+                filter: 'blur(60px)',
+              }} 
+            />
+            <div 
+              className="absolute -bottom-20 -right-20 w-[500px] h-[500px] rounded-full"
+              style={{ 
+                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 60%)',
+                filter: 'blur(60px)',
+              }} 
+            />
+          </div>
+          
           {/* Close button in top-right */}
           <button
             onClick={() => setShowComparisonModal(false)}
-            className="absolute top-4 right-4 z-[60] p-2 rounded-lg hover:bg-white/10 transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="absolute top-4 right-4 z-[60] p-2 rounded-xl hover:bg-white/10 transition-colors"
+            style={{ 
+              color: 'var(--text-secondary)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
             data-testid="close-comparison-modal"
           >
             <X className="w-5 h-5" />
           </button>
           
-          <div className="h-full overflow-auto p-6">
+          <div className="h-full overflow-auto p-6 relative z-10">
             {savedFolderId && (
               <FolderComparison 
                 folder={{ id: savedFolderId, name: savedFolderName || 'Folder' }}
