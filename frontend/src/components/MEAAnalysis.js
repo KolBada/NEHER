@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
+import SaveRecording from './SaveRecording';
 
 // ============================================================================
 // DRUG CONFIGURATION (matching SSE)
@@ -204,9 +205,355 @@ function buildBurstRaster(bursts, activeElectrodes) {
 }
 
 // ============================================================================
-// Memoized Chart Components
+// Memoized Chart Components with Zoom Controls
 // ============================================================================
 
+// Enhanced Spike Trace with zoom controls and brush
+const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({ 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, showBrush = true, title = "SPIKE TRACE" 
+}) {
+  const handleZoomIn = () => {
+    if (!data?.length) return;
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 0.7;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleZoomOut = () => {
+    if (!data?.length) return;
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 1.5;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleReset = () => onZoomChange?.([0, duration]);
+
+  if (!data?.length) {
+    return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
+  }
+
+  const stimCount = lightPulses?.length || 0;
+
+  return (
+    <div>
+      {/* Header with zoom controls */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
+          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#10b981' }}>{title}</span>
+          {stimCount > 0 && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
+            <Plus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
+            <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+          </Button>
+        </div>
+      </div>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: showBrush ? 30 : 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis 
+              dataKey="time" 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: showBrush ? -20 : -10, fontSize: 9, fill: '#71717a' }}
+              domain={zoomDomain || ['dataMin', 'dataMax']}
+              allowDataOverflow
+              type="number"
+            />
+            <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+            {/* Drug window overlay (purple) */}
+            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+            {/* Light pulse overlays (amber) */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea key={`st-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
+            ))}
+            <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            {showBrush && (
+              <Brush 
+                dataKey="time" 
+                height={18} 
+                stroke="#52525b" 
+                fill="transparent"
+                tickFormatter={(v) => `${Math.floor(v)}s`}
+                onChange={(e) => {
+                  if (e.startIndex !== undefined && e.endIndex !== undefined && data.length > 0) {
+                    const start = data[e.startIndex]?.time || 0;
+                    const end = data[e.endIndex]?.time || duration;
+                    onZoomChange?.([start, end]);
+                  }
+                }}
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+});
+
+// Enhanced Burst Trace with zoom controls and brush
+const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({ 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, showBrush = true, title = "BURST TRACE" 
+}) {
+  const handleZoomIn = () => {
+    if (!data?.length) return;
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 0.7;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleZoomOut = () => {
+    if (!data?.length) return;
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 1.5;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleReset = () => onZoomChange?.([0, duration]);
+
+  if (!data?.length) {
+    return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst data</div>;
+  }
+
+  const stimCount = lightPulses?.length || 0;
+
+  return (
+    <div>
+      {/* Header with zoom controls */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
+          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>{title}</span>
+          {stimCount > 0 && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
+            <Plus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
+            <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+          </Button>
+        </div>
+      </div>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: showBrush ? 30 : 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis 
+              dataKey="time" 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: showBrush ? -20 : -10, fontSize: 9, fill: '#71717a' }}
+              domain={zoomDomain || ['dataMin', 'dataMax']}
+              allowDataOverflow
+              type="number"
+            />
+            <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+            <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+            {/* Drug window overlay (purple) */}
+            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+            {/* Light pulse overlays (amber) */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea key={`bt-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
+            ))}
+            <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            {showBrush && (
+              <Brush 
+                dataKey="time" 
+                height={18} 
+                stroke="#52525b" 
+                fill="transparent"
+                tickFormatter={(v) => `${Math.floor(v)}s`}
+                onChange={(e) => {
+                  if (e.startIndex !== undefined && e.endIndex !== undefined && data.length > 0) {
+                    const start = data[e.startIndex]?.time || 0;
+                    const end = data[e.endIndex]?.time || duration;
+                    onZoomChange?.([start, end]);
+                  }
+                }}
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+});
+
+// Enhanced Spike Raster with zoom controls
+const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({ 
+  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange 
+}) {
+  const handleZoomIn = () => {
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 0.7;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleZoomOut = () => {
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 1.5;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleReset = () => onZoomChange?.([0, duration]);
+
+  if (!data?.length || !electrodes?.length) {
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
+  }
+  const color = '#10b981';
+  const nElectrodes = electrodes.length;
+  const domain = zoomDomain || [0, duration];
+  
+  return (
+    <div>
+      {/* Header with zoom controls */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
+          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
+            <Plus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
+            <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+          </Button>
+        </div>
+      </div>
+      <div className="h-36">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+            <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+            {/* Drug window overlay */}
+            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+            {/* Light pulse overlays */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+            ))}
+            <Scatter data={data} fill={color} shape={(props) => (
+              <rect x={props.cx - 1} y={props.cy - 3} width={2} height={6} fill={color} />
+            )} isAnimationActive={false} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+});
+
+// Enhanced Burst Raster with zoom controls
+const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({ 
+  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange 
+}) {
+  const handleZoomIn = () => {
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 0.7;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleZoomOut = () => {
+    const [min, max] = zoomDomain || [0, duration];
+    const range = max - min;
+    const newRange = range * 1.5;
+    const center = (min + max) / 2;
+    onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
+  };
+  const handleReset = () => onZoomChange?.([0, duration]);
+
+  const color = '#f97316';
+  const nElectrodes = electrodes?.length || 0;
+  const domain = zoomDomain || [0, duration];
+  
+  // Transform burst data to scatter points (use midpoint for positioning)
+  const scatterData = useMemo(() => (data || []).map((b, idx) => ({
+    time: (b.start + b.stop) / 2,
+    startTime: b.start,
+    stopTime: b.stop,
+    electrodeIndex: b.electrodeIndex,
+    key: idx,
+  })), [data]);
+  
+  if (!data?.length || !electrodes?.length) {
+    return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
+  }
+  
+  return (
+    <div>
+      {/* Header with zoom controls */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
+          <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
+            <Plus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
+            <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+          </Button>
+        </div>
+      </div>
+      <div className="h-36">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+            <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
+            {/* Drug window overlay */}
+            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+            {/* Light pulse overlays */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+            ))}
+            <Scatter data={scatterData} fill={color} shape={(props) => {
+              const burstWidth = Math.max(2, (props.payload.stopTime - props.payload.startTime) * 0.5);
+              return <rect x={props.cx - burstWidth/2} y={props.cy - 3} width={burstWidth} height={6} fill={color} />;
+            }} isAnimationActive={false} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+});
+
+// Keep original simple components for backwards compatibility
 const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWindow, lightPulses }) {
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
@@ -219,9 +566,7 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
-          {/* Drug window overlay (purple) */}
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
-          {/* Light pulse overlays (amber) */}
           {lightPulses && lightPulses.map((pulse, i) => (
             <ReferenceArea key={`st-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
           ))}
@@ -244,9 +589,7 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
-          {/* Drug window overlay (purple) */}
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
-          {/* Light pulse overlays (amber) */}
           {lightPulses && lightPulses.map((pulse, i) => (
             <ReferenceArea key={`bt-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
           ))}
@@ -508,11 +851,24 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   const [lightZoomDomain, setLightZoomDomain] = useState(null);
   const [editMode, setEditMode] = useState(null); // 'start' | 'end' | null
   
+  // Zoom state for Parameters tab
+  const [parametersZoomDomain, setParametersZoomDomain] = useState(null);
+  
+  // Zoom state for Spontaneous Activity tab
+  const [spontaneousZoomDomain, setSpontaneousZoomDomain] = useState(null);
+  
   // Table mode
   const [tableMode, setTableMode] = useState('minute');
   
   // Computing flag
   const [isComputing, setIsComputing] = useState(false);
+  
+  // Save Recording state
+  const [recordingName, setRecordingName] = useState('');
+  const [recordingDate, setRecordingDate] = useState('');
+  const [organoidInfo, setOrganoidInfo] = useState([{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
+  const [fusionDate, setFusionDate] = useState('');
+  const [recordingDescription, setRecordingDescription] = useState('');
 
   // Get current well's bin sizes (with defaults from config)
   const currentParams = useMemo(() => {
@@ -540,6 +896,25 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     );
     setDrugEnabled(true);
   }, []);
+
+  // Get analysis state for Save Recording
+  const getAnalysisState = useCallback(() => ({
+    type: 'MEA',
+    selectedWell,
+    wells: Object.keys(meaData?.wells || {}),
+    config,
+    wellParams,
+    drugEnabled,
+    selectedDrugs,
+    drugSettings,
+    drugPerfTime,
+    drugReadoutMinute,
+    lightEnabled,
+    lightParams,
+    lightPulses,
+    baselineEnabled,
+    baselineMinute,
+  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute]);
 
   // Compute all metrics for the selected well (heavily memoized)
   const wellAnalysis = useMemo(() => {
@@ -1104,23 +1479,27 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     </span>
                   </div>
                 </div>
-                <div className="p-4 space-y-4">
-                  {/* Spike Trace */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full" style={{ background: '#10b981' }} />
-                      <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#10b981' }}>Spike</span>
-                    </div>
-                    <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
-                  </div>
-                  {/* Burst Trace */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} />
-                      <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>Burst</span>
-                    </div>
-                    <BurstTraceChart data={wellAnalysis?.burstRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
-                  </div>
+                <div className="p-4 space-y-6">
+                  {/* Spike Trace with Zoom */}
+                  <SpikeTraceChartWithZoom 
+                    data={wellAnalysis?.spikeRateBins} 
+                    duration={duration} 
+                    drugWindow={drugWindow} 
+                    lightPulses={lightEnabled ? lightPulses : null}
+                    zoomDomain={parametersZoomDomain}
+                    onZoomChange={setParametersZoomDomain}
+                    title="SPIKE TRACE"
+                  />
+                  {/* Burst Trace with Zoom */}
+                  <BurstTraceChartWithZoom 
+                    data={wellAnalysis?.burstRateBins} 
+                    duration={duration} 
+                    drugWindow={drugWindow} 
+                    lightPulses={lightEnabled ? lightPulses : null}
+                    zoomDomain={parametersZoomDomain}
+                    onZoomChange={setParametersZoomDomain}
+                    title="BURST TRACE"
+                  />
                 </div>
               </div>
               
@@ -1240,67 +1619,55 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           <TabsContent value="spontaneous" className="space-y-6">
             {wellAnalysis ? (
               <>
-                {/* Row 1: Spike Trace + Burst Trace with Drug and Light Overlays */}
+                {/* Row 1: Spike Trace + Burst Trace with Drug and Light Overlays and Zoom */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <SpikeTraceChart data={wellAnalysis.spikeRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #10b981' }}>
+                    <SpikeTraceChartWithZoom 
+                      data={wellAnalysis.spikeRateBins} 
+                      duration={duration} 
+                      drugWindow={drugWindow} 
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      zoomDomain={spontaneousZoomDomain}
+                      onZoomChange={setSpontaneousZoomDomain}
+                      title="SPIKE TRACE"
+                    />
                   </div>
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Trace</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <BurstTraceChart data={wellAnalysis.burstRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
+                    <BurstTraceChartWithZoom 
+                      data={wellAnalysis.burstRateBins} 
+                      duration={duration} 
+                      drugWindow={drugWindow} 
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      zoomDomain={spontaneousZoomDomain}
+                      onZoomChange={setSpontaneousZoomDomain}
+                      title="BURST TRACE"
+                    />
                   </div>
                 </div>
                 
-                {/* Row 2: Spike Raster + Burst Raster with Drug and Light Overlays */}
+                {/* Row 2: Spike Raster + Burst Raster with Drug and Light Overlays and Zoom */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <SpikeRasterPlot 
-                        data={wellAnalysis.spikeRaster} 
-                        electrodes={wellAnalysis.well?.active_electrodes || []} 
-                        duration={duration}
-                        drugWindow={drugWindow}
-                        lightPulses={lightEnabled ? lightPulses : null}
-                      />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #10b981' }}>
+                    <SpikeRasterPlotWithZoom 
+                      data={wellAnalysis.spikeRaster} 
+                      electrodes={wellAnalysis.well?.active_electrodes || []} 
+                      duration={duration}
+                      drugWindow={drugWindow}
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      zoomDomain={spontaneousZoomDomain}
+                      onZoomChange={setSpontaneousZoomDomain}
+                    />
                   </div>
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <BurstRasterPlot 
-                        data={wellAnalysis.burstRaster} 
-                        electrodes={wellAnalysis.well?.active_electrodes || []} 
-                        duration={duration}
-                        drugWindow={drugWindow}
-                        lightPulses={lightEnabled ? lightPulses : null}
-                      />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
+                    <BurstRasterPlotWithZoom 
+                      data={wellAnalysis.burstRaster} 
+                      electrodes={wellAnalysis.well?.active_electrodes || []} 
+                      duration={duration}
+                      drugWindow={drugWindow}
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      zoomDomain={spontaneousZoomDomain}
+                      onZoomChange={setSpontaneousZoomDomain}
+                    />
                   </div>
                 </div>
                 <div 
@@ -1919,43 +2286,29 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                   </div>
                 </div>
                 
-                {/* Row 2: Spike Raster + Burst Raster with Light Overlays */}
+                {/* Row 2: Spike Raster + Burst Raster with Light Overlays and Zoom */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <SpikeRasterPlot 
-                        data={wellAnalysis.spikeRaster} 
-                        electrodes={wellAnalysis.well?.active_electrodes || []} 
-                        duration={duration}
-                        lightPulses={lightEnabled ? lightPulses : null}
-                        drugWindow={drugWindow}
-                        zoomDomain={lightZoomDomain}
-                      />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #10b981' }}>
+                    <SpikeRasterPlotWithZoom 
+                      data={wellAnalysis.spikeRaster} 
+                      electrodes={wellAnalysis.well?.active_electrodes || []} 
+                      duration={duration}
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      drugWindow={drugWindow}
+                      zoomDomain={lightZoomDomain}
+                      onZoomChange={setLightZoomDomain}
+                    />
                   </div>
-                  <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
-                    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
-                        <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <BurstRasterPlot 
-                        data={wellAnalysis.burstRaster} 
-                        electrodes={wellAnalysis.well?.active_electrodes || []} 
-                        duration={duration}
-                        lightPulses={lightEnabled ? lightPulses : null}
-                        drugWindow={drugWindow}
-                        zoomDomain={lightZoomDomain}
-                      />
-                    </div>
+                  <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
+                    <BurstRasterPlotWithZoom 
+                      data={wellAnalysis.burstRaster} 
+                      electrodes={wellAnalysis.well?.active_electrodes || []} 
+                      duration={duration}
+                      lightPulses={lightEnabled ? lightPulses : null}
+                      drugWindow={drugWindow}
+                      zoomDomain={lightZoomDomain}
+                      onZoomChange={setLightZoomDomain}
+                    />
                   </div>
                 </div>
                 <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f59e0b' }}>
@@ -2256,14 +2609,22 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           </TabsContent>
           
           <TabsContent value="save" className="space-y-6">
-            <div className="glass-surface-subtle rounded-xl p-8 text-center" style={{ borderLeft: '3px solid #10b981' }}>
-              <Save className="w-12 h-12 mx-auto mb-4" style={{ color: '#10b981' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Save MEA Recording</h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Save analysis to folder.</p>
-              <Button className="h-10 px-6 rounded-xl" style={{ background: '#10b981', color: '#000' }} onClick={() => toast.info('Save coming soon')}>
-                <Save className="w-4 h-4 mr-2" /> Save Recording
-              </Button>
-            </div>
+            <SaveRecording
+              getAnalysisState={getAnalysisState}
+              onSaveComplete={(folderId, recordingId) => {
+                toast.success('MEA Recording saved successfully');
+              }}
+              recordingName={recordingName}
+              onRecordingNameChange={setRecordingName}
+              recordingDate={recordingDate}
+              setRecordingDate={setRecordingDate}
+              organoidInfo={organoidInfo}
+              setOrganoidInfo={setOrganoidInfo}
+              fusionDate={fusionDate}
+              setFusionDate={setFusionDate}
+              recordingDescription={recordingDescription}
+              setRecordingDescription={setRecordingDescription}
+            />
           </TabsContent>
           
           <TabsContent value="export" className="space-y-6">
