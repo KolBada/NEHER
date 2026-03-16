@@ -1059,6 +1059,87 @@ export default function MEAAnalysis({
     }
   }, [savedRecordingData]);
 
+  // Auto-compute light metrics when loading a saved recording with lightPulses but no lightMetrics
+  useEffect(() => {
+    if (!savedRecordingData?.analysis_state) return;
+    const state = savedRecordingData.analysis_state;
+    
+    // If we have light enabled and pulses but no metrics, auto-compute them
+    // But we need wellAnalysis to be available first
+    if (state.lightEnabled && state.lightPulses?.length > 0 && !state.lightMetrics && wellAnalysis) {
+      const { spikeRateBins, burstRateBins } = wellAnalysis;
+      if (!spikeRateBins?.length || !burstRateBins?.length) return;
+      
+      const pulses = state.lightPulses;
+      const firstStimStart = pulses[0].start_sec;
+      
+      // Baseline: -2 to -1 min before first stim
+      const blStart = Math.max(0, firstStimStart - 120);
+      const blEnd = Math.max(0, firstStimStart - 60);
+      const baselineSpikeHz = computeWindowMean(spikeRateBins, 'spike_rate_hz', blStart, blEnd) || 0;
+      const baselineBurstBpm = computeWindowMean(burstRateBins, 'burst_rate_bpm', blStart, blEnd) || 0;
+      
+      // Compute per-stim metrics
+      const perStim = pulses.map((pulse) => {
+        const pStart = pulse.start_sec;
+        const pEnd = pulse.end_sec;
+        
+        const spikeInWindow = spikeRateBins.filter(b => b.time >= pStart && b.time <= pEnd);
+        const avgSpikeHz = spikeInWindow.length > 0 
+          ? spikeInWindow.reduce((sum, b) => sum + b.spike_rate_hz, 0) / spikeInWindow.length 
+          : 0;
+        const maxSpikeHz = spikeInWindow.length > 0 
+          ? Math.max(...spikeInWindow.map(b => b.spike_rate_hz)) 
+          : 0;
+        const maxSpikeBin = spikeInWindow.find(b => b.spike_rate_hz === maxSpikeHz);
+        const spikeTimeToPeak = maxSpikeBin ? maxSpikeBin.time - pStart : 0;
+        
+        const burstInWindow = burstRateBins.filter(b => b.time >= pStart && b.time <= pEnd);
+        const avgBurstBpm = burstInWindow.length > 0 
+          ? burstInWindow.reduce((sum, b) => sum + b.burst_rate_bpm, 0) / burstInWindow.length 
+          : 0;
+        const maxBurstBpm = burstInWindow.length > 0 
+          ? Math.max(...burstInWindow.map(b => b.burst_rate_bpm)) 
+          : 0;
+        const maxBurstBin = burstInWindow.find(b => b.burst_rate_bpm === maxBurstBpm);
+        const burstTimeToPeak = maxBurstBin ? maxBurstBin.time - pStart : 0;
+        
+        const spikeChangePct = baselineSpikeHz > 0 ? 100 * avgSpikeHz / baselineSpikeHz : 0;
+        const maxSpikeChangePct = baselineSpikeHz > 0 ? 100 * maxSpikeHz / baselineSpikeHz : 0;
+        const burstChangePct = baselineBurstBpm > 0 ? 100 * avgBurstBpm / baselineBurstBpm : 0;
+        const maxBurstChangePct = baselineBurstBpm > 0 ? 100 * maxBurstBpm / baselineBurstBpm : 0;
+        
+        return {
+          baselineSpikeHz, avgSpikeHz, maxSpikeHz, spikeTimeToPeak, spikeChangePct, maxSpikeChangePct,
+          baselineBurstBpm, avgBurstBpm, maxBurstBpm, burstTimeToPeak, burstChangePct, maxBurstChangePct,
+        };
+      });
+      
+      const n = perStim.length;
+      const avgSpikeHzTotal = perStim.reduce((s, p) => s + p.avgSpikeHz, 0) / n;
+      const maxSpikeHzTotal = perStim.reduce((s, p) => s + p.maxSpikeHz, 0) / n;
+      const avgBurstBpmTotal = perStim.reduce((s, p) => s + p.avgBurstBpm, 0) / n;
+      const maxBurstBpmTotal = perStim.reduce((s, p) => s + p.maxBurstBpm, 0) / n;
+      
+      const avg = {
+        baselineSpikeHz,
+        avgSpikeHz: avgSpikeHzTotal,
+        maxSpikeHz: maxSpikeHzTotal,
+        spikeTimeToPeak: perStim.reduce((s, p) => s + p.spikeTimeToPeak, 0) / n,
+        spikeChangePct: baselineSpikeHz > 0 ? 100 * avgSpikeHzTotal / baselineSpikeHz : 0,
+        maxSpikeChangePct: baselineSpikeHz > 0 ? 100 * maxSpikeHzTotal / baselineSpikeHz : 0,
+        baselineBurstBpm,
+        avgBurstBpm: avgBurstBpmTotal,
+        maxBurstBpm: maxBurstBpmTotal,
+        burstTimeToPeak: perStim.reduce((s, p) => s + p.burstTimeToPeak, 0) / n,
+        burstChangePct: baselineBurstBpm > 0 ? 100 * avgBurstBpmTotal / baselineBurstBpm : 0,
+        maxBurstChangePct: baselineBurstBpm > 0 ? 100 * maxBurstBpmTotal / baselineBurstBpm : 0,
+      };
+      
+      setLightMetrics({ perStim, avg });
+    }
+  }, [savedRecordingData, wellAnalysis]);
+
   // Track modifications - notify parent when state changes
   useEffect(() => {
     if (!savedRecordingId || !initialStateSnapshot) return;
