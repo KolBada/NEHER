@@ -272,23 +272,49 @@ async def get_recordings_in_folder(db, folder_id: str) -> List[dict]:
     """Get all recordings in a folder (without full analysis_state for performance)."""
     recordings = []
     async for rec in db.recordings.find(
-        {"folder_id": folder_id},
-        {"analysis_state": 0}  # Exclude large analysis_state field
+        {"folder_id": folder_id}
     ).sort("updated_at", -1):
+        source_type = rec.get("source_type", "SEM")
+        
+        # For SSE recordings, check analysis_state if summary fields are missing
+        has_light_stim = rec.get("has_light_stim", False)
+        has_drug_analysis = rec.get("has_drug_analysis", False)
+        duration_sec = rec.get("duration_sec", 0)
+        
+        # If summary fields are not populated, derive them from analysis_state
+        if source_type == "SEM" or source_type == "SSE":
+            analysis_state = rec.get("analysis_state", {})
+            if not has_light_stim:
+                # Check both camelCase (lightPulses) and snake_case (light_pulses)
+                has_light_stim = bool(analysis_state.get("lightPulses") or analysis_state.get("light_pulses"))
+            if not has_drug_analysis:
+                # Check both camelCase (selectedDrugs) and snake_case (selected_drugs)
+                has_drug_analysis = bool(analysis_state.get("selectedDrugs") or analysis_state.get("selected_drugs"))
+            if duration_sec == 0:
+                duration_sec = analysis_state.get("file_info", {}).get("duration_sec", 0)
+        elif source_type == "MEA":
+            analysis_state = rec.get("analysis_state", {})
+            if not has_light_stim:
+                has_light_stim = analysis_state.get("lightEnabled", False)
+            if not has_drug_analysis:
+                has_drug_analysis = analysis_state.get("drugEnabled", False) or bool(analysis_state.get("selectedDrugs", []))
+            if duration_sec == 0:
+                duration_sec = analysis_state.get("duration_s", 0)
+        
         recordings.append({
             "id": str(rec["_id"]),
             "folder_id": rec["folder_id"],
             "name": rec["name"],
             "filename": rec["filename"],
-            "source_type": rec.get("source_type", "SEM"),  # Default to SEM for backward compatibility
+            "source_type": source_type,
             "well_id": rec.get("well_id", ""),  # MEA well identifier
             "created_at": rec["created_at"],
             "updated_at": rec["updated_at"],
             "n_beats": rec.get("n_beats", 0),
             "n_electrodes": rec.get("n_electrodes", 0),  # MEA-specific
-            "duration_sec": rec.get("duration_sec", 0),
-            "has_light_stim": rec.get("has_light_stim", False),
-            "has_drug_analysis": rec.get("has_drug_analysis", False),
+            "duration_sec": duration_sec,
+            "has_light_stim": has_light_stim,
+            "has_drug_analysis": has_drug_analysis,
         })
     return recordings
 
