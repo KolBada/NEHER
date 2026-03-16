@@ -1852,13 +1852,18 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
     drug_readout_minute = state.get('drugReadoutMinute', 3)
     
     # Default concentrations for common drugs (fallback if not set)
+    # These match the frontend DRUG_CONFIG defaults
     default_concentrations = {
-        'tetrodotoxin': 1,
-        'isoproterenol': 100,
-        'carbachol': 10,
-        'nifedipine': 1,
-        'e4031': 1,
-        'dofetilide': 0.01,
+        'tetrodotoxin': '1',
+        'isoproterenol': '1',
+        'acetylcholine': '1',
+        'propranolol': '5',
+        'nepicastat': '30',
+        'ruxolitinib': '2',
+        'carbachol': '10',
+        'nifedipine': '1',
+        'e4031': '1',
+        'dofetilide': '0.01',
     }
     
     result['drug_info'] = []

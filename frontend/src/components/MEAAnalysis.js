@@ -1404,6 +1404,17 @@ export default function MEAAnalysis({
       }
     }
     
+    // Ensure drugSettings has concentration for all selected drugs (use defaults if not set)
+    const completeDrugSettings = {};
+    selectedDrugs.forEach(drugKey => {
+      const cfg = DRUG_CONFIG[drugKey];
+      const existing = drugSettings[drugKey] || {};
+      completeDrugSettings[drugKey] = {
+        ...existing,
+        concentration: existing.concentration ?? cfg?.defaultConc ?? ''
+      };
+    });
+    
     return {
       source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
       type: 'MEA',
@@ -1421,7 +1432,7 @@ export default function MEAAnalysis({
       // Drug settings
       drugEnabled,
       selectedDrugs,
-      drugSettings,
+      drugSettings: completeDrugSettings,
       drugPerfTime,
       drugReadoutMinute,
       // Light settings
