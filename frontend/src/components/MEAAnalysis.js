@@ -2183,97 +2183,48 @@ export default function MEAAnalysis({
       </header>
       
       {/* ================================================================
-          MAIN CONTENT
+          BACKGROUND AMBIENT LIGHTS - Behind all content
       ================================================================ */}
-      <main className="p-6 pt-20 relative z-10 max-w-[1800px] mx-auto">
-        {/* Background Glass Lights - enhanced ambient glow matching glassmorphism aesthetic */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-          {/* Primary ambient light - top-left (emerald/teal) - SSE style */}
-          <div 
-            className="absolute -top-20 -left-20 w-[700px] h-[700px] rounded-full"
-            style={{ 
-              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(6, 182, 212, 0.15) 40%, transparent 70%)',
-              opacity: 0.25,
-              filter: 'blur(60px)',
-            }} 
-          />
-          {/* Secondary ambient light - bottom-right (blue/cyan) */}
-          <div 
-            className="absolute -bottom-20 -right-20 w-[700px] h-[700px] rounded-full"
-            style={{ 
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, rgba(59, 130, 246, 0.15) 40%, transparent 70%)',
-              opacity: 0.2,
-              filter: 'blur(60px)',
-            }} 
-          />
-          {/* Center accent - subtle emerald glow */}
-          <div 
-            className="absolute top-1/4 left-1/2 w-[800px] h-[500px] rounded-full"
-            style={{ 
-              background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.2) 0%, transparent 60%)',
-              transform: 'translateX(-50%)',
-              opacity: 0.15,
-              filter: 'blur(80px)',
-            }} 
-          />
-          {/* Tab-specific accent lights */}
-          {activeTab === 'parameters' && (
-            <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 60%)', 
-                transform: 'translateX(-50%)',
-                opacity: 0.12,
-                filter: 'blur(40px)',
-              }} 
-            />
-          )}
-          {activeTab === 'spontaneous' && (
-            <div 
-              className="absolute top-1/3 left-1/2 w-[700px] h-[700px] rounded-full"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(244, 206, 162, 0.5) 0%, rgba(16, 185, 129, 0.2) 50%, transparent 70%)', 
-                transform: 'translateX(-50%)',
-                opacity: 0.15,
-                filter: 'blur(50px)',
-              }} 
-            />
-          )}
-          {activeTab === 'light' && (
-            <div 
-              className="absolute top-1/3 left-1/2 w-[700px] h-[700px] rounded-full"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, rgba(250, 204, 21, 0.2) 50%, transparent 70%)', 
-                transform: 'translateX(-50%)',
-                opacity: 0.18,
-                filter: 'blur(50px)',
-              }} 
-            />
-          )}
-          {activeTab === 'save' && (
-            <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(20, 184, 166, 0.2) 50%, transparent 70%)', 
-                transform: 'translateX(-50%)',
-                opacity: 0.12,
-                filter: 'blur(40px)',
-              }} 
-            />
-          )}
-          {activeTab === 'export' && (
-            <div 
-              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full"
-              style={{ 
-                background: 'radial-gradient(circle, rgba(20, 184, 166, 0.5) 0%, rgba(6, 182, 212, 0.2) 50%, transparent 70%)', 
-                transform: 'translateX(-50%)',
-                opacity: 0.12,
-                filter: 'blur(40px)',
-              }} 
-            />
-          )}
-        </div>
-        
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+        {/* Primary ambient light - top-left (emerald/teal) */}
+        <div 
+          className="absolute -top-40 -left-40 w-[900px] h-[900px] rounded-full"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(6, 182, 212, 0.25) 40%, transparent 70%)',
+            filter: 'blur(100px)',
+          }} 
+        />
+        {/* Secondary ambient light - bottom-right (blue/cyan) */}
+        <div 
+          className="absolute -bottom-40 -right-40 w-[900px] h-[900px] rounded-full"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, rgba(59, 130, 246, 0.2) 40%, transparent 70%)',
+            filter: 'blur(100px)',
+          }} 
+        />
+        {/* Center accent - emerald glow */}
+        <div 
+          className="absolute top-1/3 left-1/2 w-[1000px] h-[600px] rounded-full"
+          style={{ 
+            background: 'radial-gradient(ellipse, rgba(16, 185, 129, 0.3) 0%, transparent 60%)',
+            transform: 'translateX(-50%)',
+            filter: 'blur(120px)',
+          }} 
+        />
+        {/* Top-right accent - subtle cyan */}
+        <div 
+          className="absolute top-20 right-1/4 w-[500px] h-[500px] rounded-full"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 60%)',
+            filter: 'blur(80px)',
+          }} 
+        />
+      </div>
+      
+      {/* ================================================================
+          MAIN CONTENT - Above background lights
+      ================================================================ */}
+      <main className="p-6 pt-20 relative max-w-[1800px] mx-auto" style={{ zIndex: 5 }}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Section Selector Bar - SSE-aligned */}
           <div className="flex items-center gap-3 mb-6">
