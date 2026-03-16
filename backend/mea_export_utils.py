@@ -155,6 +155,8 @@ def generate_mea_csv_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
         drugs = analysis_state.get('selectedDrugs', [])
         if drugs:
             lines.append(f"Drug,{drugs[0]}")
+        perf_time = analysis_state.get('drugPerfTime', 0)
+        lines.append(f"Perf. Time,{perf_time} min")
         lines.append(f"Spike Rate,{safe_float(well_analysis.get('drugSpikeHz'), 0):.4f} Hz")
         lines.append(f"Burst Rate,{safe_float(well_analysis.get('drugBurstBpm'), 0):.4f} bpm")
         lines.append("")
@@ -344,6 +346,12 @@ def generate_mea_xlsx_export(analysis_state: Dict, well_analysis: Dict) -> bytes
         ws_summary.cell(row=row, column=1).fill = drug_fill
         ws_summary.cell(row=row, column=2).fill = drug_fill
         row += 1
+        perf_time = analysis_state.get('drugPerfTime', 0)
+        ws_summary.cell(row=row, column=1, value="Perf. Time")
+        ws_summary.cell(row=row, column=2, value=f"{perf_time} min")
+        ws_summary.cell(row=row, column=1).fill = drug_fill
+        ws_summary.cell(row=row, column=2).fill = drug_fill
+        row += 1
         ws_summary.cell(row=row, column=1, value="Spike Rate")
         ws_summary.cell(row=row, column=2, value=f"{safe_float(well_analysis.get('drugSpikeHz'), 0):.4f} Hz")
         ws_summary.cell(row=row, column=1).fill = drug_fill
@@ -363,13 +371,34 @@ def generate_mea_xlsx_export(analysis_state: Dict, well_analysis: Dict) -> bytes
         ws_summary.cell(row=row, column=1).fill = PatternFill(start_color="f59e0b", end_color="f59e0b", fill_type="solid")
         ws_summary.cell(row=row, column=2).fill = PatternFill(start_color="f59e0b", end_color="f59e0b", fill_type="solid")
         row += 1
+        # Baseline metrics in cyan text
+        cyan_font = Font(color='22d3ee')
+        ws_summary.cell(row=row, column=1, value="Baseline Spike").font = cyan_font
+        ws_summary.cell(row=row, column=2, value=f"{safe_float(avg.get('baselineSpikeHz'), 0):.4f} Hz").font = cyan_font
+        ws_summary.cell(row=row, column=1).fill = light_fill
+        ws_summary.cell(row=row, column=2).fill = light_fill
+        row += 1
+        # Regular metrics
         metrics = [
-            ("Baseline Spike", f"{safe_float(avg.get('baselineSpikeHz'), 0):.4f} Hz"),
             ("Avg Spike", f"{safe_float(avg.get('avgSpikeHz'), 0):.4f} Hz"),
             ("Avg Spike (Norm.)", f"{safe_float(avg.get('spikeChangePct'), 0):.1f}%"),
             ("Peak Spike", f"{safe_float(avg.get('maxSpikeHz'), 0):.4f} Hz"),
             ("Peak Spike (Norm.)", f"{safe_float(avg.get('maxSpikeChangePct'), 0):.1f}%"),
-            ("Baseline Burst", f"{safe_float(avg.get('baselineBurstBpm'), 0):.4f} bpm"),
+        ]
+        for label, value in metrics:
+            ws_summary.cell(row=row, column=1, value=label)
+            ws_summary.cell(row=row, column=2, value=value)
+            ws_summary.cell(row=row, column=1).fill = light_fill
+            ws_summary.cell(row=row, column=2).fill = light_fill
+            row += 1
+        # Baseline Burst in cyan
+        ws_summary.cell(row=row, column=1, value="Baseline Burst").font = cyan_font
+        ws_summary.cell(row=row, column=2, value=f"{safe_float(avg.get('baselineBurstBpm'), 0):.4f} bpm").font = cyan_font
+        ws_summary.cell(row=row, column=1).fill = light_fill
+        ws_summary.cell(row=row, column=2).fill = light_fill
+        row += 1
+        # More regular metrics
+        metrics = [
             ("Avg Burst", f"{safe_float(avg.get('avgBurstBpm'), 0):.4f} bpm"),
             ("Avg Burst (Norm.)", f"{safe_float(avg.get('burstChangePct'), 0):.1f}%"),
             ("Peak Burst", f"{safe_float(avg.get('maxBurstBpm'), 0):.4f} bpm"),
@@ -727,6 +756,8 @@ def generate_mea_pdf_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
             y_right = draw_header(fig1, right_x, y_right, 'DRUG READOUT', COLORS['purple'], width=col_width)
             drugs = analysis_state.get('selectedDrugs', [])
             y_right = draw_row(fig1, right_x, y_right, 'Drug:', drugs[0] if drugs else '', TINTS['drug'], width=col_width)
+            perf_time = analysis_state.get('drugPerfTime', 0)
+            y_right = draw_row(fig1, right_x, y_right, 'Perf. Time:', f"{perf_time} min", TINTS['drug'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Spike Rate:', f"{safe_float(well_analysis.get('drugSpikeHz'), 0):.4f} Hz", TINTS['drug'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Burst Rate:', f"{safe_float(well_analysis.get('drugBurstBpm'), 0):.4f} bpm", TINTS['drug'], width=col_width)
             y_right -= section_gap
@@ -736,12 +767,28 @@ def generate_mea_pdf_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
         if analysis_state.get('lightEnabled') and light_metrics:
             avg = light_metrics.get('avg', {})
             y_right = draw_header(fig1, right_x, y_right, 'LIGHT STIMULUS READOUT', COLORS['amber'], width=col_width)
-            y_right = draw_row(fig1, right_x, y_right, 'Baseline Spike:', f"{safe_float(avg.get('baselineSpikeHz'), 0):.4f} Hz", TINTS['light'], width=col_width)
+            # Baseline Spike - cyan text
+            if TINTS['light']:
+                fig1.add_artist(mpatches.Rectangle(
+                    (right_x, y_right - 0.008), col_width, 0.020,
+                    facecolor=TINTS['light'], edgecolor='none', transform=fig1.transFigure
+                ))
+            fig1.text(right_x + 0.01, y_right, 'Baseline Spike:', fontsize=8, color='#22d3ee', va='center')
+            fig1.text(right_x + 0.18, y_right, f"{safe_float(avg.get('baselineSpikeHz'), 0):.4f} Hz", fontsize=8, fontweight='bold', color='#22d3ee', va='center')
+            y_right -= 0.020
             y_right = draw_row(fig1, right_x, y_right, 'Avg Spike:', f"{safe_float(avg.get('avgSpikeHz'), 0):.4f} Hz", TINTS['light'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Avg Spike (Norm.):', f"{safe_float(avg.get('spikeChangePct'), 0):.1f}%", TINTS['light'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Peak Spike:', f"{safe_float(avg.get('maxSpikeHz'), 0):.4f} Hz", TINTS['light'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Peak Spike (Norm.):', f"{safe_float(avg.get('maxSpikeChangePct'), 0):.1f}%", TINTS['light'], width=col_width)
-            y_right = draw_row(fig1, right_x, y_right, 'Baseline Burst:', f"{safe_float(avg.get('baselineBurstBpm'), 0):.4f} bpm", TINTS['light'], width=col_width)
+            # Baseline Burst - cyan text
+            if TINTS['light']:
+                fig1.add_artist(mpatches.Rectangle(
+                    (right_x, y_right - 0.008), col_width, 0.020,
+                    facecolor=TINTS['light'], edgecolor='none', transform=fig1.transFigure
+                ))
+            fig1.text(right_x + 0.01, y_right, 'Baseline Burst:', fontsize=8, color='#22d3ee', va='center')
+            fig1.text(right_x + 0.18, y_right, f"{safe_float(avg.get('baselineBurstBpm'), 0):.4f} bpm", fontsize=8, fontweight='bold', color='#22d3ee', va='center')
+            y_right -= 0.020
             y_right = draw_row(fig1, right_x, y_right, 'Avg Burst:', f"{safe_float(avg.get('avgBurstBpm'), 0):.4f} bpm", TINTS['light'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Avg Burst (Norm.):', f"{safe_float(avg.get('burstChangePct'), 0):.1f}%", TINTS['light'], width=col_width)
             y_right = draw_row(fig1, right_x, y_right, 'Peak Burst:', f"{safe_float(avg.get('maxBurstBpm'), 0):.4f} bpm", TINTS['light'], width=col_width)
