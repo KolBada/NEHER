@@ -1241,7 +1241,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               <h2 className="text-xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison: {folder.name}</h2>
               <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>{summary?.recording_count || 0} recordings</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-12">
               <Button
                 variant="outline"
                 size="sm"
