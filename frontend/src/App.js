@@ -1238,6 +1238,7 @@ function App() {
           plate_id: state.plate_id,
           electrode_filter: state.electrode_filter,
           environmental_data: state.environmental_data,
+          source_files: state.source_files || {},
         });
         setMeaConfig(state.config);
         setAppView('mea-analysis');

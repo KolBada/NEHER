@@ -1099,7 +1099,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   
   // Get drug name for display in chart badges
   const activeDrugName = drugEnabled && selectedDrugs.length > 0 
-    ? selectedDrugs.map(d => MEA_DRUGS[d]?.name || d).join(', ')
+    ? selectedDrugs.map(d => DRUG_CONFIG[d]?.name || d).join(', ')
     : null;
 
   // ===========================================================================

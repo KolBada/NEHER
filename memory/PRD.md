@@ -271,6 +271,8 @@ Comprehensive UI/UX polish implementing SSE-style features:
 - ✅ Synchronized zoom/pan across Light Stimulus charts (December 2025)
 - ✅ Extended per-stim metrics table with additional columns (December 2025)
 - ✅ Drug/Light overlay boxes on rasters (December 2025)
+- ✅ Fixed drug selection error (MEA_DRUGS → DRUG_CONFIG) (December 2025)
+- ✅ Fixed saved MEA recording loading (source_files now restored) (December 2025)
 
 ### P1 - High Priority (Upcoming)
 - Build MEA Save Recording tab (adapt from SSE SaveRecording.js)
