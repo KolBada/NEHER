@@ -210,7 +210,7 @@ function buildBurstRaster(bursts, activeElectrodes) {
 
 // Enhanced Spike Trace with zoom controls (no brush)
 const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({ 
-  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "SPIKE TRACE" 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "SPIKE TRACE", drugName = null 
 }) {
   const handleZoomIn = () => {
     if (!data?.length) return;
@@ -248,6 +248,9 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#10b981' }}>{title}</span>
           {stimCount > 0 && (
             <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+          {drugName && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>{drugName}</Badge>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -312,7 +315,7 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
 
 // Enhanced Burst Trace with zoom controls (no brush)
 const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({ 
-  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "BURST TRACE" 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "BURST TRACE", drugName = null 
 }) {
   const handleZoomIn = () => {
     if (!data?.length) return;
@@ -350,6 +353,9 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>{title}</span>
           {stimCount > 0 && (
             <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+          {drugName && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>{drugName}</Badge>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -414,7 +420,7 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
 
 // Enhanced Spike Raster with zoom controls
 const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({ 
-  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange 
+  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange, drugName = null 
 }) {
   const handleZoomIn = () => {
     const [min, max] = zoomDomain || [0, duration];
@@ -441,6 +447,7 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
   const color = '#10b981';
   const nElectrodes = electrodes.length;
   const domain = zoomDomain || [0, duration];
+  const stimCount = lightPulses?.length || 0;
   
   return (
     <div>
@@ -449,6 +456,12 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
+          {stimCount > 0 && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+          {drugName && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>{drugName}</Badge>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
@@ -506,7 +519,7 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
 
 // Enhanced Burst Raster with zoom controls
 const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({ 
-  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange 
+  data, electrodes, duration, lightPulses, drugWindow, zoomDomain, onZoomChange, drugName = null 
 }) {
   const handleZoomIn = () => {
     const [min, max] = zoomDomain || [0, duration];
@@ -530,6 +543,7 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
   const color = '#f97316';
   const nElectrodes = electrodes?.length || 0;
   const domain = zoomDomain || [0, duration];
+  const stimCount = lightPulses?.length || 0;
   
   // Transform burst data to scatter points (use midpoint for positioning)
   const scatterData = useMemo(() => (data || []).map((b, idx) => ({
@@ -551,6 +565,12 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
+          {stimCount > 0 && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
+          )}
+          {drugName && (
+            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>{drugName}</Badge>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomIn} title="Zoom In">
@@ -1058,6 +1078,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     // Include MEA-specific metadata for proper routing
     n_active_electrodes: wellAnalysis?.nActiveElectrodes || 0,
     duration_s: duration,
+    // Include source file names for MEA (5 CSV files)
+    source_files: meaData?.source_files || {},
+    plate_id: meaData?.plate_id || 'MEA_plate',
+    // Generate a readable filename for display
+    original_filename: Object.values(meaData?.source_files || {}).join(', ') || 'MEA Recording',
   }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Drug window for visualization
@@ -1071,6 +1096,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   
   // Drug readout minute for metric calculation
   const drugReadoutTime = drugPerfTime + drugReadoutMinute; // Combined time for readout
+  
+  // Get drug name for display in chart badges
+  const activeDrugName = drugEnabled && selectedDrugs.length > 0 
+    ? selectedDrugs.map(d => MEA_DRUGS[d]?.name || d).join(', ')
+    : null;
 
   // ===========================================================================
   // Light Stimulus Detection and Computation Handlers
@@ -1547,6 +1577,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     zoomDomain={parametersZoomDomain}
                     onZoomChange={setParametersZoomDomain}
                     title="SPIKE TRACE"
+                    drugName={activeDrugName}
                   />
                   {/* Burst Trace with Zoom */}
                   <BurstTraceChartWithZoom 
@@ -1557,6 +1588,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     zoomDomain={parametersZoomDomain}
                     onZoomChange={setParametersZoomDomain}
                     title="BURST TRACE"
+                    drugName={activeDrugName}
                   />
                 </div>
               </div>
@@ -1688,6 +1720,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       zoomDomain={spontaneousZoomDomain}
                       onZoomChange={setSpontaneousZoomDomain}
                       title="SPIKE TRACE"
+                      drugName={activeDrugName}
                     />
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
@@ -1699,6 +1732,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       zoomDomain={spontaneousZoomDomain}
                       onZoomChange={setSpontaneousZoomDomain}
                       title="BURST TRACE"
+                      drugName={activeDrugName}
                     />
                   </div>
                 </div>
@@ -1714,6 +1748,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       lightPulses={lightEnabled ? lightPulses : null}
                       zoomDomain={spontaneousZoomDomain}
                       onZoomChange={setSpontaneousZoomDomain}
+                      drugName={activeDrugName}
                     />
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
@@ -1725,6 +1760,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       lightPulses={lightEnabled ? lightPulses : null}
                       zoomDomain={spontaneousZoomDomain}
                       onZoomChange={setSpontaneousZoomDomain}
+                      drugName={activeDrugName}
                     />
                   </div>
                 </div>
@@ -2122,9 +2158,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
                         
-                        {/* Start: () < > - adjust by spike bin */}
+                        {/* Start: (value) < > - adjust by spike bin */}
                         <span className="text-[9px] text-zinc-500">Start:</span>
-                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s)</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
                             onClick={() => handleAdjustPulseStart(currentParams.spikeBinS, -1)}
@@ -2140,9 +2176,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           </Button>
                         </div>
                         
-                        {/* End: () < > - adjust by spike bin */}
+                        {/* End: (value) < > - adjust by spike bin */}
                         <span className="text-[9px] text-zinc-500">End:</span>
-                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s)</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
                             onClick={() => handleAdjustPulseEnd(currentParams.spikeBinS, -1)}
@@ -2161,7 +2197,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <div className="h-4 w-px bg-zinc-700" />
                         <span className="text-[9px] text-zinc-500">or Click</span>
                         
-                        {/* Click Start/End buttons */}
+                        {/* Click Start/End buttons with info tooltip */}
                         <div className="flex items-center gap-1">
                           <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
                             className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
@@ -2171,6 +2207,16 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3 h-3 text-zinc-500 cursor-help ml-1" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[280px] text-xs">
+                              <p className="font-medium mb-1">Manual Light Detection</p>
+                              <p className="text-zinc-400">Use the arrows to adjust the Start/End boundaries by one bin at a time.</p>
+                              <p className="text-zinc-400 mt-1">Or click "Start" or "End" then click on the trace to set the boundary at that time point.</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         
                         <div className="h-4 w-px bg-zinc-700" />
@@ -2270,9 +2316,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
                         
-                        {/* Start: () < > - adjust by burst bin */}
+                        {/* Start: (value) < > - adjust by burst bin */}
                         <span className="text-[9px] text-zinc-500">Start:</span>
-                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s)</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
                             onClick={() => handleAdjustPulseStart(currentParams.burstBinS, -1)}
@@ -2288,9 +2334,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           </Button>
                         </div>
                         
-                        {/* End: () < > - adjust by burst bin */}
+                        {/* End: (value) < > - adjust by burst bin */}
                         <span className="text-[9px] text-zinc-500">End:</span>
-                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s)</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
                             onClick={() => handleAdjustPulseEnd(currentParams.burstBinS, -1)}
@@ -2309,7 +2355,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <div className="h-4 w-px bg-zinc-700" />
                         <span className="text-[9px] text-zinc-500">or Click</span>
                         
-                        {/* Click Start/End buttons */}
+                        {/* Click Start/End buttons with info tooltip */}
                         <div className="flex items-center gap-1">
                           <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
                             className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
@@ -2319,6 +2365,16 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3 h-3 text-zinc-500 cursor-help ml-1" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[280px] text-xs">
+                              <p className="font-medium mb-1">Manual Light Detection</p>
+                              <p className="text-zinc-400">Use the arrows to adjust the Start/End boundaries by one bin at a time.</p>
+                              <p className="text-zinc-400 mt-1">Or click "Start" or "End" then click on the trace to set the boundary at that time point.</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         
                         <div className="h-4 w-px bg-zinc-700" />
@@ -2345,6 +2401,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       drugWindow={drugWindow}
                       zoomDomain={lightZoomDomain}
                       onZoomChange={setLightZoomDomain}
+                      drugName={activeDrugName}
                     />
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden p-4" style={{ borderLeft: '3px solid #f97316' }}>
@@ -2356,6 +2413,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       drugWindow={drugWindow}
                       zoomDomain={lightZoomDomain}
                       onZoomChange={setLightZoomDomain}
+                      drugName={activeDrugName}
                     />
                   </div>
                 </div>

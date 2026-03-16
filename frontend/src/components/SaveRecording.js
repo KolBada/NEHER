@@ -167,10 +167,15 @@ export default function SaveRecording({
         toast.success('Recording updated');
       } else {
         // Create new recording
+        // Use original_filename for MEA (CSV files) or filename for SSE (ABF file)
+        const displayFilename = currentAnalysisState?.original_filename 
+          || currentAnalysisState?.filename 
+          || (currentAnalysisState?.source_files ? Object.values(currentAnalysisState.source_files).join(', ') : 'unknown.abf');
+        
         const response = await api.createRecording({
           folder_id: folderId,
           name: recordingName,
-          filename: currentAnalysisState?.filename || 'unknown.abf',
+          filename: displayFilename,
           analysis_state: stateToSave,
         });
         recordingId = response.data.id;
@@ -191,15 +196,16 @@ export default function SaveRecording({
 
   if (saved) {
     return (
-      <Card className="bg-[#0c0c0e] border-zinc-800 rounded-sm border-t-2 border-t-emerald-600">
-        <CardContent className="p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-900/30 flex items-center justify-center mx-auto mb-4">
-            <Check className="w-6 h-6 text-emerald-400" />
-          </div>
-          <h3 className="text-lg font-medium text-zinc-100 mb-2">Recording Saved</h3>
-          <p className="text-sm text-zinc-500">Your analysis has been saved successfully.</p>
-        </CardContent>
-      </Card>
+      <div className="glass-surface-subtle rounded-xl p-8 text-center" style={{ borderLeft: `3px solid ${accentColor}` }}>
+        <div 
+          className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+          style={{ background: isMEA ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 206, 162, 0.15)', border: `1px solid ${isMEA ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 206, 162, 0.3)'}` }}
+        >
+          <Check className="w-7 h-7" style={{ color: accentColor }} />
+        </div>
+        <h3 className="text-lg font-display font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Recording Saved</h3>
+        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Your analysis has been saved successfully.</p>
+      </div>
     );
   }
 

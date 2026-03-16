@@ -177,7 +177,15 @@ Comprehensive UI/UX polish implementing SSE-style features:
 5. **Drug Overlay on Zoom Fixed:** ReferenceArea now uses clipped bounds (Math.max/min with zoomDomain) and `ifOverflow="hidden"`
 6. **Reset Button:** Now only shows when zoomed (isZoomed check)
 7. **Time Axis Format:** X-axis now shows 1 decimal place via `tickFormatter={(v) => v.toFixed(1)}`
-   - Same design as SSE Save Recording
+
+**MEA Chart Badges & UI Polish (December 2025):**
+1. **Stim Count Badges:** Added "X stims" amber badge to all traces and rasters (Parameters, Spontaneous, Light Stimulus)
+2. **Drug Name Badges:** Added purple drug name badge to all traces and rasters when drug is selected
+3. **Stim Editor Values:** Start/End now show actual time values like `Start: (180.0s)` instead of empty `()`
+4. **Info Tooltip:** Added (i) tooltip explaining manual light detection (arrows adjust by bin, click sets exact position)
+5. **MEA File Saving Fixed:** Now saves actual CSV file names instead of "unknown.abf" - uses `source_files` from meaData
+6. **SSE Badge:** Added "SSE" badge (in F4CEA2 color) for non-MEA recordings in folder view
+7. **Save Success Glassmorphism:** Updated save confirmation box to use glassmorphism styling with accent color border
 
 **Bug Fixes (December 2025):**
 - Fixed React hooks violation: Moved `useMemo` in BurstRasterPlot before early return (was causing app crash)

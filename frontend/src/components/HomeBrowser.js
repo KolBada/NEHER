@@ -1629,7 +1629,7 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{recording.name}</h3>
-                            {/* Source type badge */}
+                            {/* Source type badge - MEA */}
                             {recording.source_type === 'MEA' && (
                               <Badge 
                                 className="text-[9px] px-2 py-0.5 rounded-full"
@@ -1640,6 +1640,19 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                                 }}
                               >
                                 MEA
+                              </Badge>
+                            )}
+                            {/* Source type badge - SSE */}
+                            {recording.source_type !== 'MEA' && (
+                              <Badge 
+                                className="text-[9px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(244, 206, 162, 0.15)',
+                                  border: '1px solid rgba(244, 206, 162, 0.3)',
+                                  color: '#F4CEA2',
+                                }}
+                              >
+                                SSE
                               </Badge>
                             )}
                           </div>

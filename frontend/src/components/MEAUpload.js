@@ -657,6 +657,11 @@ export default function MEAUpload({ onDataParsed, onBack, preloadedFiles }) {
         environmental_data: envData,
         plate_id: plateId,
         electrode_filter: electrodeFilter,
+        // Store original file names for save/reload
+        source_files: Object.keys(files).reduce((acc, key) => {
+          acc[key] = files[key].name;
+          return acc;
+        }, {}),
       };
       
       setParsedData(result);
