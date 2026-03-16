@@ -772,13 +772,31 @@ const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, durati
 
 // Temperature trace chart for environmental data
 const TemperatureTraceChart = memo(function TemperatureTraceChart({ data, duration, zoomDomain }) {
-  if (!data?.length) {
+  // Process data to ensure proper format - handle various field name formats
+  const processedData = useMemo(() => {
+    if (!data?.length) return [];
+    return data.map(d => {
+      // Handle timestamp - could be 'timestamp' or parse from string like "00001.000000"
+      let ts = d.timestamp;
+      if (typeof ts === 'string') ts = parseFloat(ts);
+      if (isNaN(ts)) ts = 0;
+      
+      // Handle temperature - could be 'temperature' or 'plate_temperature' 
+      let temp = d.temperature ?? d.plate_temperature;
+      if (typeof temp === 'string') temp = parseFloat(temp);
+      if (isNaN(temp)) return null;
+      
+      return { timestamp: ts, temperature: temp };
+    }).filter(d => d !== null && d.temperature > 0);
+  }, [data]);
+  
+  if (!processedData?.length) {
     return <div className="h-32 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No temperature data</div>;
   }
   
   // Filter data to zoom domain if provided
   const domain = zoomDomain || [0, duration];
-  const filteredData = data.filter(d => d.timestamp >= domain[0] && d.timestamp <= domain[1]);
+  const filteredData = processedData.filter(d => d.timestamp >= domain[0] && d.timestamp <= domain[1]);
   
   return (
     <div className="h-32">
@@ -789,6 +807,7 @@ const TemperatureTraceChart = memo(function TemperatureTraceChart({ data, durati
             dataKey="timestamp" 
             stroke="rgba(255,255,255,0.3)" 
             tick={{ fontSize: 9, fill: '#71717a' }} 
+            tickFormatter={(value) => value.toFixed(1)}
             label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
             domain={domain}
             type="number"
@@ -802,7 +821,7 @@ const TemperatureTraceChart = memo(function TemperatureTraceChart({ data, durati
           <RechartsTooltip 
             contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }}
             formatter={(value) => [`${value.toFixed(2)} °C`, 'Temperature']}
-            labelFormatter={(label) => `Time: ${label.toFixed(1)}s`}
+            labelFormatter={(label) => `Time: ${parseFloat(label).toFixed(1)}s`}
           />
           <Line type="monotone" dataKey="temperature" stroke="#ef4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>

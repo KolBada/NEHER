@@ -102,6 +102,10 @@ function parseAxionCSV(text, fileType) {
     if (cleaned === 'number_of_electrodes') {
       cleaned = 'electrode_count';
     }
+    // Normalize temperature fields
+    if (cleaned === 'plate_temperature' || cleaned === 'current_temperature') {
+      cleaned = 'temperature';
+    }
     
     dataHeaders.push(cleaned);
   }
