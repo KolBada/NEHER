@@ -1642,36 +1642,48 @@ export default function MEAAnalysis({
             })}
           </div>
           
-          {/* Right: Go to Folder + Comparison */}
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 text-xs px-3 rounded-xl transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                color: 'var(--text-secondary)',
-              }}
-              onClick={() => toast.info('Go to Folder coming soon')}
-            >
-              <FolderOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Folder
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 text-xs px-3 rounded-xl transition-all"
-              style={{
-                background: 'rgba(20, 184, 166, 0.12)',
-                border: '1px solid rgba(20, 184, 166, 0.35)',
-                color: 'var(--accent-teal)',
-                boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
-              }}
-              onClick={() => toast.info('Comparison coming soon')}
-            >
-              <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
-            </Button>
-          </div>
+          {/* Right: Go to Folder + Comparison - only show when saved */}
+          {savedRecordingId && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs px-3 rounded-xl transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  color: 'var(--text-secondary)',
+                }}
+                onClick={() => {
+                  if (savedFolderId && savedFolderName) {
+                    onHome();
+                    toast.success(`Navigate to folder: ${savedFolderName}`, {
+                      description: 'Click the folder in the Saved Recordings section',
+                    });
+                  } else {
+                    onHome();
+                    toast.info('Recording not assigned to a folder');
+                  }
+                }}
+              >
+                <FolderOpen className="w-3.5 h-3.5 mr-1.5" /> Go to Folder
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs px-3 rounded-xl transition-all"
+                style={{
+                  background: 'rgba(20, 184, 166, 0.12)',
+                  border: '1px solid rgba(20, 184, 166, 0.35)',
+                  color: 'var(--accent-teal)',
+                  boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
+                }}
+                onClick={() => toast.info('Comparison coming soon')}
+              >
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
+              </Button>
+            </div>
+          )}
         </div>
       </header>
       
@@ -2259,8 +2271,13 @@ export default function MEAAnalysis({
                           <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
                           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
                           {lightEnabled && lightPulses && (
-                            <Badge variant="outline" className="text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
                               {lightPulses.length} stims
+                            </Badge>
+                          )}
+                          {drugEnabled && activeDrugName && (
+                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#a855f7', color: '#a855f7', background: 'rgba(168, 85, 247, 0.1)' }}>
+                              {activeDrugName}
                             </Badge>
                           )}
                         </div>
@@ -2433,8 +2450,13 @@ export default function MEAAnalysis({
                           <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
                           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Trace</span>
                           {lightEnabled && lightPulses && (
-                            <Badge variant="outline" className="text-[9px]" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
+                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
                               {lightPulses.length} stims
+                            </Badge>
+                          )}
+                          {drugEnabled && activeDrugName && (
+                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#a855f7', color: '#a855f7', background: 'rgba(168, 85, 247, 0.1)' }}>
+                              {activeDrugName}
                             </Badge>
                           )}
                         </div>

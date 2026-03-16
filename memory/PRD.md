@@ -284,6 +284,9 @@ Comprehensive UI/UX polish implementing SSE-style features:
   - Cancel reverts to last saved version
   - "Update Recording" button in Save Recording tab for modified saved recordings
   - Dirty state tracks: params, drug, light, baseline, recording metadata changes
+- ✅ Light Stimulus Trace badges: Added stims and drug indicator badges to SPIKE TRACE and BURST TRACE headers (March 2026)
+- ✅ Go to Folder button: Only shown when recording is saved, navigates to home with toast showing folder name (March 2026)
+- ✅ Comparison button: Only shown when recording is saved (March 2026)
 
 ### P1 - High Priority (Upcoming)
 - Build MEA Export tab (adapt from SSE ExportPanel.js)
