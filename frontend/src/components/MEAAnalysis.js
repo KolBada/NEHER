@@ -2071,15 +2071,24 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               dataKey="time" 
                               stroke="rgba(255,255,255,0.3)" 
                               tick={{ fontSize: 9, fill: '#71717a' }} 
+                              tickFormatter={(v) => v.toFixed(1)}
                               label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
-                              domain={lightZoomDomain || ['dataMin', 'dataMax']}
+                              domain={lightZoomDomain || [0, duration]}
                               allowDataOverflow
                               type="number"
                             />
                             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
                             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
                             {/* Drug window overlay (purple) */}
-                            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+                            {drugWindow && (
+                              <ReferenceArea 
+                                x1={Math.max(drugWindow.start, (lightZoomDomain?.[0] || 0))} 
+                                x2={Math.min(drugWindow.end, (lightZoomDomain?.[1] || duration))} 
+                                fill="#a855f7" 
+                                fillOpacity={0.15} 
+                                ifOverflow="hidden"
+                              />
+                            )}
                             {/* Light pulse regions */}
                             {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                               <ReferenceArea
@@ -2099,20 +2108,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               />
                             ))}
                             <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                            <Brush 
-                              dataKey="time" 
-                              height={18} 
-                              stroke="#52525b" 
-                              fill="transparent" 
-                              tickFormatter={(v) => `${Math.floor(v)}s`}
-                              onChange={(e) => {
-                                if (e.startIndex !== undefined && e.endIndex !== undefined && wellAnalysis.spikeRateBins.length > 0) {
-                                  const start = wellAnalysis.spikeRateBins[e.startIndex]?.time || 0;
-                                  const end = wellAnalysis.spikeRateBins[e.endIndex]?.time || duration;
-                                  setLightZoomDomain([start, end]);
-                                }
-                              }}
-                            />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
@@ -2224,15 +2219,24 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               dataKey="time" 
                               stroke="rgba(255,255,255,0.3)" 
                               tick={{ fontSize: 9, fill: '#71717a' }} 
+                              tickFormatter={(v) => v.toFixed(1)}
                               label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
-                              domain={lightZoomDomain || ['dataMin', 'dataMax']}
+                              domain={lightZoomDomain || [0, duration]}
                               allowDataOverflow
                               type="number"
                             />
                             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
                             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
                             {/* Drug window overlay (purple) */}
-                            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+                            {drugWindow && (
+                              <ReferenceArea 
+                                x1={Math.max(drugWindow.start, (lightZoomDomain?.[0] || 0))} 
+                                x2={Math.min(drugWindow.end, (lightZoomDomain?.[1] || duration))} 
+                                fill="#a855f7" 
+                                fillOpacity={0.15} 
+                                ifOverflow="hidden"
+                              />
+                            )}
                             {/* Light pulse regions */}
                             {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                               <ReferenceArea
@@ -2252,20 +2256,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               />
                             ))}
                             <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                            <Brush 
-                              dataKey="time" 
-                              height={18} 
-                              stroke="#52525b" 
-                              fill="transparent" 
-                              tickFormatter={(v) => `${Math.floor(v)}s`}
-                              onChange={(e) => {
-                                if (e.startIndex !== undefined && e.endIndex !== undefined && wellAnalysis.burstRateBins.length > 0) {
-                                  const start = wellAnalysis.burstRateBins[e.startIndex]?.time || 0;
-                                  const end = wellAnalysis.burstRateBins[e.endIndex]?.time || duration;
-                                  setLightZoomDomain([start, end]);
-                                }
-                              }}
-                            />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>

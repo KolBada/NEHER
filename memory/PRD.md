@@ -161,13 +161,22 @@ Comprehensive UI/UX polish implementing SSE-style features:
 6. **SSE-Style Stim Editor:** Added Start: () < > | End: () < > | or Click Start End layout with ±bin controls (spike trace uses spike bin, burst trace uses burst bin)
 
 **MEA Zoom Controls and Save Recording (December 2025):**
-1. **New Zoom Chart Components:** Created SpikeTraceChartWithZoom, BurstTraceChartWithZoom, SpikeRasterPlotWithZoom, BurstRasterPlotWithZoom with + - Reset buttons and brush/slider
+1. **New Zoom Chart Components:** Created SpikeTraceChartWithZoom, BurstTraceChartWithZoom, SpikeRasterPlotWithZoom, BurstRasterPlotWithZoom with + - buttons (Reset shows only when zoomed)
 2. **Parameters Tab:** Both Spike and Burst traces now have zoom controls with synchronized zoom via `parametersZoomDomain`
 3. **Spontaneous Activity Tab:** All 4 charts (spike trace, burst trace, spike raster, burst raster) now have zoom controls synchronized via `spontaneousZoomDomain`
 4. **Light Stimulus Tab:** Rasters now use zoom components synchronized with traces via `lightZoomDomain`
 5. **Save Recording Tab:** Now uses full SaveRecording component with:
    - Tissue Information (Fusion Date, Sample Info with cell type, line name, passage, differentiation date, transfection)
    - Recording Information (date, name, description, folder selection)
+
+**MEA Final Fixes (December 2025):**
+1. **MEA Recording Routing Fixed:** Added `source_type: 'MEA'` to getAnalysisState so saved MEA recordings open in MEA analysis (not SSE)
+2. **Save Recording Emerald Colors:** Added `isMEA` prop to SaveRecording component - icons and buttons now use emerald (#10b981) for MEA
+3. **Sliding Bar Removed:** Removed Brush/slider from all 6 traces (Parameters, Spontaneous, Light Stimulus)
+4. **Drug Overlay Fixed:** Purple drug box now shows on ALL traces (including Spike traces in all 3 sections)
+5. **Drug Overlay on Zoom Fixed:** ReferenceArea now uses clipped bounds (Math.max/min with zoomDomain) and `ifOverflow="hidden"`
+6. **Reset Button:** Now only shows when zoomed (isZoomed check)
+7. **Time Axis Format:** X-axis now shows 1 decimal place via `tickFormatter={(v) => v.toFixed(1)}`
    - Same design as SSE Save Recording
 
 **Bug Fixes (December 2025):**
