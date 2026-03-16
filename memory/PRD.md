@@ -152,6 +152,14 @@ Comprehensive UI/UX polish implementing SSE-style features:
 7. **Drug Boxes in Spontaneous Activity:** Purple drug overlay boxes appear on rasters when drug is selected
 8. **Parameters Tab:** Now shows stacked Spike and Burst traces in "All Electrodes Trace" section
 
+**MEA Drug/Light Overlay Fixes (December 2025):**
+1. **Drug Window Logic Fixed:** Perf. Start = when drug added (purple box starts), Perf. Time = offset from Perf. Start for readout (so if Perf.Start=3min and Perf.Time=4min, readout at 7min), purple box extends to END of recording
+2. **Purple Drug Boxes on ALL Traces:** Now appear on Spike/Burst traces in Spontaneous Activity AND Light Stimulus tabs
+3. **Amber Light Boxes in Spontaneous Activity:** Light stim boxes now show on traces AND rasters
+4. **Parameters Tab Overlays:** Both drug (purple) and light (amber) boxes appear on traces
+5. **Button Renamed:** "Validate Parameters" → "Update Parameters"
+6. **SSE-Style Stim Editor:** Added Start: () < > | End: () < > | or Click Start End layout with ±bin controls (spike trace uses spike bin, burst trace uses burst bin)
+
 **Bug Fixes (December 2025):**
 - Fixed React hooks violation: Moved `useMemo` in BurstRasterPlot before early return (was causing app crash)
 - Fixed crash with 0 active electrodes: Added all required properties to wellAnalysis early return object
