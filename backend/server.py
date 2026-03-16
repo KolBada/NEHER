@@ -17,6 +17,7 @@ import numpy as np
 import analysis
 import storage
 import export_utils
+import mea_export_utils
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1983,6 +1984,79 @@ async def export_pdf(request: ExportRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={request.filename}.pdf"}
     )
+
+
+# =============================================================================
+# MEA EXPORT ENDPOINTS
+# =============================================================================
+
+class MEAExportRequest(BaseModel):
+    analysis_state: dict
+    well_analysis: dict
+
+
+@api_router.post("/mea/export/csv")
+async def mea_export_csv(request: MEAExportRequest):
+    """Export MEA data as ZIP containing multiple CSV files"""
+    try:
+        zip_bytes = mea_export_utils.generate_mea_csv_export(
+            request.analysis_state, 
+            request.well_analysis
+        )
+        recording_name = request.analysis_state.get('recordingName', 'MEA_Export')
+        selected_well = request.analysis_state.get('selectedWell', '')
+        filename = f"{recording_name}_{selected_well}.zip"
+        
+        return StreamingResponse(
+            io.BytesIO(zip_bytes),
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/mea/export/xlsx")
+async def mea_export_xlsx(request: MEAExportRequest):
+    """Export MEA data as Excel workbook"""
+    try:
+        xlsx_bytes = mea_export_utils.generate_mea_xlsx_export(
+            request.analysis_state,
+            request.well_analysis
+        )
+        recording_name = request.analysis_state.get('recordingName', 'MEA_Export')
+        selected_well = request.analysis_state.get('selectedWell', '')
+        filename = f"{recording_name}_{selected_well}.xlsx"
+        
+        return StreamingResponse(
+            io.BytesIO(xlsx_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/mea/export/pdf")
+async def mea_export_pdf(request: MEAExportRequest):
+    """Export MEA data as PDF report"""
+    try:
+        pdf_bytes = mea_export_utils.generate_mea_pdf_export(
+            request.analysis_state,
+            request.well_analysis
+        )
+        recording_name = request.analysis_state.get('recordingName', 'MEA_Export')
+        selected_well = request.analysis_state.get('selectedWell', '')
+        filename = f"{recording_name}_{selected_well}.pdf"
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 app.include_router(api_router)
 

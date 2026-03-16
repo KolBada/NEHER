@@ -476,54 +476,7 @@ export default function MEAExportPanel({
                     <span style={{ color: 'var(--text-secondary)' }}>{burstBinS}s</span>
                   </div>
                   
-                  {/* Baseline */}
-                  {hasBaseline && (
-                    <>
-                      <Separator style={{ background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
-                      <div className="flex justify-between">
-                        <span style={{ color: '#22d3ee' }}>Baseline Minute</span>
-                        <span style={{ color: '#22d3ee' }}>{baselineMinute}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Baseline Spike Rate</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{wellAnalysis?.baselineSpikeHz?.toFixed(2) || '—'} Hz</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Baseline Burst Rate</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{wellAnalysis?.baselineBurstBpm?.toFixed(2) || '—'} bpm</span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {/* Drug */}
-                  {hasDrugMetrics && (
-                    <>
-                      <Separator style={{ background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
-                      <div className="flex justify-between">
-                        <span style={{ color: '#d946ef' }}>Drug</span>
-                        <span style={{ color: '#d946ef' }}>{selectedDrugs?.join(', ') || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Drug Spike Rate</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{wellAnalysis?.drugSpikeHz?.toFixed(2) || '—'} Hz</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Drug Burst Rate</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{wellAnalysis?.drugBurstBpm?.toFixed(2) || '—'} bpm</span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {/* Light */}
-                  {hasLightMetrics && (
-                    <>
-                      <Separator style={{ background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
-                      <div className="flex justify-between">
-                        <span style={{ color: '#f59e0b' }}>Light Stims</span>
-                        <span style={{ color: '#f59e0b' }}>{lightPulses?.length || 0}</span>
-                      </div>
-                    </>
-                  )}
+                  {/* Removed: Baseline, Drug, Light sections per user request */}
                 </div>
               </div>
             </>
