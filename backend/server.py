@@ -1997,19 +1997,19 @@ class MEAExportRequest(BaseModel):
 
 @api_router.post("/mea/export/csv")
 async def mea_export_csv(request: MEAExportRequest):
-    """Export MEA data as ZIP containing multiple CSV files"""
+    """Export MEA data as a single CSV file (SSE style)"""
     try:
-        zip_bytes = mea_export_utils.generate_mea_csv_export(
+        csv_bytes = mea_export_utils.generate_mea_csv_export(
             request.analysis_state, 
             request.well_analysis
         )
         recording_name = request.analysis_state.get('recordingName', 'MEA_Export')
         selected_well = request.analysis_state.get('selectedWell', '')
-        filename = f"{recording_name}_{selected_well}.zip"
+        filename = f"{recording_name}_{selected_well}.csv"
         
         return StreamingResponse(
-            io.BytesIO(zip_bytes),
-            media_type="application/zip",
+            io.BytesIO(csv_bytes),
+            media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     except Exception as e:

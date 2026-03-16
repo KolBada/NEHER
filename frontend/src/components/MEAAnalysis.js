@@ -987,6 +987,7 @@ export default function MEAAnalysis({
       if (state.lightEnabled !== undefined) setLightEnabled(state.lightEnabled);
       if (state.lightParams) setLightParams(state.lightParams);
       if (state.lightPulses) setLightPulses(state.lightPulses);
+      if (state.lightMetrics) setLightMetrics(state.lightMetrics); // Restore computed light metrics
       // Restore baseline settings
       if (state.baselineEnabled !== undefined) setBaselineEnabled(state.baselineEnabled);
       if (state.baselineMinute !== undefined) setBaselineMinute(state.baselineMinute);
@@ -1190,6 +1191,7 @@ export default function MEAAnalysis({
       lightEnabled,
       lightParams,
       lightPulses,
+      lightMetrics, // Save computed light stimulus metrics
       // Baseline settings
       baselineEnabled,
       baselineMinute,
@@ -1212,7 +1214,7 @@ export default function MEAAnalysis({
       // Generate a readable filename for display (one per line)
       original_filename: Object.values(meaData?.source_files || {}).join('\n') || 'MEA Recording',
     };
-  }, [selectedWell, meaData, config, wellParams, recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
+  }, [selectedWell, meaData, config, wellParams, recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, lightMetrics, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Handle save complete - update snapshot to reset dirty state and notify parent
   const handleSaveComplete = useCallback((folderId, recordingId) => {
