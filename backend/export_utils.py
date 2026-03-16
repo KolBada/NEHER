@@ -5509,8 +5509,8 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
             return None
         return drug_str
     
-    # Check if there's light stimulus data
-    has_light = any(rec.get('has_light') for rec in recordings)
+    # Check if there's light stimulus data - MEA uses 'has_light_stim' field
+    has_light = any(rec.get('has_light_stim') or rec.get('has_light') for rec in recordings)
     
     total_pages = 5 if has_light else 3  # Summary, Metadata, Spont+Norm, (Light Spike+Norm, Light Burst+Norm)
     
@@ -5746,17 +5746,17 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
             
             # Light stim info
             light_parts = []
-            if rec.get('has_light'):
+            if rec.get('has_light_stim') or rec.get('has_light'):
                 state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
-                num_stim = state.get('numStim', state.get('num_stim', ''))
-                stim_dur = state.get('stimDuration', state.get('stim_duration', ''))
-                isi = state.get('isi', '')
+                num_stim = state.get('numStim', state.get('num_stim', '')) or rec.get('light_stim_count', '')
+                stim_dur = state.get('stimDuration', state.get('stim_duration', '')) or rec.get('stim_duration', '')
+                isi = state.get('isi', '') or rec.get('isi_structure', '')
                 if num_stim:
                     light_parts.append(f"{num_stim} stim")
                 if stim_dur:
                     light_parts.append(f"{stim_dur}s")
                 if isi:
-                    light_parts.append(f"ISI: {isi}s")
+                    light_parts.append(f"ISI: {isi}")
             light_info = '\n'.join(light_parts) if light_parts else '—'
             
             # Notes
@@ -6311,8 +6311,8 @@ def create_mea_comparison_xlsx(folder_name, comparison_data):
             return None
         return drug_str
     
-    # Check if has light
-    has_light = any(rec.get('has_light') for rec in recordings)
+    # Check if has light - MEA uses 'has_light_stim' field
+    has_light = any(rec.get('has_light_stim') or rec.get('has_light') for rec in recordings)
     
     # ==================== SHEET 1: SUMMARY ====================
     ws1 = wb.active
@@ -6551,17 +6551,17 @@ def create_mea_comparison_xlsx(folder_name, comparison_data):
         
         # Light stim info
         light_parts = []
-        if rec.get('has_light'):
+        if rec.get('has_light_stim') or rec.get('has_light'):
             state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
-            num_stim = state.get('numStim', state.get('num_stim', ''))
-            stim_dur = state.get('stimDuration', state.get('stim_duration', ''))
-            isi = state.get('isi', '')
+            num_stim = state.get('numStim', state.get('num_stim', '')) or rec.get('light_stim_count', '')
+            stim_dur = state.get('stimDuration', state.get('stim_duration', '')) or rec.get('stim_duration', '')
+            isi = state.get('isi', '') or rec.get('isi_structure', '')
             if num_stim:
                 light_parts.append(f"{num_stim} stim")
             if stim_dur:
                 light_parts.append(f"{stim_dur}s")
             if isi:
-                light_parts.append(f"ISI: {isi}s")
+                light_parts.append(f"ISI: {isi}")
         light_info = '\n'.join(light_parts) if light_parts else '—'
         
         row_data = [
