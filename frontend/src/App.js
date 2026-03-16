@@ -1593,10 +1593,12 @@ function App() {
             toast.error('No saved version to revert to');
             return;
           }
-          // Reload the saved recording
-          await handleOpenRecording(savedRecordingData);
+          // Force a fresh copy to trigger useEffect re-run in MEAAnalysis
+          const freshRecordingData = JSON.parse(JSON.stringify(savedRecordingData));
+          await handleOpenRecording(freshRecordingData);
           toast.success('Reverted to saved version');
         }}
+        onSaveComplete={handleSaveComplete}
       />
     );
   }

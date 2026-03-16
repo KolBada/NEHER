@@ -277,12 +277,16 @@ Comprehensive UI/UX polish implementing SSE-style features:
 - ✅ Fixed MEA file names display (now show on separate lines) (December 2025)
 - ✅ Fixed MEA save to include all well data (spikes, bursts, active_electrodes) (December 2025)
 - ✅ Stim editor UI cleanup: removed "(time)" and "or Click" text (March 2026)
-- ✅ MEA Save/Edit workflow: Saved/Editing badges, Cancel functionality, state tracking (March 2026)
-- ✅ MEA recordings now save all settings (title, params, drug, light settings) (March 2026)
+- ✅ MEA Save/Edit workflow complete (March 2026):
+  - "Unsaved" (red) for new recordings
+  - "Saved" (green) for saved recordings without changes
+  - "Editing | Cancel" (orange) when saved recording is modified
+  - Cancel reverts to last saved version
+  - "Update Recording" button in Save Recording tab for modified saved recordings
+  - Dirty state tracks: params, drug, light, baseline, recording metadata changes
 
 ### P1 - High Priority (Upcoming)
 - Build MEA Export tab (adapt from SSE ExportPanel.js)
-- Implement "Update Saved Recording" button in Save Recording tab for MEA
 
 ### P2 - Medium Priority
 - Refactor oversized files (`HomeBrowser.js` >1700 lines, `export_utils.py`, `LightPanel.js`)

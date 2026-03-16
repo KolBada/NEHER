@@ -904,7 +904,7 @@ export default function MEAAnalysis({
   isModified = false,
   onModified = () => {},
   onCancelEdit = () => {},
-  onUpdateSavedRecording = () => {},
+  onSaveComplete: parentOnSaveComplete = () => {},
 }) {
   // Well state
   const [selectedWell, setSelectedWell] = useState(Object.keys(meaData?.wells || {})[0] || null);
@@ -1211,6 +1211,35 @@ export default function MEAAnalysis({
       original_filename: Object.values(meaData?.source_files || {}).join('\n') || 'MEA Recording',
     };
   }, [selectedWell, meaData, config, wellParams, recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
+
+  // Handle save complete - update snapshot to reset dirty state and notify parent
+  const handleSaveComplete = useCallback((folderId, recordingId) => {
+    // Update the initial snapshot to current state so isModified becomes false
+    const currentSnapshot = {
+      recordingName,
+      recordingDate,
+      organoidInfo,
+      fusionDate,
+      recordingDescription,
+      wellParams,
+      drugEnabled,
+      selectedDrugs,
+      drugSettings,
+      drugPerfTime,
+      drugReadoutMinute,
+      lightEnabled,
+      lightParams,
+      lightPulses,
+      baselineEnabled,
+      baselineMinute,
+    };
+    setInitialStateSnapshot(JSON.stringify(currentSnapshot));
+    
+    // Notify parent to update savedRecordingId and savedFolderId
+    parentOnSaveComplete(folderId, recordingId);
+    
+    toast.success(savedRecordingId ? 'MEA Recording updated successfully' : 'MEA Recording saved successfully');
+  }, [recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, parentOnSaveComplete, savedRecordingId]);
 
   // Drug window for visualization
   // Perf. Start = when drug is added (purple box starts)
@@ -2885,9 +2914,9 @@ export default function MEAAnalysis({
           <TabsContent value="save" className="space-y-6">
             <SaveRecording
               getAnalysisState={getAnalysisState}
-              onSaveComplete={(folderId, recordingId) => {
-                toast.success('MEA Recording saved successfully');
-              }}
+              onSaveComplete={handleSaveComplete}
+              existingRecordingId={savedRecordingId}
+              existingFolderId={savedFolderId}
               recordingName={recordingName}
               onRecordingNameChange={setRecordingName}
               recordingDate={recordingDate}
