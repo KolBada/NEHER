@@ -1174,9 +1174,10 @@ export default function MEAAnalysis({
     const spikeRaster = buildSpikeRaster(spikes, active_electrodes);
     const burstRaster = buildBurstRaster(electrode_bursts, active_electrodes);
     
-    // Baseline metrics (using shared minute)
-    const blStart = (baselineMinute - 1) * 60;
-    const blEnd = baselineMinute * 60;
+    // Baseline metrics (using shared minute as START of range)
+    // e.g., if baselineMinute=1, window is 1*60=60s to 2*60=120s (1-2 min range)
+    const blStart = baselineMinute * 60;
+    const blEnd = (baselineMinute + 1) * 60;
     const baselineSpikeHz = baselineEnabled ? computeWindowMean(spikeRateBins, 'spike_rate_hz', blStart, blEnd) : null;
     const baselineBurstBpm = baselineEnabled ? computeWindowMean(burstRateBins, 'burst_rate_bpm', blStart, blEnd) : null;
     
@@ -1326,10 +1327,10 @@ export default function MEAAnalysis({
       const spikeRateBins = wellAnalysis.spikeRateBins || [];
       const burstRateBins = wellAnalysis.burstRateBins || [];
       
-      // Baseline metrics - using same calculation as wellAnalysis
-      // baselineMinute=1 means window 0-60s (0-1 min), so range is (baselineMinute-1)*60 to baselineMinute*60
-      const baselineStart = (baselineMinute - 1) * 60;
-      const baselineEnd = baselineMinute * 60;
+      // Baseline metrics - baselineMinute is the START of the range
+      // e.g., baselineMinute=1 means window 60-120s (1-2 min)
+      const baselineStart = baselineMinute * 60;
+      const baselineEnd = (baselineMinute + 1) * 60;
       
       const baselineSpikeVals = spikeRateBins
         .filter(b => b.time >= baselineStart && b.time < baselineEnd)
@@ -2304,7 +2305,7 @@ export default function MEAAnalysis({
                             min={1}
                           />
                           <Badge variant="outline" className="text-[8px] px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(34, 211, 238, 0.2)', color: 'rgba(34, 211, 238, 0.8)' }}>
-                            {baselineMinute - 1}–{baselineMinute}min
+                            {baselineMinute}–{baselineMinute + 1}min
                           </Badge>
                         </div>
                       </div>
@@ -3269,17 +3270,17 @@ export default function MEAAnalysis({
       {/* Comparison Modal */}
       <Dialog open={showComparisonModal} onOpenChange={setShowComparisonModal}>
         <DialogContent 
-          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 [&>button]:hidden"
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0"
           style={{ 
             background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
             border: '1px solid rgba(20, 184, 166, 0.15)',
             boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
           }}
         >
-          {/* Single close button in top-right */}
+          {/* Close button in top-right - positioned above the default one */}
           <button
             onClick={() => setShowComparisonModal(false)}
-            className="absolute top-4 right-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 z-[60] p-2 rounded-lg hover:bg-white/10 transition-colors"
             style={{ color: 'var(--text-secondary)' }}
             data-testid="close-comparison-modal"
           >

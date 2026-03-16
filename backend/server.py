@@ -1909,18 +1909,18 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         burst_bins = state.get('burst_rate_bins', [])
         
         if spike_bins and baseline_enabled:
-            # baseline_minute=1 means window 0-60s (0-1 min)
-            # baseline_minute=2 means window 60-120s (1-2 min)
-            baseline_start = (baseline_minute - 1) * 60
-            baseline_end = baseline_minute * 60
+            # baseline_minute is the START of the range
+            # baseline_minute=1 means window 60-120s (1-2 min)
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
             baseline_spike_vals = [b.get('spike_rate_hz', 0) for b in spike_bins 
                                    if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
             if baseline_spike_vals:
                 baseline_spike_hz = float(np.mean(baseline_spike_vals))
         
         if burst_bins and baseline_enabled:
-            baseline_start = (baseline_minute - 1) * 60
-            baseline_end = baseline_minute * 60
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
             baseline_burst_vals = [b.get('burst_rate_bpm', 0) for b in burst_bins 
                                    if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
             if baseline_burst_vals:
@@ -1958,9 +1958,9 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         if spikes and duration_s > 0:
             # Compute spike rate from raw spikes for baseline window
             # Spikes use 'timestamp' field, not 'time_s'
-            # baseline_minute=1 means window 0-60s (0-1 min)
-            baseline_start = (baseline_minute - 1) * 60
-            baseline_end = baseline_minute * 60
+            # baseline_minute is the START of the range (e.g., 1 means 1-2 min)
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
             baseline_spikes = [s for s in spikes if baseline_start <= s.get('timestamp', s.get('time_s', 0)) < baseline_end]
             if baseline_end > baseline_start:
                 baseline_spike_hz = len(baseline_spikes) / (baseline_end - baseline_start)
@@ -1968,8 +1968,8 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         if electrode_bursts:
             # Compute burst rate from raw bursts for baseline window
             # Bursts use 'start_time' or 'start_time_s'
-            baseline_start = (baseline_minute - 1) * 60
-            baseline_end = baseline_minute * 60
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
             baseline_bursts = [b for b in electrode_bursts if baseline_start <= b.get('start_time', b.get('start_time_s', 0)) < baseline_end]
             if baseline_end > baseline_start:
                 baseline_burst_bpm = len(baseline_bursts) / ((baseline_end - baseline_start) / 60)
