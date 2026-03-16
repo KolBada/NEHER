@@ -5336,15 +5336,10 @@ def create_comparison_xlsx(folder_name, comparison_data):
 # MEA COMPARISON EXPORT FUNCTIONS (Following SSE pattern)
 # ============================================================================
 
+
+
 def create_mea_comparison_pdf(folder_name, comparison_data):
-    """
-    Create MEA comparison PDF following SSE style with dynamic pages:
-    - Page 1: Summary
-    - Page 2: Metadata
-    - Page 3+: Spontaneous Activity (one page per drug, or "Baseline" if no drug)
-    - Light Stimulus Spike page
-    - Light Stimulus Burst page
-    """
+    """Create MEA comparison PDF using the EXACT same bioptima style as SSE comparison PDF"""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -5352,8 +5347,9 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
     import matplotlib.patches as mpatches
     import matplotlib.font_manager as fm
     import re
+    import numpy as np
     
-    # Register fonts
+    # Register fonts - Optima for titles, Carlito for body text
     title_font = 'Optima'
     body_font = 'Carlito'
     
@@ -5367,17 +5363,31 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
         'font.family': 'sans-serif',
         'font.sans-serif': [body_font, 'Carlito', 'DejaVu Sans', 'Arial'],
         'font.size': 9,
+        'axes.labelsize': 9,
+        'axes.titlesize': 10,
+        'axes.linewidth': 0.8,
+        'xtick.labelsize': 8,
+        'ytick.labelsize': 8,
+        'legend.fontsize': 8,
+        'figure.titlesize': 12,
+        'axes.spines.top': False,
+        'axes.spines.right': False,
     })
     
     data = comparison_data
-    recordings = sorted(data.get('recordings', []), key=lambda x: x.get('name', '').lower())
+    recordings = data.get('recordings', [])
     summary = data.get('summary', {})
     spike_averages = data.get('spike_averages', {}).get('averages', {})
     burst_averages = data.get('burst_averages', {}).get('averages', {})
     light_spike_averages = data.get('light_spike_averages', {}).get('averages', {})
     light_burst_averages = data.get('light_burst_averages', {}).get('averages', {})
     
-    # Color scheme matching SSE/bioptima style
+    # Sort recordings alphabetically
+    recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
+    
+    buf = io.BytesIO()
+    
+    # Color scheme matching bioptima style (same as SSE)
     COLORS = {
         'dark': '#18181b',
         'header_blue': '#5ba4c9',
@@ -5388,7 +5398,6 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
         'amber': '#f59e0b',
         'sky': '#0ea5e9',
         'cyan': '#06b6d4',
-        'orange': '#f97316',
     }
     
     TINTS = {
@@ -5406,6 +5415,858 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
                 return f"{float(val):.0f}"
             elif dec == 1:
                 return f"{float(val):.1f}"
+            elif dec == 3:
+                return f"{float(val):.3f}"
+            elif dec == 4:
+                return f"{float(val):.4f}"
+            return f"{float(val):.{dec}f}"
+        except:
+            return '—'
+    
+    def fmt_age_range(age_dict):
+        if not age_dict or age_dict.get('min') is None:
+            return '—'
+        return f"{age_dict.get('min')} - {age_dict.get('max')} days"
+    
+    def add_page_header(fig, section_name):
+        """Add header in bioptima style: NEHER section_name"""
+        fig.text(0.08, 0.96, 'NEHER', fontsize=12, fontweight='bold', color=COLORS['dark'],
+                fontfamily=title_font)
+        fig.text(0.16, 0.96, section_name, fontsize=12, fontweight='normal', color=COLORS['gray'],
+                fontfamily=title_font)
+    
+    def add_page_footer(fig, page_num, total_pages):
+        """Add footer: p. XX | Folder Name | MEA Comparison Report by NEHER"""
+        fig.text(0.08, 0.025, f'p. {page_num}', fontsize=10, fontweight='bold', color=COLORS['dark'],
+                fontfamily=body_font)
+        fig.text(0.125, 0.025, f'|  {folder_name}  |  MEA Comparison Report by NEHER', fontsize=10, color=COLORS['gray'],
+                fontfamily=body_font)
+    
+    def draw_header(fig, x, y, text, color, width=0.38):
+        """Draw section header with colored background - bioptima style"""
+        fig.add_artist(mpatches.Rectangle(
+            (x, y - 0.012), width, 0.024,
+            facecolor=color, edgecolor='none', transform=fig.transFigure
+        ))
+        fig.text(x + 0.01, y, text, fontsize=9, fontweight='bold', color='white',
+                fontfamily=body_font, va='center')
+        return y - 0.028
+    
+    def draw_separator(fig, x, y, width=0.38):
+        """Draw horizontal separator line"""
+        fig.add_artist(plt.Line2D([x, x + width], [y, y], color=COLORS['line'], 
+                      linewidth=0.5, transform=fig.transFigure))
+        return y - 0.008
+    
+    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18, text_color=None):
+        """Draw a data row with label and value"""
+        if bg_color:
+            fig.add_artist(mpatches.Rectangle(
+                (x, y - 0.008), width, 0.020,
+                facecolor=bg_color, edgecolor='none', transform=fig.transFigure
+            ))
+        label_color = text_color if text_color else COLORS['gray']
+        value_color = text_color if text_color else COLORS['dark']
+        fig.text(x + 0.01, y, label, fontsize=8, color=label_color, fontfamily=body_font, va='center')
+        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=value_color,
+                fontfamily=body_font, va='center')
+        return y - 0.020
+    
+    def norm_val(val, avg):
+        if val is None or avg == 0 or avg is None:
+            return None
+        return 100 * val / avg
+    
+    def extract_short_name(full_name):
+        """Extract FX or CX from the end of the recording name"""
+        if not full_name:
+            return '—'
+        match = re.search(r'[FC]\d+$', full_name)
+        if match:
+            return match.group()
+        parts = full_name.replace('/', '-').split('-')
+        return parts[-1] if parts else full_name[:10]
+    
+    def parse_drug_info(drug_info):
+        """Parse drug info to extract name and concentration"""
+        if not drug_info:
+            return None
+        if isinstance(drug_info, dict):
+            name = drug_info.get('name', '')
+            conc = drug_info.get('concentration', '')
+            if name:
+                return f"{name} ({conc})" if conc else name
+            return None
+        if isinstance(drug_info, list):
+            results = []
+            for d in drug_info:
+                parsed = parse_drug_info(d)
+                if parsed:
+                    results.append(parsed)
+            return results if results else None
+        drug_str = str(drug_info).strip()
+        if drug_str.lower() in ['no drug', 'no', 'none', '—', '-', '']:
+            return None
+        return drug_str
+    
+    # Check if there's light stimulus data
+    has_light = any(rec.get('has_light') for rec in recordings)
+    
+    total_pages = 5 if has_light else 3  # Summary, Metadata, Spont+Norm, (Light Spike+Norm, Light Burst+Norm)
+    
+    with PdfPages(buf) as pdf:
+        
+        # ==================== PAGE 1: SUMMARY ====================
+        fig1 = plt.figure(figsize=(8.5, 11))  # US Letter Portrait
+        fig1.patch.set_facecolor('white')
+        
+        add_page_header(fig1, 'summary')
+        
+        # Main title - wrap if needed
+        title_text = folder_name
+        title_fontsize = 24 if len(title_text) > 30 else 28
+        if len(title_text) > 40:
+            mid = len(title_text) // 2
+            split_idx = title_text.rfind(' ', 0, mid + 10)
+            if split_idx == -1:
+                split_idx = mid
+            line1 = title_text[:split_idx]
+            line2 = title_text[split_idx:].strip()
+            fig1.text(0.08, 0.91, line1, ha='left', va='top', fontsize=22, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig1.text(0.08, 0.875, line2, ha='left', va='top', fontsize=22, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            separator_y = 0.845
+            first_section_y = 0.81
+        else:
+            fig1.text(0.08, 0.90, title_text, ha='left', va='top', fontsize=title_fontsize, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            separator_y = 0.865
+            first_section_y = 0.83
+        
+        fig1.add_artist(plt.Line2D([0.08, 0.92], [separator_y, separator_y], color=COLORS['dark'], linewidth=1.0, transform=fig1.transFigure))
+        
+        # Two columns layout
+        left_x = 0.08
+        right_x = 0.52
+        col_width = 0.40
+        
+        # LEFT COLUMN: Folder Overview, Age Ranges, Parameters
+        y = draw_header(fig1, left_x, first_section_y, 'FOLDER OVERVIEW', COLORS['dark'], width=col_width)
+        y = draw_row(fig1, left_x, y, 'Recordings:', str(summary.get('recording_count', len(recordings))), width=col_width)
+        y = draw_row(fig1, left_x, y, 'Date Created:', datetime.now().strftime('%Y-%m-%d'), width=col_width)
+        y -= 0.015
+        
+        y = draw_header(fig1, left_x, y, 'AGE RANGES', COLORS['gray'], width=col_width)
+        hspo_range = summary.get('hspo_age_range', {})
+        hco_range = summary.get('hco_age_range', {})
+        fusion_range = summary.get('fusion_age_range', {})
+        y = draw_row(fig1, left_x, y, 'hSpOs:', f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})", width=col_width)
+        y = draw_row(fig1, left_x, y, 'hCOs:', f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})", width=col_width)
+        y = draw_row(fig1, left_x, y, 'Fusion:', f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})", width=col_width)
+        y -= 0.015
+        
+        # Parameters section
+        y = draw_header(fig1, left_x, y, 'PARAMETERS', COLORS['gray'], width=col_width)
+        
+        # Drug Used
+        all_drugs = []
+        drug_concentration_unit = ''
+        for r in recordings:
+            drug_info_raw = r.get('drug_info')
+            if isinstance(drug_info_raw, dict):
+                conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '')
+                if conc_unit and not drug_concentration_unit:
+                    drug_concentration_unit = conc_unit
+            parsed = parse_drug_info(drug_info_raw)
+            if parsed:
+                if isinstance(parsed, list):
+                    all_drugs.extend(parsed)
+                else:
+                    all_drugs.append(parsed)
+        
+        if all_drugs and not drug_concentration_unit:
+            drug_concentration_unit = 'µM'
+        
+        if all_drugs:
+            unique_drugs = list(dict.fromkeys(all_drugs))
+            drug_text = unique_drugs[0]
+            if drug_concentration_unit:
+                match = re.search(r'\(([^)]+)\)$', drug_text)
+                if match:
+                    conc_value = match.group(1)
+                    drug_text = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug_text)
+        else:
+            drug_text = '—'
+        
+        y = draw_row(fig1, left_x, y, 'Drug Used:', drug_text, width=col_width)
+        
+        # Light Stim
+        light_used = has_light
+        y = draw_row(fig1, left_x, y, 'Light Stim:', 'Yes' if light_used else 'No', width=col_width)
+        
+        # RIGHT COLUMN: Spontaneous Activity & Light Stimulus readouts
+        y_right = first_section_y
+        
+        y_right = draw_header(fig1, right_x, y_right, 'SPONTANEOUS ACTIVITY', COLORS['emerald'], width=col_width)
+        
+        fig1.text(right_x + 0.01, y_right, 'Baseline Readout', fontsize=7, fontstyle='italic', color='#71717a')
+        y_right -= 0.018
+        y_right = draw_row(fig1, right_x, y_right, 'Spike Rate:', f"{fmt(spike_averages.get('baseline_spike_hz'), 2)} Hz", TINTS['baseline'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Burst Rate:', f"{fmt(burst_averages.get('baseline_burst_bpm'), 2)} bpm", TINTS['baseline'], width=col_width)
+        y_right -= 0.008
+        
+        # Get unique drugs from recordings
+        unique_drug_names = []
+        for rec in recordings:
+            drug_info = rec.get('drug_info', [])
+            if isinstance(drug_info, list):
+                for d in drug_info:
+                    if d.get('name') and d.get('name') not in unique_drug_names:
+                        unique_drug_names.append(d.get('name'))
+        
+        # Drug readout
+        first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+        fig1.text(right_x + 0.01, y_right, f'Drug Readout ({first_drug_name})', fontsize=7, fontstyle='italic', color='#71717a')
+        y_right -= 0.018
+        y_right = draw_row(fig1, right_x, y_right, 'Spike Rate:', f"{fmt(spike_averages.get('drug_spike_hz'), 2)} Hz", TINTS['drug'], width=col_width)
+        y_right = draw_row(fig1, right_x, y_right, 'Burst Rate:', f"{fmt(burst_averages.get('drug_burst_bpm'), 2)} bpm", TINTS['drug'], width=col_width)
+        
+        y_right -= 0.015
+        
+        # Light Stimulus section
+        if has_light:
+            y_right = draw_header(fig1, right_x, y_right, 'LIGHT STIMULUS', COLORS['amber'], width=col_width)
+            
+            # Spike metrics
+            fig1.text(right_x + 0.01, y_right, 'Spike Rate Adaptation', fontsize=7, fontstyle='italic', color='#71717a')
+            y_right -= 0.018
+            cyan_text = '#0891b2'
+            baseline_spike = light_spike_averages.get('light_baseline_spike_hz')
+            y_right = draw_row(fig1, right_x, y_right, 'Baseline:', f"{fmt(baseline_spike, 2)} Hz", TINTS['light'], width=col_width, text_color=cyan_text)
+            avg_spike = light_spike_averages.get('light_avg_spike_hz')
+            y_right = draw_row(fig1, right_x, y_right, 'Avg:', f"{fmt(avg_spike, 2)} Hz", TINTS['light'], width=col_width)
+            # Avg Norm
+            avg_spike_norm = norm_val(avg_spike, baseline_spike) if baseline_spike else None
+            y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{fmt(avg_spike_norm, 1)}%", TINTS['light'], width=col_width)
+            peak_spike = light_spike_averages.get('light_max_spike_hz')
+            y_right = draw_row(fig1, right_x, y_right, 'Peak:', f"{fmt(peak_spike, 2)} Hz", TINTS['light'], width=col_width)
+            peak_spike_norm = norm_val(peak_spike, baseline_spike) if baseline_spike else None
+            y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(peak_spike_norm, 1)}%", TINTS['light'], width=col_width)
+            y_right -= 0.008
+            
+            # Burst metrics
+            fig1.text(right_x + 0.01, y_right, 'Burst Rate Adaptation', fontsize=7, fontstyle='italic', color='#71717a')
+            y_right -= 0.018
+            baseline_burst = light_burst_averages.get('light_baseline_burst_bpm')
+            y_right = draw_row(fig1, right_x, y_right, 'Baseline:', f"{fmt(baseline_burst, 2)} bpm", TINTS['light'], width=col_width, text_color=cyan_text)
+            avg_burst = light_burst_averages.get('light_avg_burst_bpm')
+            y_right = draw_row(fig1, right_x, y_right, 'Avg:', f"{fmt(avg_burst, 2)} bpm", TINTS['light'], width=col_width)
+            avg_burst_norm = norm_val(avg_burst, baseline_burst) if baseline_burst else None
+            y_right = draw_row(fig1, right_x, y_right, 'Avg (Norm.):', f"{fmt(avg_burst_norm, 1)}%", TINTS['light'], width=col_width)
+            peak_burst = light_burst_averages.get('light_max_burst_bpm')
+            y_right = draw_row(fig1, right_x, y_right, 'Peak:', f"{fmt(peak_burst, 2)} bpm", TINTS['light'], width=col_width)
+            peak_burst_norm = norm_val(peak_burst, baseline_burst) if baseline_burst else None
+            y_right = draw_row(fig1, right_x, y_right, 'Peak (Norm.):', f"{fmt(peak_burst_norm, 1)}%", TINTS['light'], width=col_width)
+        
+        add_page_footer(fig1, 1, total_pages)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+        
+        # ==================== PAGE 2: METADATA TABLE ====================
+        fig2 = plt.figure(figsize=(8.5, 11))
+        fig2.patch.set_facecolor('white')
+        
+        add_page_header(fig2, 'metadata')
+        fig2.text(0.08, 0.90, 'Recording Metadata', ha='left', va='top', fontsize=28, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        fig2.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig2.transFigure))
+        
+        fig2.text(0.08, 0.84, 'Table 1 | Recording Information', fontsize=11, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        fig2.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig2.transFigure))
+        
+        ax2 = fig2.add_axes([0.08, 0.06, 0.84, 0.76])
+        ax2.axis('off')
+        
+        meta_headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
+        meta_data = []
+        
+        for rec in recordings:
+            rec_name = rec.get('name', '')
+            
+            # hSpO Info
+            hspo_info_parts = []
+            hspo = rec.get('hspo_info') or {}
+            if isinstance(hspo, dict):
+                if hspo.get('line_name'):
+                    hspo_info_parts.append(str(hspo.get('line_name')))
+                if hspo.get('passage'):
+                    hspo_info_parts.append(f"P{hspo.get('passage')}")
+                if hspo.get('age'):
+                    hspo_info_parts.append(f"D{hspo.get('age')}")
+            elif rec.get('hspo_age'):
+                hspo_info_parts.append(f"D{rec.get('hspo_age')}")
+            hspo_info = '\n'.join(hspo_info_parts) if hspo_info_parts else '—'
+            
+            # hCO Info
+            hco_info_parts = []
+            hco = rec.get('hco_info') or {}
+            if isinstance(hco, dict):
+                if hco.get('line_name'):
+                    hco_info_parts.append(str(hco.get('line_name')))
+                if hco.get('passage'):
+                    hco_info_parts.append(f"P{hco.get('passage')}")
+                if hco.get('age'):
+                    hco_info_parts.append(f"D{hco.get('age')}")
+            elif rec.get('hco_age'):
+                hco_info_parts.append(f"D{rec.get('hco_age')}")
+            hco_info = '\n'.join(hco_info_parts) if hco_info_parts else '—'
+            
+            # Fusion
+            fusion = rec.get('fusion_date', '') or rec.get('fusion_age', '') or '—'
+            if fusion != '—' and str(fusion).isdigit():
+                fusion = f"D{fusion}"
+            
+            # Drug info
+            drug_info_raw = rec.get('drug_info', [])
+            drug_parts = []
+            if isinstance(drug_info_raw, list) and drug_info_raw:
+                for d in drug_info_raw:
+                    if isinstance(d, dict):
+                        name = d.get('name', '')
+                        conc = d.get('concentration', '')
+                        unit = d.get('concentration_unit', '') or 'µM'
+                        if name:
+                            drug_str = name
+                            if conc:
+                                drug_str += f"\n{conc}{unit}"
+                            drug_parts.append(drug_str)
+            drug_info = '\n'.join(drug_parts) if drug_parts else 'No drug'
+            
+            # Light stim info
+            light_parts = []
+            if rec.get('has_light'):
+                state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
+                num_stim = state.get('numStim', state.get('num_stim', ''))
+                stim_dur = state.get('stimDuration', state.get('stim_duration', ''))
+                isi = state.get('isi', '')
+                if num_stim:
+                    light_parts.append(f"{num_stim} stim")
+                if stim_dur:
+                    light_parts.append(f"{stim_dur}s")
+                if isi:
+                    light_parts.append(f"ISI: {isi}s")
+            light_info = '\n'.join(light_parts) if light_parts else '—'
+            
+            # Notes
+            notes = rec.get('notes', '') or '—'
+            
+            meta_data.append([
+                rec_name,
+                rec.get('recording_date', '—') or '—',
+                hspo_info,
+                hco_info,
+                fusion,
+                drug_info,
+                light_info,
+                notes,
+            ])
+        
+        if meta_data:
+            table2 = ax2.table(cellText=meta_data, colLabels=meta_headers, loc='upper center', cellLoc='center',
+                              colWidths=[0.17, 0.10, 0.13, 0.10, 0.07, 0.11, 0.17, 0.15])
+            table2.auto_set_font_size(False)
+            
+            n_recs = len(recordings)
+            font_size = 5 if n_recs <= 10 else 4
+            row_scale = 3.5 if n_recs <= 6 else 2.8 if n_recs <= 10 else 2.2 if n_recs <= 15 else 1.8
+            table2.set_fontsize(font_size)
+            table2.scale(1.0, row_scale)
+            
+            for (row, col), cell in table2.get_celld().items():
+                cell.set_edgecolor('#e5e7eb')
+                if row == 0:
+                    cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                    cell.set_facecolor(COLORS['dark'])
+                else:
+                    cell.set_facecolor('white' if row % 2 == 0 else '#f9fafb')
+                    cell.set_text_props(fontfamily=body_font)
+        
+        add_page_footer(fig2, 2, total_pages)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+        
+        # ==================== PAGE 3: SPONTANEOUS ACTIVITY + NORMALIZED ====================
+        first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+        
+        fig3 = plt.figure(figsize=(8.5, 11))
+        fig3.patch.set_facecolor('white')
+        
+        add_page_header(fig3, 'spontaneous activity')
+        fig3.text(0.08, 0.90, 'Spontaneous Activity', ha='left', va='top', fontsize=28, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        fig3.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig3.transFigure))
+        
+        # Table 2: Drug-induced Spike and Burst Data
+        fig3.text(0.08, 0.84, f'Table 2 | Drug-induced Spike and Burst Data ({first_drug_name})', fontsize=10, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        fig3.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
+        
+        ax3a = fig3.add_axes([0.08, 0.48, 0.84, 0.34])
+        ax3a.axis('off')
+        
+        spont_headers = ['Rec', 'Base\nSpike', 'Base\nBurst', 'Drug\nSpike', 'Drug\nBurst']
+        spont_data = []
+        
+        for rec in recordings:
+            spont_data.append([
+                extract_short_name(rec.get('name', '')),
+                fmt(rec.get('baseline_spike_hz'), 2),
+                fmt(rec.get('baseline_burst_bpm'), 2),
+                fmt(rec.get('drug_spike_hz'), 2),
+                fmt(rec.get('drug_burst_bpm'), 2),
+            ])
+        
+        # Add average row
+        spont_data.append([
+            'Avg',
+            fmt(spike_averages.get('baseline_spike_hz'), 2),
+            fmt(burst_averages.get('baseline_burst_bpm'), 2),
+            fmt(spike_averages.get('drug_spike_hz'), 2),
+            fmt(burst_averages.get('drug_burst_bpm'), 2),
+        ])
+        
+        if spont_data:
+            table3a = ax3a.table(cellText=spont_data, colLabels=spont_headers, loc='upper center', cellLoc='center',
+                                colWidths=[0.12, 0.22, 0.22, 0.22, 0.22])
+            table3a.auto_set_font_size(False)
+            font_size = 6 if len(recordings) <= 10 else 5
+            table3a.set_fontsize(font_size)
+            row_scale = 1.6 if len(recordings) <= 8 else 1.3
+            table3a.scale(1.0, row_scale)
+            
+            for (row, col), cell in table3a.get_celld().items():
+                cell.set_edgecolor('#e5e7eb')
+                if row == 0:
+                    cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                    cell.set_facecolor(COLORS['emerald'])
+                elif row == len(spont_data):
+                    cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                    cell.set_facecolor('#f87171')
+                else:
+                    if 1 <= col <= 2:
+                        cell.set_facecolor(TINTS['baseline'])
+                    elif 3 <= col <= 4:
+                        cell.set_facecolor(TINTS['drug'])
+                    else:
+                        cell.set_facecolor('white')
+                    cell.set_text_props(fontfamily=body_font)
+        
+        # Table 3: Normalized to Average Baseline Data
+        fig3.text(0.08, 0.44, f'Table 3 | Drug-induced Data Normalized to Average Baseline ({first_drug_name})', fontsize=10, fontweight='bold', 
+                 color=COLORS['dark'], fontfamily=title_font)
+        fig3.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig3.transFigure))
+        
+        ax3b = fig3.add_axes([0.08, 0.06, 0.84, 0.36])
+        ax3b.axis('off')
+        
+        # Calculate cohort baseline averages for normalization
+        baseline_spikes = [r.get('baseline_spike_hz') for r in recordings if r.get('baseline_spike_hz') is not None]
+        baseline_bursts = [r.get('baseline_burst_bpm') for r in recordings if r.get('baseline_burst_bpm') is not None]
+        
+        avg_spike = sum(baseline_spikes) / len(baseline_spikes) if baseline_spikes else 1
+        avg_burst = sum(baseline_bursts) / len(baseline_bursts) if baseline_bursts else 1
+        
+        norm_headers = ['Rec', 'Base\nSpike%', 'Base\nBurst%', 'Drug\nSpike%', 'Drug\nBurst%']
+        norm_data = []
+        norm_sums = {'base_spike': [], 'base_burst': [], 'drug_spike': [], 'drug_burst': []}
+        
+        for rec in recordings:
+            has_baseline = rec.get('baseline_spike_hz') is not None
+            
+            if has_baseline:
+                n_base_spike = norm_val(rec.get('baseline_spike_hz'), avg_spike)
+                n_base_burst = norm_val(rec.get('baseline_burst_bpm'), avg_burst)
+                n_drug_spike = norm_val(rec.get('drug_spike_hz'), avg_spike)
+                n_drug_burst = norm_val(rec.get('drug_burst_bpm'), avg_burst)
+            else:
+                n_base_spike = n_base_burst = n_drug_spike = n_drug_burst = None
+            
+            norm_data.append([
+                extract_short_name(rec.get('name', '')),
+                fmt(n_base_spike, 1), fmt(n_base_burst, 1),
+                fmt(n_drug_spike, 1), fmt(n_drug_burst, 1),
+            ])
+            
+            if has_baseline:
+                for key, val in [('base_spike', n_base_spike), ('base_burst', n_base_burst),
+                                ('drug_spike', n_drug_spike), ('drug_burst', n_drug_burst)]:
+                    if val is not None:
+                        norm_sums[key].append(val)
+        
+        # Add average row
+        norm_data.append([
+            'Avg',
+            fmt(sum(norm_sums['base_spike']) / len(norm_sums['base_spike']) if norm_sums['base_spike'] else None, 1),
+            fmt(sum(norm_sums['base_burst']) / len(norm_sums['base_burst']) if norm_sums['base_burst'] else None, 1),
+            fmt(sum(norm_sums['drug_spike']) / len(norm_sums['drug_spike']) if norm_sums['drug_spike'] else None, 1),
+            fmt(sum(norm_sums['drug_burst']) / len(norm_sums['drug_burst']) if norm_sums['drug_burst'] else None, 1),
+        ])
+        
+        if norm_data:
+            table3b = ax3b.table(cellText=norm_data, colLabels=norm_headers, loc='upper center', cellLoc='center',
+                                colWidths=[0.12, 0.22, 0.22, 0.22, 0.22])
+            table3b.auto_set_font_size(False)
+            table3b.set_fontsize(font_size)
+            table3b.scale(1.0, row_scale)
+            
+            for (row, col), cell in table3b.get_celld().items():
+                cell.set_edgecolor('#e5e7eb')
+                if row == 0:
+                    cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                    cell.set_facecolor(COLORS['emerald'])
+                elif row == len(norm_data):
+                    cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                    cell.set_facecolor('#f87171')
+                else:
+                    if 1 <= col <= 2:
+                        cell.set_facecolor(TINTS['baseline'])
+                    elif 3 <= col <= 4:
+                        cell.set_facecolor(TINTS['drug'])
+                    else:
+                        cell.set_facecolor('white')
+                    cell.set_text_props(fontfamily=body_font)
+        
+        add_page_footer(fig3, 3, total_pages)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+        
+        # ==================== PAGE 4: LIGHT SPIKE DATA + NORMALIZED (if has light) ====================
+        if has_light:
+            fig4 = plt.figure(figsize=(8.5, 11))
+            fig4.patch.set_facecolor('white')
+            
+            add_page_header(fig4, 'light stimulus')
+            fig4.text(0.08, 0.90, 'Light-Induced Spike Rate', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig4.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig4.transFigure))
+            
+            # Table 4: Light-Induced Spike Data
+            fig4.text(0.08, 0.84, 'Table 4 | Light-Induced Spike Rate Data', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig4.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
+            
+            ax4a = fig4.add_axes([0.08, 0.48, 0.84, 0.34])
+            ax4a.axis('off')
+            
+            spike_headers = ['Rec', 'Baseline\nHz', 'Avg\nHz', 'Avg\n%', 'Peak\nHz', 'Peak\n%']
+            spike_data = []
+            
+            for rec in recordings:
+                bl_spike = rec.get('light_baseline_spike_hz')
+                avg_spike_rec = rec.get('light_avg_spike_hz')
+                peak_spike_rec = rec.get('light_max_spike_hz')
+                avg_spike_pct = norm_val(avg_spike_rec, bl_spike) if bl_spike else None
+                peak_spike_pct = norm_val(peak_spike_rec, bl_spike) if bl_spike else None
+                
+                spike_data.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(bl_spike, 2),
+                    fmt(avg_spike_rec, 2),
+                    fmt(avg_spike_pct, 1),
+                    fmt(peak_spike_rec, 2),
+                    fmt(peak_spike_pct, 1),
+                ])
+            
+            # Add average row
+            bl_spike_avg = light_spike_averages.get('light_baseline_spike_hz')
+            avg_spike_avg = light_spike_averages.get('light_avg_spike_hz')
+            peak_spike_avg = light_spike_averages.get('light_max_spike_hz')
+            avg_spike_pct_avg = norm_val(avg_spike_avg, bl_spike_avg) if bl_spike_avg else None
+            peak_spike_pct_avg = norm_val(peak_spike_avg, bl_spike_avg) if bl_spike_avg else None
+            
+            spike_data.append([
+                'Avg',
+                fmt(bl_spike_avg, 2),
+                fmt(avg_spike_avg, 2),
+                fmt(avg_spike_pct_avg, 1),
+                fmt(peak_spike_avg, 2),
+                fmt(peak_spike_pct_avg, 1),
+            ])
+            
+            if spike_data:
+                table4a = ax4a.table(cellText=spike_data, colLabels=spike_headers, loc='upper center', cellLoc='center',
+                                    colWidths=[0.12, 0.176, 0.176, 0.176, 0.176, 0.176])
+                table4a.auto_set_font_size(False)
+                table4a.set_fontsize(font_size)
+                table4a.scale(1.0, row_scale)
+                
+                cyan_color = '#06b6d4'
+                for (row, col), cell in table4a.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['amber'])
+                    elif row == len(spike_data):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        cell.set_facecolor(TINTS['light'])
+                        cell.set_text_props(fontfamily=body_font)
+                        if col == 1:  # Baseline column
+                            cell.set_text_props(fontfamily=body_font, color=cyan_color, fontweight='bold')
+            
+            # Table 5: Light-Induced Spike Normalized
+            fig4.text(0.08, 0.44, 'Table 5 | Light-Induced Spike Rate Normalized to Average Baseline', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig4.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig4.transFigure))
+            
+            ax4b = fig4.add_axes([0.08, 0.06, 0.84, 0.36])
+            ax4b.axis('off')
+            
+            # Calculate cohort baseline average for normalization
+            light_baseline_spikes = [r.get('light_baseline_spike_hz') for r in recordings if r.get('light_baseline_spike_hz') is not None]
+            avg_bl_spike = sum(light_baseline_spikes) / len(light_baseline_spikes) if light_baseline_spikes else 1
+            
+            spike_norm_headers = ['Rec', 'Baseline\n%', 'Avg\n%', 'Peak\n%']
+            spike_norm_data = []
+            
+            for rec in recordings:
+                bl_spike = rec.get('light_baseline_spike_hz')
+                avg_spike_rec = rec.get('light_avg_spike_hz')
+                peak_spike_rec = rec.get('light_max_spike_hz')
+                
+                spike_norm_data.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(norm_val(bl_spike, avg_bl_spike), 1),
+                    fmt(norm_val(avg_spike_rec, avg_bl_spike), 1),
+                    fmt(norm_val(peak_spike_rec, avg_bl_spike), 1),
+                ])
+            
+            # Add average row
+            spike_norm_data.append([
+                'Avg',
+                fmt(100.0, 1),  # By definition, avg of baseline normalized to avg baseline = 100%
+                fmt(norm_val(avg_spike_avg, avg_bl_spike), 1),
+                fmt(norm_val(peak_spike_avg, avg_bl_spike), 1),
+            ])
+            
+            if spike_norm_data:
+                table4b = ax4b.table(cellText=spike_norm_data, colLabels=spike_norm_headers, loc='upper center', cellLoc='center',
+                                    colWidths=[0.16, 0.28, 0.28, 0.28])
+                table4b.auto_set_font_size(False)
+                table4b.set_fontsize(font_size)
+                table4b.scale(1.0, row_scale)
+                
+                for (row, col), cell in table4b.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['amber'])
+                    elif row == len(spike_norm_data):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        cell.set_facecolor(TINTS['light'])
+                        cell.set_text_props(fontfamily=body_font)
+            
+            add_page_footer(fig4, 4, total_pages)
+            pdf.savefig(fig4)
+            plt.close(fig4)
+            
+            # ==================== PAGE 5: LIGHT BURST DATA + NORMALIZED ====================
+            fig5 = plt.figure(figsize=(8.5, 11))
+            fig5.patch.set_facecolor('white')
+            
+            add_page_header(fig5, 'light stimulus')
+            fig5.text(0.08, 0.90, 'Light-Induced Burst Rate', ha='left', va='top', fontsize=28, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig5.add_artist(plt.Line2D([0.08, 0.92], [0.865, 0.865], color=COLORS['dark'], linewidth=1.0, transform=fig5.transFigure))
+            
+            # Table 6: Light-Induced Burst Data
+            fig5.text(0.08, 0.84, 'Table 6 | Light-Induced Burst Rate Data', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig5.add_artist(plt.Line2D([0.08, 0.92], [0.825, 0.825], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
+            
+            ax5a = fig5.add_axes([0.08, 0.48, 0.84, 0.34])
+            ax5a.axis('off')
+            
+            burst_headers = ['Rec', 'Baseline\nbpm', 'Avg\nbpm', 'Avg\n%', 'Peak\nbpm', 'Peak\n%']
+            burst_data = []
+            
+            for rec in recordings:
+                bl_burst = rec.get('light_baseline_burst_bpm')
+                avg_burst_rec = rec.get('light_avg_burst_bpm')
+                peak_burst_rec = rec.get('light_max_burst_bpm')
+                avg_burst_pct = norm_val(avg_burst_rec, bl_burst) if bl_burst else None
+                peak_burst_pct = norm_val(peak_burst_rec, bl_burst) if bl_burst else None
+                
+                burst_data.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(bl_burst, 2),
+                    fmt(avg_burst_rec, 2),
+                    fmt(avg_burst_pct, 1),
+                    fmt(peak_burst_rec, 2),
+                    fmt(peak_burst_pct, 1),
+                ])
+            
+            # Add average row
+            bl_burst_avg = light_burst_averages.get('light_baseline_burst_bpm')
+            avg_burst_avg = light_burst_averages.get('light_avg_burst_bpm')
+            peak_burst_avg = light_burst_averages.get('light_max_burst_bpm')
+            avg_burst_pct_avg = norm_val(avg_burst_avg, bl_burst_avg) if bl_burst_avg else None
+            peak_burst_pct_avg = norm_val(peak_burst_avg, bl_burst_avg) if bl_burst_avg else None
+            
+            burst_data.append([
+                'Avg',
+                fmt(bl_burst_avg, 2),
+                fmt(avg_burst_avg, 2),
+                fmt(avg_burst_pct_avg, 1),
+                fmt(peak_burst_avg, 2),
+                fmt(peak_burst_pct_avg, 1),
+            ])
+            
+            if burst_data:
+                table5a = ax5a.table(cellText=burst_data, colLabels=burst_headers, loc='upper center', cellLoc='center',
+                                    colWidths=[0.12, 0.176, 0.176, 0.176, 0.176, 0.176])
+                table5a.auto_set_font_size(False)
+                table5a.set_fontsize(font_size)
+                table5a.scale(1.0, row_scale)
+                
+                for (row, col), cell in table5a.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['amber'])
+                    elif row == len(burst_data):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        cell.set_facecolor(TINTS['light'])
+                        cell.set_text_props(fontfamily=body_font)
+                        if col == 1:  # Baseline column
+                            cell.set_text_props(fontfamily=body_font, color=cyan_color, fontweight='bold')
+            
+            # Table 7: Light-Induced Burst Normalized
+            fig5.text(0.08, 0.44, 'Table 7 | Light-Induced Burst Rate Normalized to Average Baseline', fontsize=10, fontweight='bold', 
+                     color=COLORS['dark'], fontfamily=title_font)
+            fig5.add_artist(plt.Line2D([0.08, 0.92], [0.425, 0.425], color=COLORS['line'], linewidth=0.5, transform=fig5.transFigure))
+            
+            ax5b = fig5.add_axes([0.08, 0.06, 0.84, 0.36])
+            ax5b.axis('off')
+            
+            # Calculate cohort baseline average for normalization
+            light_baseline_bursts = [r.get('light_baseline_burst_bpm') for r in recordings if r.get('light_baseline_burst_bpm') is not None]
+            avg_bl_burst = sum(light_baseline_bursts) / len(light_baseline_bursts) if light_baseline_bursts else 1
+            
+            burst_norm_headers = ['Rec', 'Baseline\n%', 'Avg\n%', 'Peak\n%']
+            burst_norm_data = []
+            
+            for rec in recordings:
+                bl_burst = rec.get('light_baseline_burst_bpm')
+                avg_burst_rec = rec.get('light_avg_burst_bpm')
+                peak_burst_rec = rec.get('light_max_burst_bpm')
+                
+                burst_norm_data.append([
+                    extract_short_name(rec.get('name', '')),
+                    fmt(norm_val(bl_burst, avg_bl_burst), 1),
+                    fmt(norm_val(avg_burst_rec, avg_bl_burst), 1),
+                    fmt(norm_val(peak_burst_rec, avg_bl_burst), 1),
+                ])
+            
+            # Add average row
+            burst_norm_data.append([
+                'Avg',
+                fmt(100.0, 1),
+                fmt(norm_val(avg_burst_avg, avg_bl_burst), 1),
+                fmt(norm_val(peak_burst_avg, avg_bl_burst), 1),
+            ])
+            
+            if burst_norm_data:
+                table5b = ax5b.table(cellText=burst_norm_data, colLabels=burst_norm_headers, loc='upper center', cellLoc='center',
+                                    colWidths=[0.16, 0.28, 0.28, 0.28])
+                table5b.auto_set_font_size(False)
+                table5b.set_fontsize(font_size)
+                table5b.scale(1.0, row_scale)
+                
+                for (row, col), cell in table5b.get_celld().items():
+                    cell.set_edgecolor('#e5e7eb')
+                    if row == 0:
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor(COLORS['amber'])
+                    elif row == len(burst_norm_data):
+                        cell.set_text_props(fontweight='bold', color='white', fontfamily=body_font)
+                        cell.set_facecolor('#f87171')
+                    else:
+                        cell.set_facecolor(TINTS['light'])
+                        cell.set_text_props(fontfamily=body_font)
+            
+            add_page_footer(fig5, 5, total_pages)
+            pdf.savefig(fig5)
+            plt.close(fig5)
+    
+    buf.seek(0)
+    return buf
+
+
+def create_mea_comparison_xlsx(folder_name, comparison_data):
+    """Create MEA comparison Excel export matching the EXACT same structure as SSE comparison Excel."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    import re
+    
+    data = comparison_data
+    recordings = data.get('recordings', [])
+    summary = data.get('summary', {})
+    spike_averages = data.get('spike_averages', {}).get('averages', {})
+    burst_averages = data.get('burst_averages', {}).get('averages', {})
+    light_spike_averages = data.get('light_spike_averages', {}).get('averages', {})
+    light_burst_averages = data.get('light_burst_averages', {}).get('averages', {})
+    
+    # Sort recordings alphabetically
+    recordings = sorted(recordings, key=lambda x: x.get('name', '').lower())
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    
+    # Define styles (same as SSE)
+    header_font = Font(bold=True, color='FFFFFF', size=10)
+    data_font = Font(size=9)
+    bold_data_font = Font(bold=True, size=9)
+    avg_font = Font(bold=True, color='FFFFFF', size=9)
+    
+    dark_fill = PatternFill(start_color='18181B', end_color='18181B', fill_type='solid')
+    emerald_fill = PatternFill(start_color='10B981', end_color='10B981', fill_type='solid')
+    amber_fill = PatternFill(start_color='F59E0B', end_color='F59E0B', fill_type='solid')
+    avg_fill = PatternFill(start_color='F87171', end_color='F87171', fill_type='solid')
+    baseline_fill = PatternFill(start_color='E0F2FE', end_color='E0F2FE', fill_type='solid')
+    drug_fill = PatternFill(start_color='F3E8FF', end_color='F3E8FF', fill_type='solid')
+    light_fill = PatternFill(start_color='FEF3C7', end_color='FEF3C7', fill_type='solid')
+    alt_fill = PatternFill(start_color='F9FAFB', end_color='F9FAFB', fill_type='solid')
+    gray_fill = PatternFill(start_color='6B7280', end_color='6B7280', fill_type='solid')
+    
+    thin_border = Border(
+        left=Side(style='thin', color='E5E7EB'),
+        right=Side(style='thin', color='E5E7EB'),
+        top=Side(style='thin', color='E5E7EB'),
+        bottom=Side(style='thin', color='E5E7EB')
+    )
+    
+    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    def fmt(val, dec=2):
+        if val is None:
+            return '—'
+        try:
+            if dec == 0:
+                return f"{float(val):.0f}"
+            elif dec == 1:
+                return f"{float(val):.1f}"
+            elif dec == 3:
+                return f"{float(val):.3f}"
             return f"{float(val):.{dec}f}"
         except:
             return '—'
@@ -5416,1054 +6277,545 @@ def create_mea_comparison_pdf(folder_name, comparison_data):
         return f"{age_dict.get('min')} - {age_dict.get('max')} days"
     
     def extract_short_name(full_name):
-        """Extract FX or CX from the end of the recording name"""
         if not full_name:
             return '—'
         match = re.search(r'[FC]\d+$', full_name)
         if match:
             return match.group()
-        # Fallback: take last 2-3 chars
-        parts = full_name.replace('/', '-').replace('_', '-').split('-')
-        return parts[-1][-3:] if parts else full_name[:3]
+        parts = full_name.replace('/', '-').split('-')
+        return parts[-1] if parts else full_name[:10]
     
     def norm_val(val, avg):
-        if val is None or avg is None or avg == 0:
+        if val is None or avg == 0 or avg is None:
             return None
         return 100 * val / avg
     
-    def get_all_drugs(recordings):
-        """Get unique list of drugs across all recordings"""
-        drugs = []
-        seen = set()
-        for rec in recordings:
-            drug_info = rec.get('drug_info', [])
-            if isinstance(drug_info, list):
-                for d in drug_info:
-                    name = d.get('name', '')
-                    if name and name not in seen:
-                        seen.add(name)
-                        drugs.append({'name': name, 'concentration': d.get('concentration', '')})
-        return drugs
-    
-    def add_page_header(fig, section_name):
-        """Add header: NEHER section_name"""
-        fig.text(0.08, 0.96, 'NEHER', fontsize=12, fontweight='bold', color=COLORS['dark'], fontfamily=title_font)
-        fig.text(0.16, 0.96, section_name, fontsize=12, fontweight='normal', color=COLORS['gray'], fontfamily=title_font)
-    
-    def add_page_footer(fig, page_num, total_pages):
-        """Add footer: p. XX | Folder Name | MEA Comparison Report by NEHER"""
-        fig.text(0.08, 0.025, f'p. {page_num}', fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-        fig.text(0.125, 0.025, f'|  {folder_name}  |  MEA Comparison Report by NEHER', fontsize=10, color=COLORS['gray'], fontfamily=body_font)
-    
-    def draw_header(fig, x, y, text, color, width=0.38):
-        """Draw section header with colored background"""
-        fig.add_artist(mpatches.Rectangle((x, y - 0.012), width, 0.024, facecolor=color, edgecolor='none', transform=fig.transFigure))
-        fig.text(x + 0.01, y, text, fontsize=9, fontweight='bold', color='white', fontfamily=body_font, va='center')
-        return y - 0.028
-    
-    def draw_row(fig, x, y, label, value, bg_color=None, width=0.38, label_width=0.18, text_color=None):
-        """Draw a data row with label and value"""
-        if bg_color:
-            fig.add_artist(mpatches.Rectangle((x, y - 0.008), width, 0.020, facecolor=bg_color, edgecolor='none', transform=fig.transFigure))
-        label_color = text_color if text_color else COLORS['gray']
-        value_color = text_color if text_color else COLORS['dark']
-        fig.text(x + 0.01, y, label, fontsize=8, color=label_color, fontfamily=body_font, va='center')
-        fig.text(x + label_width, y, str(value), fontsize=8, fontweight='bold', color=value_color, fontfamily=body_font, va='center')
-        return y - 0.020
-    
-    # Get all unique drugs and check for light stimulus
-    all_drugs = get_all_drugs(recordings)
-    has_light = any(rec.get('has_light') for rec in recordings)
-    
-    # Calculate total pages
-    num_drug_pages = max(1, len(all_drugs))  # At least 1 spontaneous page (Baseline)
-    total_pages = 2 + num_drug_pages + (2 if has_light else 0)  # Summary + Metadata + Drug pages + Light pages
-    
-    # Drug info string for summary
-    drug_str = '—'
-    if all_drugs:
-        drug_parts = []
-        for d in all_drugs[:3]:  # Max 3 drugs
-            if d.get('concentration'):
-                drug_parts.append(f"{d['name']} ({d['concentration']}µM)")
-            else:
-                drug_parts.append(d['name'])
-        drug_str = ', '.join(drug_parts)
-    
-    buf = io.BytesIO()
-    
-    with PdfPages(buf) as pdf:
-        # =====================================================================
-        # PAGE 1: SUMMARY (Following SSE format)
-        # =====================================================================
-        fig = plt.figure(figsize=(8.5, 11))
-        fig.patch.set_facecolor('white')
-        
-        add_page_header(fig, 'Summary')
-        
-        # Title
-        fig.text(0.5, 0.91, folder_name, fontsize=16, fontweight='bold', color=COLORS['dark'],
-                fontfamily=title_font, ha='center')
-        
-        add_page_footer(fig, 1, total_pages)
-        
-        # Left column
-        left_x = 0.08
-        y_pos = 0.84
-        
-        # Folder Overview
-        y_pos = draw_header(fig, left_x, y_pos, 'Folder Overview', COLORS['header_blue'])
-        y_pos = draw_row(fig, left_x, y_pos, 'Recordings', str(len(recordings)))
-        y_pos = draw_row(fig, left_x, y_pos, 'Date Created', datetime.now().strftime('%Y-%m-%d'))
-        
-        y_pos -= 0.015
-        
-        # Age Ranges
-        y_pos = draw_header(fig, left_x, y_pos, 'Age Ranges', COLORS['header_blue'])
-        hspo_range = summary.get('hspo_age_range', {})
-        hco_range = summary.get('hco_age_range', {})
-        fusion_range = summary.get('fusion_age_range', {})
-        y_pos = draw_row(fig, left_x, y_pos, 'hSpOs', f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})")
-        y_pos = draw_row(fig, left_x, y_pos, 'hCOs', f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})")
-        y_pos = draw_row(fig, left_x, y_pos, 'Fusion', f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})")
-        
-        y_pos -= 0.015
-        
-        # Parameters
-        y_pos = draw_header(fig, left_x, y_pos, 'Parameters', COLORS['header_blue'])
-        y_pos = draw_row(fig, left_x, y_pos, 'Drug Used', drug_str if drug_str != '—' else 'No drug')
-        y_pos = draw_row(fig, left_x, y_pos, 'Light Stim', 'Yes' if has_light else 'No')
-        
-        # Right column
-        right_x = 0.54
-        y_pos = 0.84
-        
-        # Spontaneous Activity
-        y_pos = draw_header(fig, right_x, y_pos, 'Spontaneous Activity', COLORS['emerald'])
-        y_pos = draw_row(fig, right_x, y_pos, 'Baseline Spike (Hz)', fmt(spike_averages.get('baseline_spike_hz'), 2), bg_color=TINTS['baseline'])
-        y_pos = draw_row(fig, right_x, y_pos, 'Baseline Burst (bpm)', fmt(burst_averages.get('baseline_burst_bpm'), 2), bg_color=TINTS['baseline'])
-        if all_drugs:
-            y_pos = draw_row(fig, right_x, y_pos, 'Drug Spike (Hz)', fmt(spike_averages.get('drug_spike_hz'), 2), bg_color=TINTS['drug'])
-            y_pos = draw_row(fig, right_x, y_pos, 'Drug Burst (bpm)', fmt(burst_averages.get('drug_burst_bpm'), 2), bg_color=TINTS['drug'])
-        
-        y_pos -= 0.015
-        
-        # Light Stimulus (if applicable)
-        if has_light:
-            y_pos = draw_header(fig, right_x, y_pos, 'Light Stimulus', COLORS['amber'])
-            # Spike metrics
-            y_pos = draw_row(fig, right_x, y_pos, 'Baseline Spike', fmt(light_spike_averages.get('light_baseline_spike_hz'), 2), bg_color=TINTS['light'])
-            y_pos = draw_row(fig, right_x, y_pos, 'Avg Spike', fmt(light_spike_averages.get('light_avg_spike_hz'), 2), bg_color=TINTS['light'])
-            
-            # Avg Spike Norm
-            avg_bl_spike = light_spike_averages.get('light_baseline_spike_hz', 0) or 1
-            avg_spike_norm = norm_val(light_spike_averages.get('light_avg_spike_hz'), avg_bl_spike)
-            y_pos = draw_row(fig, right_x, y_pos, 'Avg Spike (Norm.)', fmt(avg_spike_norm, 1) + '%' if avg_spike_norm else '—', bg_color=TINTS['light'])
-            
-            y_pos = draw_row(fig, right_x, y_pos, 'Peak Spike', fmt(light_spike_averages.get('light_max_spike_hz'), 2), bg_color=TINTS['light'])
-            peak_spike_norm = norm_val(light_spike_averages.get('light_max_spike_hz'), avg_bl_spike)
-            y_pos = draw_row(fig, right_x, y_pos, 'Peak Spike (Norm.)', fmt(peak_spike_norm, 1) + '%' if peak_spike_norm else '—', bg_color=TINTS['light'])
-            
-            y_pos -= 0.008
-            
-            # Burst metrics
-            y_pos = draw_row(fig, right_x, y_pos, 'Baseline Burst', fmt(light_burst_averages.get('light_baseline_burst_bpm'), 2), bg_color=TINTS['light'])
-            y_pos = draw_row(fig, right_x, y_pos, 'Avg Burst', fmt(light_burst_averages.get('light_avg_burst_bpm'), 2), bg_color=TINTS['light'])
-            
-            avg_bl_burst = light_burst_averages.get('light_baseline_burst_bpm', 0) or 1
-            avg_burst_norm = norm_val(light_burst_averages.get('light_avg_burst_bpm'), avg_bl_burst)
-            y_pos = draw_row(fig, right_x, y_pos, 'Avg Burst (Norm.)', fmt(avg_burst_norm, 1) + '%' if avg_burst_norm else '—', bg_color=TINTS['light'])
-            
-            y_pos = draw_row(fig, right_x, y_pos, 'Peak Burst', fmt(light_burst_averages.get('light_max_burst_bpm'), 2), bg_color=TINTS['light'])
-            peak_burst_norm = norm_val(light_burst_averages.get('light_max_burst_bpm'), avg_bl_burst)
-            y_pos = draw_row(fig, right_x, y_pos, 'Peak Burst (Norm.)', fmt(peak_burst_norm, 1) + '%' if peak_burst_norm else '—', bg_color=TINTS['light'])
-        
-        pdf.savefig(fig)
-        plt.close(fig)
-        
-        # =====================================================================
-        # PAGE 2: METADATA (Following SSE format)
-        # =====================================================================
-        fig = plt.figure(figsize=(8.5, 11))
-        fig.patch.set_facecolor('white')
-        
-        add_page_header(fig, 'Metadata')
-        fig.text(0.5, 0.91, 'Recording Metadata', fontsize=14, fontweight='bold', color=COLORS['dark'],
-                fontfamily=title_font, ha='center')
-        add_page_footer(fig, 2, total_pages)
-        
-        ax = fig.add_axes([0.03, 0.08, 0.94, 0.80])
-        ax.axis('off')
-        
-        # Table 1: Recording Information
-        fig.text(0.08, 0.87, 'Table 1 | Recording Information', fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-        
-        headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
-        col_widths = [0.18, 0.09, 0.10, 0.10, 0.08, 0.17, 0.12, 0.12]
-        
-        y_start = 0.83
-        x_pos = 0.02
-        for i, (header, width) in enumerate(zip(headers, col_widths)):
-            ax.add_patch(mpatches.Rectangle((x_pos, y_start - 0.025), width - 0.005, 0.025,
-                                           facecolor=COLORS['header_blue'], edgecolor='none'))
-            ax.text(x_pos + width/2 - 0.0025, y_start - 0.0125, header, fontsize=7, fontweight='bold',
-                   color='white', ha='center', va='center', fontfamily=body_font)
-            x_pos += width
-        
-        row_height = 0.045  # Taller rows for CSV files
-        for row_idx, rec in enumerate(recordings[:14]):
-            y_row = y_start - 0.025 - (row_idx + 1) * row_height
-            bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-            
-            # Get CSV files
-            state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
-            csv_files = state.get('csv_files', [])
-            
-            # Build recording cell with CSV files below
-            rec_name = rec.get('name', '—')
-            short_name = extract_short_name(rec_name)
-            
-            # Drug info
-            drug_info = rec.get('drug_info', [])
-            drug_str_cell = '—'
-            if isinstance(drug_info, list) and drug_info:
-                parts = []
-                for d in drug_info[:2]:
-                    if d.get('concentration'):
-                        parts.append(f"{d['name']} ({d['concentration']}µM)")
-                    else:
-                        parts.append(d.get('name', ''))
-                drug_str_cell = '\n'.join(parts) if parts else '—'
-            
-            # Light stim info
-            light_str = '—'
-            if rec.get('has_light'):
-                num_stim = state.get('numStim', state.get('num_stim', '?'))
-                stim_dur = state.get('stimDuration', state.get('stim_duration', '?'))
-                isi = state.get('isi', '?')
-                light_str = f"{num_stim}×{stim_dur}s\nISI {isi}s"
-            
-            # hSpO and hCO info
-            hspo_str = '—'
-            if rec.get('hspo_age'):
-                hspo_str = f"{rec.get('hspo_age')}d"
-            
-            hco_str = '—'
-            if rec.get('hco_age'):
-                hco_str = f"{rec.get('hco_age')}d"
-            
-            fusion_str = '—'
-            if rec.get('fusion_age'):
-                fusion_str = f"{rec.get('fusion_age')}d"
-            
-            row_data = [
-                rec_name[:20] + ('\n' + '\n'.join([f[-15:] for f in csv_files[:3]]) if csv_files else ''),
-                rec.get('recording_date', '—')[:10] if rec.get('recording_date') else '—',
-                hspo_str,
-                hco_str,
-                fusion_str,
-                drug_str_cell,
-                light_str,
-                (rec.get('notes', '') or '—')[:20],
-            ]
-            
-            x_pos = 0.02
-            for i, (val, width) in enumerate(zip(row_data, col_widths)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                               facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                # Multi-line text support
-                lines = str(val).split('\n')
-                line_height = row_height / (len(lines) + 0.5)
-                for li, line in enumerate(lines[:4]):
-                    y_text = y_row + row_height - (li + 1) * line_height
-                    fontsize = 5 if i == 0 and li > 0 else 6  # Smaller font for CSV files
-                    ax.text(x_pos + width/2 - 0.0025, y_text, line[:25], fontsize=fontsize,
-                           color=COLORS['dark'] if li == 0 else COLORS['gray'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-        
-        pdf.savefig(fig)
-        plt.close(fig)
-        
-        # =====================================================================
-        # PAGE 3+: SPONTANEOUS ACTIVITY (One page per drug or "Baseline")
-        # =====================================================================
-        page_num = 3
-        drug_list = all_drugs if all_drugs else [{'name': 'Baseline', 'concentration': ''}]
-        
-        for drug_idx, drug in enumerate(drug_list[:3]):  # Max 3 drugs
-            fig = plt.figure(figsize=(8.5, 11))
-            fig.patch.set_facecolor('white')
-            
-            add_page_header(fig, 'Spontaneous Activity')
-            
-            drug_name = drug.get('name', 'Baseline')
-            title_str = drug_name if drug_name != 'Baseline' else 'Baseline'
-            fig.text(0.5, 0.91, title_str, fontsize=14, fontweight='bold', color=COLORS['dark'],
-                    fontfamily=title_font, ha='center')
-            
-            add_page_footer(fig, page_num, total_pages)
-            
-            ax = fig.add_axes([0.03, 0.08, 0.94, 0.80])
-            ax.axis('off')
-            
-            # Table 2: Drug-induced Spike and Burst Data
-            table_label = f'Table 2{"." + chr(97 + drug_idx) if drug_idx > 0 else ""}'
-            fig.text(0.08, 0.87, f'{table_label} | Drug-induced Spike and Burst Data ({drug_name})',
-                    fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-            
-            headers = ['Rec', 'Base Spike (Hz)', 'Drug Spike (Hz)', 'Base Burst (bpm)', 'Drug Burst (bpm)']
-            col_widths = [0.12, 0.20, 0.20, 0.20, 0.20]
-            header_colors = [COLORS['header_blue'], COLORS['cyan'], COLORS['purple'], COLORS['cyan'], COLORS['orange']]
-            
-            y_start = 0.83
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers, col_widths, header_colors)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start - 0.011, header, fontsize=7, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            row_height = 0.022
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(rec.get('baseline_spike_hz'), 2),
-                    fmt(rec.get('drug_spike_hz'), 2),
-                    fmt(rec.get('baseline_burst_bpm'), 2),
-                    fmt(rec.get('drug_burst_bpm'), 2),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=7,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row
-            y_avg = y_start - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row = [
-                'Average',
-                fmt(spike_averages.get('baseline_spike_hz'), 2),
-                fmt(spike_averages.get('drug_spike_hz'), 2),
-                fmt(burst_averages.get('baseline_burst_bpm'), 2),
-                fmt(burst_averages.get('drug_burst_bpm'), 2),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row, col_widths)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg + row_height/2, str(val), fontsize=7, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            # Table 3: Normalized Data
-            y_start2 = 0.42
-            table_label2 = f'Table 3{"." + chr(97 + drug_idx) if drug_idx > 0 else ""}'
-            fig.text(0.08, y_start2 + 0.025, f'{table_label2} | Spike and Burst Normalized to Average Baseline ({drug_name})',
-                    fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-            
-            headers2 = ['Rec', 'Base Spike (%)', 'Drug Spike (%)', 'Base Burst (%)', 'Drug Burst (%)']
-            
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers2, col_widths, header_colors)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start2 - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start2 - 0.011, header, fontsize=7, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            avg_bl_spike = spike_averages.get('baseline_spike_hz', 0) or 1
-            avg_bl_burst = burst_averages.get('baseline_burst_bpm', 0) or 1
-            
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start2 - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(norm_val(rec.get('baseline_spike_hz'), avg_bl_spike), 1),
-                    fmt(norm_val(rec.get('drug_spike_hz'), avg_bl_spike), 1),
-                    fmt(norm_val(rec.get('baseline_burst_bpm'), avg_bl_burst), 1),
-                    fmt(norm_val(rec.get('drug_burst_bpm'), avg_bl_burst), 1),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=7,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row for normalized
-            y_avg2 = y_start2 - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row2 = [
-                'Average',
-                '100.0',  # Base Spike normalized = 100%
-                fmt(norm_val(spike_averages.get('drug_spike_hz'), avg_bl_spike), 1),
-                '100.0',  # Base Burst normalized = 100%
-                fmt(norm_val(burst_averages.get('drug_burst_bpm'), avg_bl_burst), 1),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row2, col_widths)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg2), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg2 + row_height/2, str(val), fontsize=7, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            pdf.savefig(fig)
-            plt.close(fig)
-            page_num += 1
-        
-        # =====================================================================
-        # LIGHT STIMULUS - SPIKE ADAPTATION
-        # =====================================================================
-        if has_light:
-            fig = plt.figure(figsize=(8.5, 11))
-            fig.patch.set_facecolor('white')
-            
-            add_page_header(fig, 'Light Stimulus')
-            fig.text(0.5, 0.91, 'Spike Adaptation', fontsize=14, fontweight='bold', color=COLORS['dark'],
-                    fontfamily=title_font, ha='center')
-            add_page_footer(fig, page_num, total_pages)
-            
-            ax = fig.add_axes([0.03, 0.08, 0.94, 0.80])
-            ax.axis('off')
-            
-            # Table 4: Light-evoked Spike Data
-            fig.text(0.08, 0.87, 'Table 4 | Light-evoked Spike Data', fontsize=10, fontweight='bold',
-                    color=COLORS['dark'], fontfamily=body_font)
-            
-            headers = ['Rec', 'Baseline Spike', 'Avg Spike', 'Max Spike', 'Spike %', 'Peak %', 'TTP (s)']
-            col_widths = [0.10, 0.14, 0.14, 0.14, 0.12, 0.12, 0.12]
-            header_colors = [COLORS['header_blue'], COLORS['cyan'], COLORS['emerald'], COLORS['emerald'], 
-                           COLORS['emerald'], COLORS['emerald'], COLORS['emerald']]
-            
-            y_start = 0.83
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers, col_widths, header_colors)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start - 0.011, header, fontsize=6, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            row_height = 0.022
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(rec.get('light_baseline_spike_hz'), 2),
-                    fmt(rec.get('light_avg_spike_hz'), 2),
-                    fmt(rec.get('light_max_spike_hz'), 2),
-                    fmt(rec.get('light_spike_delta_pct'), 1),
-                    fmt(rec.get('light_spike_peak_delta_pct'), 1),
-                    fmt(rec.get('light_ttp_spike'), 1),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=6,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row
-            y_avg = y_start - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row = [
-                'Average',
-                fmt(light_spike_averages.get('light_baseline_spike_hz'), 2),
-                fmt(light_spike_averages.get('light_avg_spike_hz'), 2),
-                fmt(light_spike_averages.get('light_max_spike_hz'), 2),
-                fmt(light_spike_averages.get('light_spike_delta_pct'), 1),
-                fmt(light_spike_averages.get('light_spike_peak_delta_pct'), 1),
-                fmt(light_spike_averages.get('light_ttp_spike'), 1),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row, col_widths)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg + row_height/2, str(val), fontsize=6, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            # Table 5: Normalized Spike Data
-            y_start2 = 0.42
-            fig.text(0.08, y_start2 + 0.025, 'Table 5 | Light-evoked Spike Normalized to Average Baseline',
-                    fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-            
-            headers2 = ['Rec', 'Baseline Spike (%)', 'Avg Spike (%)', 'Max Spike (%)']
-            col_widths2 = [0.15, 0.25, 0.25, 0.25]
-            header_colors2 = [COLORS['header_blue'], COLORS['cyan'], COLORS['emerald'], COLORS['emerald']]
-            
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers2, col_widths2, header_colors2)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start2 - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start2 - 0.011, header, fontsize=7, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            avg_bl_light_spike = light_spike_averages.get('light_baseline_spike_hz', 0) or 1
-            
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start2 - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(norm_val(rec.get('light_baseline_spike_hz'), avg_bl_light_spike), 1),
-                    fmt(norm_val(rec.get('light_avg_spike_hz'), avg_bl_light_spike), 1),
-                    fmt(norm_val(rec.get('light_max_spike_hz'), avg_bl_light_spike), 1),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths2)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=7,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row
-            y_avg2 = y_start2 - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row2 = [
-                'Average',
-                '100.0',
-                fmt(norm_val(light_spike_averages.get('light_avg_spike_hz'), avg_bl_light_spike), 1),
-                fmt(norm_val(light_spike_averages.get('light_max_spike_hz'), avg_bl_light_spike), 1),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row2, col_widths2)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg2), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg2 + row_height/2, str(val), fontsize=7, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            pdf.savefig(fig)
-            plt.close(fig)
-            page_num += 1
-            
-            # =====================================================================
-            # LIGHT STIMULUS - BURST ADAPTATION
-            # =====================================================================
-            fig = plt.figure(figsize=(8.5, 11))
-            fig.patch.set_facecolor('white')
-            
-            add_page_header(fig, 'Light Stimulus')
-            fig.text(0.5, 0.91, 'Burst Adaptation', fontsize=14, fontweight='bold', color=COLORS['dark'],
-                    fontfamily=title_font, ha='center')
-            add_page_footer(fig, page_num, total_pages)
-            
-            ax = fig.add_axes([0.03, 0.08, 0.94, 0.80])
-            ax.axis('off')
-            
-            # Table 6: Light-evoked Burst Data
-            fig.text(0.08, 0.87, 'Table 6 | Light-evoked Burst Data', fontsize=10, fontweight='bold',
-                    color=COLORS['dark'], fontfamily=body_font)
-            
-            headers = ['Rec', 'Baseline Burst', 'Avg Burst', 'Max Burst', 'Burst %', 'Peak %', 'TTP (s)']
-            header_colors = [COLORS['header_blue'], COLORS['cyan'], COLORS['orange'], COLORS['orange'],
-                           COLORS['orange'], COLORS['orange'], COLORS['orange']]
-            
-            y_start = 0.83
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers, col_widths, header_colors)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start - 0.011, header, fontsize=6, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(rec.get('light_baseline_burst_bpm'), 2),
-                    fmt(rec.get('light_avg_burst_bpm'), 2),
-                    fmt(rec.get('light_max_burst_bpm'), 2),
-                    fmt(rec.get('light_burst_delta_pct'), 1),
-                    fmt(rec.get('light_burst_peak_delta_pct'), 1),
-                    fmt(rec.get('light_ttp_burst'), 1),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=6,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row
-            y_avg = y_start - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row = [
-                'Average',
-                fmt(light_burst_averages.get('light_baseline_burst_bpm'), 2),
-                fmt(light_burst_averages.get('light_avg_burst_bpm'), 2),
-                fmt(light_burst_averages.get('light_max_burst_bpm'), 2),
-                fmt(light_burst_averages.get('light_burst_delta_pct'), 1),
-                fmt(light_burst_averages.get('light_burst_peak_delta_pct'), 1),
-                fmt(light_burst_averages.get('light_ttp_burst'), 1),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row, col_widths)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg + row_height/2, str(val), fontsize=6, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            # Table 7: Normalized Burst Data
-            y_start2 = 0.42
-            fig.text(0.08, y_start2 + 0.025, 'Table 7 | Light-evoked Burst Normalized to Average Baseline',
-                    fontsize=10, fontweight='bold', color=COLORS['dark'], fontfamily=body_font)
-            
-            headers2 = ['Rec', 'Baseline Burst (%)', 'Avg Burst (%)', 'Max Burst (%)']
-            header_colors2 = [COLORS['header_blue'], COLORS['cyan'], COLORS['orange'], COLORS['orange']]
-            
-            x_pos = 0.04
-            for i, (header, width, color) in enumerate(zip(headers2, col_widths2, header_colors2)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_start2 - 0.022), width - 0.005, 0.022,
-                                               facecolor=color, edgecolor='none'))
-                ax.text(x_pos + width/2 - 0.0025, y_start2 - 0.011, header, fontsize=7, fontweight='bold',
-                       color='white', ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            avg_bl_light_burst = light_burst_averages.get('light_baseline_burst_bpm', 0) or 1
-            
-            for row_idx, rec in enumerate(recordings[:12]):
-                y_row = y_start2 - 0.022 - (row_idx + 1) * row_height
-                bg_color = '#f9fafb' if row_idx % 2 == 0 else 'white'
-                
-                row_data = [
-                    extract_short_name(rec.get('name', '—')),
-                    fmt(norm_val(rec.get('light_baseline_burst_bpm'), avg_bl_light_burst), 1),
-                    fmt(norm_val(rec.get('light_avg_burst_bpm'), avg_bl_light_burst), 1),
-                    fmt(norm_val(rec.get('light_max_burst_bpm'), avg_bl_light_burst), 1),
-                ]
-                
-                x_pos = 0.04
-                for i, (val, width) in enumerate(zip(row_data, col_widths2)):
-                    ax.add_patch(mpatches.Rectangle((x_pos, y_row), width - 0.005, row_height,
-                                                   facecolor=bg_color, edgecolor=COLORS['line'], linewidth=0.3))
-                    ax.text(x_pos + width/2 - 0.0025, y_row + row_height/2, str(val), fontsize=7,
-                           color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                    x_pos += width
-            
-            # Average row
-            y_avg2 = y_start2 - 0.022 - (len(recordings[:12]) + 1) * row_height
-            avg_row2 = [
-                'Average',
-                '100.0',
-                fmt(norm_val(light_burst_averages.get('light_avg_burst_bpm'), avg_bl_light_burst), 1),
-                fmt(norm_val(light_burst_averages.get('light_max_burst_bpm'), avg_bl_light_burst), 1),
-            ]
-            x_pos = 0.04
-            for i, (val, width) in enumerate(zip(avg_row2, col_widths2)):
-                ax.add_patch(mpatches.Rectangle((x_pos, y_avg2), width - 0.005, row_height,
-                                               facecolor=TINTS['avg'], edgecolor=COLORS['line'], linewidth=0.3))
-                ax.text(x_pos + width/2 - 0.0025, y_avg2 + row_height/2, str(val), fontsize=7, fontweight='bold',
-                       color=COLORS['dark'], ha='center', va='center', fontfamily=body_font)
-                x_pos += width
-            
-            pdf.savefig(fig)
-            plt.close(fig)
-    
-    buf.seek(0)
-    return buf
-
-
-def create_mea_comparison_xlsx(folder_name, comparison_data):
-    """
-    Create MEA comparison Excel following SSE style with sheets:
-    - Summary
-    - Metadata
-    - Spontaneous (per drug)
-    - Light Spike
-    - Light Burst
-    """
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-    from openpyxl.utils import get_column_letter
-    import re
-    
-    data = comparison_data
-    recordings = sorted(data.get('recordings', []), key=lambda x: x.get('name', '').lower())
-    summary = data.get('summary', {})
-    spike_averages = data.get('spike_averages', {}).get('averages', {})
-    burst_averages = data.get('burst_averages', {}).get('averages', {})
-    light_spike_averages = data.get('light_spike_averages', {}).get('averages', {})
-    light_burst_averages = data.get('light_burst_averages', {}).get('averages', {})
-    
-    def fmt(val, dec=2):
-        if val is None:
-            return '—'
-        try:
-            return round(float(val), dec)
-        except:
-            return '—'
-    
-    def norm_val(val, avg):
-        if val is None or avg is None or avg == 0:
+    def parse_drug_info(drug_info):
+        if not drug_info:
             return None
-        return round(100 * val / avg, 1)
+        if isinstance(drug_info, dict):
+            name = drug_info.get('name', '')
+            conc = drug_info.get('concentration', '')
+            if name:
+                return f"{name} ({conc})" if conc else name
+            return None
+        if isinstance(drug_info, list):
+            results = []
+            for d in drug_info:
+                parsed = parse_drug_info(d)
+                if parsed:
+                    results.append(parsed)
+            return results if results else None
+        drug_str = str(drug_info).strip()
+        if drug_str.lower() in ['no drug', 'no', 'none', '—', '-', '']:
+            return None
+        return drug_str
     
-    def extract_short_name(full_name):
-        if not full_name:
-            return '—'
-        match = re.search(r'[FC]\d+$', full_name)
-        if match:
-            return match.group()
-        parts = full_name.replace('/', '-').replace('_', '-').split('-')
-        return parts[-1][-3:] if parts else full_name[:3]
-    
-    def get_all_drugs(recordings):
-        drugs = []
-        seen = set()
-        for rec in recordings:
-            drug_info = rec.get('drug_info', [])
-            if isinstance(drug_info, list):
-                for d in drug_info:
-                    name = d.get('name', '')
-                    if name and name not in seen:
-                        seen.add(name)
-                        drugs.append({'name': name, 'concentration': d.get('concentration', '')})
-        return drugs
-    
-    wb = Workbook()
-    
-    # Styles
-    header_font = Font(bold=True, color='FFFFFF')
-    header_fill = PatternFill('solid', fgColor='5ba4c9')
-    cyan_fill = PatternFill('solid', fgColor='06b6d4')
-    purple_fill = PatternFill('solid', fgColor='a855f7')
-    orange_fill = PatternFill('solid', fgColor='f97316')
-    emerald_fill = PatternFill('solid', fgColor='10b981')
-    avg_fill = PatternFill('solid', fgColor='d1fae5')
-    thin_border = Border(
-        left=Side(style='thin', color='E5E7EB'),
-        right=Side(style='thin', color='E5E7EB'),
-        top=Side(style='thin', color='E5E7EB'),
-        bottom=Side(style='thin', color='E5E7EB')
-    )
-    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    
-    all_drugs = get_all_drugs(recordings)
+    # Check if has light
     has_light = any(rec.get('has_light') for rec in recordings)
     
-    drug_str = '—'
-    if all_drugs:
-        drug_parts = []
-        for d in all_drugs[:3]:
-            if d.get('concentration'):
-                drug_parts.append(f"{d['name']} ({d['concentration']}µM)")
-            else:
-                drug_parts.append(d['name'])
-        drug_str = ', '.join(drug_parts)
-    
-    # =====================================================================
-    # SHEET 1: Summary
-    # =====================================================================
+    # ==================== SHEET 1: SUMMARY ====================
     ws1 = wb.active
-    ws1.title = 'Summary'
+    ws1.title = "Summary"
     
-    ws1['A1'] = 'MEA Comparison Summary'
-    ws1['A1'].font = Font(bold=True, size=14)
+    # Title
     ws1.merge_cells('A1:D1')
+    ws1['A1'] = folder_name
+    ws1['A1'].font = Font(bold=True, size=16)
+    ws1['A1'].alignment = left_align
     
-    ws1['A3'] = 'Folder Overview'
-    ws1['A3'].font = Font(bold=True)
-    ws1['A4'] = 'Recordings'
-    ws1['B4'] = len(recordings)
-    ws1['A5'] = 'Date Created'
-    ws1['B5'] = datetime.now().strftime('%Y-%m-%d')
+    row = 3
+    # Folder Overview
+    ws1[f'A{row}'] = 'FOLDER OVERVIEW'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = dark_fill
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
+    ws1[f'A{row}'] = 'Recordings:'
+    ws1[f'B{row}'] = summary.get('recording_count', len(recordings))
+    ws1[f'B{row}'].font = bold_data_font
+    row += 1
+    ws1[f'A{row}'] = 'Date Created:'
+    ws1[f'B{row}'] = datetime.now().strftime('%Y-%m-%d')
+    ws1[f'B{row}'].font = bold_data_font
+    row += 2
     
-    ws1['A7'] = 'Parameters'
-    ws1['A7'].font = Font(bold=True)
-    ws1['A8'] = 'Drug Used'
-    ws1['B8'] = drug_str if drug_str != '—' else 'No drug'
-    ws1['A9'] = 'Light Stim'
-    ws1['B9'] = 'Yes' if has_light else 'No'
+    # Age Ranges
+    ws1[f'A{row}'] = 'AGE RANGES'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = gray_fill
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
+    hspo_range = summary.get('hspo_age_range', {})
+    hco_range = summary.get('hco_age_range', {})
+    fusion_range = summary.get('fusion_age_range', {})
+    ws1[f'A{row}'] = 'hSpOs:'
+    ws1[f'B{row}'] = f"{fmt_age_range(hspo_range)} (n={hspo_range.get('n', 0)})"
+    row += 1
+    ws1[f'A{row}'] = 'hCOs:'
+    ws1[f'B{row}'] = f"{fmt_age_range(hco_range)} (n={hco_range.get('n', 0)})"
+    row += 1
+    ws1[f'A{row}'] = 'Fusion:'
+    ws1[f'B{row}'] = f"{fmt_age_range(fusion_range)} (n={fusion_range.get('n', 0)})"
+    row += 2
     
-    ws1['A11'] = 'Spontaneous Activity'
-    ws1['A11'].font = Font(bold=True)
-    ws1['A12'] = 'Baseline Spike (Hz)'
-    ws1['B12'] = fmt(spike_averages.get('baseline_spike_hz'), 2)
-    ws1['A13'] = 'Baseline Burst (bpm)'
-    ws1['B13'] = fmt(burst_averages.get('baseline_burst_bpm'), 2)
-    ws1['A14'] = 'Drug Spike (Hz)'
-    ws1['B14'] = fmt(spike_averages.get('drug_spike_hz'), 2)
-    ws1['A15'] = 'Drug Burst (bpm)'
-    ws1['B15'] = fmt(burst_averages.get('drug_burst_bpm'), 2)
+    # Parameters
+    ws1[f'A{row}'] = 'PARAMETERS'
+    ws1[f'A{row}'].font = header_font
+    ws1[f'A{row}'].fill = gray_fill
+    ws1.merge_cells(f'A{row}:B{row}')
+    row += 1
     
+    # Drug Used
+    all_drugs = []
+    drug_concentration_unit = ''
+    for r in recordings:
+        drug_info_raw = r.get('drug_info')
+        if isinstance(drug_info_raw, dict):
+            conc_unit = drug_info_raw.get('concentration_unit', '') or drug_info_raw.get('unit', '')
+            if conc_unit and not drug_concentration_unit:
+                drug_concentration_unit = conc_unit
+        parsed = parse_drug_info(drug_info_raw)
+        if parsed:
+            if isinstance(parsed, list):
+                all_drugs.extend(parsed)
+            else:
+                all_drugs.append(parsed)
+    
+    if all_drugs and not drug_concentration_unit:
+        drug_concentration_unit = 'µM'
+    
+    if all_drugs:
+        unique_drugs = list(dict.fromkeys(all_drugs))
+        drug_text = unique_drugs[0]
+        if drug_concentration_unit:
+            match = re.search(r'\(([^)]+)\)$', drug_text)
+            if match:
+                conc_value = match.group(1)
+                drug_text = re.sub(r'\([^)]+\)$', f'({conc_value}{drug_concentration_unit})', drug_text)
+    else:
+        drug_text = '—'
+    
+    ws1[f'A{row}'] = 'Drug Used:'
+    ws1[f'B{row}'] = drug_text
+    row += 1
+    ws1[f'A{row}'] = 'Light Stim:'
+    ws1[f'B{row}'] = 'Yes' if has_light else 'No'
+    row += 2
+    
+    # Right side - Spontaneous Activity Averages
+    ws1['D3'] = 'SPONTANEOUS ACTIVITY'
+    ws1['D3'].font = header_font
+    ws1['D3'].fill = emerald_fill
+    ws1.merge_cells('D3:E3')
+    
+    ws1['D4'] = 'Baseline Readout'
+    ws1['D4'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D5'] = 'Spike Rate:'
+    ws1['E5'] = f"{fmt(spike_averages.get('baseline_spike_hz'), 2)} Hz"
+    ws1['E5'].fill = baseline_fill
+    ws1['D6'] = 'Burst Rate:'
+    ws1['E6'] = f"{fmt(burst_averages.get('baseline_burst_bpm'), 2)} bpm"
+    ws1['E6'].fill = baseline_fill
+    
+    # Get unique drugs
+    unique_drug_names = []
+    for rec in recordings:
+        drug_info = rec.get('drug_info', [])
+        if isinstance(drug_info, list):
+            for d in drug_info:
+                if d.get('name') and d.get('name') not in unique_drug_names:
+                    unique_drug_names.append(d.get('name'))
+    
+    first_drug_name = unique_drug_names[0] if unique_drug_names else 'Drug'
+    ws1['D8'] = f'Drug Readout ({first_drug_name})'
+    ws1['D8'].font = Font(italic=True, size=8, color='71717A')
+    ws1['D9'] = 'Spike Rate:'
+    ws1['E9'] = f"{fmt(spike_averages.get('drug_spike_hz'), 2)} Hz"
+    ws1['E9'].fill = drug_fill
+    ws1['D10'] = 'Burst Rate:'
+    ws1['E10'] = f"{fmt(burst_averages.get('drug_burst_bpm'), 2)} bpm"
+    ws1['E10'].fill = drug_fill
+    
+    # Light Stimulus Averages
     if has_light:
-        ws1['A17'] = 'Light Stimulus'
-        ws1['A17'].font = Font(bold=True)
-        ws1['A18'] = 'Baseline Spike'
-        ws1['B18'] = fmt(light_spike_averages.get('light_baseline_spike_hz'), 2)
-        ws1['A19'] = 'Avg Spike'
-        ws1['B19'] = fmt(light_spike_averages.get('light_avg_spike_hz'), 2)
-        ws1['A20'] = 'Peak Spike'
-        ws1['B20'] = fmt(light_spike_averages.get('light_max_spike_hz'), 2)
-        ws1['A21'] = 'Baseline Burst'
-        ws1['B21'] = fmt(light_burst_averages.get('light_baseline_burst_bpm'), 2)
-        ws1['A22'] = 'Avg Burst'
-        ws1['B22'] = fmt(light_burst_averages.get('light_avg_burst_bpm'), 2)
-        ws1['A23'] = 'Peak Burst'
-        ws1['B23'] = fmt(light_burst_averages.get('light_max_burst_bpm'), 2)
+        ws1['D12'] = 'LIGHT STIMULUS'
+        ws1['D12'].font = header_font
+        ws1['D12'].fill = amber_fill
+        ws1.merge_cells('D12:E12')
+        
+        r = 13
+        ws1[f'D{r}'] = 'Spike Rate Adaptation'
+        ws1[f'D{r}'].font = Font(italic=True, size=8, color='71717A')
+        r += 1
+        cyan_font = Font(size=9, color='0891B2')
+        cyan_bold_font = Font(size=9, bold=True, color='0891B2')
+        ws1[f'D{r}'] = 'Baseline:'
+        ws1[f'D{r}'].font = cyan_font
+        baseline_spike = light_spike_averages.get('light_baseline_spike_hz')
+        ws1[f'E{r}'] = f"{fmt(baseline_spike, 2)} Hz"
+        ws1[f'E{r}'].font = cyan_bold_font
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Avg:'
+        avg_spike = light_spike_averages.get('light_avg_spike_hz')
+        ws1[f'E{r}'] = f"{fmt(avg_spike, 2)} Hz"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Avg (Norm.):'
+        avg_spike_norm = norm_val(avg_spike, baseline_spike) if baseline_spike else None
+        ws1[f'E{r}'] = f"{fmt(avg_spike_norm, 1)}%"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Peak:'
+        peak_spike = light_spike_averages.get('light_max_spike_hz')
+        ws1[f'E{r}'] = f"{fmt(peak_spike, 2)} Hz"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Peak (Norm.):'
+        peak_spike_norm = norm_val(peak_spike, baseline_spike) if baseline_spike else None
+        ws1[f'E{r}'] = f"{fmt(peak_spike_norm, 1)}%"
+        ws1[f'E{r}'].fill = light_fill
+        r += 2
+        
+        ws1[f'D{r}'] = 'Burst Rate Adaptation'
+        ws1[f'D{r}'].font = Font(italic=True, size=8, color='71717A')
+        r += 1
+        ws1[f'D{r}'] = 'Baseline:'
+        ws1[f'D{r}'].font = cyan_font
+        baseline_burst = light_burst_averages.get('light_baseline_burst_bpm')
+        ws1[f'E{r}'] = f"{fmt(baseline_burst, 2)} bpm"
+        ws1[f'E{r}'].font = cyan_bold_font
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Avg:'
+        avg_burst = light_burst_averages.get('light_avg_burst_bpm')
+        ws1[f'E{r}'] = f"{fmt(avg_burst, 2)} bpm"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Avg (Norm.):'
+        avg_burst_norm = norm_val(avg_burst, baseline_burst) if baseline_burst else None
+        ws1[f'E{r}'] = f"{fmt(avg_burst_norm, 1)}%"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Peak:'
+        peak_burst = light_burst_averages.get('light_max_burst_bpm')
+        ws1[f'E{r}'] = f"{fmt(peak_burst, 2)} bpm"
+        ws1[f'E{r}'].fill = light_fill
+        r += 1
+        ws1[f'D{r}'] = 'Peak (Norm.):'
+        peak_burst_norm = norm_val(peak_burst, baseline_burst) if baseline_burst else None
+        ws1[f'E{r}'] = f"{fmt(peak_burst_norm, 1)}%"
+        ws1[f'E{r}'].fill = light_fill
     
-    for col in range(1, 5):
-        ws1.column_dimensions[get_column_letter(col)].width = 25
+    # Set column widths
+    ws1.column_dimensions['A'].width = 15
+    ws1.column_dimensions['B'].width = 25
+    ws1.column_dimensions['C'].width = 5
+    ws1.column_dimensions['D'].width = 20
+    ws1.column_dimensions['E'].width = 15
     
-    # =====================================================================
-    # SHEET 2: Metadata
-    # =====================================================================
-    ws2 = wb.create_sheet('Metadata')
+    # ==================== SHEET 2: METADATA ====================
+    ws2 = wb.create_sheet("Metadata")
+    
+    ws2['A1'] = 'Table 1 | Recording Information'
+    ws2['A1'].font = Font(bold=True, size=12)
+    ws2.merge_cells('A1:H1')
     
     meta_headers = ['Recording', 'Date', 'hSpO Info', 'hCO Info', 'Fusion', 'Drug Info', 'Light Stim', 'Notes']
     for col, header in enumerate(meta_headers, 1):
-        cell = ws2.cell(row=1, column=col, value=header)
+        cell = ws2.cell(row=3, column=col, value=header)
         cell.font = header_font
-        cell.fill = header_fill
+        cell.fill = dark_fill
         cell.alignment = center_align
         cell.border = thin_border
     
-    for row_idx, rec in enumerate(recordings, 2):
-        state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
-        csv_files = state.get('csv_files', [])
+    for row_idx, rec in enumerate(recordings, 4):
+        rec_name = rec.get('name', '')
         
-        rec_name = rec.get('name', '—')
-        if csv_files:
-            rec_name += '\n' + '\n'.join(csv_files[:5])
+        # Drug info
+        drug_info_raw = rec.get('drug_info', [])
+        drug_parts = []
+        if isinstance(drug_info_raw, list) and drug_info_raw:
+            for d in drug_info_raw:
+                if isinstance(d, dict):
+                    name = d.get('name', '')
+                    conc = d.get('concentration', '')
+                    unit = d.get('concentration_unit', '') or 'µM'
+                    if name:
+                        drug_str = name
+                        if conc:
+                            drug_str += f" ({conc}{unit})"
+                        drug_parts.append(drug_str)
+        drug_info_str = '\n'.join(drug_parts) if drug_parts else 'No drug'
         
-        drug_info = rec.get('drug_info', [])
-        drug_str_cell = '—'
-        if isinstance(drug_info, list) and drug_info:
-            parts = [f"{d['name']} ({d.get('concentration', '')}µM)" for d in drug_info if d.get('name')]
-            drug_str_cell = '\n'.join(parts) if parts else '—'
-        
-        light_str = '—'
+        # Light stim info
+        light_parts = []
         if rec.get('has_light'):
-            num_stim = state.get('numStim', state.get('num_stim', '?'))
-            stim_dur = state.get('stimDuration', state.get('stim_duration', '?'))
-            isi = state.get('isi', '?')
-            light_str = f"{num_stim}×{stim_dur}s, ISI {isi}s"
+            state = rec.get('analysis_state', {}) if 'analysis_state' in rec else rec
+            num_stim = state.get('numStim', state.get('num_stim', ''))
+            stim_dur = state.get('stimDuration', state.get('stim_duration', ''))
+            isi = state.get('isi', '')
+            if num_stim:
+                light_parts.append(f"{num_stim} stim")
+            if stim_dur:
+                light_parts.append(f"{stim_dur}s")
+            if isi:
+                light_parts.append(f"ISI: {isi}s")
+        light_info = '\n'.join(light_parts) if light_parts else '—'
         
         row_data = [
             rec_name,
-            rec.get('recording_date', '—')[:10] if rec.get('recording_date') else '—',
-            f"{rec.get('hspo_age', '—')}d" if rec.get('hspo_age') else '—',
-            f"{rec.get('hco_age', '—')}d" if rec.get('hco_age') else '—',
-            f"{rec.get('fusion_age', '—')}d" if rec.get('fusion_age') else '—',
-            drug_str_cell,
-            light_str,
+            rec.get('recording_date', '—') or '—',
+            f"D{rec.get('hspo_age', '—')}" if rec.get('hspo_age') else '—',
+            f"D{rec.get('hco_age', '—')}" if rec.get('hco_age') else '—',
+            f"D{rec.get('fusion_age', '—')}" if rec.get('fusion_age') else '—',
+            drug_info_str,
+            light_info,
             rec.get('notes', '') or '—',
         ]
+        
         for col, val in enumerate(row_data, 1):
             cell = ws2.cell(row=row_idx, column=col, value=val)
             cell.alignment = center_align
             cell.border = thin_border
+            if row_idx % 2 == 0:
+                cell.fill = alt_fill
     
-    ws2.column_dimensions['A'].width = 30
+    # Set column widths
+    ws2.column_dimensions['A'].width = 25
     for col in range(2, 9):
         ws2.column_dimensions[get_column_letter(col)].width = 15
     
-    # =====================================================================
-    # SHEET 3: Spontaneous Activity
-    # =====================================================================
-    ws3 = wb.create_sheet('Spontaneous')
+    # ==================== SHEET 3: SPONTANEOUS ACTIVITY ====================
+    ws3 = wb.create_sheet("Spontaneous")
     
-    spont_headers = ['Rec', 'Base Spike (Hz)', 'Drug Spike (Hz)', 'Base Burst (bpm)', 'Drug Burst (bpm)',
-                    'Base Spike (%)', 'Drug Spike (%)', 'Base Burst (%)', 'Drug Burst (%)']
-    header_fills = [header_fill, cyan_fill, purple_fill, cyan_fill, orange_fill, cyan_fill, purple_fill, cyan_fill, orange_fill]
+    ws3['A1'] = f'Table 2 | Drug-induced Spike and Burst Data ({first_drug_name})'
+    ws3['A1'].font = Font(bold=True, size=12)
+    ws3.merge_cells('A1:E1')
     
-    for col, (header, fill) in enumerate(zip(spont_headers, header_fills), 1):
-        cell = ws3.cell(row=1, column=col, value=header)
+    spont_headers = ['Rec', 'Base Spike (Hz)', 'Base Burst (bpm)', 'Drug Spike (Hz)', 'Drug Burst (bpm)']
+    for col, header in enumerate(spont_headers, 1):
+        cell = ws3.cell(row=3, column=col, value=header)
         cell.font = header_font
-        cell.fill = fill
+        cell.fill = emerald_fill
         cell.alignment = center_align
         cell.border = thin_border
     
-    avg_bl_spike = spike_averages.get('baseline_spike_hz', 0) or 1
-    avg_bl_burst = burst_averages.get('baseline_burst_bpm', 0) or 1
-    
-    for row_idx, rec in enumerate(recordings, 2):
+    for row_idx, rec in enumerate(recordings, 4):
         row_data = [
-            extract_short_name(rec.get('name', '—')),
+            extract_short_name(rec.get('name', '')),
             fmt(rec.get('baseline_spike_hz'), 2),
-            fmt(rec.get('drug_spike_hz'), 2),
             fmt(rec.get('baseline_burst_bpm'), 2),
+            fmt(rec.get('drug_spike_hz'), 2),
             fmt(rec.get('drug_burst_bpm'), 2),
-            fmt(norm_val(rec.get('baseline_spike_hz'), avg_bl_spike), 1),
-            fmt(norm_val(rec.get('drug_spike_hz'), avg_bl_spike), 1),
-            fmt(norm_val(rec.get('baseline_burst_bpm'), avg_bl_burst), 1),
-            fmt(norm_val(rec.get('drug_burst_bpm'), avg_bl_burst), 1),
         ]
         for col, val in enumerate(row_data, 1):
             cell = ws3.cell(row=row_idx, column=col, value=val)
             cell.alignment = center_align
             cell.border = thin_border
+            if col in [1]:
+                pass
+            elif col in [2, 3]:
+                cell.fill = baseline_fill
+            elif col in [4, 5]:
+                cell.fill = drug_fill
     
     # Average row
-    avg_row = len(recordings) + 2
+    avg_row = len(recordings) + 4
     avg_data = [
-        'Average',
+        'Avg',
         fmt(spike_averages.get('baseline_spike_hz'), 2),
-        fmt(spike_averages.get('drug_spike_hz'), 2),
         fmt(burst_averages.get('baseline_burst_bpm'), 2),
+        fmt(spike_averages.get('drug_spike_hz'), 2),
         fmt(burst_averages.get('drug_burst_bpm'), 2),
-        100.0,
-        fmt(norm_val(spike_averages.get('drug_spike_hz'), avg_bl_spike), 1),
-        100.0,
-        fmt(norm_val(burst_averages.get('drug_burst_bpm'), avg_bl_burst), 1),
     ]
     for col, val in enumerate(avg_data, 1):
         cell = ws3.cell(row=avg_row, column=col, value=val)
-        cell.font = Font(bold=True)
+        cell.font = avg_font
         cell.fill = avg_fill
         cell.alignment = center_align
         cell.border = thin_border
     
-    for col in range(1, 10):
-        ws3.column_dimensions[get_column_letter(col)].width = 15
+    # Normalized table
+    norm_start_row = avg_row + 3
+    ws3[f'A{norm_start_row}'] = f'Table 3 | Drug-induced Data Normalized to Average Baseline ({first_drug_name})'
+    ws3[f'A{norm_start_row}'].font = Font(bold=True, size=12)
+    ws3.merge_cells(f'A{norm_start_row}:E{norm_start_row}')
     
-    # =====================================================================
-    # SHEET 4: Light Spike
-    # =====================================================================
+    norm_headers = ['Rec', 'Base Spike%', 'Base Burst%', 'Drug Spike%', 'Drug Burst%']
+    for col, header in enumerate(norm_headers, 1):
+        cell = ws3.cell(row=norm_start_row + 2, column=col, value=header)
+        cell.font = header_font
+        cell.fill = emerald_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+    
+    # Calculate cohort baseline averages
+    baseline_spikes = [r.get('baseline_spike_hz') for r in recordings if r.get('baseline_spike_hz') is not None]
+    baseline_bursts = [r.get('baseline_burst_bpm') for r in recordings if r.get('baseline_burst_bpm') is not None]
+    avg_spike_base = sum(baseline_spikes) / len(baseline_spikes) if baseline_spikes else 1
+    avg_burst_base = sum(baseline_bursts) / len(baseline_bursts) if baseline_bursts else 1
+    
+    for row_idx, rec in enumerate(recordings, norm_start_row + 3):
+        row_data = [
+            extract_short_name(rec.get('name', '')),
+            fmt(norm_val(rec.get('baseline_spike_hz'), avg_spike_base), 1),
+            fmt(norm_val(rec.get('baseline_burst_bpm'), avg_burst_base), 1),
+            fmt(norm_val(rec.get('drug_spike_hz'), avg_spike_base), 1),
+            fmt(norm_val(rec.get('drug_burst_bpm'), avg_burst_base), 1),
+        ]
+        for col, val in enumerate(row_data, 1):
+            cell = ws3.cell(row=row_idx, column=col, value=val)
+            cell.alignment = center_align
+            cell.border = thin_border
+            if col in [2, 3]:
+                cell.fill = baseline_fill
+            elif col in [4, 5]:
+                cell.fill = drug_fill
+    
+    # Set column widths
+    ws3.column_dimensions['A'].width = 10
+    for col in range(2, 6):
+        ws3.column_dimensions[get_column_letter(col)].width = 18
+    
+    # ==================== SHEET 4: LIGHT SPIKE (if has light) ====================
     if has_light:
-        ws4 = wb.create_sheet('Light Spike')
+        ws4 = wb.create_sheet("Light Spike")
         
-        light_spike_headers = ['Rec', 'BL Spike', 'Avg Spike', 'Max Spike', 'Spike %', 'Peak %', 'TTP (s)',
-                              'BL Spike (%)', 'Avg Spike (%)', 'Max Spike (%)']
-        header_fills = [header_fill, cyan_fill, emerald_fill, emerald_fill, emerald_fill, emerald_fill, emerald_fill,
-                       cyan_fill, emerald_fill, emerald_fill]
+        ws4['A1'] = 'Table 4 | Light-Induced Spike Rate Data'
+        ws4['A1'].font = Font(bold=True, size=12)
+        ws4.merge_cells('A1:F1')
         
-        for col, (header, fill) in enumerate(zip(light_spike_headers, header_fills), 1):
-            cell = ws4.cell(row=1, column=col, value=header)
+        spike_headers = ['Rec', 'Baseline Hz', 'Avg Hz', 'Avg %', 'Peak Hz', 'Peak %']
+        for col, header in enumerate(spike_headers, 1):
+            cell = ws4.cell(row=3, column=col, value=header)
             cell.font = header_font
-            cell.fill = fill
+            cell.fill = amber_fill
             cell.alignment = center_align
             cell.border = thin_border
         
-        avg_bl_light_spike = light_spike_averages.get('light_baseline_spike_hz', 0) or 1
-        
-        for row_idx, rec in enumerate(recordings, 2):
+        for row_idx, rec in enumerate(recordings, 4):
+            bl_spike = rec.get('light_baseline_spike_hz')
+            avg_spike_rec = rec.get('light_avg_spike_hz')
+            peak_spike_rec = rec.get('light_max_spike_hz')
+            avg_spike_pct = norm_val(avg_spike_rec, bl_spike) if bl_spike else None
+            peak_spike_pct = norm_val(peak_spike_rec, bl_spike) if bl_spike else None
+            
             row_data = [
-                extract_short_name(rec.get('name', '—')),
-                fmt(rec.get('light_baseline_spike_hz'), 2),
-                fmt(rec.get('light_avg_spike_hz'), 2),
-                fmt(rec.get('light_max_spike_hz'), 2),
-                fmt(rec.get('light_spike_delta_pct'), 1),
-                fmt(rec.get('light_spike_peak_delta_pct'), 1),
-                fmt(rec.get('light_ttp_spike'), 1),
-                fmt(norm_val(rec.get('light_baseline_spike_hz'), avg_bl_light_spike), 1),
-                fmt(norm_val(rec.get('light_avg_spike_hz'), avg_bl_light_spike), 1),
-                fmt(norm_val(rec.get('light_max_spike_hz'), avg_bl_light_spike), 1),
+                extract_short_name(rec.get('name', '')),
+                fmt(bl_spike, 2),
+                fmt(avg_spike_rec, 2),
+                fmt(avg_spike_pct, 1),
+                fmt(peak_spike_rec, 2),
+                fmt(peak_spike_pct, 1),
             ]
             for col, val in enumerate(row_data, 1):
                 cell = ws4.cell(row=row_idx, column=col, value=val)
                 cell.alignment = center_align
                 cell.border = thin_border
+                if col > 1:
+                    cell.fill = light_fill
+                if col == 2:  # Baseline column
+                    cell.font = Font(color='0891B2', bold=True)
         
-        avg_row = len(recordings) + 2
+        # Average row
+        avg_row = len(recordings) + 4
+        bl_spike_avg = light_spike_averages.get('light_baseline_spike_hz')
+        avg_spike_avg = light_spike_averages.get('light_avg_spike_hz')
+        peak_spike_avg = light_spike_averages.get('light_max_spike_hz')
+        avg_spike_pct_avg = norm_val(avg_spike_avg, bl_spike_avg) if bl_spike_avg else None
+        peak_spike_pct_avg = norm_val(peak_spike_avg, bl_spike_avg) if bl_spike_avg else None
+        
         avg_data = [
-            'Average',
-            fmt(light_spike_averages.get('light_baseline_spike_hz'), 2),
-            fmt(light_spike_averages.get('light_avg_spike_hz'), 2),
-            fmt(light_spike_averages.get('light_max_spike_hz'), 2),
-            fmt(light_spike_averages.get('light_spike_delta_pct'), 1),
-            fmt(light_spike_averages.get('light_spike_peak_delta_pct'), 1),
-            fmt(light_spike_averages.get('light_ttp_spike'), 1),
-            100.0,
-            fmt(norm_val(light_spike_averages.get('light_avg_spike_hz'), avg_bl_light_spike), 1),
-            fmt(norm_val(light_spike_averages.get('light_max_spike_hz'), avg_bl_light_spike), 1),
+            'Avg',
+            fmt(bl_spike_avg, 2),
+            fmt(avg_spike_avg, 2),
+            fmt(avg_spike_pct_avg, 1),
+            fmt(peak_spike_avg, 2),
+            fmt(peak_spike_pct_avg, 1),
         ]
         for col, val in enumerate(avg_data, 1):
             cell = ws4.cell(row=avg_row, column=col, value=val)
-            cell.font = Font(bold=True)
+            cell.font = avg_font
             cell.fill = avg_fill
             cell.alignment = center_align
             cell.border = thin_border
         
-        for col in range(1, 11):
-            ws4.column_dimensions[get_column_letter(col)].width = 13
+        # Set column widths
+        ws4.column_dimensions['A'].width = 10
+        for col in range(2, 7):
+            ws4.column_dimensions[get_column_letter(col)].width = 12
         
-        # =====================================================================
-        # SHEET 5: Light Burst
-        # =====================================================================
-        ws5 = wb.create_sheet('Light Burst')
+        # ==================== SHEET 5: LIGHT BURST ====================
+        ws5 = wb.create_sheet("Light Burst")
         
-        light_burst_headers = ['Rec', 'BL Burst', 'Avg Burst', 'Max Burst', 'Burst %', 'Peak %', 'TTP (s)',
-                              'BL Burst (%)', 'Avg Burst (%)', 'Max Burst (%)']
-        header_fills = [header_fill, cyan_fill, orange_fill, orange_fill, orange_fill, orange_fill, orange_fill,
-                       cyan_fill, orange_fill, orange_fill]
+        ws5['A1'] = 'Table 6 | Light-Induced Burst Rate Data'
+        ws5['A1'].font = Font(bold=True, size=12)
+        ws5.merge_cells('A1:F1')
         
-        for col, (header, fill) in enumerate(zip(light_burst_headers, header_fills), 1):
-            cell = ws5.cell(row=1, column=col, value=header)
+        burst_headers = ['Rec', 'Baseline bpm', 'Avg bpm', 'Avg %', 'Peak bpm', 'Peak %']
+        for col, header in enumerate(burst_headers, 1):
+            cell = ws5.cell(row=3, column=col, value=header)
             cell.font = header_font
-            cell.fill = fill
+            cell.fill = amber_fill
             cell.alignment = center_align
             cell.border = thin_border
         
-        avg_bl_light_burst = light_burst_averages.get('light_baseline_burst_bpm', 0) or 1
-        
-        for row_idx, rec in enumerate(recordings, 2):
+        for row_idx, rec in enumerate(recordings, 4):
+            bl_burst = rec.get('light_baseline_burst_bpm')
+            avg_burst_rec = rec.get('light_avg_burst_bpm')
+            peak_burst_rec = rec.get('light_max_burst_bpm')
+            avg_burst_pct = norm_val(avg_burst_rec, bl_burst) if bl_burst else None
+            peak_burst_pct = norm_val(peak_burst_rec, bl_burst) if bl_burst else None
+            
             row_data = [
-                extract_short_name(rec.get('name', '—')),
-                fmt(rec.get('light_baseline_burst_bpm'), 2),
-                fmt(rec.get('light_avg_burst_bpm'), 2),
-                fmt(rec.get('light_max_burst_bpm'), 2),
-                fmt(rec.get('light_burst_delta_pct'), 1),
-                fmt(rec.get('light_burst_peak_delta_pct'), 1),
-                fmt(rec.get('light_ttp_burst'), 1),
-                fmt(norm_val(rec.get('light_baseline_burst_bpm'), avg_bl_light_burst), 1),
-                fmt(norm_val(rec.get('light_avg_burst_bpm'), avg_bl_light_burst), 1),
-                fmt(norm_val(rec.get('light_max_burst_bpm'), avg_bl_light_burst), 1),
+                extract_short_name(rec.get('name', '')),
+                fmt(bl_burst, 2),
+                fmt(avg_burst_rec, 2),
+                fmt(avg_burst_pct, 1),
+                fmt(peak_burst_rec, 2),
+                fmt(peak_burst_pct, 1),
             ]
             for col, val in enumerate(row_data, 1):
                 cell = ws5.cell(row=row_idx, column=col, value=val)
                 cell.alignment = center_align
                 cell.border = thin_border
+                if col > 1:
+                    cell.fill = light_fill
+                if col == 2:  # Baseline column
+                    cell.font = Font(color='0891B2', bold=True)
         
-        avg_row = len(recordings) + 2
+        # Average row
+        avg_row = len(recordings) + 4
+        bl_burst_avg = light_burst_averages.get('light_baseline_burst_bpm')
+        avg_burst_avg = light_burst_averages.get('light_avg_burst_bpm')
+        peak_burst_avg = light_burst_averages.get('light_max_burst_bpm')
+        avg_burst_pct_avg = norm_val(avg_burst_avg, bl_burst_avg) if bl_burst_avg else None
+        peak_burst_pct_avg = norm_val(peak_burst_avg, bl_burst_avg) if bl_burst_avg else None
+        
         avg_data = [
-            'Average',
-            fmt(light_burst_averages.get('light_baseline_burst_bpm'), 2),
-            fmt(light_burst_averages.get('light_avg_burst_bpm'), 2),
-            fmt(light_burst_averages.get('light_max_burst_bpm'), 2),
-            fmt(light_burst_averages.get('light_burst_delta_pct'), 1),
-            fmt(light_burst_averages.get('light_burst_peak_delta_pct'), 1),
-            fmt(light_burst_averages.get('light_ttp_burst'), 1),
-            100.0,
-            fmt(norm_val(light_burst_averages.get('light_avg_burst_bpm'), avg_bl_light_burst), 1),
-            fmt(norm_val(light_burst_averages.get('light_max_burst_bpm'), avg_bl_light_burst), 1),
+            'Avg',
+            fmt(bl_burst_avg, 2),
+            fmt(avg_burst_avg, 2),
+            fmt(avg_burst_pct_avg, 1),
+            fmt(peak_burst_avg, 2),
+            fmt(peak_burst_pct_avg, 1),
         ]
         for col, val in enumerate(avg_data, 1):
             cell = ws5.cell(row=avg_row, column=col, value=val)
-            cell.font = Font(bold=True)
+            cell.font = avg_font
             cell.fill = avg_fill
             cell.alignment = center_align
             cell.border = thin_border
         
-        for col in range(1, 11):
-            ws5.column_dimensions[get_column_letter(col)].width = 13
+        # Set column widths
+        ws5.column_dimensions['A'].width = 10
+        for col in range(2, 7):
+            ws5.column_dimensions[get_column_letter(col)].width = 12
     
+    # Save to buffer
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf
-

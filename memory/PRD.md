@@ -3,7 +3,15 @@
 ## Original Problem Statement
 Build a comprehensive electrophysiology analysis platform supporting both Sharp Single Electrode (SSE) and Multi-Electrode Array (MEA) recording analysis with comparison, export, and visualization features.
 
-## Current Session - Corrective Polish Pass (2025-12-16)
+## Current Session - Corrective Polish Pass (2025-12-17)
+
+### Latest Update:
+- **MEA Comparison Export Redesign**: Rewrote MEA comparison PDF and Excel export functions to use the EXACT same design as SSE exports (bioptima style). Includes:
+  - Summary page with folder overview, age ranges, parameters, spontaneous activity, and light stimulus sections
+  - Metadata table with recording information
+  - Spontaneous activity tables (raw + normalized)
+  - Light stimulus spike/burst tables (raw + normalized)
+  - Consistent styling, colors, fonts, and layout matching SSE
 
 ### Fixes Applied This Session:
 1. **Baseline Readout Label**: Changed "Minute" → "Perf. Time" with correct range display
@@ -12,10 +20,10 @@ Build a comprehensive electrophysiology analysis platform supporting both Sharp 
 4. **Comparison Modal**: Removed duplicate close/export buttons, applied dark blue background
 5. **MEA Per Stimuli Charts**: Added cyan baseline reference line to legend for all spike/burst metrics
 6. **Backend Data Consistency**: Corrected drug time window calculation
+7. **MEA Export Design**: Unified MEA comparison exports to match SSE bioptima-style design
 
 ### Pending Verification:
-- Recording Title Sync across all panels and exports
-- Background light styling match between MEA and SSE views
+- MEA comparison PDF/Excel export testing (user verification needed)
 
 ## Core Features Implemented:
 
