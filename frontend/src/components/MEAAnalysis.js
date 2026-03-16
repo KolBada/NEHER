@@ -1166,12 +1166,32 @@ export default function MEAAnalysis({
     const well = meaData.wells[selectedWell];
     const spikes = well.spikes || [];
     const electrode_bursts = well.electrode_bursts || well.bursts || [];
-    const active_electrodes = well.active_electrodes || [];
+    const all_electrodes = well.active_electrodes || [];
     const duration_s = well.duration_s || 0;
+    
+    // Filter electrodes by firing rate
+    // Compute firing rate per electrode
+    const electrodeSpikeCounts = {};
+    spikes.forEach(spike => {
+      const elec = spike.electrode;
+      if (elec) {
+        electrodeSpikeCounts[elec] = (electrodeSpikeCounts[elec] || 0) + 1;
+      }
+    });
+    
+    const active_electrodes = all_electrodes.filter(elec => {
+      const spikeCount = electrodeSpikeCounts[elec] || 0;
+      const firingRate = duration_s > 0 ? spikeCount / duration_s : 0;
+      // Apply minHz filter
+      if (firingRate < currentParams.minHz) return false;
+      // Apply maxHz filter (if set)
+      if (currentParams.maxHz !== null && firingRate > currentParams.maxHz) return false;
+      return true;
+    });
     
     if (active_electrodes.length === 0 || duration_s <= 0) {
       return { 
-        well: { ...well, active_electrodes, duration_s }, 
+        well: { ...well, active_electrodes, duration_s, n_active_electrodes: active_electrodes.length, all_electrodes }, 
         spikeRateBins: [], 
         burstRateBins: [], 
         spikeRaster: [], 
@@ -1229,7 +1249,7 @@ export default function MEAAnalysis({
     }
     
     return {
-      well: { ...well, active_electrodes, duration_s },
+      well: { ...well, active_electrodes, duration_s, n_active_electrodes: active_electrodes.length },
       spikeRateBins,
       burstRateBins,
       spikeRaster,
@@ -3310,6 +3330,7 @@ export default function MEAAnalysis({
                 folder={{ id: savedFolderId, name: savedFolderName || 'Folder' }}
                 onBack={() => setShowComparisonModal(false)}
                 embedded={true}
+                defaultSourceType="MEA"
               />
             )}
           </div>

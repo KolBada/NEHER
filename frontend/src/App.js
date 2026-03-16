@@ -2348,42 +2348,25 @@ function App() {
       {/* Comparison Dialog */}
       <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent 
-          className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-hidden rounded-2xl p-0"
+          hideCloseButton
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0"
           style={{
-            background: 'rgba(8, 12, 24, 0.98)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
+            border: '1px solid rgba(20, 184, 166, 0.15)',
+            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
           }}
         >
-          {/* Hide default close button, we'll use Back button */}
-          <div className="sr-only">
-            <DialogHeader>
-              <DialogTitle>Comparison</DialogTitle>
-            </DialogHeader>
-          </div>
-          
-          {/* Custom toolbar matching the comparison page */}
-          <div 
-            className="p-4"
-            style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.10)',
-            }}
+          {/* Close button in top-right */}
+          <button
+            onClick={() => setShowComparisonDialog(false)}
+            className="absolute top-4 right-4 z-[60] p-2 rounded-lg hover:bg-white/10 transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            data-testid="close-comparison-dialog"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                  Comparison: {savedFolderName || 'Loading...'}
-                </h2>
-              </div>
-            </div>
-          </div>
+            <X className="w-5 h-5" />
+          </button>
           
-          <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-4">
+          <div className="h-full overflow-auto p-6">
             {savedFolderId && (
               <FolderComparison 
                 folder={{ id: savedFolderId, name: savedFolderName || '' }}

@@ -57,7 +57,7 @@ function RecordingToggle({ isExcluded, onToggle, testId }) {
   );
 }
 
-export default function FolderComparison({ folder, onBack, embedded = false }) {
+export default function FolderComparison({ folder, onBack, embedded = false, defaultSourceType = null }) {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
@@ -75,8 +75,8 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [hraYAxisZoom, setHraYAxisZoom] = useState({});  // { metricKey: { min, max } }
   const [hrvYAxisZoom, setHrvYAxisZoom] = useState({});  // { metricKey: { min, max } }
   
-  // Source type switcher state (SSE vs MEA)
-  const [sourceType, setSourceType] = useState(null); // null = auto-detect, 'SSE' or 'MEA'
+  // Source type switcher state (SSE vs MEA) - use defaultSourceType if provided
+  const [sourceType, setSourceType] = useState(defaultSourceType); // null = auto-detect, 'SSE' or 'MEA'
   const [typeCounts, setTypeCounts] = useState({ sse: 0, mea: 0 });
   
   // MEA-specific expanded states
@@ -3141,7 +3141,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <button
                                   onClick={() => {
                                     // Get baseline value if applicable
-                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 100 : null);
                                     // Calculate min/max from actual data including baseline
                                     const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
                                     if (baselineVal !== null) allValues.push(baselineVal);
@@ -3167,7 +3167,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <button
                                   onClick={() => {
                                     // Get baseline value if applicable
-                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 100 : null);
                                     // Calculate min/max from actual data
                                     const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
                                     if (baselineVal !== null) allValues.push(baselineVal);
@@ -3190,16 +3190,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 >
                                   <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
                                 </button>
-                                <button
-                                  onClick={() => setMeaLightSpikeYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
-                                  className="p-1.5 rounded-lg transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                                  title="Reset Y-axis"
-                                >
-                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                </button>
+                                {meaLightSpikeYAxisZoom[metricData.key] && (
+                                  <button
+                                    onClick={() => setMeaLightSpikeYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                    className="p-1.5 rounded-lg transition-all"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                    title="Reset Y-axis"
+                                  >
+                                    <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  </button>
+                                )}
                               </div>
                             </div>
                             
@@ -3225,7 +3227,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                       // Add baseline entry if showBaseline or showBaselinePct is true
                                       if (metricData.showBaseline || metricData.showBaselinePct) {
                                         items.push({
-                                          value: metricData.showBaseline ? 'Baseline' : '0% (Baseline)',
+                                          value: metricData.showBaseline ? 'Baseline' : '100% (Baseline)',
                                           color: '#22d3ee',
                                           type: 'line'
                                         });
@@ -3236,7 +3238,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                             <span key={i} className="flex items-center gap-1">
                                               {entry.value === 'All Stims Average' ? (
                                                 <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
-                                              ) : entry.value === 'Baseline' || entry.value === '0% (Baseline)' ? (
+                                              ) : entry.value === 'Baseline' || entry.value === '100% (Baseline)' ? (
                                                 <span style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${entry.color}` }} />
                                               ) : (
                                                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -3256,7 +3258,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     <ReferenceLine y={meaLightSpikeAverages?.light_baseline_spike_hz || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   {metricData.showBaselinePct && (
-                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
+                                    <ReferenceLine y={100} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#6ee7b7" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
@@ -3493,7 +3495,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <button
                                   onClick={() => {
                                     // Get baseline value if applicable
-                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 100 : null);
                                     // Calculate min/max from actual data including baseline
                                     const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
                                     if (baselineVal !== null) allValues.push(baselineVal);
@@ -3519,7 +3521,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 <button
                                   onClick={() => {
                                     // Get baseline value if applicable
-                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 100 : null);
                                     // Calculate min/max from actual data
                                     const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
                                     if (baselineVal !== null) allValues.push(baselineVal);
@@ -3542,16 +3544,18 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                 >
                                   <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
                                 </button>
-                                <button
-                                  onClick={() => setMeaLightBurstYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
-                                  className="p-1.5 rounded-lg transition-all"
-                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                                  title="Reset Y-axis"
-                                >
-                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                </button>
+                                {meaLightBurstYAxisZoom[metricData.key] && (
+                                  <button
+                                    onClick={() => setMeaLightBurstYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                    className="p-1.5 rounded-lg transition-all"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                    title="Reset Y-axis"
+                                  >
+                                    <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  </button>
+                                )}
                               </div>
                             </div>
                             
@@ -3577,7 +3581,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                       // Add baseline entry if showBaseline or showBaselinePct is true
                                       if (metricData.showBaseline || metricData.showBaselinePct) {
                                         items.push({
-                                          value: metricData.showBaseline ? 'Baseline' : '0% (Baseline)',
+                                          value: metricData.showBaseline ? 'Baseline' : '100% (Baseline)',
                                           color: '#22d3ee',
                                           type: 'line'
                                         });
@@ -3588,7 +3592,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                             <span key={i} className="flex items-center gap-1">
                                               {entry.value === 'All Stims Average' ? (
                                                 <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
-                                              ) : entry.value === 'Baseline' || entry.value === '0% (Baseline)' ? (
+                                              ) : entry.value === 'Baseline' || entry.value === '100% (Baseline)' ? (
                                                 <span style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${entry.color}` }} />
                                               ) : (
                                                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -3608,7 +3612,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     <ReferenceLine y={meaLightBurstAverages?.light_baseline_burst_bpm || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   {metricData.showBaselinePct && (
-                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
+                                    <ReferenceLine y={100} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#fb923c" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
