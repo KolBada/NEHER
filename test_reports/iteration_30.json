@@ -1,0 +1,119 @@
+{
+  "summary": "Code review of MEA Analysis fixes. Verified 6/9 features are correctly implemented. Found 3 issues in Light Stimulus tab that need fixing: Brush components not removed, missing tickFormatter on XAxis, and drug overlay missing ifOverflow='hidden' with clipped bounds.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Light Stimulus tab - Spike Trace and Burst Trace charts",
+        "issues": [
+          "Brush/sliding bar still present (lines 2102-2115, 2255-2268) - should be removed per requirement",
+          "XAxis missing tickFormatter={(v) => v.toFixed(1)} (lines 2070-2077, 2223-2230)",
+          "Drug overlay missing ifOverflow='hidden' and clipped bounds (lines 2082, 2235)"
+        ]
+      }
+    ]
+  },
+
+  "test_report_links": [
+    "/app/test_reports/iteration_30.json"
+  ],
+
+  "action_items": [
+    "Remove Brush components from Light Stimulus tab charts (lines 2102-2115 and 2255-2268)",
+    "Add tickFormatter={(v) => v.toFixed(1)} to XAxis in Light Stimulus charts (after line 2077 and line 2230)",
+    "Update drug overlay in Light Stimulus charts to use clipped bounds with ifOverflow='hidden': Change line 2082 to: {drugWindow && <ReferenceArea x1={Math.max(drugWindow.start, (lightZoomDomain?.[0] || 0))} x2={Math.min(drugWindow.end, (lightZoomDomain?.[1] || duration))} fill=\"#a855f7\" fillOpacity={0.15} ifOverflow=\"hidden\" />}",
+    "Same update for line 2235"
+  ],
+
+  "critical_code_review_comments": [
+    "✅ PASS: getAnalysisState includes source_type:'MEA' (line 956)",
+    "✅ PASS: SaveRecording with isMEA={true} (line 2685)",
+    "✅ PASS: SaveRecording accepts isMEA prop and uses accentColor (SaveRecording.js lines 33, 39)",
+    "✅ PASS: Reset button only shows when zoomed (isZoomed check on lines 234, 260, 336, 362, 436, 460, 528, 562)",
+    "✅ PASS: Time axis shows 1 decimal place in main chart components (tickFormatter on lines 276, 378, 478, 580)",
+    "✅ PASS: Drug overlay uses ifOverflow='hidden' in main charts (lines 291, 302, 393, 404, 490, 495, 592, 597)",
+    "❌ FAIL: Brush still exists in Light Stimulus tab charts (lines 2102-2115, 2255-2268)",
+    "❌ FAIL: Light Stimulus charts XAxis missing tickFormatter with toFixed(1)",
+    "❌ FAIL: Drug overlay in Light Stimulus charts missing ifOverflow='hidden' and clipped bounds"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "66% (6/9 features verified)"
+  },
+
+  "test_credentials": "",
+  "seed_data_creation": "",
+
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "Main chart components (SpikeTraceChartWithZoom, BurstTraceChartWithZoom, SpikeRasterPlotWithZoom, BurstRasterPlotWithZoom) are correctly implemented with no Brush, proper tickFormatter, and clipped drug overlays. Light Stimulus tab charts (around lines 2020-2270) still have the old implementation and need to be updated to match the pattern used in the main chart components.",
+
+  "features_verified": {
+    "1_source_type_mea": {
+      "status": "PASS",
+      "details": "getAnalysisState includes source_type:'MEA' at line 956"
+    },
+    "2_save_recording_ismea": {
+      "status": "PASS", 
+      "details": "SaveRecording called with isMEA={true} at line 2685"
+    },
+    "3_save_recording_accent_color": {
+      "status": "PASS",
+      "details": "SaveRecording.js lines 33, 39 - isMEA prop determines accentColor (#10b981 emerald vs var(--sem-accent))"
+    },
+    "4_brush_removed_main_charts": {
+      "status": "PASS",
+      "details": "No Brush in SpikeTraceChartWithZoom, BurstTraceChartWithZoom, SpikeRasterPlotWithZoom, BurstRasterPlotWithZoom"
+    },
+    "5_brush_removed_light_stimulus": {
+      "status": "FAIL",
+      "details": "Brush still present at lines 2102-2115 and 2255-2268 in Light Stimulus tab"
+    },
+    "6_reset_button_only_when_zoomed": {
+      "status": "PASS",
+      "details": "isZoomed check implemented correctly in all WithZoom components"
+    },
+    "7_time_axis_1_decimal_main": {
+      "status": "PASS",
+      "details": "tickFormatter={(v) => v.toFixed(1)} at lines 276, 378, 478, 580"
+    },
+    "8_time_axis_1_decimal_light_stimulus": {
+      "status": "FAIL",
+      "details": "XAxis in Light Stimulus charts (lines 2070-2077, 2223-2230) missing tickFormatter"
+    },
+    "9_drug_overlay_clipped_main": {
+      "status": "PASS",
+      "details": "Drug overlay uses Math.max/Math.min with zoomDomain and ifOverflow='hidden' in main charts"
+    },
+    "10_drug_overlay_clipped_light_stimulus": {
+      "status": "FAIL",
+      "details": "Drug overlay at lines 2082 and 2235 missing ifOverflow='hidden' and clipped bounds"
+    }
+  },
+
+  "code_locations_to_fix": {
+    "brush_removal": [
+      "Lines 2102-2115: Remove entire <Brush .../> element from Spike Trace chart",
+      "Lines 2255-2268: Remove entire <Brush .../> element from Burst Trace chart"
+    ],
+    "tick_formatter": [
+      "Line 2077: Add tickFormatter={(v) => v.toFixed(1)} to XAxis",
+      "Line 2230: Add tickFormatter={(v) => v.toFixed(1)} to XAxis"
+    ],
+    "drug_overlay": [
+      "Line 2082: Change from {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill=\"#a855f7\" fillOpacity={0.15} />} to {drugWindow && <ReferenceArea x1={Math.max(drugWindow.start, (lightZoomDomain?.[0] || 0))} x2={Math.min(drugWindow.end, (lightZoomDomain?.[1] || duration))} fill=\"#a855f7\" fillOpacity={0.15} ifOverflow=\"hidden\" />}",
+      "Line 2235: Same change as above"
+    ]
+  }
+}

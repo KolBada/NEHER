@@ -28,10 +28,15 @@ export default function SaveRecording({
   fusionDate,
   setFusionDate,
   recordingDescription,
-  setRecordingDescription
+  setRecordingDescription,
+  // MEA mode - use emerald colors instead of sem-accent
+  isMEA = false
 }) {
   // Get current analysis state
   const analysisState = getAnalysisState ? getAnalysisState() : {};
+  
+  // Accent color based on mode
+  const accentColor = isMEA ? '#10b981' : 'var(--sem-accent)';
   
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -443,7 +448,7 @@ export default function SaveRecording({
       <div className="glass-surface-subtle rounded-xl h-fit">
         <div className="p-4 pb-2">
           <div className="flex items-center gap-2">
-            <Save className="w-4 h-4" style={{ color: existingRecordingId ? '#10b981' : 'var(--sem-accent)' }} />
+            <Save className="w-4 h-4" style={{ color: existingRecordingId ? '#10b981' : accentColor }} />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--text-primary)' }}>
               Recording Information
             </span>
@@ -544,7 +549,7 @@ export default function SaveRecording({
                     <RadioGroupItem value="new" id="new" className="mt-1" />
                     <div className="flex-1">
                       <Label htmlFor="new" className="text-sm cursor-pointer flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                        <FolderPlus className="w-4 h-4" style={{ color: 'var(--sem-accent)' }} />
+                        <FolderPlus className="w-4 h-4" style={{ color: accentColor }} />
                         Create New Folder
                       </Label>
                       {mode === 'new' && (
@@ -569,7 +574,7 @@ export default function SaveRecording({
           {/* Save Button */}
           <Button
             className="w-full h-10 mt-4 rounded-lg font-medium"
-            style={{ background: existingRecordingId ? '#10b981' : 'var(--sem-accent)', color: '#02080f' }}
+            style={{ background: accentColor, color: '#02080f' }}
             onClick={handleSave}
             disabled={saving || (!existingRecordingId && mode === 'existing' && !selectedFolderId) || (!existingRecordingId && mode === 'new' && !newFolderName.trim())}
             data-testid="save-recording-btn"

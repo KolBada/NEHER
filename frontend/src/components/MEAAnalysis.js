@@ -208,9 +208,9 @@ function buildBurstRaster(bursts, activeElectrodes) {
 // Memoized Chart Components with Zoom Controls
 // ============================================================================
 
-// Enhanced Spike Trace with zoom controls and brush
+// Enhanced Spike Trace with zoom controls (no brush)
 const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({ 
-  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, showBrush = true, title = "SPIKE TRACE" 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "SPIKE TRACE" 
 }) {
   const handleZoomIn = () => {
     if (!data?.length) return;
@@ -228,7 +228,10 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
     const center = (min + max) / 2;
     onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
   };
-  const handleReset = () => onZoomChange?.([0, duration]);
+  const handleReset = () => onZoomChange?.(null);
+  
+  // Check if zoomed (domain is different from full range)
+  const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
 
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
@@ -254,50 +257,52 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
             <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
-            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
-          </Button>
+          {isZoomed && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+              <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+            </Button>
+          )}
         </div>
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: showBrush ? 30 : 20 }}>
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               stroke="rgba(255,255,255,0.3)" 
               tick={{ fontSize: 9, fill: '#71717a' }} 
-              label={{ value: 'Time (s)', position: 'insideBottom', offset: showBrush ? -20 : -10, fontSize: 9, fill: '#71717a' }}
-              domain={zoomDomain || ['dataMin', 'dataMax']}
+              tickFormatter={(v) => v.toFixed(1)}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
+              domain={zoomDomain || [0, duration]}
               allowDataOverflow
               type="number"
             />
             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
-            {/* Drug window overlay (purple) */}
-            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
-            {/* Light pulse overlays (amber) */}
-            {lightPulses && lightPulses.map((pulse, i) => (
-              <ReferenceArea key={`st-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
-            ))}
-            <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-            {showBrush && (
-              <Brush 
-                dataKey="time" 
-                height={18} 
-                stroke="#52525b" 
-                fill="transparent"
-                tickFormatter={(v) => `${Math.floor(v)}s`}
-                onChange={(e) => {
-                  if (e.startIndex !== undefined && e.endIndex !== undefined && data.length > 0) {
-                    const start = data[e.startIndex]?.time || 0;
-                    const end = data[e.endIndex]?.time || duration;
-                    onZoomChange?.([start, end]);
-                  }
-                }}
+            {/* Drug window overlay (purple) - render first so it's behind line */}
+            {drugWindow && (
+              <ReferenceArea 
+                x1={Math.max(drugWindow.start, (zoomDomain?.[0] || 0))} 
+                x2={Math.min(drugWindow.end, (zoomDomain?.[1] || duration))} 
+                fill="#a855f7" 
+                fillOpacity={0.15} 
+                ifOverflow="hidden"
               />
             )}
+            {/* Light pulse overlays (amber) */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea 
+                key={`st-pulse-${i}`} 
+                x1={pulse.start_sec} 
+                x2={pulse.end_sec} 
+                fill="#facc15" 
+                fillOpacity={0.18} 
+                ifOverflow="hidden"
+              />
+            ))}
+            <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -305,9 +310,9 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
   );
 });
 
-// Enhanced Burst Trace with zoom controls and brush
+// Enhanced Burst Trace with zoom controls (no brush)
 const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({ 
-  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, showBrush = true, title = "BURST TRACE" 
+  data, duration, drugWindow, lightPulses, zoomDomain, onZoomChange, title = "BURST TRACE" 
 }) {
   const handleZoomIn = () => {
     if (!data?.length) return;
@@ -325,7 +330,10 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
     const center = (min + max) / 2;
     onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
   };
-  const handleReset = () => onZoomChange?.([0, duration]);
+  const handleReset = () => onZoomChange?.(null);
+  
+  // Check if zoomed
+  const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
 
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst data</div>;
@@ -351,50 +359,52 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
             <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
-            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
-          </Button>
+          {isZoomed && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+              <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+            </Button>
+          )}
         </div>
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: showBrush ? 30 : 20 }}>
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
               stroke="rgba(255,255,255,0.3)" 
               tick={{ fontSize: 9, fill: '#71717a' }} 
-              label={{ value: 'Time (s)', position: 'insideBottom', offset: showBrush ? -20 : -10, fontSize: 9, fill: '#71717a' }}
-              domain={zoomDomain || ['dataMin', 'dataMax']}
+              tickFormatter={(v) => v.toFixed(1)}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
+              domain={zoomDomain || [0, duration]}
               allowDataOverflow
               type="number"
             />
             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
             {/* Drug window overlay (purple) */}
-            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
-            {/* Light pulse overlays (amber) */}
-            {lightPulses && lightPulses.map((pulse, i) => (
-              <ReferenceArea key={`bt-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
-            ))}
-            <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-            {showBrush && (
-              <Brush 
-                dataKey="time" 
-                height={18} 
-                stroke="#52525b" 
-                fill="transparent"
-                tickFormatter={(v) => `${Math.floor(v)}s`}
-                onChange={(e) => {
-                  if (e.startIndex !== undefined && e.endIndex !== undefined && data.length > 0) {
-                    const start = data[e.startIndex]?.time || 0;
-                    const end = data[e.endIndex]?.time || duration;
-                    onZoomChange?.([start, end]);
-                  }
-                }}
+            {drugWindow && (
+              <ReferenceArea 
+                x1={Math.max(drugWindow.start, (zoomDomain?.[0] || 0))} 
+                x2={Math.min(drugWindow.end, (zoomDomain?.[1] || duration))} 
+                fill="#a855f7" 
+                fillOpacity={0.15} 
+                ifOverflow="hidden"
               />
             )}
+            {/* Light pulse overlays (amber) */}
+            {lightPulses && lightPulses.map((pulse, i) => (
+              <ReferenceArea 
+                key={`bt-pulse-${i}`} 
+                x1={pulse.start_sec} 
+                x2={pulse.end_sec} 
+                fill="#facc15" 
+                fillOpacity={0.18} 
+                ifOverflow="hidden"
+              />
+            ))}
+            <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -420,7 +430,10 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
     const center = (min + max) / 2;
     onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
   };
-  const handleReset = () => onZoomChange?.([0, duration]);
+  const handleReset = () => onZoomChange?.(null);
+  
+  // Check if zoomed
+  const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
 
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
@@ -444,23 +457,42 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
             <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
-            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
-          </Button>
+          {isZoomed && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+              <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+            </Button>
+          )}
         </div>
       </div>
       <div className="h-36">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+            <XAxis 
+              dataKey="time" 
+              type="number" 
+              domain={domain} 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              tickFormatter={(v) => v.toFixed(1)}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} 
+              allowDataOverflow 
+            />
             <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
             {/* Drug window overlay */}
-            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+            {drugWindow && (
+              <ReferenceArea 
+                x1={Math.max(drugWindow.start, domain[0])} 
+                x2={Math.min(drugWindow.end, domain[1])} 
+                fill="#a855f7" 
+                fillOpacity={0.12} 
+                ifOverflow="hidden"
+              />
+            )}
             {/* Light pulse overlays */}
             {lightPulses && lightPulses.map((pulse, i) => (
-              <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+              <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} ifOverflow="hidden" />
             ))}
             <Scatter data={data} fill={color} shape={(props) => (
               <rect x={props.cx - 1} y={props.cy - 3} width={2} height={6} fill={color} />
@@ -490,7 +522,10 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
     const center = (min + max) / 2;
     onZoomChange?.([Math.max(0, center - newRange/2), Math.min(duration, center + newRange/2)]);
   };
-  const handleReset = () => onZoomChange?.([0, duration]);
+  const handleReset = () => onZoomChange?.(null);
+  
+  // Check if zoomed
+  const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
 
   const color = '#f97316';
   const nElectrodes = electrodes?.length || 0;
@@ -524,23 +559,42 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/10" onClick={handleZoomOut} title="Zoom Out">
             <Minus className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
-            <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
-          </Button>
+          {isZoomed && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-white/10" onClick={handleReset} title="Reset">
+              <RotateCcw className="w-3 h-3 mr-1" style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Reset</span>
+            </Button>
+          )}
         </div>
       </div>
       <div className="h-36">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="time" type="number" domain={domain} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} allowDataOverflow />
+            <XAxis 
+              dataKey="time" 
+              type="number" 
+              domain={domain} 
+              stroke="rgba(255,255,255,0.3)" 
+              tick={{ fontSize: 9, fill: '#71717a' }} 
+              tickFormatter={(v) => v.toFixed(1)}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} 
+              allowDataOverflow 
+            />
             <YAxis dataKey="electrodeIndex" type="number" domain={[-0.5, nElectrodes - 0.5]} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: `Electrode (n=${nElectrodes})`, angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
             {/* Drug window overlay */}
-            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.12} />}
+            {drugWindow && (
+              <ReferenceArea 
+                x1={Math.max(drugWindow.start, domain[0])} 
+                x2={Math.min(drugWindow.end, domain[1])} 
+                fill="#a855f7" 
+                fillOpacity={0.12} 
+                ifOverflow="hidden"
+              />
+            )}
             {/* Light pulse overlays */}
             {lightPulses && lightPulses.map((pulse, i) => (
-              <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
+              <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} ifOverflow="hidden" />
             ))}
             <Scatter data={scatterData} fill={color} shape={(props) => {
               const burstWidth = Math.max(2, (props.payload.stopTime - props.payload.startTime) * 0.5);
@@ -899,6 +953,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
 
   // Get analysis state for Save Recording
   const getAnalysisState = useCallback(() => ({
+    source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
     type: 'MEA',
     selectedWell,
     wells: Object.keys(meaData?.wells || {}),
@@ -914,7 +969,10 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     lightPulses,
     baselineEnabled,
     baselineMinute,
-  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute]);
+    // Include MEA-specific metadata for proper routing
+    n_active_electrodes: wellAnalysis?.nActiveElectrodes || 0,
+    duration_s: duration,
+  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Compute all metrics for the selected well (heavily memoized)
   const wellAnalysis = useMemo(() => {
@@ -2624,6 +2682,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
               setFusionDate={setFusionDate}
               recordingDescription={recordingDescription}
               setRecordingDescription={setRecordingDescription}
+              isMEA={true}
             />
           </TabsContent>
           
