@@ -2946,7 +2946,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             <div className="glass-surface-subtle rounded-xl">
               <div className="p-4 pb-2">
                 <span className="text-sm" style={{ color: '#10b981', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                  <InfoTip text="Spike rate metrics during light stimulation">Light-Induced Spike Activity</InfoTip>
+                  <InfoTip text="Spike rate metrics during light stimulation">Light Evoke Spike Activity</InfoTip>
                 </span>
               </div>
               <div className="p-4 pt-2">
@@ -3185,7 +3185,7 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             <div className="glass-surface-subtle rounded-xl">
               <div className="p-4 pb-2">
                 <span className="text-sm" style={{ color: '#f97316', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                  <InfoTip text="Burst rate metrics during light stimulation">Light-Induced Burst Activity</InfoTip>
+                  <InfoTip text="Burst rate metrics during light stimulation">Light Evoke Burst Activity</InfoTip>
                 </span>
               </div>
               <div className="p-4 pt-2">

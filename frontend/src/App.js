@@ -354,6 +354,7 @@ function App() {
   const [isModified, setIsModified] = useState(false);  // Track if recording has been modified since last save
   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
   const [navigateToFolderId, setNavigateToFolderId] = useState(null);  // For "Go to Folder" navigation
+  const [navigateToComparison, setNavigateToComparison] = useState(false);  // For "Go to Comparison" navigation
 
   // Session
   const [sessionId, setSessionId] = useState(null);
@@ -1526,6 +1527,11 @@ function App() {
         <HomeBrowser 
           onOpenRecording={handleOpenRecording}
           initialFolderId={navigateToFolderId}
+          initialComparison={navigateToComparison}
+          onClearNavigation={() => {
+            setNavigateToFolderId(null);
+            setNavigateToComparison(false);
+          }}
           onNavigateToSEM={() => setAppView('upload')}
           onNavigateToMEA={() => setAppView('mea-upload')}
         />
@@ -1601,6 +1607,19 @@ function App() {
         onSaveComplete={handleSaveComplete}
         onGoToFolder={(folderId) => {
           setNavigateToFolderId(folderId);
+          setMeaData(null);
+          setMeaConfig(null);
+          setSavedRecordingId(null);
+          setSavedFolderId(null);
+          setSavedFolderName(null);
+          setSavedRecordingData(null);
+          setIsModified(false);
+          setAppView('home');
+        }}
+        onGoToComparison={(folderId) => {
+          // Navigate to home with comparison view for the folder
+          setNavigateToFolderId(folderId);
+          setNavigateToComparison(true);
           setMeaData(null);
           setMeaConfig(null);
           setSavedRecordingId(null);

@@ -967,6 +967,7 @@ export default function MEAAnalysis({
   onCancelEdit = () => {},
   onSaveComplete: parentOnSaveComplete = () => {},
   onGoToFolder = null,
+  onGoToComparison = null,
 }) {
   // Well state
   const [selectedWell, setSelectedWell] = useState(Object.keys(meaData?.wells || {})[0] || null);
@@ -1308,6 +1309,56 @@ export default function MEAAnalysis({
   // CRITICAL: Must include all well data (spikes, bursts, electrodes) for restore to work
   const getAnalysisState = useCallback(() => {
     const well = meaData?.wells?.[selectedWell] || {};
+    
+    // Compute spontaneous baseline and drug metrics for comparison
+    let baselineSpikeHz = null;
+    let baselineBurstBpm = null;
+    let drugSpikeHz = null;
+    let drugBurstBpm = null;
+    
+    if (wellAnalysis && baselineEnabled) {
+      const spikeRateBins = wellAnalysis.spikeRateBins || [];
+      const burstRateBins = wellAnalysis.burstRateBins || [];
+      
+      // Baseline metrics - from specified baseline minute
+      const baselineStart = baselineMinute * 60;
+      const baselineEnd = (baselineMinute + 1) * 60;
+      
+      const baselineSpikeVals = spikeRateBins
+        .filter(b => b.time >= baselineStart && b.time < baselineEnd)
+        .map(b => b.spike_rate_hz);
+      if (baselineSpikeVals.length > 0) {
+        baselineSpikeHz = baselineSpikeVals.reduce((a, b) => a + b, 0) / baselineSpikeVals.length;
+      }
+      
+      const baselineBurstVals = burstRateBins
+        .filter(b => b.time >= baselineStart && b.time < baselineEnd)
+        .map(b => b.burst_rate_bpm);
+      if (baselineBurstVals.length > 0) {
+        baselineBurstBpm = baselineBurstVals.reduce((a, b) => a + b, 0) / baselineBurstVals.length;
+      }
+      
+      // Drug metrics - from specified drug readout time
+      if (drugEnabled && selectedDrugs.length > 0) {
+        const drugTime = (drugPerfTime + drugReadoutMinute) * 60;
+        const drugEnd = drugTime + 60;
+        
+        const drugSpikeVals = spikeRateBins
+          .filter(b => b.time >= drugTime && b.time < drugEnd)
+          .map(b => b.spike_rate_hz);
+        if (drugSpikeVals.length > 0) {
+          drugSpikeHz = drugSpikeVals.reduce((a, b) => a + b, 0) / drugSpikeVals.length;
+        }
+        
+        const drugBurstVals = burstRateBins
+          .filter(b => b.time >= drugTime && b.time < drugEnd)
+          .map(b => b.burst_rate_bpm);
+        if (drugBurstVals.length > 0) {
+          drugBurstBpm = drugBurstVals.reduce((a, b) => a + b, 0) / drugBurstVals.length;
+        }
+      }
+    }
+    
     return {
       source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
       type: 'MEA',
@@ -1336,6 +1387,11 @@ export default function MEAAnalysis({
       // Baseline settings
       baselineEnabled,
       baselineMinute,
+      // COMPARISON-READY METRICS: Pre-computed baseline/drug values for folder comparison
+      baseline_spike_hz: baselineSpikeHz,
+      baseline_burst_bpm: baselineBurstBpm,
+      drug_spike_hz: drugSpikeHz,
+      drug_burst_bpm: drugBurstBpm,
       // Include MEA-specific metadata for proper routing
       n_electrodes: well.n_electrodes || 0,
       n_active_electrodes: well.active_electrodes?.length || wellAnalysis?.nActiveElectrodes || 0,
@@ -1347,6 +1403,9 @@ export default function MEAAnalysis({
       spikes: well.spikes || [],
       electrode_bursts: well.electrode_bursts || well.bursts || [],
       network_bursts: well.network_bursts || [],
+      // Also save rate bins for potential re-computation
+      spike_rate_bins: wellAnalysis?.spikeRateBins || [],
+      burst_rate_bins: wellAnalysis?.burstRateBins || [],
       // Include source file names for MEA (5 CSV files)
       source_files: meaData?.source_files || {},
       plate_id: meaData?.plate_id || 'MEA_plate',
@@ -1819,7 +1878,13 @@ export default function MEAAnalysis({
                   color: 'var(--accent-teal)',
                   boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
                 }}
-                onClick={() => toast.info('Comparison coming soon')}
+                onClick={() => {
+                  if (savedFolderId && onGoToComparison) {
+                    onGoToComparison(savedFolderId);
+                  } else {
+                    toast.info('Save recording first to access comparison');
+                  }
+                }}
               >
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
               </Button>
@@ -1834,6 +1899,47 @@ export default function MEAAnalysis({
           MAIN CONTENT
       ================================================================ */}
       <main className="p-6 pt-20 relative z-10 max-w-[1800px] mx-auto">
+        {/* Background Glass Lights - SSE-style ambient glow */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Parameters tab - subtle blue/gray glow */}
+          {activeTab === 'parameters' && (
+            <>
+              <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(113, 113, 122, 0.3) 0%, transparent 70%)' }} />
+              <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)' }} />
+            </>
+          )}
+          {/* Spontaneous Activity tab - warm amber/gold glow */}
+          {activeTab === 'spontaneous' && (
+            <>
+              <div className="absolute -top-24 left-1/3 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(244, 206, 162, 0.35) 0%, transparent 70%)' }} />
+              <div className="absolute top-1/2 -right-32 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(251, 191, 36, 0.25) 0%, transparent 70%)' }} />
+              <div className="absolute bottom-0 left-1/4 w-72 h-72 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, rgba(217, 119, 6, 0.2) 0%, transparent 70%)' }} />
+            </>
+          )}
+          {/* Light Stimulus tab - vibrant yellow/amber glow */}
+          {activeTab === 'light' && (
+            <>
+              <div className="absolute -top-20 left-1/4 w-96 h-96 rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%)' }} />
+              <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(252, 211, 77, 0.3) 0%, transparent 70%)' }} />
+              <div className="absolute bottom-1/4 -left-20 w-72 h-72 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%)' }} />
+            </>
+          )}
+          {/* Save Recording tab - emerald/green glow */}
+          {activeTab === 'save' && (
+            <>
+              <div className="absolute -top-24 left-1/3 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%)' }} />
+              <div className="absolute top-1/2 -right-24 w-72 h-72 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(52, 211, 153, 0.25) 0%, transparent 70%)' }} />
+            </>
+          )}
+          {/* Export tab - teal/cyan glow */}
+          {activeTab === 'export' && (
+            <>
+              <div className="absolute -top-20 left-1/4 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(20, 184, 166, 0.35) 0%, transparent 70%)' }} />
+              <div className="absolute top-1/3 right-1/3 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)' }} />
+            </>
+          )}
+        </div>
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Section Selector Bar - SSE-aligned */}
           <div className="flex items-center gap-3 mb-6">

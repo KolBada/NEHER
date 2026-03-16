@@ -13,6 +13,41 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 
 ## Core Features (Completed)
 
+### MEA Comparison Page (March 2026 - COMPLETED)
+**Features:**
+- SSE/MEA type switcher (filters recordings by source_type)
+- Summary cards: RECORDINGS, HSPO AGE RANGE, HCOS AGE RANGE, FUSION AGE RANGE
+- Three tabs: Spontaneous Activity, Light Stimulus, Metadata
+
+**Spontaneous Activity Tab:**
+- Spike Rate Comparison table with Baseline/Drug values (Hz)
+- Burst Rate Comparison table (bpm)
+- Normalized to Average Baseline expandable sections
+
+**Light Stimulus Tab (renamed to "Light Evoke"):**
+- Light Evoke Spike Activity: BL, Avg, Max, Spike Δ%, Peak Spike Δ%, TTP
+- Light Evoke Burst Activity: same structure
+- Normalized to Average Baseline sections
+- Per Metrics for each Stimuli with toggle buttons and charts
+
+**Metadata Tab:**
+- Recording name with Well ID
+- Date, hSpO Info, hCO Info, Fusion, Drug Info, Light Stim Info, Notes
+- Drug shows name, concentration, perf time
+- Light shows stim count, duration, ISI structure
+
+**Backend Enhancements:**
+- `extract_mea_comparison_metrics()` function computes values from:
+  1. Pre-computed values (saved with recording)
+  2. spike_rate_bins/burst_rate_bins (if available)
+  3. Raw spikes/bursts data (fallback for legacy recordings)
+- API supports `source_type` filter parameter
+
+**Frontend Enhancements:**
+- `getAnalysisState()` now saves pre-computed baseline_spike_hz, drug_spike_hz, etc.
+- Comparison button from MEA Analysis navigates to folder comparison
+- Background glass lights added to MEA Analysis page (tab-specific colors)
+
 ### MEA Export System (March 2026 - COMPLETED)
 **Backend API Endpoints:**
 - `POST /api/mea/export/csv` → Single CSV file with all sections

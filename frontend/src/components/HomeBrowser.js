@@ -73,7 +73,7 @@ function InfoTooltip({ text }) {
   );
 }
 
-export default function HomeBrowser({ onOpenRecording, initialFolderId = null, onNavigateToSEM, onNavigateToMEA }) {
+export default function HomeBrowser({ onOpenRecording, initialFolderId = null, initialComparison = false, onClearNavigation, onNavigateToSEM, onNavigateToMEA }) {
   const [view, setView] = useState('home'); // 'home', 'folder', 'comparison'
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -186,8 +186,17 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
   useEffect(() => {
     if (initialFolderId) {
       loadRecordings(initialFolderId);
+      // If initialComparison is true, go to comparison view after loading
+      if (initialComparison) {
+        setComparisonKey(Date.now());
+        setView('comparison');
+      }
+      // Clear the navigation state
+      if (onClearNavigation) {
+        onClearNavigation();
+      }
     }
-  }, [initialFolderId]);
+  }, [initialFolderId, initialComparison, onClearNavigation]);
 
   const loadFolders = async () => {
     setLoading(true);

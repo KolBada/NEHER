@@ -1893,67 +1893,92 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         result['isi_structure'] = interval_setting
     
     # MEA-specific spontaneous activity metrics
-    # Baseline metrics from wellAnalysis (stored at top level of state in MEA)
+    # These are now saved directly by the frontend as pre-computed values
+    baseline_spike_hz = state.get('baseline_spike_hz')
+    baseline_burst_bpm = state.get('baseline_burst_bpm')
+    drug_spike_hz = state.get('drug_spike_hz')
+    drug_burst_bpm = state.get('drug_burst_bpm')
+    
+    # Baseline settings
     baseline_minute = state.get('baselineMinute', 1)
     baseline_enabled = state.get('baselineEnabled', True)
     
-    # Get wellParams for baseline config
-    well_params = state.get('wellParams', {})
-    baseline_config = well_params.get('baseline', {})
+    # Fallback 1: If pre-computed values not available, try to compute from bins
+    if baseline_spike_hz is None:
+        spike_bins = state.get('spike_rate_bins', [])
+        burst_bins = state.get('burst_rate_bins', [])
+        
+        if spike_bins and baseline_enabled:
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
+            baseline_spike_vals = [b.get('spike_rate_hz', 0) for b in spike_bins 
+                                   if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
+            if baseline_spike_vals:
+                baseline_spike_hz = float(np.mean(baseline_spike_vals))
+        
+        if burst_bins and baseline_enabled:
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
+            baseline_burst_vals = [b.get('burst_rate_bpm', 0) for b in burst_bins 
+                                   if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
+            if baseline_burst_vals:
+                baseline_burst_bpm = float(np.mean(baseline_burst_vals))
+        
+        # Drug metrics - compute if enabled and bins available
+        if drug_spike_hz is None and drug_enabled and selected_drugs and spike_bins:
+            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+            drug_end_time = drug_readout_time + 60
+            drug_spike_vals = [b.get('spike_rate_hz', 0) for b in spike_bins 
+                              if b.get('time', 0) >= drug_readout_time and b.get('time', 0) < drug_end_time]
+            if drug_spike_vals:
+                drug_spike_hz = float(np.mean(drug_spike_vals))
+        
+        if drug_burst_bpm is None and drug_enabled and selected_drugs and burst_bins:
+            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+            drug_end_time = drug_readout_time + 60
+            drug_burst_vals = [b.get('burst_rate_bpm', 0) for b in burst_bins 
+                              if b.get('time', 0) >= drug_readout_time and b.get('time', 0) < drug_end_time]
+            if drug_burst_vals:
+                drug_burst_bpm = float(np.mean(drug_burst_vals))
     
-    # Try to get baseline metrics from multiple possible locations
-    # MEA stores these differently than SSE
-    baseline_spike_hz = None
-    baseline_burst_bpm = None
-    drug_spike_hz = None
-    drug_burst_bpm = None
-    
-    # Check if there's a wellAnalysis stored
-    # MEA analysis computes these on-the-fly, but they might be stored
-    if 'baseline_spike_hz' in state:
-        baseline_spike_hz = state.get('baseline_spike_hz')
-        baseline_burst_bpm = state.get('baseline_burst_bpm')
-        drug_spike_hz = state.get('drug_spike_hz')
-        drug_burst_bpm = state.get('drug_burst_bpm')
-    
-    # Also check wellParams which may have readout minute settings
-    spike_bins = state.get('spike_rate_bins', [])
-    burst_bins = state.get('burst_rate_bins', [])
-    
-    # If we have bin data, compute baseline from the correct minute
-    if spike_bins and baseline_enabled:
-        # Find bins that fall within baseline minute
-        baseline_start = baseline_minute * 60
-        baseline_end = (baseline_minute + 1) * 60
-        baseline_spike_vals = [b['spike_rate_hz'] for b in spike_bins 
-                               if b.get('bin_start', 0) >= baseline_start and b.get('bin_end', 0) <= baseline_end]
-        if baseline_spike_vals:
-            baseline_spike_hz = float(np.mean(baseline_spike_vals))
-    
-    if burst_bins and baseline_enabled:
-        baseline_start = baseline_minute * 60
-        baseline_end = (baseline_minute + 1) * 60
-        baseline_burst_vals = [b['burst_rate_bpm'] for b in burst_bins 
-                               if b.get('bin_start', 0) >= baseline_start and b.get('bin_end', 0) <= baseline_end]
-        if baseline_burst_vals:
-            baseline_burst_bpm = float(np.mean(baseline_burst_vals))
-    
-    # Drug metrics - compute if enabled
-    if drug_enabled and selected_drugs and spike_bins:
-        drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-        drug_end_time = drug_readout_time + 60
-        drug_spike_vals = [b['spike_rate_hz'] for b in spike_bins 
-                          if b.get('bin_start', 0) >= drug_readout_time and b.get('bin_end', 0) <= drug_end_time]
-        if drug_spike_vals:
-            drug_spike_hz = float(np.mean(drug_spike_vals))
-    
-    if drug_enabled and selected_drugs and burst_bins:
-        drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-        drug_end_time = drug_readout_time + 60
-        drug_burst_vals = [b['burst_rate_bpm'] for b in burst_bins 
-                          if b.get('bin_start', 0) >= drug_readout_time and b.get('bin_end', 0) <= drug_end_time]
-        if drug_burst_vals:
-            drug_burst_bpm = float(np.mean(drug_burst_vals))
+    # Fallback 2: If still no values, compute from raw spikes/bursts
+    if baseline_spike_hz is None and baseline_enabled:
+        spikes = state.get('spikes', [])
+        electrode_bursts = state.get('electrode_bursts', [])
+        duration_s = state.get('duration_s', 0)
+        
+        if spikes and duration_s > 0:
+            # Compute spike rate from raw spikes for baseline window
+            # Spikes use 'timestamp' field, not 'time_s'
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
+            baseline_spikes = [s for s in spikes if baseline_start <= s.get('timestamp', s.get('time_s', 0)) < baseline_end]
+            if baseline_end > baseline_start:
+                baseline_spike_hz = len(baseline_spikes) / (baseline_end - baseline_start)
+        
+        if electrode_bursts:
+            # Compute burst rate from raw bursts for baseline window
+            # Bursts use 'start_time' or 'start_time_s'
+            baseline_start = baseline_minute * 60
+            baseline_end = (baseline_minute + 1) * 60
+            baseline_bursts = [b for b in electrode_bursts if baseline_start <= b.get('start_time', b.get('start_time_s', 0)) < baseline_end]
+            if baseline_end > baseline_start:
+                baseline_burst_bpm = len(baseline_bursts) / ((baseline_end - baseline_start) / 60)
+        
+        # Drug metrics from raw data
+        if drug_enabled and selected_drugs and spikes:
+            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+            drug_end_time = drug_readout_time + 60
+            drug_spikes = [s for s in spikes if drug_readout_time <= s.get('timestamp', s.get('time_s', 0)) < drug_end_time]
+            if drug_end_time > drug_readout_time:
+                drug_spike_hz = len(drug_spikes) / (drug_end_time - drug_readout_time)
+        
+        if drug_enabled and selected_drugs and electrode_bursts:
+            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+            drug_end_time = drug_readout_time + 60
+            drug_bursts = [b for b in electrode_bursts if drug_readout_time <= b.get('start_time', b.get('start_time_s', 0)) < drug_end_time]
+            if drug_end_time > drug_readout_time:
+                drug_burst_bpm = len(drug_bursts) / ((drug_end_time - drug_readout_time) / 60)
     
     result['baseline_spike_hz'] = baseline_spike_hz
     result['baseline_burst_bpm'] = baseline_burst_bpm
@@ -1980,6 +2005,72 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
     result['light_burst_change_pct'] = avg_metrics.get('burstChangePct')
     result['light_peak_burst_change_pct'] = avg_metrics.get('maxBurstChangePct')
     result['light_burst_time_to_peak'] = avg_metrics.get('burstTimeToPeak')
+    
+    # Fallback: Compute light metrics from raw data if not available
+    if result['light_baseline_spike_hz'] is None and light_pulses and light_enabled:
+        spikes = state.get('spikes', [])
+        electrode_bursts = state.get('electrode_bursts', [])
+        
+        if spikes and light_pulses:
+            # Get first light pulse start time
+            first_pulse_start = light_pulses[0].get('start_sec', 0)
+            
+            # Compute baseline: -2 to -1 minute before first stim
+            bl_start = first_pulse_start - 120
+            bl_end = first_pulse_start - 60
+            
+            baseline_spikes = [s for s in spikes if bl_start <= s.get('timestamp', s.get('time_s', 0)) < bl_end]
+            if bl_end > bl_start:
+                result['light_baseline_spike_hz'] = len(baseline_spikes) / (bl_end - bl_start)
+            
+            if electrode_bursts:
+                baseline_bursts = [b for b in electrode_bursts if bl_start <= b.get('start_time', b.get('start_time_s', 0)) < bl_end]
+                if bl_end > bl_start:
+                    result['light_baseline_burst_bpm'] = len(baseline_bursts) / ((bl_end - bl_start) / 60)
+            
+            # Compute avg and max across all stims
+            all_stim_spike_rates = []
+            max_spike_rates = []
+            all_stim_burst_rates = []
+            max_burst_rates = []
+            
+            for pulse in light_pulses:
+                pulse_start = pulse.get('start_sec', 0)
+                pulse_end = pulse.get('end_sec', pulse_start + 20)
+                
+                # Spikes during this pulse
+                pulse_spikes = [s for s in spikes if pulse_start <= s.get('timestamp', s.get('time_s', 0)) < pulse_end]
+                duration = pulse_end - pulse_start
+                if duration > 0:
+                    rate = len(pulse_spikes) / duration
+                    all_stim_spike_rates.append(rate)
+                    max_spike_rates.append(rate)  # For simplicity, same as avg
+                
+                # Bursts during this pulse
+                if electrode_bursts:
+                    pulse_bursts = [b for b in electrode_bursts if pulse_start <= b.get('start_time', b.get('start_time_s', 0)) < pulse_end]
+                    if duration > 0:
+                        burst_rate = len(pulse_bursts) / (duration / 60)
+                        all_stim_burst_rates.append(burst_rate)
+                        max_burst_rates.append(burst_rate)
+            
+            if all_stim_spike_rates:
+                result['light_avg_spike_hz'] = float(np.mean(all_stim_spike_rates))
+                result['light_max_spike_hz'] = float(max(all_stim_spike_rates))
+                
+                # Calculate change percentages
+                if result['light_baseline_spike_hz'] and result['light_baseline_spike_hz'] > 0:
+                    result['light_spike_change_pct'] = 100 * (result['light_avg_spike_hz'] - result['light_baseline_spike_hz']) / result['light_baseline_spike_hz']
+                    result['light_peak_spike_change_pct'] = 100 * (result['light_max_spike_hz'] - result['light_baseline_spike_hz']) / result['light_baseline_spike_hz']
+            
+            if all_stim_burst_rates:
+                result['light_avg_burst_bpm'] = float(np.mean(all_stim_burst_rates))
+                result['light_max_burst_bpm'] = float(max(all_stim_burst_rates))
+                
+                # Calculate change percentages
+                if result['light_baseline_burst_bpm'] and result['light_baseline_burst_bpm'] > 0:
+                    result['light_burst_change_pct'] = 100 * (result['light_avg_burst_bpm'] - result['light_baseline_burst_bpm']) / result['light_baseline_burst_bpm']
+                    result['light_peak_burst_change_pct'] = 100 * (result['light_max_burst_bpm'] - result['light_baseline_burst_bpm']) / result['light_baseline_burst_bpm']
     
     # Per-stim data for charts
     result['per_stim_spike'] = []
