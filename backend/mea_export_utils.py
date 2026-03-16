@@ -58,6 +58,23 @@ def format_duration(seconds):
     return f"{minutes}m {secs}s"
 
 
+def calculate_interstimuli_intervals(light_pulses):
+    """Calculate intervals between consecutive light pulses.
+    Returns a string like '60s-30s-20s-10s' or None if not enough pulses."""
+    if not light_pulses or len(light_pulses) < 2:
+        return None
+    
+    intervals = []
+    for i in range(1, len(light_pulses)):
+        # Interval from end of previous pulse to start of current pulse
+        prev_end = light_pulses[i - 1].get('end_sec', 0)
+        curr_start = light_pulses[i].get('start_sec', 0)
+        interval = curr_start - prev_end
+        intervals.append(f"{int(interval)}s")
+    
+    return "-".join(intervals)
+
+
 # =============================================================================
 # CSV EXPORT - SSE STYLE (Single file, not ZIP)
 # =============================================================================
@@ -139,6 +156,10 @@ def generate_mea_csv_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
         light_params = analysis_state.get('lightParams', {})
         if light_params.get('pulseDuration'):
             lines.append(f"Stim Duration,{light_params.get('pulseDuration')} sec")
+        # Add interstimuli interval
+        isi = calculate_interstimuli_intervals(light_pulses)
+        if isi:
+            lines.append(f"Interstimuli Interval,{isi}")
         lines.append("")
     
     # Baseline Readout
@@ -362,6 +383,47 @@ def generate_mea_xlsx_export(analysis_state: Dict, well_analysis: Dict) -> bytes
         ws_summary.cell(row=row, column=1).fill = drug_fill
         ws_summary.cell(row=row, column=2).fill = drug_fill
         row += 2
+    
+    # Light Stimulation Info (before Light Readout)
+    light_pulses = analysis_state.get('lightPulses', [])
+    if analysis_state.get('lightEnabled') and light_pulses:
+        ws_summary.cell(row=row, column=1, value="LIGHT STIMULATION").font = Font(bold=True, color='FFFFFF')
+        ws_summary.cell(row=row, column=1).fill = PatternFill(start_color="f59e0b", end_color="f59e0b", fill_type="solid")
+        ws_summary.cell(row=row, column=2).fill = PatternFill(start_color="f59e0b", end_color="f59e0b", fill_type="solid")
+        row += 1
+        ws_summary.cell(row=row, column=1, value="Status")
+        ws_summary.cell(row=row, column=2, value="Enabled")
+        ws_summary.cell(row=row, column=1).fill = light_fill
+        ws_summary.cell(row=row, column=2).fill = light_fill
+        row += 1
+        ws_summary.cell(row=row, column=1, value="Stims Detected")
+        ws_summary.cell(row=row, column=2, value=len(light_pulses))
+        ws_summary.cell(row=row, column=1).fill = light_fill
+        ws_summary.cell(row=row, column=2).fill = light_fill
+        row += 1
+        if light_pulses:
+            first_pulse = light_pulses[0]
+            ws_summary.cell(row=row, column=1, value="Stims Start")
+            ws_summary.cell(row=row, column=2, value=f"{first_pulse.get('start_sec', 0) / 60:.2f} min")
+            ws_summary.cell(row=row, column=1).fill = light_fill
+            ws_summary.cell(row=row, column=2).fill = light_fill
+            row += 1
+        light_params = analysis_state.get('lightParams', {})
+        if light_params.get('pulseDuration'):
+            ws_summary.cell(row=row, column=1, value="Stim Duration")
+            ws_summary.cell(row=row, column=2, value=f"{light_params.get('pulseDuration')} sec")
+            ws_summary.cell(row=row, column=1).fill = light_fill
+            ws_summary.cell(row=row, column=2).fill = light_fill
+            row += 1
+        # Add interstimuli interval
+        isi = calculate_interstimuli_intervals(light_pulses)
+        if isi:
+            ws_summary.cell(row=row, column=1, value="Interstimuli Interval")
+            ws_summary.cell(row=row, column=2, value=isi)
+            ws_summary.cell(row=row, column=1).fill = light_fill
+            ws_summary.cell(row=row, column=2).fill = light_fill
+            row += 1
+        row += 1
     
     # Light Readout
     light_metrics = analysis_state.get('lightMetrics')
@@ -739,6 +801,10 @@ def generate_mea_pdf_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
             light_params = analysis_state.get('lightParams', {})
             if light_params.get('pulseDuration'):
                 y = draw_row(fig1, left_x, y, 'Stim Duration:', f"{light_params.get('pulseDuration')} sec", TINTS['light'], width=col_width)
+            # Add interstimuli interval
+            isi = calculate_interstimuli_intervals(light_pulses)
+            if isi:
+                y = draw_row(fig1, left_x, y, 'Interstimuli:', isi, TINTS['light'], width=col_width)
         
         # RIGHT COLUMN - Readouts
         y_right = first_section_y
