@@ -1070,10 +1070,18 @@ async def create_recording_endpoint(request: storage.RecordingCreate):
     if not folder:
         raise HTTPException(404, "Folder not found")
     
-    # Check for duplicates
-    is_duplicate = await storage.check_duplicate_recording(db, request.folder_id, request.filename)
+    # For MEA recordings, extract well_id from analysis_state to check for duplicates
+    well_id = None
+    if request.analysis_state:
+        well_id = request.analysis_state.get('selected_well') or request.analysis_state.get('selectedWell')
+    
+    # Check for duplicates - allows re-uploading same CSV files for different wells
+    is_duplicate = await storage.check_duplicate_recording(db, request.folder_id, request.filename, well_id)
     if is_duplicate:
-        raise HTTPException(400, f"A recording with filename '{request.filename}' already exists in this folder")
+        if well_id:
+            raise HTTPException(400, f"A recording for well '{well_id}' with these source files already exists in this folder")
+        else:
+            raise HTTPException(400, f"A recording with filename '{request.filename}' already exists in this folder")
     
     recording = await storage.create_recording(db, request.folder_id, request.name, request.filename, request.analysis_state)
     return recording

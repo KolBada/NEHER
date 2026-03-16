@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, FolderPlus, FolderOpen, Loader2, Check, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, FolderPlus, FolderOpen, Loader2, Check, Plus, X, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import api from '../api';
 
 export default function SaveRecording({ 
   getAnalysisState, 
+  getAllWellsAnalysisStates = null, // For MEA batch saving
+  allWells = [], // List of all wells for MEA
   onSaveComplete, 
   existingRecordingId = null,
   existingFolderId = null,
@@ -42,10 +45,15 @@ export default function SaveRecording({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedCount, setSavedCount] = useState(0); // For batch saving progress
   
   const [mode, setMode] = useState(existingRecordingId ? 'update' : 'new'); // 'new', 'existing', 'update'
   const [selectedFolderId, setSelectedFolderId] = useState(existingFolderId || '');
   const [newFolderName, setNewFolderName] = useState('');
+  
+  // MEA batch save mode - whether to save all wells or just current
+  const [saveAllWells, setSaveAllWells] = useState(true);
+  const canBatchSave = isMEA && getAllWellsAnalysisStates && allWells.length > 1 && !existingRecordingId;
 
   // Track which samples have transfection expanded
   const [expandedTransfection, setExpandedTransfection] = useState({});
@@ -130,6 +138,7 @@ export default function SaveRecording({
 
   const handleSave = async () => {
     setSaving(true);
+    setSavedCount(0);
     try {
       let folderId = selectedFolderId;
       
@@ -146,28 +155,84 @@ export default function SaveRecording({
         return;
       }
 
-      // Get fresh analysis state at save time
-      const currentAnalysisState = getAnalysisState ? getAnalysisState() : analysisState;
-      
-      // Prepare analysis state for saving
-      const stateToSave = {
-        ...currentAnalysisState,
-        recordingName,
-        savedAt: new Date().toISOString(),
-      };
-
       let recordingId = existingRecordingId;
       
       if (existingRecordingId) {
-        // Update existing recording
+        // Update existing recording (single well)
+        const currentAnalysisState = getAnalysisState ? getAnalysisState() : analysisState;
+        const stateToSave = {
+          ...currentAnalysisState,
+          recordingName,
+          savedAt: new Date().toISOString(),
+        };
+        
         await api.updateRecording(existingRecordingId, {
           name: recordingName,
           analysis_state: stateToSave,
         });
         toast.success('Recording updated');
+      } else if (canBatchSave && saveAllWells) {
+        // MEA batch save - save all wells individually
+        const wellsData = getAllWellsAnalysisStates();
+        const totalWells = wellsData.length;
+        
+        // Determine naming convention: C1, C2... for single sample, F1, F2... for multiple
+        const hasMultipleSamples = organoidInfo && organoidInfo.length > 1;
+        const prefix = hasMultipleSamples ? 'F' : 'C';
+        
+        let savedWells = 0;
+        let lastRecordingId = null;
+        
+        for (let i = 0; i < wellsData.length; i++) {
+          const { wellId, analysisState: wellState } = wellsData[i];
+          
+          // Generate well-specific recording name
+          const wellSuffix = `${prefix}${i + 1}`;
+          const wellRecordingName = `${recordingName}_${wellSuffix}`;
+          
+          const stateToSave = {
+            ...wellState,
+            recordingName: wellRecordingName,
+            savedAt: new Date().toISOString(),
+          };
+          
+          const displayFilename = wellState?.original_filename 
+            || (wellState?.source_files ? Object.values(wellState.source_files).join(', ') : 'MEA Recording');
+          
+          try {
+            const response = await api.createRecording({
+              folder_id: folderId,
+              name: wellRecordingName,
+              filename: displayFilename,
+              analysis_state: stateToSave,
+            });
+            lastRecordingId = response.data.id;
+            savedWells++;
+            setSavedCount(savedWells);
+          } catch (err) {
+            // If duplicate, skip but continue with other wells
+            if (err.response?.status === 400 && err.response?.data?.detail?.includes('already exists')) {
+              console.log(`Well ${wellId} already exists, skipping...`);
+              savedWells++;
+              setSavedCount(savedWells);
+            } else {
+              throw err;
+            }
+          }
+        }
+        
+        recordingId = lastRecordingId;
+        toast.success(`Saved ${savedWells} of ${totalWells} wells`);
       } else {
-        // Create new recording
-        // Use original_filename for MEA (CSV files) or filename for SSE (ABF file)
+        // Single well save (SSE or single MEA well)
+        const currentAnalysisState = getAnalysisState ? getAnalysisState() : analysisState;
+        
+        const stateToSave = {
+          ...currentAnalysisState,
+          recordingName,
+          savedAt: new Date().toISOString(),
+        };
+
         const displayFilename = currentAnalysisState?.original_filename 
           || currentAnalysisState?.filename 
           || (currentAnalysisState?.source_files ? Object.values(currentAnalysisState.source_files).join(', ') : 'unknown.abf');
@@ -577,6 +642,33 @@ export default function SaveRecording({
             </>
           )}
 
+          {/* MEA Batch Save Option */}
+          {canBatchSave && (
+            <>
+              <Separator style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4" style={{ color: accentColor }} />
+                    <Label className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      Save All Wells ({allWells.length})
+                    </Label>
+                  </div>
+                  <Switch
+                    checked={saveAllWells}
+                    onCheckedChange={setSaveAllWells}
+                  />
+                </div>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  {saveAllWells 
+                    ? `Each well will be saved as a separate recording with naming: ${recordingName}_${organoidInfo?.length > 1 ? 'F' : 'C'}1, ${recordingName}_${organoidInfo?.length > 1 ? 'F' : 'C'}2, ...`
+                    : 'Only the currently selected well will be saved.'
+                  }
+                </p>
+              </div>
+            </>
+          )}
+
           {/* Save Button */}
           <Button
             className="w-full h-10 mt-4 rounded-lg font-medium"
@@ -588,12 +680,17 @@ export default function SaveRecording({
             {saving ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                {canBatchSave && saveAllWells ? `Saving... (${savedCount}/${allWells.length})` : 'Saving...'}
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <Save className="w-4 h-4" />
-                {existingRecordingId ? 'Update Recording' : 'Save Recording'}
+                {existingRecordingId 
+                  ? 'Update Recording' 
+                  : canBatchSave && saveAllWells 
+                    ? `Save All ${allWells.length} Wells`
+                    : 'Save Recording'
+                }
               </span>
             )}
           </Button>

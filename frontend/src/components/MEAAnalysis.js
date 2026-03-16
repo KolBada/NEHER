@@ -1472,6 +1472,136 @@ export default function MEAAnalysis({
     };
   }, [selectedWell, meaData, config, wellParams, recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, lightMetrics, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
+  // Get list of all wells for batch saving
+  const allWells = useMemo(() => Object.keys(meaData?.wells || {}).sort(), [meaData]);
+  
+  // Get analysis state for a specific well (for batch saving)
+  const getWellAnalysisState = useCallback((wellId) => {
+    const well = meaData?.wells?.[wellId] || {};
+    const wellDuration = well.duration_s || duration;
+    
+    // Compute well-specific analysis data
+    const spikeRateBins = computeSpikeRate(well.spikes || [], well.active_electrodes || [], currentParams.spikeBinS, wellDuration);
+    const burstRateBins = computeBurstRate(well.electrode_bursts || well.bursts || [], well.active_electrodes || [], currentParams.burstBinS, wellDuration);
+    
+    // Compute baseline and drug metrics for this well
+    let baselineSpikeHz = null;
+    let baselineBurstBpm = null;
+    let drugSpikeHz = null;
+    let drugBurstBpm = null;
+    
+    if (baselineEnabled) {
+      const baselineStart = baselineMinute * 60;
+      const baselineEnd = (baselineMinute + 1) * 60;
+      
+      const baselineSpikeVals = spikeRateBins
+        .filter(b => b.time >= baselineStart && b.time < baselineEnd)
+        .map(b => b.spike_rate_hz);
+      if (baselineSpikeVals.length > 0) {
+        baselineSpikeHz = baselineSpikeVals.reduce((a, b) => a + b, 0) / baselineSpikeVals.length;
+      }
+      
+      const baselineBurstVals = burstRateBins
+        .filter(b => b.time >= baselineStart && b.time < baselineEnd)
+        .map(b => b.burst_rate_bpm);
+      if (baselineBurstVals.length > 0) {
+        baselineBurstBpm = baselineBurstVals.reduce((a, b) => a + b, 0) / baselineBurstVals.length;
+      }
+      
+      if (drugEnabled && selectedDrugs.length > 0) {
+        const drugReadoutMin = drugPerfTime + drugReadoutMinute;
+        const drugTime = drugReadoutMin * 60;
+        const drugEnd = (drugReadoutMin + 1) * 60;
+        
+        const drugSpikeVals = spikeRateBins
+          .filter(b => b.time >= drugTime && b.time < drugEnd)
+          .map(b => b.spike_rate_hz);
+        if (drugSpikeVals.length > 0) {
+          drugSpikeHz = drugSpikeVals.reduce((a, b) => a + b, 0) / drugSpikeVals.length;
+        }
+        
+        const drugBurstVals = burstRateBins
+          .filter(b => b.time >= drugTime && b.time < drugEnd)
+          .map(b => b.burst_rate_bpm);
+        if (drugBurstVals.length > 0) {
+          drugBurstBpm = drugBurstVals.reduce((a, b) => a + b, 0) / drugBurstVals.length;
+        }
+      }
+    }
+    
+    // Ensure drugSettings has concentration for all selected drugs
+    const completeDrugSettings = {};
+    selectedDrugs.forEach(drugKey => {
+      const cfg = DRUG_CONFIG[drugKey];
+      const existing = drugSettings[drugKey] || {};
+      completeDrugSettings[drugKey] = {
+        ...existing,
+        concentration: existing.concentration ?? cfg?.defaultConc ?? ''
+      };
+    });
+    
+    return {
+      source_type: 'MEA',
+      type: 'MEA',
+      selectedWell: wellId,
+      selected_well: wellId,
+      well_id: wellId,
+      wells: [wellId], // Only this well
+      config,
+      wellParams,
+      // Recording metadata (shared)
+      recordingDate,
+      organoidInfo,
+      fusionDate,
+      recordingDescription,
+      // Drug settings (shared)
+      drugEnabled,
+      selectedDrugs,
+      drugSettings: completeDrugSettings,
+      drugPerfTime,
+      drugReadoutMinute,
+      // Light settings (shared - detected once, applied to all)
+      lightEnabled,
+      lightParams,
+      lightPulses, // Same light pulses for all wells
+      lightMetrics, // Same light metrics for all wells
+      // Baseline settings (shared)
+      baselineEnabled,
+      baselineMinute,
+      // Well-specific metrics
+      baseline_spike_hz: baselineSpikeHz,
+      baseline_burst_bpm: baselineBurstBpm,
+      drug_spike_hz: drugSpikeHz,
+      drug_burst_bpm: drugBurstBpm,
+      // Well-specific data
+      n_electrodes: well.n_electrodes || 0,
+      n_active_electrodes: well.active_electrodes?.length || 0,
+      active_electrodes: well.active_electrodes || [],
+      duration_s: wellDuration,
+      total_spikes: well.total_spikes || (well.spikes?.length || 0),
+      mean_firing_rate_hz: well.mean_firing_rate_hz || 0,
+      spikes: well.spikes || [],
+      electrode_bursts: well.electrode_bursts || well.bursts || [],
+      network_bursts: well.network_bursts || [],
+      spike_rate_bins: spikeRateBins,
+      burst_rate_bins: burstRateBins,
+      // Source files (shared)
+      source_files: meaData?.source_files || {},
+      plate_id: meaData?.plate_id || 'MEA_plate',
+      environmental_data: meaData?.environmental_data || [],
+      electrode_filter: meaData?.electrode_filter || {},
+      original_filename: Object.values(meaData?.source_files || {}).join('\n') || 'MEA Recording',
+    };
+  }, [meaData, config, wellParams, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, lightMetrics, baselineEnabled, baselineMinute, currentParams, duration]);
+  
+  // Get all wells analysis states for batch saving
+  const getAllWellsAnalysisStates = useCallback(() => {
+    return allWells.map(wellId => ({
+      wellId,
+      analysisState: getWellAnalysisState(wellId)
+    }));
+  }, [allWells, getWellAnalysisState]);
+
   // Handle save complete - update snapshot to reset dirty state and notify parent
   const handleSaveComplete = useCallback((folderId, recordingId) => {
     // Update the initial snapshot to current state so isModified becomes false
@@ -3269,6 +3399,8 @@ export default function MEAAnalysis({
           <TabsContent value="save" className="space-y-6">
             <SaveRecording
               getAnalysisState={getAnalysisState}
+              getAllWellsAnalysisStates={getAllWellsAnalysisStates}
+              allWells={allWells}
               onSaveComplete={handleSaveComplete}
               existingRecordingId={savedRecordingId}
               existingFolderId={savedFolderId}

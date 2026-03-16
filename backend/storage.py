@@ -470,12 +470,22 @@ async def move_recording(db, recording_id: str, target_folder_id: str) -> Option
         return None
 
 
-async def check_duplicate_recording(db, folder_id: str, filename: str) -> bool:
-    """Check if a recording with the same filename exists in the folder."""
-    existing = await db.recordings.find_one({
+async def check_duplicate_recording(db, folder_id: str, filename: str, well_id: str = None) -> bool:
+    """Check if a recording with the same filename (and optionally well_id for MEA) exists in the folder.
+    
+    For MEA recordings, we check for filename + well_id combination to allow re-uploading
+    the same CSV files for different wells or re-analyzing the same wells.
+    """
+    query = {
         "folder_id": folder_id,
         "filename": filename
-    })
+    }
+    
+    # For MEA recordings with a well_id, check for the specific combination
+    if well_id:
+        query["analysis_state.selected_well"] = well_id
+    
+    existing = await db.recordings.find_one(query)
     return existing is not None
 
 

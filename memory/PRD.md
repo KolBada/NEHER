@@ -6,12 +6,17 @@ Build a comprehensive electrophysiology analysis platform supporting both Sharp 
 ## Current Session - Corrective Polish Pass (2025-12-17)
 
 ### Latest Update:
-- **MEA Comparison Export Redesign**: Rewrote MEA comparison PDF and Excel export functions to use the EXACT same design as SSE exports (bioptima style). Includes:
-  - Summary page with folder overview, age ranges, parameters, spontaneous activity, and light stimulus sections
-  - Metadata table with recording information
-  - Spontaneous activity tables (raw + normalized)
-  - Light stimulus spike/burst tables (raw + normalized)
-  - Consistent styling, colors, fonts, and layout matching SSE
+- **MEA Multi-Well Batch Save Feature**: Implemented comprehensive multi-well saving functionality:
+  - All analysis parameters (electrode settings, binning, drug info, baseline readout, drug readout, light stimulus settings, tissue info) are now applied to ALL selected wells during analysis
+  - Each well is saved as a separate recording in the database with unique naming:
+    - Single sample: C1, C2, C3... (e.g., "RecordingName_C1")
+    - Multiple samples: F1, F2, F3... (e.g., "RecordingName_F1")
+  - When reopening a saved recording, only the corresponding well is loaded
+  - Modifying one saved recording only affects that specific well
+  - Re-uploading the same CSV files is now allowed (duplicate check based on filename + well_id combination)
+  - Light stimulus timing is detected once and applied to all wells
+
+- **MEA Comparison Export Redesign**: Rewrote MEA comparison PDF and Excel export functions to use the EXACT same design as SSE exports (bioptima style).
 
 ### Fixes Applied This Session:
 1. **Baseline Readout Label**: Changed "Minute" → "Perf. Time" with correct range display
@@ -21,9 +26,12 @@ Build a comprehensive electrophysiology analysis platform supporting both Sharp 
 5. **MEA Per Stimuli Charts**: Added cyan baseline reference line to legend for all spike/burst metrics
 6. **Backend Data Consistency**: Corrected drug time window calculation
 7. **MEA Export Design**: Unified MEA comparison exports to match SSE bioptima-style design
+8. **MEA Light Stimulus Detection**: Fixed `has_light_stim` field detection in exports
+9. **MEA Multi-Well Save**: Implemented batch saving with per-well independent recordings
 
 ### Pending Verification:
-- MEA comparison PDF/Excel export testing (user verification needed)
+- MEA multi-well batch save functionality
+- MEA comparison PDF/Excel export with light stimulus data
 
 ## Core Features Implemented:
 
