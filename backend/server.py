@@ -1851,13 +1851,26 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
     drug_perf_time = state.get('drugPerfTime', 3)
     drug_readout_minute = state.get('drugReadoutMinute', 3)
     
+    # Default concentrations for common drugs (fallback if not set)
+    default_concentrations = {
+        'tetrodotoxin': 1,
+        'isoproterenol': 100,
+        'carbachol': 10,
+        'nifedipine': 1,
+        'e4031': 1,
+        'dofetilide': 0.01,
+    }
+    
     result['drug_info'] = []
     result['has_drug'] = drug_enabled and bool(selected_drugs)
     
     if selected_drugs:
         for drug in selected_drugs:
             settings = drug_settings.get(drug, {})
-            concentration = settings.get('concentration', '')
+            concentration = settings.get('concentration')
+            # Use default concentration if not set
+            if concentration is None or concentration == '':
+                concentration = default_concentrations.get(drug, '')
             result['drug_info'].append({
                 'name': drug,
                 'concentration': concentration,
