@@ -160,6 +160,16 @@ Comprehensive UI/UX polish implementing SSE-style features:
 5. **Button Renamed:** "Validate Parameters" → "Update Parameters"
 6. **SSE-Style Stim Editor:** Added Start: () < > | End: () < > | or Click Start End layout with ±bin controls (spike trace uses spike bin, burst trace uses burst bin)
 
+**MEA Zoom Controls and Save Recording (December 2025):**
+1. **New Zoom Chart Components:** Created SpikeTraceChartWithZoom, BurstTraceChartWithZoom, SpikeRasterPlotWithZoom, BurstRasterPlotWithZoom with + - Reset buttons and brush/slider
+2. **Parameters Tab:** Both Spike and Burst traces now have zoom controls with synchronized zoom via `parametersZoomDomain`
+3. **Spontaneous Activity Tab:** All 4 charts (spike trace, burst trace, spike raster, burst raster) now have zoom controls synchronized via `spontaneousZoomDomain`
+4. **Light Stimulus Tab:** Rasters now use zoom components synchronized with traces via `lightZoomDomain`
+5. **Save Recording Tab:** Now uses full SaveRecording component with:
+   - Tissue Information (Fusion Date, Sample Info with cell type, line name, passage, differentiation date, transfection)
+   - Recording Information (date, name, description, folder selection)
+   - Same design as SSE Save Recording
+
 **Bug Fixes (December 2025):**
 - Fixed React hooks violation: Moved `useMemo` in BurstRasterPlot before early return (was causing app crash)
 - Fixed crash with 0 active electrodes: Added all required properties to wellAnalysis early return object
