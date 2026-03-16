@@ -1218,29 +1218,32 @@ function App() {
       // Check if this is an MEA recording
       if (state.source_type === 'MEA' || recordingData.source_type === 'MEA') {
         // Handle MEA recording - load into MEA analysis view
+        // well_id can be stored as well_id or selectedWell depending on save version
+        const wellId = state.well_id || state.selectedWell || 'A1';
+        
         const meaWellData = {
-          [state.well_id]: {
-            well_id: state.well_id,
-            n_electrodes: state.n_electrodes,
-            n_active_electrodes: state.n_active_electrodes,
-            active_electrodes: state.active_electrodes,
-            duration_s: state.duration_s,
-            total_spikes: state.total_spikes,
-            mean_firing_rate_hz: state.mean_firing_rate_hz,
-            spikes: state.spikes,
-            electrode_bursts: state.electrode_bursts,
-            network_bursts: state.network_bursts,
+          [wellId]: {
+            well_id: wellId,
+            n_electrodes: state.n_electrodes || 0,
+            n_active_electrodes: state.n_active_electrodes || state.active_electrodes?.length || 0,
+            active_electrodes: state.active_electrodes || [],
+            duration_s: state.duration_s || 0,
+            total_spikes: state.total_spikes || 0,
+            mean_firing_rate_hz: state.mean_firing_rate_hz || 0,
+            spikes: state.spikes || [],
+            electrode_bursts: state.electrode_bursts || [],
+            network_bursts: state.network_bursts || [],
           }
         };
         
         setMeaData({
           wells: meaWellData,
-          plate_id: state.plate_id,
-          electrode_filter: state.electrode_filter,
-          environmental_data: state.environmental_data,
+          plate_id: state.plate_id || 'MEA_plate',
+          electrode_filter: state.electrode_filter || {},
+          environmental_data: state.environmental_data || [],
           source_files: state.source_files || {},
         });
-        setMeaConfig(state.config);
+        setMeaConfig(state.config || {});
         setAppView('mea-analysis');
         toast.success(`Loaded MEA recording: ${recordingData.name}`);
         setRecordingLoading(false);

@@ -1656,7 +1656,16 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs truncate mb-2.5" style={{ color: 'var(--text-tertiary)' }}>{recording.filename}</p>
+                          {/* File name(s) - for MEA show each on separate line */}
+                          {recording.source_type === 'MEA' && (recording.filename?.includes('\n') || recording.filename?.includes(',')) ? (
+                            <div className="text-xs mb-2.5 space-y-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                              {recording.filename.split(/[\n,]/).map((name, i) => (
+                                <p key={i} className="truncate">{name.trim()}</p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs truncate mb-2.5" style={{ color: 'var(--text-tertiary)' }}>{recording.filename}</p>
+                          )}
                           <div className="flex flex-wrap gap-2">
                             {/* SEM: Show beats count */}
                             {recording.source_type !== 'MEA' && recording.n_beats > 0 && (

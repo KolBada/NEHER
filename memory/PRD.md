@@ -273,6 +273,9 @@ Comprehensive UI/UX polish implementing SSE-style features:
 - ✅ Drug/Light overlay boxes on rasters (December 2025)
 - ✅ Fixed drug selection error (MEA_DRUGS → DRUG_CONFIG) (December 2025)
 - ✅ Fixed saved MEA recording loading (source_files now restored) (December 2025)
+- ✅ Fixed Tooltip error in stim editor (wrapped in TooltipProvider) (December 2025)
+- ✅ Fixed MEA file names display (now show on separate lines) (December 2025)
+- ✅ Fixed MEA save to include all well data (spikes, bursts, active_electrodes) (December 2025)
 
 ### P1 - High Priority (Upcoming)
 - Build MEA Save Recording tab (adapt from SSE SaveRecording.js)

@@ -70,7 +70,8 @@ function LightMetricCard({ label, value, unit, tooltip, color = 'default' }) {
         {label}
         {tooltip && (
           <TooltipProvider delayDuration={100}>
-            <Tooltip>
+            <TooltipProvider delayDuration={100}>
+                            <Tooltip>
               <TooltipTrigger asChild>
                 <button type="button" className="inline-flex">
                   <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
@@ -80,6 +81,7 @@ function LightMetricCard({ label, value, unit, tooltip, color = 'default' }) {
                 <p>{tooltip}</p>
               </TooltipContent>
             </Tooltip>
+                          </TooltipProvider>
           </TooltipProvider>
         )}
       </p>
@@ -1058,32 +1060,47 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   const wellName = wellNames[selectedWell] || selectedWell || '';
 
   // Get analysis state for Save Recording - defined AFTER wellAnalysis and duration
-  const getAnalysisState = useCallback(() => ({
-    source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
-    type: 'MEA',
-    selectedWell,
-    wells: Object.keys(meaData?.wells || {}),
-    config,
-    wellParams,
-    drugEnabled,
-    selectedDrugs,
-    drugSettings,
-    drugPerfTime,
-    drugReadoutMinute,
-    lightEnabled,
-    lightParams,
-    lightPulses,
-    baselineEnabled,
-    baselineMinute,
-    // Include MEA-specific metadata for proper routing
-    n_active_electrodes: wellAnalysis?.nActiveElectrodes || 0,
-    duration_s: duration,
-    // Include source file names for MEA (5 CSV files)
-    source_files: meaData?.source_files || {},
-    plate_id: meaData?.plate_id || 'MEA_plate',
-    // Generate a readable filename for display
-    original_filename: Object.values(meaData?.source_files || {}).join(', ') || 'MEA Recording',
-  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
+  // CRITICAL: Must include all well data (spikes, bursts, electrodes) for restore to work
+  const getAnalysisState = useCallback(() => {
+    const well = meaData?.wells?.[selectedWell] || {};
+    return {
+      source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
+      type: 'MEA',
+      selectedWell,
+      well_id: selectedWell, // Store the well ID for restore
+      wells: Object.keys(meaData?.wells || {}),
+      config,
+      wellParams,
+      drugEnabled,
+      selectedDrugs,
+      drugSettings,
+      drugPerfTime,
+      drugReadoutMinute,
+      lightEnabled,
+      lightParams,
+      lightPulses,
+      baselineEnabled,
+      baselineMinute,
+      // Include MEA-specific metadata for proper routing
+      n_electrodes: well.n_electrodes || 0,
+      n_active_electrodes: well.active_electrodes?.length || wellAnalysis?.nActiveElectrodes || 0,
+      active_electrodes: well.active_electrodes || [],
+      duration_s: well.duration_s || duration,
+      total_spikes: well.total_spikes || 0,
+      mean_firing_rate_hz: well.mean_firing_rate_hz || 0,
+      // CRITICAL: Include the actual spike and burst data
+      spikes: well.spikes || [],
+      electrode_bursts: well.electrode_bursts || well.bursts || [],
+      network_bursts: well.network_bursts || [],
+      // Include source file names for MEA (5 CSV files)
+      source_files: meaData?.source_files || {},
+      plate_id: meaData?.plate_id || 'MEA_plate',
+      environmental_data: meaData?.environmental_data || [],
+      electrode_filter: meaData?.electrode_filter || {},
+      // Generate a readable filename for display (one per line)
+      original_filename: Object.values(meaData?.source_files || {}).join('\n') || 'MEA Recording',
+    };
+  }, [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Drug window for visualization
   // Perf. Start = when drug is added (purple box starts)
@@ -2207,7 +2224,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
-                          <Tooltip>
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-3 h-3 text-zinc-500 cursor-help ml-1" />
                             </TooltipTrigger>
@@ -2217,6 +2235,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               <p className="text-zinc-400 mt-1">Or click "Start" or "End" then click on the trace to set the boundary at that time point.</p>
                             </TooltipContent>
                           </Tooltip>
+                          </TooltipProvider>
                         </div>
                         
                         <div className="h-4 w-px bg-zinc-700" />
@@ -2365,7 +2384,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             className={`h-6 px-2 text-[9px] ${editMode === 'end' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
-                          <Tooltip>
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-3 h-3 text-zinc-500 cursor-help ml-1" />
                             </TooltipTrigger>
@@ -2375,6 +2395,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               <p className="text-zinc-400 mt-1">Or click "Start" or "End" then click on the trace to set the boundary at that time point.</p>
                             </TooltipContent>
                           </Tooltip>
+                          </TooltipProvider>
                         </div>
                         
                         <div className="h-4 w-px bg-zinc-700" />
@@ -2504,6 +2525,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           <Switch checked={lightParams.autoDetect} onCheckedChange={(v) => setLightParams(p => ({ ...p, autoDetect: v }))} />
                           <Label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>AI light stim detector</Label>
                           <TooltipProvider delayDuration={100}>
+                            <TooltipProvider delayDuration={100}>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button type="button" className="inline-flex">
@@ -2514,6 +2536,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                                 When ON, uses AI to detect stim boundaries by analyzing spike/burst patterns. When OFF, uses only the manual settings.
                               </TooltipContent>
                             </Tooltip>
+                          </TooltipProvider>
                           </TooltipProvider>
                         </div>
                         
@@ -2615,7 +2638,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       <div className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500 }}>Light-Induced Spike & Burst Response</span>
                         <TooltipProvider delayDuration={100}>
-                          <Tooltip>
+                          <TooltipProvider delayDuration={100}>
+                            <Tooltip>
                             <TooltipTrigger asChild>
                               <button type="button" className="inline-flex">
                                 <Info className="w-3 h-3 cursor-help" style={{ color: 'var(--text-tertiary)' }} />
@@ -2626,6 +2650,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                               <p>Baseline is computed from -2 to -1 minute before first light stimulation</p>
                             </TooltipContent>
                           </Tooltip>
+                          </TooltipProvider>
                         </TooltipProvider>
                       </div>
                     </div>
