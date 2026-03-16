@@ -37,6 +37,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
 import SaveRecording from './SaveRecording';
+import MEAExportPanel from './MEAExportPanel';
 
 // ============================================================================
 // DRUG CONFIGURATION (matching SSE)
@@ -2953,19 +2954,29 @@ export default function MEAAnalysis({
           </TabsContent>
           
           <TabsContent value="export" className="space-y-6">
-            <div className="glass-surface-subtle rounded-xl p-8 text-center">
-              <FileSpreadsheet className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-primary)' }} />
-              <h3 className="text-lg font-display mb-2" style={{ color: 'var(--text-primary)' }}>Export MEA Data</h3>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Export spike and burst data.</p>
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" className="h-10 px-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }} onClick={() => toast.info('Excel export coming soon')}>
-                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
-                </Button>
-                <Button variant="outline" className="h-10 px-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-secondary)' }} onClick={() => toast.info('PDF export coming soon')}>
-                  <FileText className="w-4 h-4 mr-2" /> PDF
-                </Button>
-              </div>
-            </div>
+            <MEAExportPanel
+              wellAnalysis={wellAnalysis}
+              meaData={meaData}
+              selectedWell={selectedWell}
+              recordingName={recordingName}
+              recordingDate={recordingDate}
+              organoidInfo={organoidInfo}
+              fusionDate={fusionDate}
+              recordingDescription={recordingDescription}
+              drugEnabled={drugEnabled}
+              selectedDrugs={selectedDrugs}
+              drugSettings={drugSettings}
+              drugPerfTime={drugPerfTime}
+              drugReadoutMinute={drugReadoutMinute}
+              lightEnabled={lightEnabled}
+              lightParams={lightParams}
+              lightPulses={lightPulses}
+              baselineEnabled={baselineEnabled}
+              baselineMinute={baselineMinute}
+              wellParams={wellParams}
+              config={config}
+              getAnalysisState={getAnalysisState}
+            />
           </TabsContent>
         </Tabs>
       </main>
