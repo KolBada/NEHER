@@ -140,8 +140,10 @@ def generate_mea_csv_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
             settings = drug_settings.get(drug, {})
             if settings.get('concentration'):
                 lines.append(f"Concentration,{settings.get('concentration')}µM")
-        perf_time = analysis_state.get('drugPerfTime', 0)
-        lines.append(f"Perf. Start,{perf_time} min")
+        perf_start = analysis_state.get('drugPerfTime', 0)
+        perf_time = analysis_state.get('drugReadoutMinute', 0)
+        lines.append(f"Perf. Start,{perf_start} min")
+        lines.append(f"Perf. Time,{perf_time} min")
         lines.append("")
     
     # Light Stimulation
@@ -332,6 +334,40 @@ def generate_mea_xlsx_export(analysis_state: Dict, well_analysis: Dict) -> bytes
     ws_summary.cell(row=row, column=1, value="Duration")
     ws_summary.cell(row=row, column=2, value=format_duration(analysis_state.get('duration_s', 0)))
     row += 2
+    
+    # Drug Perfusion Info
+    if analysis_state.get('drugEnabled') and analysis_state.get('selectedDrugs'):
+        ws_summary.cell(row=row, column=1, value="DRUG PERFUSION").font = Font(bold=True, color='FFFFFF')
+        ws_summary.cell(row=row, column=1).fill = PatternFill(start_color="a855f7", end_color="a855f7", fill_type="solid")
+        ws_summary.cell(row=row, column=2).fill = PatternFill(start_color="a855f7", end_color="a855f7", fill_type="solid")
+        row += 1
+        drugs = analysis_state.get('selectedDrugs', [])
+        drug_settings = analysis_state.get('drugSettings', {})
+        for drug in drugs:
+            ws_summary.cell(row=row, column=1, value="Drug")
+            ws_summary.cell(row=row, column=2, value=drug)
+            ws_summary.cell(row=row, column=1).fill = drug_fill
+            ws_summary.cell(row=row, column=2).fill = drug_fill
+            row += 1
+            settings = drug_settings.get(drug, {})
+            if settings.get('concentration'):
+                ws_summary.cell(row=row, column=1, value="Concentration")
+                ws_summary.cell(row=row, column=2, value=f"{settings.get('concentration')}µM")
+                ws_summary.cell(row=row, column=1).fill = drug_fill
+                ws_summary.cell(row=row, column=2).fill = drug_fill
+                row += 1
+        perf_start = analysis_state.get('drugPerfTime', 0)
+        perf_time = analysis_state.get('drugReadoutMinute', 0)
+        ws_summary.cell(row=row, column=1, value="Perf. Start")
+        ws_summary.cell(row=row, column=2, value=f"{perf_start} min")
+        ws_summary.cell(row=row, column=1).fill = drug_fill
+        ws_summary.cell(row=row, column=2).fill = drug_fill
+        row += 1
+        ws_summary.cell(row=row, column=1, value="Perf. Time")
+        ws_summary.cell(row=row, column=2, value=f"{perf_time} min")
+        ws_summary.cell(row=row, column=1).fill = drug_fill
+        ws_summary.cell(row=row, column=2).fill = drug_fill
+        row += 2
     
     # Baseline Readout
     if analysis_state.get('baselineEnabled') and well_analysis:
@@ -785,8 +821,10 @@ def generate_mea_pdf_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
                 settings = drug_settings.get(drug, {})
                 if settings.get('concentration'):
                     y = draw_row(fig1, left_x, y, 'Concentration:', f"{settings.get('concentration')}µM", TINTS['drug'], width=col_width)
-            perf_time = analysis_state.get('drugPerfTime', 0)
-            y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{perf_time} min", TINTS['drug'], width=col_width)
+            perf_start = analysis_state.get('drugPerfTime', 0)
+            perf_time = analysis_state.get('drugReadoutMinute', 0)
+            y = draw_row(fig1, left_x, y, 'Perf. Start:', f"{perf_start} min", TINTS['drug'], width=col_width)
+            y = draw_row(fig1, left_x, y, 'Perf. Time:', f"{perf_time} min", TINTS['drug'], width=col_width)
         
         # Light Stimulation
         light_pulses = analysis_state.get('lightPulses', [])
