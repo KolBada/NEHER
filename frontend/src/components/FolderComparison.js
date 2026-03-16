@@ -91,6 +91,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [meaSpikeYAxisZoom, setMeaSpikeYAxisZoom] = useState({});
   const [meaBurstYAxisZoom, setMeaBurstYAxisZoom] = useState({});
   
+  // MEA Light Stimulus Per Metrics zoom state
+  const [meaLightSpikeYAxisZoom, setMeaLightSpikeYAxisZoom] = useState({});
+  const [meaLightBurstYAxisZoom, setMeaLightBurstYAxisZoom] = useState({});
+  
   // Delay mounting charts in embedded mode to allow modal animation to complete
   const [chartsMounted, setChartsMounted] = useState(!embedded);
   
@@ -3130,7 +3134,74 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <div className="space-y-6">
                         {meaPerMetricSpikeData.filter(m => selectedMeaSpikeMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="rounded-xl p-4" style={{ background: 'rgba(255, 255, 255, 0.025)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                            <h4 className="text-sm font-semibold text-emerald-400 mb-3">{metricData.label}</h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-emerald-400">{metricData.label}</h4>
+                              {/* Y-axis zoom controls */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    // Get baseline value if applicable
+                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    // Calculate min/max from actual data including baseline
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (baselineVal !== null) allValues.push(baselineVal);
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = meaLightSpikeYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom in by 20% but ensure all data points stay visible
+                                    const newRange = Math.max(currentRange * 0.8, dataRange * 1.05);
+                                    setMeaLightSpikeYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom In Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Get baseline value if applicable
+                                    const baselineVal = metricData.showBaseline ? (meaLightSpikeAverages?.light_baseline_spike_hz || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    // Calculate min/max from actual data
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (baselineVal !== null) allValues.push(baselineVal);
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = meaLightSpikeYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom out by 25%
+                                    const newRange = currentRange * 1.25;
+                                    setMeaLightSpikeYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom Out Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => setMeaLightSpikeYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Reset Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                              </div>
+                            </div>
                             
                             {/* Chart */}
                             <div className="h-48 mb-4">
@@ -3141,8 +3212,10 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <YAxis 
                                     stroke="#71717a" 
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
-                                    domain={meaSpikeYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
-                                    label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
+                                    domain={meaLightSpikeYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
+                                    allowDataOverflow={true}
+                                    tickFormatter={(value) => Number.isFinite(value) ? value.toFixed(1) : value}
+                                    label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' }, formatter: (v) => v }}
                                   />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
                                   <Legend 
@@ -3413,7 +3486,74 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                       <div className="space-y-6">
                         {meaPerMetricBurstData.filter(m => selectedMeaBurstMetrics[m.key]).map((metricData) => (
                           <div key={metricData.key} className="rounded-xl p-4" style={{ background: 'rgba(255, 255, 255, 0.025)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                            <h4 className="text-sm font-semibold text-orange-400 mb-3">{metricData.label}</h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-orange-400">{metricData.label}</h4>
+                              {/* Y-axis zoom controls */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    // Get baseline value if applicable
+                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    // Calculate min/max from actual data including baseline
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (baselineVal !== null) allValues.push(baselineVal);
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = meaLightBurstYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom in by 20% but ensure all data points stay visible
+                                    const newRange = Math.max(currentRange * 0.8, dataRange * 1.05);
+                                    setMeaLightBurstYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom In Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Get baseline value if applicable
+                                    const baselineVal = metricData.showBaseline ? (meaLightBurstAverages?.light_baseline_burst_bpm || 0) : (metricData.showBaselinePct ? 0 : null);
+                                    // Calculate min/max from actual data
+                                    const allValues = metricData.chartData.flatMap(d => [d.perStimAvg, d.stimAvg].filter(v => v != null && !isNaN(v)));
+                                    if (baselineVal !== null) allValues.push(baselineVal);
+                                    if (allValues.length === 0) return;
+                                    const dataMin = Math.min(...allValues);
+                                    const dataMax = Math.max(...allValues);
+                                    const dataRange = dataMax - dataMin || 1;
+                                    const dataMid = (dataMin + dataMax) / 2;
+                                    const current = meaLightBurstYAxisZoom[metricData.key] || [dataMin - dataRange * 0.1, dataMax + dataRange * 0.1];
+                                    const currentRange = current[1] - current[0];
+                                    // Zoom out by 25%
+                                    const newRange = currentRange * 1.25;
+                                    setMeaLightBurstYAxisZoom(prev => ({ ...prev, [metricData.key]: [dataMid - newRange/2, dataMid + newRange/2] }));
+                                  }}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Zoom Out Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => setMeaLightBurstYAxisZoom(prev => { const n = {...prev}; delete n[metricData.key]; return n; })}
+                                  className="p-1.5 rounded-lg transition-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  title="Reset Y-axis"
+                                >
+                                  <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                              </div>
+                            </div>
                             
                             {/* Chart */}
                             <div className="h-48 mb-4">
@@ -3424,7 +3564,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                   <YAxis 
                                     stroke="#71717a" 
                                     tick={{ fontSize: 10, fill: '#a1a1aa' }} 
-                                    domain={meaBurstYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
+                                    domain={meaLightBurstYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
+                                    allowDataOverflow={true}
+                                    tickFormatter={(value) => Number.isFinite(value) ? value.toFixed(1) : value}
                                     label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
                                   />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />

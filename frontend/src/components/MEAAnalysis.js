@@ -1137,9 +1137,25 @@ export default function MEAAnalysis({
 
   // Drug management
   const toggleDrug = useCallback((drugKey) => {
-    setSelectedDrugs(prev => 
-      prev.includes(drugKey) ? prev.filter(d => d !== drugKey) : [...prev, drugKey]
-    );
+    setSelectedDrugs(prev => {
+      const isSelected = prev.includes(drugKey);
+      if (isSelected) {
+        return prev.filter(d => d !== drugKey);
+      } else {
+        // When adding a drug, initialize its concentration with default value if not set
+        const cfg = DRUG_CONFIG[drugKey];
+        if (cfg) {
+          setDrugSettings(prevSettings => ({
+            ...prevSettings,
+            [drugKey]: {
+              ...prevSettings[drugKey],
+              concentration: prevSettings[drugKey]?.concentration ?? cfg.defaultConc
+            }
+          }));
+        }
+        return [...prev, drugKey];
+      }
+    });
     setDrugEnabled(true);
   }, []);
 
