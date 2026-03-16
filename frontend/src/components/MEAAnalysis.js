@@ -237,6 +237,15 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
   
   // Check if zoomed (domain is different from full range)
   const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
+  
+  // PERFORMANCE: Filter data to visible viewport + margin
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const domain = zoomDomain || [0, duration];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.1;
+    return data.filter(d => d.time >= minTime - margin && d.time <= maxTime + margin);
+  }, [data, zoomDomain, duration]);
 
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
@@ -275,7 +284,7 @@ const SpikeTraceChartWithZoom = memo(function SpikeTraceChartWithZoom({
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
+          <LineChart data={visibleData} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
@@ -342,6 +351,15 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
   
   // Check if zoomed
   const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
+  
+  // PERFORMANCE: Filter data to visible viewport + margin
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const domain = zoomDomain || [0, duration];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.1;
+    return data.filter(d => d.time >= minTime - margin && d.time <= maxTime + margin);
+  }, [data, zoomDomain, duration]);
 
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst data</div>;
@@ -380,7 +398,7 @@ const BurstTraceChartWithZoom = memo(function BurstTraceChartWithZoom({
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
+          <LineChart data={visibleData} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis 
               dataKey="time" 
@@ -446,13 +464,33 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
   // Check if zoomed
   const isZoomed = zoomDomain && (zoomDomain[0] > 0 || zoomDomain[1] < duration);
 
+  const color = '#10b981';
+  const nElectrodes = electrodes?.length || 0;
+  const domain = zoomDomain || [0, duration];
+  const stimCount = lightPulses?.length || 0;
+  
+  // PERFORMANCE: Filter and downsample data for visible viewport
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.05; // 5% margin
+    
+    // Filter to visible range with margin
+    let filtered = data.filter(d => d.time >= minTime - margin && d.time <= maxTime + margin);
+    
+    // Downsample if too many points (max 2000 for smooth rendering)
+    const MAX_POINTS = 2000;
+    if (filtered.length > MAX_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_POINTS);
+      filtered = filtered.filter((_, i) => i % step === 0);
+    }
+    
+    return filtered;
+  }, [data, domain]);
+
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
   }
-  const color = '#10b981';
-  const nElectrodes = electrodes.length;
-  const domain = zoomDomain || [0, duration];
-  const stimCount = lightPulses?.length || 0;
   
   return (
     <div>
@@ -461,6 +499,7 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4" style={{ color: '#10b981' }} />
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Raster</span>
+          <span className="text-[9px] font-data" style={{ color: 'var(--text-tertiary)' }}>({visibleData.length.toLocaleString()} pts)</span>
           {stimCount > 0 && (
             <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
           )}
@@ -512,7 +551,7 @@ const SpikeRasterPlotWithZoom = memo(function SpikeRasterPlotWithZoom({
             {lightPulses && lightPulses.map((pulse, i) => (
               <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} ifOverflow="hidden" />
             ))}
-            <Scatter data={data} fill={color} shape={(props) => (
+            <Scatter data={visibleData} fill={color} shape={(props) => (
               <rect x={props.cx - 1} y={props.cy - 3} width={2} height={6} fill={color} />
             )} isAnimationActive={false} />
           </ScatterChart>
@@ -550,14 +589,35 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
   const domain = zoomDomain || [0, duration];
   const stimCount = lightPulses?.length || 0;
   
-  // Transform burst data to scatter points (use midpoint for positioning)
-  const scatterData = useMemo(() => (data || []).map((b, idx) => ({
-    time: (b.start + b.stop) / 2,
-    startTime: b.start,
-    stopTime: b.stop,
-    electrodeIndex: b.electrodeIndex,
-    key: idx,
-  })), [data]);
+  // PERFORMANCE: Transform and filter burst data to visible viewport
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.05;
+    
+    // Filter to visible range and transform
+    let filtered = data
+      .filter(b => {
+        const midTime = (b.start + b.stop) / 2;
+        return midTime >= minTime - margin && midTime <= maxTime + margin;
+      })
+      .map((b, idx) => ({
+        time: (b.start + b.stop) / 2,
+        startTime: b.start,
+        stopTime: b.stop,
+        electrodeIndex: b.electrodeIndex,
+        key: idx,
+      }));
+    
+    // Downsample if too many points
+    const MAX_POINTS = 2000;
+    if (filtered.length > MAX_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_POINTS);
+      filtered = filtered.filter((_, i) => i % step === 0);
+    }
+    
+    return filtered;
+  }, [data, domain]);
   
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
@@ -570,6 +630,7 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4" style={{ color: '#f97316' }} />
           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Raster</span>
+          <span className="text-[9px] font-data" style={{ color: 'var(--text-tertiary)' }}>({visibleData.length.toLocaleString()} pts)</span>
           {stimCount > 0 && (
             <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>{stimCount} stims</Badge>
           )}
@@ -621,7 +682,7 @@ const BurstRasterPlotWithZoom = memo(function BurstRasterPlotWithZoom({
             {lightPulses && lightPulses.map((pulse, i) => (
               <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} ifOverflow="hidden" />
             ))}
-            <Scatter data={scatterData} fill={color} shape={(props) => {
+            <Scatter data={visibleData} fill={color} shape={(props) => {
               const burstWidth = Math.max(2, (props.payload.stopTime - props.payload.startTime) * 0.5);
               return <rect x={props.cx - burstWidth/2} y={props.cy - 3} width={burstWidth} height={6} fill={color} />;
             }} isAnimationActive={false} />
@@ -680,12 +741,30 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
 });
 
 const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, duration, lightPulses, drugWindow, zoomDomain }) {
+  const color = '#10b981';
+  const nElectrodes = electrodes?.length || 0;
+  const domain = zoomDomain || [0, duration];
+  
+  // PERFORMANCE: Filter and downsample data for visible viewport
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.05;
+    
+    let filtered = data.filter(d => d.time >= minTime - margin && d.time <= maxTime + margin);
+    
+    const MAX_POINTS = 2000;
+    if (filtered.length > MAX_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_POINTS);
+      filtered = filtered.filter((_, i) => i % step === 0);
+    }
+    
+    return filtered;
+  }, [data, domain]);
+  
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike raster data</div>;
   }
-  const color = '#10b981';
-  const nElectrodes = electrodes.length;
-  const domain = zoomDomain || [0, duration];
   return (
     <div className="h-36">
       <ResponsiveContainer width="100%" height="100%">
@@ -699,7 +778,7 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
           {lightPulses && lightPulses.map((pulse, i) => (
             <ReferenceArea key={`sr-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
           ))}
-          <Scatter data={data} fill={color} shape={(props) => (
+          <Scatter data={visibleData} fill={color} shape={(props) => (
             <line x1={props.cx} x2={props.cx} y1={props.cy - 2} y2={props.cy + 2} stroke={color} strokeWidth={1} />
           )} isAnimationActive={false} />
         </ScatterChart>
@@ -709,20 +788,37 @@ const SpikeRasterPlot = memo(function SpikeRasterPlot({ data, electrodes, durati
 });
 
 const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, duration, lightPulses, drugWindow, zoomDomain }) {
-  // Burst raster shows horizontal lines from start to stop for each burst
   const color = '#f97316';
   const nElectrodes = electrodes?.length || 0;
   const domain = zoomDomain || [0, duration];
   
-  // Transform burst data to scatter points (use midpoint for positioning)
-  // NOTE: useMemo must be called unconditionally before any early return
-  const scatterData = useMemo(() => (data || []).map((b, idx) => ({
-    time: (b.start + b.stop) / 2, // midpoint for X positioning
-    startTime: b.start,
-    stopTime: b.stop,
-    electrodeIndex: b.electrodeIndex,
-    key: idx,
-  })), [data]);
+  // PERFORMANCE: Filter and transform burst data for visible viewport
+  const visibleData = useMemo(() => {
+    if (!data?.length) return [];
+    const [minTime, maxTime] = domain;
+    const margin = (maxTime - minTime) * 0.05;
+    
+    let filtered = data
+      .filter(b => {
+        const midTime = (b.start + b.stop) / 2;
+        return midTime >= minTime - margin && midTime <= maxTime + margin;
+      })
+      .map((b, idx) => ({
+        time: (b.start + b.stop) / 2,
+        startTime: b.start,
+        stopTime: b.stop,
+        electrodeIndex: b.electrodeIndex,
+        key: idx,
+      }));
+    
+    const MAX_POINTS = 2000;
+    if (filtered.length > MAX_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_POINTS);
+      filtered = filtered.filter((_, i) => i % step === 0);
+    }
+    
+    return filtered;
+  }, [data, domain]);
   
   if (!data?.length || !electrodes?.length) {
     return <div className="h-36 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst raster data</div>;
@@ -742,7 +838,7 @@ const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, durati
             <ReferenceArea key={`br-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.15} />
           ))}
           <Scatter 
-            data={scatterData} 
+            data={visibleData} 
             fill={color} 
             shape={(props) => {
               // Calculate x positions for start and stop times
