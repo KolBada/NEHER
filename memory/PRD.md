@@ -84,12 +84,73 @@ A full-stack electrophysiology analysis tool supporting two workflows:
 - ✅ Auto-compute light metrics on load
 - ✅ Temperature trace in MEA analysis
 - ✅ File names on separate lines
+- ✅ **MEA Comparison Page (March 2026)** - Full implementation mirroring SSE Comparison
 
-### P1 - High Priority (Upcoming)
-- **MEA Comparison feature:** Side-by-side comparison for multiple recordings
-
-### P2 - Medium Priority
-- Refactor `MEAAnalysis.js` (~3130 lines)
+### P2 - Medium Priority (Future)
+- Refactor `MEAAnalysis.js` (~3150 lines)
+- Refactor `FolderComparison.js` (~3200 lines after MEA addition)
+- Refactor `HomeBrowser.js` (~1915 lines)
 
 ### P3 - Low Priority
 - Minor UI improvements
+
+---
+
+## MEA Comparison Page (March 2026 - COMPLETED)
+
+### Overview
+Full MEA comparison system that mirrors the existing SSE comparison page with MEA-specific metrics.
+
+### Features Implemented
+
+**1. SSE/MEA Type Switcher:**
+- Two buttons after Metadata tab: "SSE (n)" and "MEA (n)"
+- Correctly filters recordings by source_type
+- Disabled button if type not present in folder
+- Preserves folder context when switching
+
+**2. Top Summary Cards:**
+- RECORDINGS count
+- HSPO AGE RANGE with n value
+- HCOS AGE RANGE with n value
+- FUSION AGE RANGE with n value
+- Same glassmorphism styling as SSE
+
+**3. Spontaneous Activity Tab (MEA):**
+- **Spike Rate Comparison Table:**
+  - Columns: Recording, Baseline Spike (Hz), Drug Spike (Hz)
+  - Toggle ON/OFF per recording
+  - Folder Average row
+  - Normalized to Average Baseline expandable section
+- **Burst Rate Comparison Table:**
+  - Columns: Recording, Baseline Burst (bpm), Drug Burst (bpm)
+  - Same structure as Spike table
+
+**4. Light Stimulus Tab (MEA):**
+- **Light-Induced Spike Activity:**
+  - Columns: BL Spike (Hz), Avg Spike (Hz), Max Spike (Hz), Spike Δ%, Peak Spike Δ%, TTP (s)
+  - Normalized to Average Baseline section
+  - Per Metrics for each Stimuli section with metric toggles and charts
+- **Light-Induced Burst Activity:**
+  - Columns: BL Burst (bpm), Avg Burst (bpm), Max Burst (bpm), Burst Δ%, Peak Burst Δ%, TTP (s)
+  - Same structure as Spike section
+
+**5. Metadata Tab (MEA):**
+- Columns: Recording, Date, hSpO Info, hCO Info, Fusion, Drug Info, Light Stim Info, Notes
+- Well ID displayed under recording name
+- Drug Info shows name, concentration, perf time
+- Light Stim Info shows stim count, duration, ISI structure
+
+**6. Info Icons/Tooltips:**
+- Every metric header has circled info icon
+- Tooltips explain metric meaning
+
+### API Changes
+- `GET /api/folders/{folder_id}/comparison` now accepts `?source_type=MEA|SSE`
+- Returns type-specific metrics and averages
+- Returns `type_counts: {sse: n, mea: n}` for switcher UI
+
+### Files Modified
+- `/app/backend/server.py`: Added `extract_mea_comparison_metrics()`, modified endpoint
+- `/app/frontend/src/components/FolderComparison.js`: Added MEA-specific UI components (~1000 lines added)
+- `/app/frontend/src/api.js`: Updated `getFolderComparison` to accept sourceType parameter

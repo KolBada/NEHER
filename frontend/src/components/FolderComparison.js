@@ -75,6 +75,22 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [hraYAxisZoom, setHraYAxisZoom] = useState({});  // { metricKey: { min, max } }
   const [hrvYAxisZoom, setHrvYAxisZoom] = useState({});  // { metricKey: { min, max } }
   
+  // Source type switcher state (SSE vs MEA)
+  const [sourceType, setSourceType] = useState(null); // null = auto-detect, 'SSE' or 'MEA'
+  const [typeCounts, setTypeCounts] = useState({ sse: 0, mea: 0 });
+  
+  // MEA-specific expanded states
+  const [meaSpikeNormExpanded, setMeaSpikeNormExpanded] = useState(false);
+  const [meaBurstNormExpanded, setMeaBurstNormExpanded] = useState(false);
+  const [meaLightSpikeNormExpanded, setMeaLightSpikeNormExpanded] = useState(false);
+  const [meaLightBurstNormExpanded, setMeaLightBurstNormExpanded] = useState(false);
+  const [meaSpikePerMetricExpanded, setMeaSpikePerMetricExpanded] = useState(false);
+  const [meaBurstPerMetricExpanded, setMeaBurstPerMetricExpanded] = useState(false);
+  const [selectedMeaSpikeMetrics, setSelectedMeaSpikeMetrics] = useState({});
+  const [selectedMeaBurstMetrics, setSelectedMeaBurstMetrics] = useState({});
+  const [meaSpikeYAxisZoom, setMeaSpikeYAxisZoom] = useState({});
+  const [meaBurstYAxisZoom, setMeaBurstYAxisZoom] = useState({});
+  
   // Toggle a recording's inclusion/exclusion (global)
   const toggleRecording = useCallback((recordingId) => {
     setExcludedRecordings(prev => ({
@@ -84,18 +100,31 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   }, []);
 
   useEffect(() => {
-    loadComparisonData();
-  }, [folder.id]);
+    loadComparisonData(sourceType);
+  }, [folder.id, sourceType]);
 
-  const loadComparisonData = async () => {
+  const loadComparisonData = async (requestedType) => {
     setLoading(true);
     try {
-      const { data } = await api.getFolderComparison(folder.id);
+      const { data } = await api.getFolderComparison(folder.id, requestedType);
       setComparisonData(data);
+      setTypeCounts(data.type_counts || { sse: 0, mea: 0 });
+      // Auto-set sourceType if not set
+      if (!requestedType && !sourceType) {
+        setSourceType(data.source_type);
+      }
     } catch (err) {
       toast.error('Failed to load comparison data');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Handle source type switch
+  const handleSourceTypeSwitch = (newType) => {
+    if (newType !== sourceType) {
+      setSourceType(newType);
+      setExcludedRecordings({}); // Reset exclusions when switching types
     }
   };
 
@@ -754,6 +783,404 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     return [...normalizedLightHRA].sort((a, b) => a.name.localeCompare(b.name));
   }, [normalizedLightHRA]);
 
+  // =========================================================================
+  // MEA-SPECIFIC COMPUTED VALUES
+  // =========================================================================
+  
+  // MEA Spike metric definitions for Per Metrics tables
+  const meaSpikeMetricDefs = useMemo(() => [
+    { key: 'avg', label: 'Avg Spike', decimals: 3, unit: 'Hz', showBaseline: true, yDomain: null, tooltip: 'Average spike rate during light stimulation' },
+    { key: 'max', label: 'Max Spike', decimals: 3, unit: 'Hz', showBaseline: true, yDomain: null, tooltip: 'Maximum spike rate during light stimulation' },
+    { key: 'change_pct', label: 'Spike Δ%', decimals: 1, unit: '%', yDomain: [-100, 200], showBaselinePct: true, tooltip: 'Percent change: 100 × (Avg - Baseline) / Baseline' },
+    { key: 'peak_change_pct', label: 'Peak Spike Δ%', decimals: 1, unit: '%', yDomain: [-100, 200], showBaselinePct: true, tooltip: 'Percent change at peak: 100 × (Max - Baseline) / Baseline' },
+    { key: 'time_to_peak', label: 'Time to Peak', decimals: 1, unit: 's', yDomain: [0, 30], tooltip: 'Time from stim start to max spike rate' },
+  ], []);
+  
+  // MEA Burst metric definitions for Per Metrics tables
+  const meaBurstMetricDefs = useMemo(() => [
+    { key: 'avg', label: 'Avg Burst', decimals: 3, unit: 'bpm', showBaseline: true, yDomain: null, tooltip: 'Average burst rate during light stimulation' },
+    { key: 'max', label: 'Max Burst', decimals: 3, unit: 'bpm', showBaseline: true, yDomain: null, tooltip: 'Maximum burst rate during light stimulation' },
+    { key: 'change_pct', label: 'Burst Δ%', decimals: 1, unit: '%', yDomain: [-100, 200], showBaselinePct: true, tooltip: 'Percent change: 100 × (Avg - Baseline) / Baseline' },
+    { key: 'peak_change_pct', label: 'Peak Burst Δ%', decimals: 1, unit: '%', yDomain: [-100, 200], showBaselinePct: true, tooltip: 'Percent change at peak: 100 × (Max - Baseline) / Baseline' },
+    { key: 'time_to_peak', label: 'Time to Peak', decimals: 1, unit: 's', yDomain: [0, 30], tooltip: 'Time from stim start to max burst rate' },
+  ], []);
+
+  // MEA cohort baselines (for normalization)
+  const meaCohortBaselines = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return null;
+    const recs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      avg_baseline_spike_hz: mean(recs.map(r => r.baseline_spike_hz)),
+      avg_baseline_burst_bpm: mean(recs.map(r => r.baseline_burst_bpm)),
+      avg_light_baseline_spike_hz: mean(recs.map(r => r.light_baseline_spike_hz)),
+      avg_light_baseline_burst_bpm: mean(recs.map(r => r.light_baseline_burst_bpm)),
+    };
+  }, [comparisonData, excludedRecordings, sourceType]);
+
+  // MEA normalized spontaneous values (spike)
+  const meaNormalizedSpontSpikeData = useMemo(() => {
+    if (!comparisonData?.recordings || !meaCohortBaselines || sourceType !== 'MEA') return [];
+    const recs = comparisonData.recordings;
+    const cb = meaCohortBaselines;
+    
+    const normalize = (val, baseAvg) => {
+      if (val === null || val === undefined || baseAvg === null || baseAvg === 0) return null;
+      return 100 * val / baseAvg;
+    };
+    
+    return recs.map(rec => ({
+      id: rec.id,
+      name: rec.name,
+      norm_baseline: normalize(rec.baseline_spike_hz, cb.avg_baseline_spike_hz),
+      norm_drug: normalize(rec.drug_spike_hz, cb.avg_baseline_spike_hz),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comparisonData, meaCohortBaselines, sourceType]);
+
+  // MEA normalized spontaneous values (burst)
+  const meaNormalizedSpontBurstData = useMemo(() => {
+    if (!comparisonData?.recordings || !meaCohortBaselines || sourceType !== 'MEA') return [];
+    const recs = comparisonData.recordings;
+    const cb = meaCohortBaselines;
+    
+    const normalize = (val, baseAvg) => {
+      if (val === null || val === undefined || baseAvg === null || baseAvg === 0) return null;
+      return 100 * val / baseAvg;
+    };
+    
+    return recs.map(rec => ({
+      id: rec.id,
+      name: rec.name,
+      norm_baseline: normalize(rec.baseline_burst_bpm, cb.avg_baseline_burst_bpm),
+      norm_drug: normalize(rec.drug_burst_bpm, cb.avg_baseline_burst_bpm),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comparisonData, meaCohortBaselines, sourceType]);
+
+  // MEA normalized light values (spike)
+  const meaNormalizedLightSpikeData = useMemo(() => {
+    if (!comparisonData?.recordings || !meaCohortBaselines || sourceType !== 'MEA') return [];
+    const recs = comparisonData.recordings;
+    const cb = meaCohortBaselines;
+    
+    const normalize = (val, baseAvg) => {
+      if (val === null || val === undefined || baseAvg === null || baseAvg === 0) return null;
+      return 100 * val / baseAvg;
+    };
+    
+    return recs.map(rec => ({
+      id: rec.id,
+      name: rec.name,
+      norm_baseline: normalize(rec.light_baseline_spike_hz, cb.avg_light_baseline_spike_hz),
+      norm_avg: normalize(rec.light_avg_spike_hz, cb.avg_light_baseline_spike_hz),
+      norm_max: normalize(rec.light_max_spike_hz, cb.avg_light_baseline_spike_hz),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comparisonData, meaCohortBaselines, sourceType]);
+
+  // MEA normalized light values (burst)
+  const meaNormalizedLightBurstData = useMemo(() => {
+    if (!comparisonData?.recordings || !meaCohortBaselines || sourceType !== 'MEA') return [];
+    const recs = comparisonData.recordings;
+    const cb = meaCohortBaselines;
+    
+    const normalize = (val, baseAvg) => {
+      if (val === null || val === undefined || baseAvg === null || baseAvg === 0) return null;
+      return 100 * val / baseAvg;
+    };
+    
+    return recs.map(rec => ({
+      id: rec.id,
+      name: rec.name,
+      norm_baseline: normalize(rec.light_baseline_burst_bpm, cb.avg_light_baseline_burst_bpm),
+      norm_avg: normalize(rec.light_avg_burst_bpm, cb.avg_light_baseline_burst_bpm),
+      norm_max: normalize(rec.light_max_burst_bpm, cb.avg_light_baseline_burst_bpm),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [comparisonData, meaCohortBaselines, sourceType]);
+
+  // MEA spontaneous spike averages (for included recordings)
+  const meaSpontSpikeAverages = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      baseline_spike_hz: mean(includedRecs.map(r => r.baseline_spike_hz)),
+      drug_spike_hz: mean(includedRecs.map(r => r.drug_spike_hz)),
+    };
+  }, [comparisonData, excludedRecordings, sourceType]);
+
+  // MEA spontaneous burst averages (for included recordings)
+  const meaSpontBurstAverages = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      baseline_burst_bpm: mean(includedRecs.map(r => r.baseline_burst_bpm)),
+      drug_burst_bpm: mean(includedRecs.map(r => r.drug_burst_bpm)),
+    };
+  }, [comparisonData, excludedRecordings, sourceType]);
+
+  // MEA light spike averages (for included recordings)
+  const meaLightSpikeAverages = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      light_baseline_spike_hz: mean(includedRecs.map(r => r.light_baseline_spike_hz)),
+      light_avg_spike_hz: mean(includedRecs.map(r => r.light_avg_spike_hz)),
+      light_max_spike_hz: mean(includedRecs.map(r => r.light_max_spike_hz)),
+      light_spike_change_pct: mean(includedRecs.map(r => r.light_spike_change_pct)),
+      light_peak_spike_change_pct: mean(includedRecs.map(r => r.light_peak_spike_change_pct)),
+      light_spike_time_to_peak: mean(includedRecs.map(r => r.light_spike_time_to_peak)),
+    };
+  }, [comparisonData, excludedRecordings, sourceType]);
+
+  // MEA light burst averages (for included recordings)
+  const meaLightBurstAverages = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return null;
+    const includedRecs = comparisonData.recordings.filter(r => !excludedRecordings[r.id]);
+    if (includedRecs.length === 0) return null;
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    return {
+      light_baseline_burst_bpm: mean(includedRecs.map(r => r.light_baseline_burst_bpm)),
+      light_avg_burst_bpm: mean(includedRecs.map(r => r.light_avg_burst_bpm)),
+      light_max_burst_bpm: mean(includedRecs.map(r => r.light_max_burst_bpm)),
+      light_burst_change_pct: mean(includedRecs.map(r => r.light_burst_change_pct)),
+      light_peak_burst_change_pct: mean(includedRecs.map(r => r.light_peak_burst_change_pct)),
+      light_burst_time_to_peak: mean(includedRecs.map(r => r.light_burst_time_to_peak)),
+    };
+  }, [comparisonData, excludedRecordings, sourceType]);
+
+  // MEA per-metric spike data (for Per Metrics charts)
+  const meaPerMetricSpikeData = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    const maxStims = 5;
+    
+    return meaSpikeMetricDefs.map(metric => {
+      const recordingData = allRecs.map(rec => {
+        const perStim = rec.per_stim_spike || [];
+        const stimValues = [];
+        for (let i = 0; i < maxStims; i++) {
+          const stim = perStim[i];
+          stimValues.push(stim ? stim[metric.key] : null);
+        }
+        const rowAvg = mean(stimValues);
+        return {
+          id: rec.id,
+          name: rec.name,
+          isExcluded: excludedRecordings[rec.id] || false,
+          stimValues,
+          rowAvg,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      const includedRecs = recordingData.filter(r => !r.isExcluded);
+      const colAvgs = [];
+      for (let i = 0; i < maxStims; i++) {
+        colAvgs.push(mean(includedRecs.map(r => r.stimValues[i])));
+      }
+      const grandAvg = mean(includedRecs.map(r => r.rowAvg));
+      const stimAvg = mean(colAvgs);
+      
+      // Build chart data
+      const chartData = [];
+      for (let i = 0; i < maxStims; i++) {
+        const dataPoint = { 
+          stim: `Stim ${i + 1}`, 
+          perStimAvg: colAvgs[i],
+          stimAvg: stimAvg,
+        };
+        includedRecs.forEach(rec => {
+          dataPoint[rec.name] = rec.stimValues[i];
+        });
+        chartData.push(dataPoint);
+      }
+      chartData.push({
+        stim: 'Avg',
+        perStimAvg: grandAvg,
+        stimAvg: stimAvg,
+        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
+      });
+      
+      return {
+        ...metric,
+        recordings: recordingData,
+        colAvgs,
+        grandAvg,
+        stimAvg,
+        includedCount: includedRecs.length,
+        chartData,
+      };
+    });
+  }, [comparisonData, excludedRecordings, sourceType, meaSpikeMetricDefs]);
+
+  // MEA per-metric burst data (for Per Metrics charts)
+  const meaPerMetricBurstData = useMemo(() => {
+    if (!comparisonData?.recordings || sourceType !== 'MEA') return [];
+    const allRecs = comparisonData.recordings;
+    if (allRecs.length === 0) return [];
+    
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined && !isNaN(v));
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    
+    const maxStims = 5;
+    
+    return meaBurstMetricDefs.map(metric => {
+      const recordingData = allRecs.map(rec => {
+        const perStim = rec.per_stim_burst || [];
+        const stimValues = [];
+        for (let i = 0; i < maxStims; i++) {
+          const stim = perStim[i];
+          stimValues.push(stim ? stim[metric.key] : null);
+        }
+        const rowAvg = mean(stimValues);
+        return {
+          id: rec.id,
+          name: rec.name,
+          isExcluded: excludedRecordings[rec.id] || false,
+          stimValues,
+          rowAvg,
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
+      
+      const includedRecs = recordingData.filter(r => !r.isExcluded);
+      const colAvgs = [];
+      for (let i = 0; i < maxStims; i++) {
+        colAvgs.push(mean(includedRecs.map(r => r.stimValues[i])));
+      }
+      const grandAvg = mean(includedRecs.map(r => r.rowAvg));
+      const stimAvg = mean(colAvgs);
+      
+      // Build chart data
+      const chartData = [];
+      for (let i = 0; i < maxStims; i++) {
+        const dataPoint = { 
+          stim: `Stim ${i + 1}`, 
+          perStimAvg: colAvgs[i],
+          stimAvg: stimAvg,
+        };
+        includedRecs.forEach(rec => {
+          dataPoint[rec.name] = rec.stimValues[i];
+        });
+        chartData.push(dataPoint);
+      }
+      chartData.push({
+        stim: 'Avg',
+        perStimAvg: grandAvg,
+        stimAvg: stimAvg,
+        ...Object.fromEntries(includedRecs.map(rec => [rec.name, rec.rowAvg]))
+      });
+      
+      return {
+        ...metric,
+        recordings: recordingData,
+        colAvgs,
+        grandAvg,
+        stimAvg,
+        includedCount: includedRecs.length,
+        chartData,
+      };
+    });
+  }, [comparisonData, excludedRecordings, sourceType, meaBurstMetricDefs]);
+
+  // MEA normalized spontaneous spike averages
+  const meaNormSpontSpikeAverages = useMemo(() => {
+    if (!meaNormalizedSpontSpikeData.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    const includedData = meaNormalizedSpontSpikeData.filter(r => !excludedRecordings[r.id]);
+    return {
+      norm_baseline: mean(includedData.map(r => r.norm_baseline)),
+      norm_drug: mean(includedData.map(r => r.norm_drug)),
+      includedCount: includedData.length,
+    };
+  }, [meaNormalizedSpontSpikeData, excludedRecordings]);
+
+  // MEA normalized spontaneous burst averages
+  const meaNormSpontBurstAverages = useMemo(() => {
+    if (!meaNormalizedSpontBurstData.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    const includedData = meaNormalizedSpontBurstData.filter(r => !excludedRecordings[r.id]);
+    return {
+      norm_baseline: mean(includedData.map(r => r.norm_baseline)),
+      norm_drug: mean(includedData.map(r => r.norm_drug)),
+      includedCount: includedData.length,
+    };
+  }, [meaNormalizedSpontBurstData, excludedRecordings]);
+
+  // MEA normalized light spike averages
+  const meaNormLightSpikeAverages = useMemo(() => {
+    if (!meaNormalizedLightSpikeData.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    const includedData = meaNormalizedLightSpikeData.filter(r => !excludedRecordings[r.id]);
+    return {
+      norm_baseline: mean(includedData.map(r => r.norm_baseline)),
+      norm_avg: mean(includedData.map(r => r.norm_avg)),
+      norm_max: mean(includedData.map(r => r.norm_max)),
+      includedCount: includedData.length,
+    };
+  }, [meaNormalizedLightSpikeData, excludedRecordings]);
+
+  // MEA normalized light burst averages
+  const meaNormLightBurstAverages = useMemo(() => {
+    if (!meaNormalizedLightBurstData.length) return null;
+    const mean = (arr) => {
+      const valid = arr.filter(v => v !== null && v !== undefined);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+    };
+    const includedData = meaNormalizedLightBurstData.filter(r => !excludedRecordings[r.id]);
+    return {
+      norm_baseline: mean(includedData.map(r => r.norm_baseline)),
+      norm_avg: mean(includedData.map(r => r.norm_avg)),
+      norm_max: mean(includedData.map(r => r.norm_max)),
+      includedCount: includedData.length,
+    };
+  }, [meaNormalizedLightBurstData, excludedRecordings]);
+
   if (loading) {
     return (
       <div className="neher-home-bg min-h-screen">
@@ -1017,42 +1444,97 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
 
       {/* Tabs */}
       <Tabs defaultValue="spontaneous" className="w-full">
-        <TabsList 
-          className="h-10 mb-6 rounded-xl p-1 gap-2"
-          style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.10)',
-            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)',
-          }}
-        >
-          <TabsTrigger 
-            value="spontaneous" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
-            style={{ fontFamily: 'var(--font-body)' }}
-            data-state-style="true"
+        <div className="flex items-center justify-between mb-6">
+          <TabsList 
+            className="h-10 rounded-xl p-1 gap-2"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)',
+            }}
           >
-            <Activity className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} />
-            Spontaneous Activity
-          </TabsTrigger>
-          <TabsTrigger 
-            value="light-stimulus" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
-            style={{ fontFamily: 'var(--font-body)' }}
+            <TabsTrigger 
+              value="spontaneous" 
+              className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
+              style={{ fontFamily: 'var(--font-body)' }}
+              data-state-style="true"
+            >
+              <Activity className="w-3.5 h-3.5" style={{ color: '#F4CEA2' }} />
+              Spontaneous Activity
+            </TabsTrigger>
+            <TabsTrigger 
+              value="light-stimulus" 
+              className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
+              Light Stimulus
+            </TabsTrigger>
+            <TabsTrigger 
+              value="metadata" 
+              className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Metadata
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* SSE/MEA Type Switcher */}
+          <div 
+            className="flex items-center gap-1 p-1 rounded-xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+            }}
           >
-            <Zap className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
-            Light Stimulus
-          </TabsTrigger>
-          <TabsTrigger 
-            value="metadata" 
-            className="text-xs rounded-lg gap-1.5 px-4 transition-all data-[state=inactive]:text-zinc-400 data-[state=inactive]:bg-transparent data-[state=active]:text-white"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            Metadata
-          </TabsTrigger>
-        </TabsList>
+            <button
+              onClick={() => handleSourceTypeSwitch('SSE')}
+              disabled={typeCounts.sse === 0}
+              className={`px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                sourceType === 'SSE' 
+                  ? 'text-white' 
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              style={{
+                background: sourceType === 'SSE' ? 'rgba(244, 206, 162, 0.2)' : 'transparent',
+                border: sourceType === 'SSE' ? '1px solid rgba(244, 206, 162, 0.4)' : '1px solid transparent',
+                opacity: typeCounts.sse === 0 ? 0.3 : 1,
+                cursor: typeCounts.sse === 0 ? 'not-allowed' : 'pointer',
+              }}
+              data-testid="switch-to-sse"
+            >
+              SSE ({typeCounts.sse})
+            </button>
+            <button
+              onClick={() => handleSourceTypeSwitch('MEA')}
+              disabled={typeCounts.mea === 0}
+              className={`px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                sourceType === 'MEA' 
+                  ? 'text-white' 
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              style={{
+                background: sourceType === 'MEA' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                border: sourceType === 'MEA' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+                opacity: typeCounts.mea === 0 ? 0.3 : 1,
+                cursor: typeCounts.mea === 0 ? 'not-allowed' : 'pointer',
+              }}
+              data-testid="switch-to-mea"
+            >
+              MEA ({typeCounts.mea})
+            </button>
+          </div>
+        </div>
 
+        {/* ============================================================
+            SSE COMPARISON CONTENT
+        ============================================================ */}
+        {sourceType === 'SSE' && (
+          <>
         {/* Spontaneous Activity Tab */}
         <TabsContent value="spontaneous">
           {/* Create a card for each unique drug (or one default if no drugs) */}
@@ -2206,6 +2688,864 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
             </div>
           </div>
         </TabsContent>
+          </>
+        )}
+
+        {/* ============================================================
+            MEA COMPARISON CONTENT
+        ============================================================ */}
+        {sourceType === 'MEA' && (
+          <>
+        {/* MEA Spontaneous Activity Tab */}
+        <TabsContent value="spontaneous">
+          <div className="space-y-4">
+            {/* Spike Table */}
+            <div 
+              className="rounded-xl"
+              style={{
+                background: 'rgba(255, 255, 255, 0.025)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <div className="p-4 pb-2">
+                <span className="text-sm" style={{ color: '#10b981', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                  <InfoTip text="Spike rate metrics across recordings">Spike Rate Comparison</InfoTip>
+                </span>
+              </div>
+              <div className="p-4 pt-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
+                          <InfoTip text="Mean spike rate during baseline period (Hz)">Baseline Spike (Hz)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>
+                          <InfoTip text="Mean spike rate during drug perfusion period (Hz)">Drug Spike (Hz)</InfoTip>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-mea-spike-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_spike_hz, 3)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.drug_spike_hz, 3)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Average Row */}
+                      <tr className="bg-emerald-950/60 font-bold border-t-2 border-emerald-500">
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-emerald-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaSpontSpikeAverages?.baseline_spike_hz, 3)}</td>
+                        <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaSpontSpikeAverages?.drug_spike_hz, 3)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Normalized Spike Section */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setMeaSpikeNormExpanded(!meaSpikeNormExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-mea-spike-norm"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaSpikeNormExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <InfoTip text="Values normalized to the average baseline across all included recordings">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaSpikeNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline Spike (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>Drug Spike (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meaNormalizedSpontSpikeData.map((rec, idx) => {
+                            const isExcluded = excludedRecordings[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-mea-spike-norm-${rec.id}`}
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug, 1)}</td>
+                              </tr>
+                            );
+                          })}
+                          {/* Folder Average Row */}
+                          <tr className="bg-emerald-950/60 font-bold border-t-2 border-emerald-500">
+                            <td className="py-3 px-1"></td>
+                            <td className="py-3 px-2 text-emerald-300 text-xs">Folder Average (n={meaNormSpontSpikeAverages?.includedCount || 0})</td>
+                            <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaNormSpontSpikeAverages?.norm_baseline, 1)}</td>
+                            <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaNormSpontSpikeAverages?.norm_drug, 1)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Burst Table */}
+            <div 
+              className="rounded-xl"
+              style={{
+                background: 'rgba(255, 255, 255, 0.025)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <div className="p-4 pb-2">
+                <span className="text-sm" style={{ color: '#f97316', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                  <InfoTip text="Burst rate metrics across recordings">Burst Rate Comparison</InfoTip>
+                </span>
+              </div>
+              <div className="p-4 pt-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
+                          <InfoTip text="Mean burst rate during baseline period (bpm)">Baseline Burst (bpm)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>
+                          <InfoTip text="Mean burst rate during drug perfusion period (bpm)">Drug Burst (bpm)</InfoTip>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-mea-burst-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.baseline_burst_bpm, 3)}</td>
+                            <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.drug_burst_bpm, 3)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Average Row */}
+                      <tr className="bg-orange-950/60 font-bold border-t-2 border-orange-500">
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-orange-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaSpontBurstAverages?.baseline_burst_bpm, 3)}</td>
+                        <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaSpontBurstAverages?.drug_burst_bpm, 3)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Normalized Burst Section */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setMeaBurstNormExpanded(!meaBurstNormExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-mea-burst-norm"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaBurstNormExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <InfoTip text="Values normalized to the average baseline across all included recordings">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaBurstNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline Burst (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>Drug Burst (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meaNormalizedSpontBurstData.map((rec, idx) => {
+                            const isExcluded = excludedRecordings[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-mea-burst-norm-${rec.id}`}
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-cyan-950/10">{formatValue(rec.norm_baseline, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-purple-950/10">{formatValue(rec.norm_drug, 1)}</td>
+                              </tr>
+                            );
+                          })}
+                          {/* Folder Average Row */}
+                          <tr className="bg-orange-950/60 font-bold border-t-2 border-orange-500">
+                            <td className="py-3 px-1"></td>
+                            <td className="py-3 px-2 text-orange-300 text-xs">Folder Average (n={meaNormSpontBurstAverages?.includedCount || 0})</td>
+                            <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaNormSpontBurstAverages?.norm_baseline, 1)}</td>
+                            <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaNormSpontBurstAverages?.norm_drug, 1)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* MEA Light Stimulus Tab */}
+        <TabsContent value="light-stimulus">
+          <div className="space-y-4">
+            {/* Light Spike Table */}
+            <div className="glass-surface-subtle rounded-xl">
+              <div className="p-4 pb-2">
+                <span className="text-sm" style={{ color: '#10b981', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                  <InfoTip text="Spike rate metrics during light stimulation">Light-Induced Spike Activity</InfoTip>
+                </span>
+              </div>
+              <div className="p-4 pt-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
+                          <InfoTip text="Mean spike rate from -2 to -1 min before first stim">BL Spike (Hz)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <InfoTip text="Average spike rate during light (averaged across stims)">Avg Spike (Hz)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <InfoTip text="Max spike rate during light (averaged across stims)">Max Spike (Hz)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <InfoTip text="Percent change: 100 × (Avg - Baseline) / Baseline">Spike Δ%</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <InfoTip text="Percent change at peak: 100 × (Max - Baseline) / Baseline">Peak Spike Δ%</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium rounded-tr-lg" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <InfoTip text="Time from stim start to max spike rate">TTP (s)</InfoTip>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-mea-light-spike-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.light_baseline_spike_hz, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_spike_hz, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_max_spike_hz, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_spike_change_pct, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_spike_change_pct, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_spike_time_to_peak, 1)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Average Row */}
+                      <tr className="bg-emerald-950/60 font-bold border-t-2 border-emerald-500">
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-emerald-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(meaLightSpikeAverages?.light_baseline_spike_hz, 3)}</td>
+                        <td className="py-3 px-1 text-center text-emerald-100 text-xs">{formatValue(meaLightSpikeAverages?.light_avg_spike_hz, 3)}</td>
+                        <td className="py-3 px-1 text-center text-emerald-100 text-xs">{formatValue(meaLightSpikeAverages?.light_max_spike_hz, 3)}</td>
+                        <td className="py-3 px-1 text-center text-emerald-100 text-xs">{formatValue(meaLightSpikeAverages?.light_spike_change_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-emerald-100 text-xs">{formatValue(meaLightSpikeAverages?.light_peak_spike_change_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-emerald-100 text-xs">{formatValue(meaLightSpikeAverages?.light_spike_time_to_peak, 1)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Normalized Light Spike Section */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setMeaLightSpikeNormExpanded(!meaLightSpikeNormExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-mea-light-spike-norm"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaLightSpikeNormExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <InfoTip text="Values normalized to the average light baseline across all included recordings">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaLightSpikeNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>Avg Spike (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>Max Spike (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meaNormalizedLightSpikeData.map((rec, idx) => {
+                            const isExcluded = excludedRecordings[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-mea-light-spike-norm-${rec.id}`}
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.norm_baseline, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-emerald-950/10">{formatValue(rec.norm_avg, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-emerald-950/10">{formatValue(rec.norm_max, 1)}</td>
+                              </tr>
+                            );
+                          })}
+                          {/* Folder Average Row */}
+                          <tr className="bg-emerald-950/60 font-bold border-t-2 border-emerald-500">
+                            <td className="py-3 px-1"></td>
+                            <td className="py-3 px-2 text-emerald-300 text-xs">Folder Average (n={meaNormLightSpikeAverages?.includedCount || 0})</td>
+                            <td className="py-3 px-2 text-center text-cyan-200 text-xs">{formatValue(meaNormLightSpikeAverages?.norm_baseline, 1)}</td>
+                            <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaNormLightSpikeAverages?.norm_avg, 1)}</td>
+                            <td className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(meaNormLightSpikeAverages?.norm_max, 1)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Per Metrics for Spike */}
+                <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <button
+                    onClick={() => setMeaSpikePerMetricExpanded(!meaSpikePerMetricExpanded)}
+                    className="flex items-center gap-2 text-sm transition-colors py-1"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    data-testid="expand-mea-spike-per-metric"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaSpikePerMetricExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Metrics for each Stimuli</span>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaSpikePerMetricExpanded ? 'max-h-[8000px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    {/* Metric Selector */}
+                    <div className="mb-4 p-4 rounded-xl" style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Select metrics to display:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {meaSpikeMetricDefs.map((metric) => (
+                          <button
+                            key={metric.key}
+                            onClick={() => setSelectedMeaSpikeMetrics(prev => ({ ...prev, [metric.key]: !prev[metric.key] }))}
+                            className="px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1"
+                            style={{
+                              background: selectedMeaSpikeMetrics[metric.key] ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                              border: selectedMeaSpikeMetrics[metric.key] ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
+                              color: selectedMeaSpikeMetrics[metric.key] ? '#10b981' : 'var(--text-secondary)',
+                            }}
+                            data-testid={`select-mea-spike-metric-${metric.key}`}
+                          >
+                            <InfoTip text={metric.tooltip}><span>{metric.label}</span></InfoTip>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {Object.values(selectedMeaSpikeMetrics).some(v => v) ? (
+                      <div className="space-y-6">
+                        {meaPerMetricSpikeData.filter(m => selectedMeaSpikeMetrics[m.key]).map((metricData) => (
+                          <div key={metricData.key} className="rounded-xl p-4" style={{ background: 'rgba(255, 255, 255, 0.025)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                            <h4 className="text-sm font-semibold text-emerald-400 mb-3">{metricData.label}</h4>
+                            
+                            {/* Chart */}
+                            <div className="h-48 mb-4">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                  <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
+                                  <YAxis stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} domain={meaSpikeYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']} />
+                                  <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  <Line type="monotone" dataKey="perStimAvg" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} name="Per Stim Average" />
+                                  <Line type="monotone" dataKey="stimAvg" stroke="#6ee7b7" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            {/* Table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8" style={{ background: 'rgba(255, 255, 255, 0.03)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    {[1,2,3,4,5].map(i => (
+                                      <th key={i} className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>Stim {i}</th>
+                                    ))}
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(234, 179, 8, 0.08)', color: '#facc15' }}>Average</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {metricData.recordings.map((rec) => (
+                                    <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
+                                      <td className="py-2 px-1">
+                                        <RecordingToggle isExcluded={rec.isExcluded} onToggle={() => toggleRecording(rec.id)} testId={`toggle-mea-spike-metric-${metricData.key}-${rec.id}`} />
+                                      </td>
+                                      <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                      {rec.stimValues.map((val, i) => (
+                                        <td key={i} className="py-2 px-2 text-center text-zinc-300 bg-emerald-950/10">{formatValue(val, metricData.decimals)}</td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center text-yellow-300 bg-yellow-950/20 font-medium">{formatValue(rec.rowAvg, metricData.decimals)}</td>
+                                    </tr>
+                                  ))}
+                                  <tr className="bg-emerald-950/60 font-bold border-t-2 border-emerald-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-2 text-emerald-300 text-xs">Folder Average (n={metricData.includedCount})</td>
+                                    {metricData.colAvgs.map((val, i) => (
+                                      <td key={i} className="py-3 px-2 text-center text-emerald-100 text-xs">{formatValue(val, metricData.decimals)}</td>
+                                    ))}
+                                    <td className="py-3 px-2 text-center text-yellow-200 text-xs font-bold">{formatValue(metricData.grandAvg, metricData.decimals)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm italic">Select one or more metrics above to display their per-stimulation data</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Light Burst Table */}
+            <div className="glass-surface-subtle rounded-xl">
+              <div className="p-4 pb-2">
+                <span className="text-sm" style={{ color: '#f97316', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                  <InfoTip text="Burst rate metrics during light stimulation">Light-Induced Burst Activity</InfoTip>
+                </span>
+              </div>
+              <div className="p-4 pt-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                        <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>
+                          <InfoTip text="Mean burst rate from -2 to -1 min before first stim">BL Burst (bpm)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>
+                          <InfoTip text="Average burst rate during light (averaged across stims)">Avg Burst (bpm)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>
+                          <InfoTip text="Max burst rate during light (averaged across stims)">Max Burst (bpm)</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>
+                          <InfoTip text="Percent change: 100 × (Avg - Baseline) / Baseline">Burst Δ%</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>
+                          <InfoTip text="Percent change at peak: 100 × (Max - Baseline) / Baseline">Peak Burst Δ%</InfoTip>
+                        </th>
+                        <th className="text-center py-2.5 px-1 font-medium rounded-tr-lg" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>
+                          <InfoTip text="Time from stim start to max burst rate">TTP (s)</InfoTip>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRecordings?.map((rec, idx) => {
+                        const isExcluded = excludedRecordings[rec.id];
+                        return (
+                          <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                            <td className="py-2 px-1">
+                              <RecordingToggle 
+                                isExcluded={isExcluded} 
+                                onToggle={() => toggleRecording(rec.id)}
+                                testId={`toggle-mea-light-burst-${rec.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                            <td className="py-2 px-1 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.light_baseline_burst_bpm, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_avg_burst_bpm, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_max_burst_bpm, 3)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_burst_change_pct, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_peak_burst_change_pct, 1)}</td>
+                            <td className="py-2 px-1 text-center text-zinc-300">{formatValue(rec.light_burst_time_to_peak, 1)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Average Row */}
+                      <tr className="bg-orange-950/60 font-bold border-t-2 border-orange-500">
+                        <td className="py-3 px-1"></td>
+                        <td className="py-3 px-2 text-orange-300 text-xs">Folder Average (n={includedRecordingsCount})</td>
+                        <td className="py-3 px-1 text-center text-cyan-200 text-xs">{formatValue(meaLightBurstAverages?.light_baseline_burst_bpm, 3)}</td>
+                        <td className="py-3 px-1 text-center text-orange-100 text-xs">{formatValue(meaLightBurstAverages?.light_avg_burst_bpm, 3)}</td>
+                        <td className="py-3 px-1 text-center text-orange-100 text-xs">{formatValue(meaLightBurstAverages?.light_max_burst_bpm, 3)}</td>
+                        <td className="py-3 px-1 text-center text-orange-100 text-xs">{formatValue(meaLightBurstAverages?.light_burst_change_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-orange-100 text-xs">{formatValue(meaLightBurstAverages?.light_peak_burst_change_pct, 1)}</td>
+                        <td className="py-3 px-1 text-center text-orange-100 text-xs">{formatValue(meaLightBurstAverages?.light_burst_time_to_peak, 1)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Normalized Light Burst Section */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/50">
+                  <button
+                    onClick={() => setMeaLightBurstNormExpanded(!meaLightBurstNormExpanded)}
+                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors py-1"
+                    data-testid="expand-mea-light-burst-norm"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaLightBurstNormExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <InfoTip text="Values normalized to the average light baseline across all included recordings">
+                      <span className="font-medium">Normalized to Average Baseline</span>
+                    </InfoTip>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaLightBurstNormExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                            <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                            <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(6, 182, 212, 0.08)', color: '#22d3ee' }}>Baseline (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>Avg Burst (%)</th>
+                            <th className="text-center py-2.5 px-2 font-medium rounded-tr-lg" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>Max Burst (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meaNormalizedLightBurstData.map((rec, idx) => {
+                            const isExcluded = excludedRecordings[rec.id];
+                            return (
+                              <tr key={idx} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${isExcluded ? 'opacity-40' : ''}`}>
+                                <td className="py-2 px-1">
+                                  <RecordingToggle 
+                                    isExcluded={isExcluded} 
+                                    onToggle={() => toggleRecording(rec.id)}
+                                    testId={`toggle-mea-light-burst-norm-${rec.id}`}
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                <td className="py-2 px-2 text-center text-cyan-300 bg-cyan-950/10">{formatValue(rec.norm_baseline, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-orange-950/10">{formatValue(rec.norm_avg, 1)}</td>
+                                <td className="py-2 px-2 text-center text-zinc-300 bg-orange-950/10">{formatValue(rec.norm_max, 1)}</td>
+                              </tr>
+                            );
+                          })}
+                          {/* Folder Average Row */}
+                          <tr className="bg-orange-950/60 font-bold border-t-2 border-orange-500">
+                            <td className="py-3 px-1"></td>
+                            <td className="py-3 px-2 text-orange-300 text-xs">Folder Average (n={meaNormLightBurstAverages?.includedCount || 0})</td>
+                            <td className="py-3 px-2 text-center text-cyan-200 text-xs">{formatValue(meaNormLightBurstAverages?.norm_baseline, 1)}</td>
+                            <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaNormLightBurstAverages?.norm_avg, 1)}</td>
+                            <td className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(meaNormLightBurstAverages?.norm_max, 1)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Per Metrics for Burst */}
+                <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <button
+                    onClick={() => setMeaBurstPerMetricExpanded(!meaBurstPerMetricExpanded)}
+                    className="flex items-center gap-2 text-sm transition-colors py-1"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    data-testid="expand-mea-burst-per-metric"
+                  >
+                    <ChevronRight 
+                      className={`w-4 h-4 transition-transform duration-200 ${meaBurstPerMetricExpanded ? 'rotate-90' : ''}`}
+                    />
+                    <span className="font-medium">Per Metrics for each Stimuli</span>
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${meaBurstPerMetricExpanded ? 'max-h-[8000px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    {/* Metric Selector */}
+                    <div className="mb-4 p-4 rounded-xl" style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Select metrics to display:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {meaBurstMetricDefs.map((metric) => (
+                          <button
+                            key={metric.key}
+                            onClick={() => setSelectedMeaBurstMetrics(prev => ({ ...prev, [metric.key]: !prev[metric.key] }))}
+                            className="px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1"
+                            style={{
+                              background: selectedMeaBurstMetrics[metric.key] ? 'rgba(249, 115, 22, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                              border: selectedMeaBurstMetrics[metric.key] ? '1px solid rgba(249, 115, 22, 0.5)' : '1px solid rgba(255, 255, 255, 0.12)',
+                              color: selectedMeaBurstMetrics[metric.key] ? '#f97316' : 'var(--text-secondary)',
+                            }}
+                            data-testid={`select-mea-burst-metric-${metric.key}`}
+                          >
+                            <InfoTip text={metric.tooltip}><span>{metric.label}</span></InfoTip>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {Object.values(selectedMeaBurstMetrics).some(v => v) ? (
+                      <div className="space-y-6">
+                        {meaPerMetricBurstData.filter(m => selectedMeaBurstMetrics[m.key]).map((metricData) => (
+                          <div key={metricData.key} className="rounded-xl p-4" style={{ background: 'rgba(255, 255, 255, 0.025)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                            <h4 className="text-sm font-semibold text-orange-400 mb-3">{metricData.label}</h4>
+                            
+                            {/* Chart */}
+                            <div className="h-48 mb-4">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                  <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
+                                  <YAxis stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} domain={meaBurstYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']} />
+                                  <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
+                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  <Line type="monotone" dataKey="perStimAvg" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 4 }} name="Per Stim Average" />
+                                  <Line type="monotone" dataKey="stimAvg" stroke="#fb923c" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            {/* Table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                                    <th className="text-left py-2.5 px-1 font-medium w-8" style={{ background: 'rgba(255, 255, 255, 0.03)' }}></th>
+                                    <th className="text-left py-2.5 px-2 font-medium" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                                    {[1,2,3,4,5].map(i => (
+                                      <th key={i} className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(249, 115, 22, 0.08)', color: '#f97316' }}>Stim {i}</th>
+                                    ))}
+                                    <th className="text-center py-2.5 px-2 font-medium" style={{ background: 'rgba(234, 179, 8, 0.08)', color: '#facc15' }}>Average</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {metricData.recordings.map((rec) => (
+                                    <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 ${rec.isExcluded ? 'opacity-40' : ''}`}>
+                                      <td className="py-2 px-1">
+                                        <RecordingToggle isExcluded={rec.isExcluded} onToggle={() => toggleRecording(rec.id)} testId={`toggle-mea-burst-metric-${metricData.key}-${rec.id}`} />
+                                      </td>
+                                      <td className="py-2 px-2 text-zinc-300 font-medium">{rec.name}</td>
+                                      {rec.stimValues.map((val, i) => (
+                                        <td key={i} className="py-2 px-2 text-center text-zinc-300 bg-orange-950/10">{formatValue(val, metricData.decimals)}</td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center text-yellow-300 bg-yellow-950/20 font-medium">{formatValue(rec.rowAvg, metricData.decimals)}</td>
+                                    </tr>
+                                  ))}
+                                  <tr className="bg-orange-950/60 font-bold border-t-2 border-orange-500">
+                                    <td className="py-3 px-1"></td>
+                                    <td className="py-3 px-2 text-orange-300 text-xs">Folder Average (n={metricData.includedCount})</td>
+                                    {metricData.colAvgs.map((val, i) => (
+                                      <td key={i} className="py-3 px-2 text-center text-orange-100 text-xs">{formatValue(val, metricData.decimals)}</td>
+                                    ))}
+                                    <td className="py-3 px-2 text-center text-yellow-200 text-xs font-bold">{formatValue(metricData.grandAvg, metricData.decimals)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 text-sm italic">Select one or more metrics above to display their per-stimulation data</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* MEA Metadata Tab */}
+        <TabsContent value="metadata">
+          <div 
+            className="rounded-xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.025)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            <div className="p-4 pb-2">
+              <span className="text-sm" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 500 }}>MEA Recording Metadata</span>
+            </div>
+            <div className="p-4 pt-2">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      <th className="text-left py-2.5 px-1 font-medium w-8 rounded-tl-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-tertiary)' }}></th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Recording</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Date</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#34d399' }}>
+                        <InfoTip text="human Spinal Organoids">hSpO Info</InfoTip>
+                      </th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(244, 206, 162, 0.08)', color: '#F4CEA2' }}>
+                        <InfoTip text="human Cardiac Organoids">hCO Info</InfoTip>
+                      </th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Fusion</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(192, 132, 252, 0.08)', color: '#c4b5fd' }}>Drug Info</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap" style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24' }}>Light Stim Info</th>
+                      <th className="text-left py-2.5 px-1.5 font-medium whitespace-nowrap rounded-tr-lg" style={{ background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-secondary)' }}>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedRecordings?.map((rec, idx) => {
+                      const isExcluded = excludedRecordings[rec.id];
+                      // Format hSpO info
+                      const hspoInfo = rec.hspo_info;
+                      const hspoDisplay = hspoInfo ? (
+                        <div className="text-[10px] leading-tight">
+                          <div>{hspoInfo.line_name || '—'}</div>
+                          {hspoInfo.passage && <div className="text-zinc-500">P{hspoInfo.passage}</div>}
+                          {hspoInfo.age !== null && <div className="text-zinc-500">D{hspoInfo.age}</div>}
+                          {hspoInfo.has_transduction && <div className="text-green-400">Transduced</div>}
+                        </div>
+                      ) : '—';
+                      
+                      // Format hCO info
+                      const hcoInfo = rec.hco_info;
+                      const hcoDisplay = hcoInfo ? (
+                        <div className="text-[10px] leading-tight">
+                          <div>{hcoInfo.line_name || '—'}</div>
+                          {hcoInfo.passage && <div className="text-zinc-500">P{hcoInfo.passage}</div>}
+                          {hcoInfo.age !== null && <div className="text-zinc-500">D{hcoInfo.age}</div>}
+                        </div>
+                      ) : '—';
+                      
+                      // Format drug info
+                      const drugDisplay = rec.has_drug && rec.drug_info?.length > 0 ? (
+                        <div className="text-[10px] leading-tight">
+                          {rec.drug_info.map((drug, i) => (
+                            <div key={i} className="mb-1">
+                              <div className="font-medium">{drug.name}</div>
+                              {drug.concentration && <div className="text-zinc-500">{drug.concentration}µM</div>}
+                              {drug.perf_time !== null && drug.perf_time !== undefined && (
+                                <div className="text-zinc-500">Perf. Time: {drug.perf_time}min</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : <span className="text-zinc-500">No drug</span>;
+                      
+                      // Format light stim info
+                      const lightDisplay = rec.has_light_stim ? (
+                        <div className="text-[10px] leading-tight">
+                          {rec.light_stim_count && <div>{rec.light_stim_count} stim</div>}
+                          <div className="text-zinc-500">{rec.stim_duration}s</div>
+                          {rec.isi_structure && (
+                            <div className="text-zinc-500">
+                              <InfoTip text="Inter-Stimuli Interval">ISI</InfoTip>: {rec.isi_structure}
+                            </div>
+                          )}
+                        </div>
+                      ) : <span className="text-zinc-500">No Light Stim</span>;
+                      
+                      return (
+                        <tr key={rec.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 align-top ${isExcluded ? 'opacity-40' : ''}`}>
+                          <td className="py-2 px-1">
+                            <RecordingToggle 
+                              isExcluded={isExcluded} 
+                              onToggle={() => toggleRecording(rec.id)}
+                              testId={`toggle-mea-meta-${rec.id}`}
+                            />
+                          </td>
+                          <td className="py-2 px-1.5">
+                            <div className="text-zinc-300 font-medium">{rec.name}</div>
+                            {rec.well_id && <div className="text-[10px] text-emerald-400">Well: {rec.well_id}</div>}
+                          </td>
+                          <td className="py-2 px-1.5 text-zinc-300">{rec.recording_date || '—'}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-emerald-950/5">{hspoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-emerald-950/5">{hcoDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300">{rec.fusion_date || '—'}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-purple-950/5">{drugDisplay}</td>
+                          <td className="py-2 px-1.5 text-zinc-300 bg-amber-950/5">{lightDisplay}</td>
+                          <td className="py-2 px-1.5 text-[10px] max-w-[200px]">
+                            {rec.recording_description ? (
+                              <div className="text-zinc-400 truncate">{rec.recording_description}</div>
+                            ) : (
+                              <span className="text-zinc-500">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+          </>
+        )}
       </Tabs>
       </div>
     </div>

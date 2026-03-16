@@ -1756,24 +1756,321 @@ def compute_folder_averages(recordings_data: list, metrics: list) -> dict:
     return {'averages': averages, 'counts': counts}
 
 
+def extract_mea_comparison_metrics(recording: dict) -> dict:
+    """Extract MEA comparison metrics from a recording's analysis_state.
+    
+    Note: Frontend saves with camelCase keys, so we need to check both cases.
+    """
+    state = recording.get('analysis_state', {})
+    
+    # Basic info
+    result = {
+        'id': recording.get('id', ''),
+        'name': recording.get('name', ''),
+        'filename': recording.get('filename', ''),
+        'source_type': 'MEA',
+    }
+    
+    # Recording metadata - check both camelCase and snake_case
+    result['recording_date'] = state.get('recordingDate') or state.get('recording_date', '')
+    result['recording_description'] = state.get('recordingDescription') or state.get('recording_description', '')
+    result['fusion_date'] = state.get('fusionDate') or state.get('fusion_date', '')
+    result['well_id'] = state.get('well_id') or state.get('selectedWell', '')
+    result['plate_id'] = state.get('plate_id', '')
+    
+    # Calculate fusion age (days from fusion to recording)
+    result['fusion_age'] = None
+    fusion_date = state.get('fusionDate') or state.get('fusion_date', '')
+    rec_date = state.get('recordingDate') or state.get('recording_date', '')
+    if fusion_date and rec_date:
+        try:
+            from datetime import datetime
+            fd = datetime.strptime(fusion_date, '%Y-%m-%d')
+            rd = datetime.strptime(rec_date, '%Y-%m-%d')
+            result['fusion_age'] = (rd - fd).days
+        except (ValueError, TypeError):
+            pass
+    
+    # Organoid/Cell info - frontend uses camelCase 'organoidInfo'
+    organoid_info = state.get('organoidInfo') or state.get('organoid_info', [])
+    
+    # Initialize organoid-related fields
+    result['hspo_info'] = None
+    result['hco_info'] = None
+    result['other_info'] = None
+    result['hspo_age'] = None
+    result['hco_age'] = None
+    
+    if organoid_info:
+        for sample in organoid_info:
+            cell_type = sample.get('cell_type', '')
+            line_name = sample.get('line_name', '')
+            passage = sample.get('passage_number', '')
+            
+            # Calculate age from birth_date if available
+            age = sample.get('age_at_recording')
+            if age is None:
+                birth_date = sample.get('birth_date') or sample.get('diff_date', '')
+                rec_date = state.get('recordingDate') or state.get('recording_date', '')
+                if birth_date and rec_date:
+                    try:
+                        from datetime import datetime
+                        bd = datetime.strptime(birth_date, '%Y-%m-%d')
+                        rd = datetime.strptime(rec_date, '%Y-%m-%d')
+                        age = (rd - bd).days
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Check for transduction/transfection
+            transfection = sample.get('transfection', {})
+            has_transfection = bool(transfection and transfection.get('technique'))
+            
+            sample_info = {
+                'line_name': line_name,
+                'passage': passage,
+                'age': age,
+                'has_transduction': has_transfection,
+                'transfection_details': transfection,
+            }
+            
+            if cell_type == 'hSpO':
+                result['hspo_info'] = sample_info
+                result['hspo_age'] = age
+            elif cell_type == 'hCO':
+                result['hco_info'] = sample_info
+                result['hco_age'] = age
+            elif cell_type:
+                other_type = sample.get('other_cell_type', cell_type)
+                sample_info['cell_type'] = other_type
+                result['other_info'] = sample_info
+    
+    # Drug info
+    selected_drugs = state.get('selectedDrugs') or state.get('selected_drugs', [])
+    drug_settings = state.get('drugSettings') or state.get('drug_settings', {})
+    drug_enabled = state.get('drugEnabled', False)
+    drug_perf_time = state.get('drugPerfTime', 3)
+    drug_readout_minute = state.get('drugReadoutMinute', 3)
+    
+    result['drug_info'] = []
+    result['has_drug'] = drug_enabled and bool(selected_drugs)
+    
+    if selected_drugs:
+        for drug in selected_drugs:
+            settings = drug_settings.get(drug, {})
+            concentration = settings.get('concentration', '')
+            result['drug_info'].append({
+                'name': drug,
+                'concentration': concentration,
+                'perf_time': drug_readout_minute,
+            })
+    
+    if result['drug_info']:
+        result['drug_names'] = ', '.join([d['name'] for d in result['drug_info']])
+        result['drug_concentrations'] = ', '.join([str(d['concentration']) for d in result['drug_info'] if d['concentration']])
+    else:
+        result['drug_names'] = ''
+        result['drug_concentrations'] = ''
+    
+    # Light stim info
+    light_enabled = state.get('lightEnabled', False)
+    light_params = state.get('lightParams') or state.get('light_params', {})
+    light_pulses = state.get('lightPulses') or state.get('light_pulses', [])
+    
+    result['has_light_stim'] = light_enabled and bool(light_pulses)
+    result['light_stim_count'] = len(light_pulses) if light_pulses else 0
+    
+    # Use original search parameters from lightParams
+    pulse_duration = light_params.get('pulseDuration', light_params.get('pulse_duration_sec', 20)) if light_params else 20
+    result['stim_duration'] = pulse_duration
+    
+    # Get ISI structure
+    interval_setting = light_params.get('interval', 'decreasing') if light_params else 'decreasing'
+    if interval_setting == 'decreasing':
+        result['isi_structure'] = '60s-30s-20s-10s'
+    elif interval_setting == 'constant':
+        result['isi_structure'] = 'constant'
+    else:
+        result['isi_structure'] = interval_setting
+    
+    # MEA-specific spontaneous activity metrics
+    # Baseline metrics from wellAnalysis (stored at top level of state in MEA)
+    baseline_minute = state.get('baselineMinute', 1)
+    baseline_enabled = state.get('baselineEnabled', True)
+    
+    # Get wellParams for baseline config
+    well_params = state.get('wellParams', {})
+    baseline_config = well_params.get('baseline', {})
+    
+    # Try to get baseline metrics from multiple possible locations
+    # MEA stores these differently than SSE
+    baseline_spike_hz = None
+    baseline_burst_bpm = None
+    drug_spike_hz = None
+    drug_burst_bpm = None
+    
+    # Check if there's a wellAnalysis stored
+    # MEA analysis computes these on-the-fly, but they might be stored
+    if 'baseline_spike_hz' in state:
+        baseline_spike_hz = state.get('baseline_spike_hz')
+        baseline_burst_bpm = state.get('baseline_burst_bpm')
+        drug_spike_hz = state.get('drug_spike_hz')
+        drug_burst_bpm = state.get('drug_burst_bpm')
+    
+    # Also check wellParams which may have readout minute settings
+    spike_bins = state.get('spike_rate_bins', [])
+    burst_bins = state.get('burst_rate_bins', [])
+    
+    # If we have bin data, compute baseline from the correct minute
+    if spike_bins and baseline_enabled:
+        # Find bins that fall within baseline minute
+        baseline_start = baseline_minute * 60
+        baseline_end = (baseline_minute + 1) * 60
+        baseline_spike_vals = [b['spike_rate_hz'] for b in spike_bins 
+                               if b.get('bin_start', 0) >= baseline_start and b.get('bin_end', 0) <= baseline_end]
+        if baseline_spike_vals:
+            baseline_spike_hz = float(np.mean(baseline_spike_vals))
+    
+    if burst_bins and baseline_enabled:
+        baseline_start = baseline_minute * 60
+        baseline_end = (baseline_minute + 1) * 60
+        baseline_burst_vals = [b['burst_rate_bpm'] for b in burst_bins 
+                               if b.get('bin_start', 0) >= baseline_start and b.get('bin_end', 0) <= baseline_end]
+        if baseline_burst_vals:
+            baseline_burst_bpm = float(np.mean(baseline_burst_vals))
+    
+    # Drug metrics - compute if enabled
+    if drug_enabled and selected_drugs and spike_bins:
+        drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+        drug_end_time = drug_readout_time + 60
+        drug_spike_vals = [b['spike_rate_hz'] for b in spike_bins 
+                          if b.get('bin_start', 0) >= drug_readout_time and b.get('bin_end', 0) <= drug_end_time]
+        if drug_spike_vals:
+            drug_spike_hz = float(np.mean(drug_spike_vals))
+    
+    if drug_enabled and selected_drugs and burst_bins:
+        drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
+        drug_end_time = drug_readout_time + 60
+        drug_burst_vals = [b['burst_rate_bpm'] for b in burst_bins 
+                          if b.get('bin_start', 0) >= drug_readout_time and b.get('bin_end', 0) <= drug_end_time]
+        if drug_burst_vals:
+            drug_burst_bpm = float(np.mean(drug_burst_vals))
+    
+    result['baseline_spike_hz'] = baseline_spike_hz
+    result['baseline_burst_bpm'] = baseline_burst_bpm
+    result['drug_spike_hz'] = drug_spike_hz
+    result['drug_burst_bpm'] = drug_burst_bpm
+    result['baseline_enabled'] = baseline_enabled
+    
+    # Light stimulus metrics (from lightMetrics)
+    light_metrics = state.get('lightMetrics') or {}
+    avg_metrics = light_metrics.get('avg', {})
+    per_stim = light_metrics.get('perStim', [])
+    
+    # Light baseline and averages
+    result['light_baseline_spike_hz'] = avg_metrics.get('baselineSpikeHz')
+    result['light_avg_spike_hz'] = avg_metrics.get('avgSpikeHz')
+    result['light_max_spike_hz'] = avg_metrics.get('maxSpikeHz')
+    result['light_spike_change_pct'] = avg_metrics.get('spikeChangePct')
+    result['light_peak_spike_change_pct'] = avg_metrics.get('maxSpikeChangePct')
+    result['light_spike_time_to_peak'] = avg_metrics.get('spikeTimeToPeak')
+    
+    result['light_baseline_burst_bpm'] = avg_metrics.get('baselineBurstBpm')
+    result['light_avg_burst_bpm'] = avg_metrics.get('avgBurstBpm')
+    result['light_max_burst_bpm'] = avg_metrics.get('maxBurstBpm')
+    result['light_burst_change_pct'] = avg_metrics.get('burstChangePct')
+    result['light_peak_burst_change_pct'] = avg_metrics.get('maxBurstChangePct')
+    result['light_burst_time_to_peak'] = avg_metrics.get('burstTimeToPeak')
+    
+    # Per-stim data for charts
+    result['per_stim_spike'] = []
+    result['per_stim_burst'] = []
+    
+    for i, stim in enumerate(per_stim):
+        if stim:
+            result['per_stim_spike'].append({
+                'stim_index': i + 1,
+                'baseline': stim.get('baselineSpikeHz'),
+                'avg': stim.get('avgSpikeHz'),
+                'max': stim.get('maxSpikeHz'),
+                'change_pct': stim.get('spikeChangePct'),
+                'peak_change_pct': stim.get('maxSpikeChangePct'),
+                'time_to_peak': stim.get('spikeTimeToPeak'),
+            })
+            result['per_stim_burst'].append({
+                'stim_index': i + 1,
+                'baseline': stim.get('baselineBurstBpm'),
+                'avg': stim.get('avgBurstBpm'),
+                'max': stim.get('maxBurstBpm'),
+                'change_pct': stim.get('burstChangePct'),
+                'peak_change_pct': stim.get('maxBurstChangePct'),
+                'time_to_peak': stim.get('burstTimeToPeak'),
+            })
+        else:
+            result['per_stim_spike'].append(None)
+            result['per_stim_burst'].append(None)
+    
+    return result
+
+
 @api_router.get("/folders/{folder_id}/comparison")
-async def get_folder_comparison(folder_id: str):
-    """Get comparison data for all recordings in a folder."""
+async def get_folder_comparison(folder_id: str, source_type: str = None):
+    """Get comparison data for all recordings in a folder.
+    
+    Args:
+        folder_id: The folder ID
+        source_type: Filter by recording type ('SSE' or 'MEA'). If None, returns SSE by default.
+    """
     # Get folder info
     folder = await storage.get_folder(db, folder_id)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     
+    # Count recordings by type for the type switcher
+    sse_count = 0
+    mea_count = 0
+    
     # Get all recordings with full analysis_state (limit to 500 for performance)
-    recordings_data = []
+    all_recordings = []
     async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
+        rec_source_type = rec.get("source_type") or rec.get("analysis_state", {}).get("source_type") or rec.get("analysis_state", {}).get("type")
+        # Default to SSE if not specified
+        if not rec_source_type or rec_source_type not in ['MEA', 'mea']:
+            rec_source_type = 'SSE'
+        else:
+            rec_source_type = 'MEA'
+        
+        all_recordings.append({
+            "rec": rec,
+            "source_type": rec_source_type
+        })
+        
+        if rec_source_type == 'MEA':
+            mea_count += 1
+        else:
+            sse_count += 1
+    
+    # Determine which type to return (default to SSE if not specified)
+    requested_type = source_type.upper() if source_type else ('MEA' if mea_count > 0 and sse_count == 0 else 'SSE')
+    
+    # Filter and extract metrics based on type
+    recordings_data = []
+    for item in all_recordings:
+        if item['source_type'] != requested_type:
+            continue
+        
+        rec = item['rec']
         recording = {
             "id": str(rec["_id"]),
             "name": rec["name"],
             "filename": rec["filename"],
             "analysis_state": rec.get("analysis_state", {}),
         }
-        metrics = extract_comparison_metrics(recording)
+        
+        if requested_type == 'MEA':
+            metrics = extract_mea_comparison_metrics(recording)
+        else:
+            metrics = extract_comparison_metrics(recording)
+        
         recordings_data.append(metrics)
     
     # Compute age ranges
@@ -1781,38 +2078,77 @@ async def get_folder_comparison(folder_id: str):
     hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
     fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
     
-    # Compute averages for spontaneous activity
-    spontaneous_metrics = [
-        'baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
-        'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50'
-    ]
-    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
-    
-    # Compute averages for Light HRA
-    light_hra_metrics = [
-        'light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
-        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
-        'light_amplitude', 'light_roc'
-    ]
-    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
-    
-    # Compute averages for Corrected Light HRV
-    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
-    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
-    
-    return {
-        "folder": folder,
-        "summary": {
-            "recording_count": len(recordings_data),
-            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
-            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
-            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
-        },
-        "recordings": recordings_data,
-        "spontaneous_averages": spontaneous_averages,
-        "light_hra_averages": light_hra_averages,
-        "light_hrv_averages": light_hrv_averages,
-    }
+    # Build response based on type
+    if requested_type == 'MEA':
+        # MEA spontaneous metrics
+        spontaneous_spike_metrics = ['baseline_spike_hz', 'drug_spike_hz']
+        spontaneous_burst_metrics = ['baseline_burst_bpm', 'drug_burst_bpm']
+        spontaneous_spike_averages = compute_folder_averages(recordings_data, spontaneous_spike_metrics)
+        spontaneous_burst_averages = compute_folder_averages(recordings_data, spontaneous_burst_metrics)
+        
+        # MEA light stimulus spike metrics
+        light_spike_metrics = [
+            'light_baseline_spike_hz', 'light_avg_spike_hz', 'light_max_spike_hz',
+            'light_spike_change_pct', 'light_peak_spike_change_pct', 'light_spike_time_to_peak'
+        ]
+        light_spike_averages = compute_folder_averages(recordings_data, light_spike_metrics)
+        
+        # MEA light stimulus burst metrics
+        light_burst_metrics = [
+            'light_baseline_burst_bpm', 'light_avg_burst_bpm', 'light_max_burst_bpm',
+            'light_burst_change_pct', 'light_peak_burst_change_pct', 'light_burst_time_to_peak'
+        ]
+        light_burst_averages = compute_folder_averages(recordings_data, light_burst_metrics)
+        
+        return {
+            "folder": folder,
+            "source_type": "MEA",
+            "type_counts": {"sse": sse_count, "mea": mea_count},
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spontaneous_spike_averages": spontaneous_spike_averages,
+            "spontaneous_burst_averages": spontaneous_burst_averages,
+            "light_spike_averages": light_spike_averages,
+            "light_burst_averages": light_burst_averages,
+        }
+    else:
+        # SSE metrics (original behavior)
+        spontaneous_metrics = [
+            'baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+            'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50'
+        ]
+        spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+        
+        light_hra_metrics = [
+            'light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+            'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+            'light_amplitude', 'light_roc'
+        ]
+        light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+        
+        light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+        light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+        
+        return {
+            "folder": folder,
+            "source_type": "SSE",
+            "type_counts": {"sse": sse_count, "mea": mea_count},
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spontaneous_averages": spontaneous_averages,
+            "light_hra_averages": light_hra_averages,
+            "light_hrv_averages": light_hrv_averages,
+        }
 
 
 @api_router.post("/folders/{folder_id}/export/xlsx")
