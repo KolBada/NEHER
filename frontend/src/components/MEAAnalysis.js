@@ -770,6 +770,47 @@ const BurstRasterPlot = memo(function BurstRasterPlot({ data, electrodes, durati
   );
 });
 
+// Temperature trace chart for environmental data
+const TemperatureTraceChart = memo(function TemperatureTraceChart({ data, duration, zoomDomain }) {
+  if (!data?.length) {
+    return <div className="h-32 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No temperature data</div>;
+  }
+  
+  // Filter data to zoom domain if provided
+  const domain = zoomDomain || [0, duration];
+  const filteredData = data.filter(d => d.timestamp >= domain[0] && d.timestamp <= domain[1]);
+  
+  return (
+    <div className="h-32">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={filteredData} margin={{ top: 10, right: 20, left: 50, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis 
+            dataKey="timestamp" 
+            stroke="rgba(255,255,255,0.3)" 
+            tick={{ fontSize: 9, fill: '#71717a' }} 
+            label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }}
+            domain={domain}
+            type="number"
+          />
+          <YAxis 
+            stroke="rgba(255,255,255,0.3)" 
+            tick={{ fontSize: 9, fill: '#71717a' }} 
+            label={{ value: 'Temperature (°C)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }}
+            domain={['dataMin - 0.5', 'dataMax + 0.5']}
+          />
+          <RechartsTooltip 
+            contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }}
+            formatter={(value) => [`${value.toFixed(2)} °C`, 'Temperature']}
+            labelFormatter={(label) => `Time: ${label.toFixed(1)}s`}
+          />
+          <Line type="monotone" dataKey="temperature" stroke="#ef4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
+
 const CorrelationScatter = memo(function CorrelationScatter({ spikeData, burstData, correlation }) {
   const scatterData = useMemo(() => {
     if (!spikeData?.length || !burstData?.length) return [];
@@ -1799,6 +1840,28 @@ export default function MEAAnalysis({
                     title="BURST TRACE"
                     drugName={activeDrugName}
                   />
+                  
+                  {/* Temperature Trace */}
+                  {meaData?.environmental_data?.length > 0 && (
+                    <div className="glass-surface-subtle rounded-xl overflow-hidden">
+                      <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ background: '#ef4444' }} />
+                          <span className="text-[10px] font-display font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                            TEMPERATURE TRACE
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0" style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#ef4444' }}>
+                          °C
+                        </Badge>
+                      </div>
+                      <TemperatureTraceChart 
+                        data={meaData.environmental_data}
+                        duration={duration}
+                        zoomDomain={parametersZoomDomain}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               

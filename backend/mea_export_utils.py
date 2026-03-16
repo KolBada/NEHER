@@ -79,7 +79,10 @@ def generate_mea_csv_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
     lines.append("=== RECORDING INFO ===")
     source_files = analysis_state.get('source_files', {})
     if source_files:
-        lines.append(f"Original Files,{'; '.join(source_files.values())}")
+        # Each file on its own line
+        lines.append("Original Files:")
+        for fname in source_files.values():
+            lines.append(f"  ,{fname}")
     lines.append(f"Well ID,{selected_well}")
     lines.append(f"Recording Date,{analysis_state.get('recordingDate', '')}")
     
@@ -279,8 +282,13 @@ def generate_mea_xlsx_export(analysis_state: Dict, well_analysis: Dict) -> bytes
     source_files = analysis_state.get('source_files', {})
     if source_files:
         ws_summary.cell(row=row, column=1, value="Original Files")
-        ws_summary.cell(row=row, column=2, value="; ".join(source_files.values()))
+        # Each file on its own line in column 2
+        file_list = list(source_files.values())
+        ws_summary.cell(row=row, column=2, value=file_list[0] if file_list else "")
         row += 1
+        for fname in file_list[1:]:
+            ws_summary.cell(row=row, column=2, value=fname)
+            row += 1
     
     ws_summary.cell(row=row, column=1, value="Well ID")
     ws_summary.cell(row=row, column=2, value=selected_well)
@@ -644,10 +652,13 @@ def generate_mea_pdf_export(analysis_state: Dict, well_analysis: Dict) -> bytes:
         
         source_files = analysis_state.get('source_files', {})
         if source_files:
-            files_str = "; ".join(source_files.values())
-            if len(files_str) > 40:
-                files_str = files_str[:37] + "..."
-            y = draw_row(fig1, left_x, y, 'Original Files:', files_str, width=col_width)
+            file_list = list(source_files.values())
+            y = draw_row(fig1, left_x, y, 'Original Files:', '', width=col_width)
+            for fname in file_list:
+                # Truncate long filenames and use smaller font
+                display_name = fname if len(fname) <= 45 else fname[:42] + "..."
+                fig1.text(left_x + 0.02, y + 0.006, display_name, fontsize=6, color=COLORS['gray'], va='center')
+                y -= 0.016
         
         y = draw_row(fig1, left_x, y, 'Well ID:', selected_well, width=col_width)
         y = draw_row(fig1, left_x, y, 'Recording Date:', analysis_state.get('recordingDate', ''), width=col_width)

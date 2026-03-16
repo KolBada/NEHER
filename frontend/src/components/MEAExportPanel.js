@@ -73,7 +73,7 @@ export default function MEAExportPanel({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${recordingName || 'MEA_Export'}_${selectedWell}.zip`;
+      a.download = `${recordingName || 'MEA_Export'}_${selectedWell}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
