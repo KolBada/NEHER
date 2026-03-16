@@ -951,29 +951,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     setDrugEnabled(true);
   }, []);
 
-  // Get analysis state for Save Recording
-  const getAnalysisState = useCallback(() => ({
-    source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
-    type: 'MEA',
-    selectedWell,
-    wells: Object.keys(meaData?.wells || {}),
-    config,
-    wellParams,
-    drugEnabled,
-    selectedDrugs,
-    drugSettings,
-    drugPerfTime,
-    drugReadoutMinute,
-    lightEnabled,
-    lightParams,
-    lightPulses,
-    baselineEnabled,
-    baselineMinute,
-    // Include MEA-specific metadata for proper routing
-    n_active_electrodes: wellAnalysis?.nActiveElectrodes || 0,
-    duration_s: duration,
-  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
-
   // Compute all metrics for the selected well (heavily memoized)
   const wellAnalysis = useMemo(() => {
     if (!selectedWell || !meaData?.wells?.[selectedWell]) return null;
@@ -1059,6 +1036,29 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   const wells = useMemo(() => Object.keys(meaData?.wells || {}).sort(), [meaData]);
   const duration = wellAnalysis?.well?.duration_s || 0;
   const wellName = wellNames[selectedWell] || selectedWell || '';
+
+  // Get analysis state for Save Recording - defined AFTER wellAnalysis and duration
+  const getAnalysisState = useCallback(() => ({
+    source_type: 'MEA', // Important: must be 'source_type' not 'type' for correct routing
+    type: 'MEA',
+    selectedWell,
+    wells: Object.keys(meaData?.wells || {}),
+    config,
+    wellParams,
+    drugEnabled,
+    selectedDrugs,
+    drugSettings,
+    drugPerfTime,
+    drugReadoutMinute,
+    lightEnabled,
+    lightParams,
+    lightPulses,
+    baselineEnabled,
+    baselineMinute,
+    // Include MEA-specific metadata for proper routing
+    n_active_electrodes: wellAnalysis?.nActiveElectrodes || 0,
+    duration_s: duration,
+  }), [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Drug window for visualization
   // Perf. Start = when drug is added (purple box starts)
