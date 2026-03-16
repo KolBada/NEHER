@@ -91,6 +91,9 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
   const [meaSpikeYAxisZoom, setMeaSpikeYAxisZoom] = useState({});
   const [meaBurstYAxisZoom, setMeaBurstYAxisZoom] = useState({});
   
+  // Delay mounting charts in embedded mode to allow modal animation to complete
+  const [chartsMounted, setChartsMounted] = useState(!embedded);
+  
   // Toggle a recording's inclusion/exclusion (global)
   const toggleRecording = useCallback((recordingId) => {
     setExcludedRecordings(prev => ({
@@ -98,6 +101,14 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
       [recordingId]: !prev[recordingId]
     }));
   }, []);
+
+  // Delay chart mounting when embedded to avoid ResponsiveContainer dimension issues
+  useEffect(() => {
+    if (embedded && !chartsMounted) {
+      const timer = setTimeout(() => setChartsMounted(true), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [embedded, chartsMounted]);
 
   useEffect(() => {
     loadComparisonData(sourceType);
@@ -1181,11 +1192,12 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
     };
   }, [meaNormalizedLightBurstData, excludedRecordings]);
 
-  if (loading) {
+  // Show loading state (also wait for chartsMounted in embedded mode to avoid ResponsiveContainer dimension issues)
+  if (loading || (embedded && !chartsMounted)) {
     return (
-      <div className="neher-home-bg min-h-screen">
-        <div className="neher-glow-orbs" />
-        <div className="relative z-10 flex items-center justify-center h-[60vh]">
+      <div className={embedded ? "flex items-center justify-center h-[60vh]" : "neher-home-bg min-h-screen"}>
+        {!embedded && <div className="neher-glow-orbs" />}
+        <div className={embedded ? "" : "relative z-10 flex items-center justify-center h-[60vh]"}>
           <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent-teal)' }} />
         </div>
       </div>
@@ -1220,6 +1232,46 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
               </div>
             </div>
           </header>
+        )}
+
+        {/* Embedded mode title (no back button, just title and export buttons) */}
+        {embedded && (
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)', fontWeight: 600 }}>Comparison: {folder.name}</h2>
+              <p className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-body)' }}>{summary?.recording_count || 0} recordings</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportXlsx}
+                disabled={exporting || !recordings?.length}
+                className="h-9 text-xs rounded-xl"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                }}
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-1.5" /> Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                disabled={exporting || !recordings?.length}
+                className="h-9 text-xs rounded-xl"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444',
+                }}
+              >
+                <FileText className="w-4 h-4 mr-1.5" /> PDF
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Toolbar - only show when not embedded */}
@@ -3121,12 +3173,24 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             {/* Chart */}
                             <div className="h-48 mb-4">
                               <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                                   <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
-                                  <YAxis stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} domain={meaSpikeYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']} />
+                                  <YAxis 
+                                    stroke="#71717a" 
+                                    tick={{ fontSize: 10, fill: '#a1a1aa' }} 
+                                    domain={meaSpikeYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
+                                    label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
+                                  />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
                                   <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  {/* Baseline reference line (cyan) - for metrics that have showBaseline or showBaselinePct */}
+                                  {metricData.showBaseline && (
+                                    <ReferenceLine y={meaLightSpikeAverages?.light_baseline_spike_hz || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} name="Baseline" label={{ value: 'Baseline', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                  )}
+                                  {metricData.showBaselinePct && (
+                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: '0% (Baseline)', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                  )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#6ee7b7" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
                                 </LineChart>
@@ -3360,12 +3424,24 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                             {/* Chart */}
                             <div className="h-48 mb-4">
                               <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <LineChart data={metricData.chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                                   <XAxis dataKey="stim" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
-                                  <YAxis stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} domain={meaBurstYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']} />
+                                  <YAxis 
+                                    stroke="#71717a" 
+                                    tick={{ fontSize: 10, fill: '#a1a1aa' }} 
+                                    domain={meaBurstYAxisZoom[metricData.key] || metricData.yDomain || ['auto', 'auto']}
+                                    label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
+                                  />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
                                   <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  {/* Baseline reference line (cyan) - for metrics that have showBaseline or showBaselinePct */}
+                                  {metricData.showBaseline && (
+                                    <ReferenceLine y={meaLightBurstAverages?.light_baseline_burst_bpm || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Baseline', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                  )}
+                                  {metricData.showBaselinePct && (
+                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: '0% (Baseline)', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                  )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#fb923c" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
                                 </LineChart>

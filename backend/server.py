@@ -1909,35 +1909,43 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         burst_bins = state.get('burst_rate_bins', [])
         
         if spike_bins and baseline_enabled:
-            baseline_start = baseline_minute * 60
-            baseline_end = (baseline_minute + 1) * 60
+            # baseline_minute=1 means window 0-60s (0-1 min)
+            # baseline_minute=2 means window 60-120s (1-2 min)
+            baseline_start = (baseline_minute - 1) * 60
+            baseline_end = baseline_minute * 60
             baseline_spike_vals = [b.get('spike_rate_hz', 0) for b in spike_bins 
                                    if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
             if baseline_spike_vals:
                 baseline_spike_hz = float(np.mean(baseline_spike_vals))
         
         if burst_bins and baseline_enabled:
-            baseline_start = baseline_minute * 60
-            baseline_end = (baseline_minute + 1) * 60
+            baseline_start = (baseline_minute - 1) * 60
+            baseline_end = baseline_minute * 60
             baseline_burst_vals = [b.get('burst_rate_bpm', 0) for b in burst_bins 
                                    if b.get('time', 0) >= baseline_start and b.get('time', 0) < baseline_end]
             if baseline_burst_vals:
                 baseline_burst_bpm = float(np.mean(baseline_burst_vals))
         
         # Drug metrics - compute if enabled and bins available
+        # drug_readout_minute is the "Perf. Time" - duration after drug addition
+        # Total time = drugPerfTime + drugReadoutMinute (e.g., 3 + 5 = 8)
+        # The window should be (total - 1) * 60 to total * 60 to match frontend
+        # e.g., if total=8, window is 7*60=420s to 8*60=480s (minute 7-8 range)
         if drug_spike_hz is None and drug_enabled and selected_drugs and spike_bins:
-            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-            drug_end_time = drug_readout_time + 60
+            drug_readout_min = drug_perf_time + drug_readout_minute
+            drug_start_time = (drug_readout_min - 1) * 60
+            drug_end_time = drug_readout_min * 60
             drug_spike_vals = [b.get('spike_rate_hz', 0) for b in spike_bins 
-                              if b.get('time', 0) >= drug_readout_time and b.get('time', 0) < drug_end_time]
+                              if b.get('time', 0) >= drug_start_time and b.get('time', 0) < drug_end_time]
             if drug_spike_vals:
                 drug_spike_hz = float(np.mean(drug_spike_vals))
         
         if drug_burst_bpm is None and drug_enabled and selected_drugs and burst_bins:
-            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-            drug_end_time = drug_readout_time + 60
+            drug_readout_min = drug_perf_time + drug_readout_minute
+            drug_start_time = (drug_readout_min - 1) * 60
+            drug_end_time = drug_readout_min * 60
             drug_burst_vals = [b.get('burst_rate_bpm', 0) for b in burst_bins 
-                              if b.get('time', 0) >= drug_readout_time and b.get('time', 0) < drug_end_time]
+                              if b.get('time', 0) >= drug_start_time and b.get('time', 0) < drug_end_time]
             if drug_burst_vals:
                 drug_burst_bpm = float(np.mean(drug_burst_vals))
     
@@ -1950,8 +1958,9 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         if spikes and duration_s > 0:
             # Compute spike rate from raw spikes for baseline window
             # Spikes use 'timestamp' field, not 'time_s'
-            baseline_start = baseline_minute * 60
-            baseline_end = (baseline_minute + 1) * 60
+            # baseline_minute=1 means window 0-60s (0-1 min)
+            baseline_start = (baseline_minute - 1) * 60
+            baseline_end = baseline_minute * 60
             baseline_spikes = [s for s in spikes if baseline_start <= s.get('timestamp', s.get('time_s', 0)) < baseline_end]
             if baseline_end > baseline_start:
                 baseline_spike_hz = len(baseline_spikes) / (baseline_end - baseline_start)
@@ -1959,26 +1968,28 @@ def extract_mea_comparison_metrics(recording: dict) -> dict:
         if electrode_bursts:
             # Compute burst rate from raw bursts for baseline window
             # Bursts use 'start_time' or 'start_time_s'
-            baseline_start = baseline_minute * 60
-            baseline_end = (baseline_minute + 1) * 60
+            baseline_start = (baseline_minute - 1) * 60
+            baseline_end = baseline_minute * 60
             baseline_bursts = [b for b in electrode_bursts if baseline_start <= b.get('start_time', b.get('start_time_s', 0)) < baseline_end]
             if baseline_end > baseline_start:
                 baseline_burst_bpm = len(baseline_bursts) / ((baseline_end - baseline_start) / 60)
         
         # Drug metrics from raw data
         if drug_enabled and selected_drugs and spikes:
-            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-            drug_end_time = drug_readout_time + 60
-            drug_spikes = [s for s in spikes if drug_readout_time <= s.get('timestamp', s.get('time_s', 0)) < drug_end_time]
-            if drug_end_time > drug_readout_time:
-                drug_spike_hz = len(drug_spikes) / (drug_end_time - drug_readout_time)
+            drug_readout_min = drug_perf_time + drug_readout_minute
+            drug_start_time = (drug_readout_min - 1) * 60
+            drug_end_time = drug_readout_min * 60
+            drug_spikes = [s for s in spikes if drug_start_time <= s.get('timestamp', s.get('time_s', 0)) < drug_end_time]
+            if drug_end_time > drug_start_time:
+                drug_spike_hz = len(drug_spikes) / (drug_end_time - drug_start_time)
         
         if drug_enabled and selected_drugs and electrode_bursts:
-            drug_readout_time = (drug_perf_time + drug_readout_minute) * 60
-            drug_end_time = drug_readout_time + 60
-            drug_bursts = [b for b in electrode_bursts if drug_readout_time <= b.get('start_time', b.get('start_time_s', 0)) < drug_end_time]
-            if drug_end_time > drug_readout_time:
-                drug_burst_bpm = len(drug_bursts) / ((drug_end_time - drug_readout_time) / 60)
+            drug_readout_min = drug_perf_time + drug_readout_minute
+            drug_start_time = (drug_readout_min - 1) * 60
+            drug_end_time = drug_readout_min * 60
+            drug_bursts = [b for b in electrode_bursts if drug_start_time <= b.get('start_time', b.get('start_time_s', 0)) < drug_end_time]
+            if drug_end_time > drug_start_time:
+                drug_burst_bpm = len(drug_bursts) / ((drug_end_time - drug_start_time) / 60)
     
     result['baseline_spike_hz'] = baseline_spike_hz
     result['baseline_burst_bpm'] = baseline_burst_bpm

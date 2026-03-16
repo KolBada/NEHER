@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
   Home, Save, Download, FileSpreadsheet, FileText, Zap, Activity, 
   Info, BarChart3, TrendingUp, Settings2, Check, FolderOpen, 
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, ScatterChart, Scatter, ReferenceArea, Brush
+  ResponsiveContainer, ScatterChart, Scatter, ReferenceArea, Brush, ReferenceLine, Legend
 } from 'recharts';
 import {
   Tooltip,
@@ -38,6 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
 import SaveRecording from './SaveRecording';
 import MEAExportPanel from './MEAExportPanel';
+import FolderComparison from './FolderComparison';
 
 // ============================================================================
 // DRUG CONFIGURATION (matching SSE)
@@ -1010,6 +1012,9 @@ export default function MEAAnalysis({
   // Zoom state for Spontaneous Activity tab
   const [spontaneousZoomDomain, setSpontaneousZoomDomain] = useState(null);
   
+  // Comparison modal state
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  
   // Table mode
   const [tableMode, setTableMode] = useState('minute');
   
@@ -1198,6 +1203,7 @@ export default function MEAAnalysis({
       const mEnd = (m + 1) * 60;
       perMinuteCombined.push({
         minute: m + 1,
+        minuteRange: `${m}–${m + 1}`,  // Time range format: 0-1, 1-2, etc.
         spike_rate_hz: computeWindowMean(spikeRateBins, 'spike_rate_hz', mStart, mEnd) || 0,
         spike_count: spikeRateBins.filter(b => b.bin_start >= mStart && b.bin_end <= mEnd).reduce((sum, b) => sum + b.spike_count, 0),
         burst_rate_bpm: computeWindowMean(burstRateBins, 'burst_rate_bpm', mStart, mEnd) || 0,
@@ -1320,9 +1326,10 @@ export default function MEAAnalysis({
       const spikeRateBins = wellAnalysis.spikeRateBins || [];
       const burstRateBins = wellAnalysis.burstRateBins || [];
       
-      // Baseline metrics - from specified baseline minute
-      const baselineStart = baselineMinute * 60;
-      const baselineEnd = (baselineMinute + 1) * 60;
+      // Baseline metrics - using same calculation as wellAnalysis
+      // baselineMinute=1 means window 0-60s (0-1 min), so range is (baselineMinute-1)*60 to baselineMinute*60
+      const baselineStart = (baselineMinute - 1) * 60;
+      const baselineEnd = baselineMinute * 60;
       
       const baselineSpikeVals = spikeRateBins
         .filter(b => b.time >= baselineStart && b.time < baselineEnd)
@@ -1338,10 +1345,11 @@ export default function MEAAnalysis({
         baselineBurstBpm = baselineBurstVals.reduce((a, b) => a + b, 0) / baselineBurstVals.length;
       }
       
-      // Drug metrics - from specified drug readout time
+      // Drug metrics - drugPerfTime + drugReadoutMinute = total minutes, window is [total, total+1)
       if (drugEnabled && selectedDrugs.length > 0) {
-        const drugTime = (drugPerfTime + drugReadoutMinute) * 60;
-        const drugEnd = drugTime + 60;
+        const drugReadoutMin = drugPerfTime + drugReadoutMinute;
+        const drugTime = drugReadoutMin * 60;
+        const drugEnd = (drugReadoutMin + 1) * 60;
         
         const drugSpikeVals = spikeRateBins
           .filter(b => b.time >= drugTime && b.time < drugEnd)
@@ -1879,12 +1887,13 @@ export default function MEAAnalysis({
                   boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
                 }}
                 onClick={() => {
-                  if (savedFolderId && onGoToComparison) {
-                    onGoToComparison(savedFolderId);
+                  if (savedFolderId) {
+                    setShowComparisonModal(true);
                   } else {
                     toast.info('Save recording first to access comparison');
                   }
                 }}
+                data-testid="mea-comparison-btn"
               >
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
               </Button>
@@ -1899,44 +1908,42 @@ export default function MEAAnalysis({
           MAIN CONTENT
       ================================================================ */}
       <main className="p-6 pt-20 relative z-10 max-w-[1800px] mx-auto">
-        {/* Background Glass Lights - SSE-style ambient glow */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Parameters tab - subtle blue/gray glow */}
-          {activeTab === 'parameters' && (
-            <>
-              <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(113, 113, 122, 0.3) 0%, transparent 70%)' }} />
-              <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)' }} />
-            </>
-          )}
-          {/* Spontaneous Activity tab - warm amber/gold glow */}
+        {/* Background Glass Lights - subtle ambient glow matching glassmorphism aesthetic */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+          {/* Subtle ambient light in the top-left area (teal/emerald) */}
+          <div 
+            className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.08]" 
+            style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, transparent 60%)' }} 
+          />
+          {/* Subtle ambient light in the bottom-right area (blue) */}
+          <div 
+            className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full opacity-[0.06]" 
+            style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 60%)' }} 
+          />
+          {/* Tab-specific accent light (very subtle) */}
           {activeTab === 'spontaneous' && (
-            <>
-              <div className="absolute -top-24 left-1/3 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(244, 206, 162, 0.35) 0%, transparent 70%)' }} />
-              <div className="absolute top-1/2 -right-32 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(251, 191, 36, 0.25) 0%, transparent 70%)' }} />
-              <div className="absolute bottom-0 left-1/4 w-72 h-72 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, rgba(217, 119, 6, 0.2) 0%, transparent 70%)' }} />
-            </>
+            <div 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
+              style={{ background: 'radial-gradient(circle, rgba(244, 206, 162, 0.6) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+            />
           )}
-          {/* Light Stimulus tab - vibrant yellow/amber glow */}
           {activeTab === 'light' && (
-            <>
-              <div className="absolute -top-20 left-1/4 w-96 h-96 rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%)' }} />
-              <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(252, 211, 77, 0.3) 0%, transparent 70%)' }} />
-              <div className="absolute bottom-1/4 -left-20 w-72 h-72 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%)' }} />
-            </>
+            <div 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.05]" 
+              style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+            />
           )}
-          {/* Save Recording tab - emerald/green glow */}
           {activeTab === 'save' && (
-            <>
-              <div className="absolute -top-24 left-1/3 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%)' }} />
-              <div className="absolute top-1/2 -right-24 w-72 h-72 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(52, 211, 153, 0.25) 0%, transparent 70%)' }} />
-            </>
+            <div 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
+              style={{ background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+            />
           )}
-          {/* Export tab - teal/cyan glow */}
           {activeTab === 'export' && (
-            <>
-              <div className="absolute -top-20 left-1/4 w-96 h-96 rounded-full opacity-25" style={{ background: 'radial-gradient(circle, rgba(20, 184, 166, 0.35) 0%, transparent 70%)' }} />
-              <div className="absolute top-1/3 right-1/3 w-80 h-80 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)' }} />
-            </>
+            <div 
+              className="absolute top-1/3 left-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]" 
+              style={{ background: 'radial-gradient(circle, rgba(20, 184, 166, 0.5) 0%, transparent 60%)', transform: 'translateX(-50%)' }} 
+            />
           )}
         </div>
         
@@ -2293,7 +2300,7 @@ export default function MEAAnalysis({
                             min={1}
                           />
                           <Badge variant="outline" className="text-[8px] px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(34, 211, 238, 0.2)', color: 'rgba(34, 211, 238, 0.8)' }}>
-                            {baselineMinute}-{baselineMinute + 1}min
+                            {baselineMinute - 1}–{baselineMinute}min
                           </Badge>
                         </div>
                       </div>
@@ -2350,6 +2357,9 @@ export default function MEAAnalysis({
                                 disabled={!drugEnabled}
                               />
                               <span className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>min</span>
+                              <Badge variant="outline" className="text-[8px] px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(168, 85, 247, 0.2)', color: 'rgba(168, 85, 247, 0.8)' }}>
+                                {drugPerfTime + drugReadoutMinute}–{drugPerfTime + drugReadoutMinute + 1}min
+                              </Badge>
                             </div>
                           </div>
                         ) : (
@@ -2445,7 +2455,7 @@ export default function MEAAnalysis({
                         <Table>
                           <TableHeader>
                             <TableRow style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                              <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Minute</TableHead>
+                              <TableHead className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>Time (min)</TableHead>
                               <TableHead className="text-[10px] text-right" style={{ color: '#10b981' }}>Spike Rate (Hz)</TableHead>
                               <TableHead className="text-[10px] text-right" style={{ color: '#10b981' }}>Spike Count</TableHead>
                               <TableHead className="text-[10px] text-right" style={{ color: '#f97316' }}>Burst Rate (bpm)</TableHead>
@@ -2455,7 +2465,7 @@ export default function MEAAnalysis({
                           <TableBody>
                             {wellAnalysis.perMinuteCombined.map((row) => (
                               <TableRow key={row.minute} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.minute}</TableCell>
+                                <TableCell className="text-xs font-data" style={{ color: 'var(--text-secondary)' }}>{row.minuteRange}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: '#10b981' }}>{row.spike_rate_hz.toFixed(3)}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: 'var(--text-secondary)' }}>{row.spike_count}</TableCell>
                                 <TableCell className="text-xs font-data text-right" style={{ color: '#f97316' }}>{row.burst_rate_bpm.toFixed(3)}</TableCell>
@@ -3251,6 +3261,36 @@ export default function MEAAnalysis({
           </TabsContent>
         </Tabs>
       </main>
+      
+      {/* Comparison Modal */}
+      <Dialog open={showComparisonModal} onOpenChange={setShowComparisonModal}>
+        <DialogContent 
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 bg-zinc-950 border-zinc-800"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(24, 24, 27, 0.98) 0%, rgba(9, 9, 11, 0.99) 100%)',
+          }}
+        >
+          {/* Close button in top-right */}
+          <button
+            onClick={() => setShowComparisonModal(false)}
+            className="absolute top-4 right-4 z-50 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            data-testid="close-comparison-modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          <div className="h-full overflow-auto p-6">
+            {savedFolderId && (
+              <FolderComparison 
+                folder={{ id: savedFolderId, name: savedFolderName || 'Folder' }}
+                onBack={() => setShowComparisonModal(false)}
+                embedded={true}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
