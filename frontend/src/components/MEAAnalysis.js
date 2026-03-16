@@ -905,6 +905,7 @@ export default function MEAAnalysis({
   onModified = () => {},
   onCancelEdit = () => {},
   onSaveComplete: parentOnSaveComplete = () => {},
+  onGoToFolder = null,
 }) {
   // Well state
   const [selectedWell, setSelectedWell] = useState(Object.keys(meaData?.wells || {})[0] || null);
@@ -1655,13 +1656,9 @@ export default function MEAAnalysis({
                   color: 'var(--text-secondary)',
                 }}
                 onClick={() => {
-                  if (savedFolderId && savedFolderName) {
-                    onHome();
-                    toast.success(`Navigate to folder: ${savedFolderName}`, {
-                      description: 'Click the folder in the Saved Recordings section',
-                    });
-                  } else {
-                    onHome();
+                  if (savedFolderId && onGoToFolder) {
+                    onGoToFolder(savedFolderId);
+                  } else if (!savedFolderId) {
                     toast.info('Recording not assigned to a folder');
                   }
                 }}
@@ -2271,12 +2268,12 @@ export default function MEAAnalysis({
                           <TrendingUp className="w-4 h-4" style={{ color: '#10b981' }} />
                           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Spike Trace</span>
                           {lightEnabled && lightPulses && (
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
+                            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>
                               {lightPulses.length} stims
                             </Badge>
                           )}
                           {drugEnabled && activeDrugName && (
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#a855f7', color: '#a855f7', background: 'rgba(168, 85, 247, 0.1)' }}>
+                            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>
                               {activeDrugName}
                             </Badge>
                           )}
@@ -2450,12 +2447,12 @@ export default function MEAAnalysis({
                           <TrendingUp className="w-4 h-4" style={{ color: '#f97316' }} />
                           <span className="text-xs uppercase tracking-wider font-medium" style={{ color: 'var(--text-secondary)' }}>Burst Trace</span>
                           {lightEnabled && lightPulses && (
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#f59e0b', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)' }}>
+                            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#facc1530', color: '#facc15' }}>
                               {lightPulses.length} stims
                             </Badge>
                           )}
                           {drugEnabled && activeDrugName && (
-                            <Badge variant="outline" className="text-[9px] h-5 px-1.5" style={{ borderColor: '#a855f7', color: '#a855f7', background: 'rgba(168, 85, 247, 0.1)' }}>
+                            <Badge className="text-[9px] px-1.5 py-0" style={{ background: '#a855f730', color: '#a855f7' }}>
                               {activeDrugName}
                             </Badge>
                           )}

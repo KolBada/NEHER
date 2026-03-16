@@ -1599,6 +1599,17 @@ function App() {
           toast.success('Reverted to saved version');
         }}
         onSaveComplete={handleSaveComplete}
+        onGoToFolder={(folderId) => {
+          setNavigateToFolderId(folderId);
+          setMeaData(null);
+          setMeaConfig(null);
+          setSavedRecordingId(null);
+          setSavedFolderId(null);
+          setSavedFolderName(null);
+          setSavedRecordingData(null);
+          setIsModified(false);
+          setAppView('home');
+        }}
       />
     );
   }
