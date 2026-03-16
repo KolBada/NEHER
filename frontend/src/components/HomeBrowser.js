@@ -1682,6 +1682,35 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                                 {recording.n_beats} beats
                               </Badge>
                             )}
+                            {/* Duration badge - for both MEA and SSE */}
+                            {recording.duration_sec > 0 && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full"
+                                style={{ 
+                                  background: 'rgba(255,255,255,0.04)',
+                                  border: '1px solid rgba(255,255,255,0.12)',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formatDuration(recording.duration_sec)}
+                              </Badge>
+                            )}
+                            {/* MEA: Show well ID */}
+                            {recording.source_type === 'MEA' && recording.well_id && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] px-2 py-0.5 rounded-full font-mono"
+                                style={{ 
+                                  background: 'rgba(16, 185, 129, 0.08)',
+                                  border: '1px solid rgba(16, 185, 129, 0.20)',
+                                  color: 'var(--mea-accent)',
+                                }}
+                              >
+                                {recording.well_id}
+                              </Badge>
+                            )}
                             {/* MEA: Show electrodes count */}
                             {recording.source_type === 'MEA' && recording.n_electrodes > 0 && (
                               <Badge 
@@ -1695,20 +1724,6 @@ export default function HomeBrowser({ onOpenRecording, initialFolderId = null, o
                               >
                                 <Activity className="w-3 h-3 mr-1" />
                                 {recording.n_electrodes} electrodes
-                              </Badge>
-                            )}
-                            {recording.duration_sec > 0 && (
-                              <Badge 
-                                variant="outline" 
-                                className="text-[10px] px-2 py-0.5 rounded-full"
-                                style={{ 
-                                  background: 'rgba(255,255,255,0.04)',
-                                  border: '1px solid rgba(255,255,255,0.12)',
-                                  color: 'var(--text-secondary)',
-                                }}
-                              >
-                                <Clock className="w-3 h-3 mr-1" />
-                                {formatDuration(recording.duration_sec)}
                               </Badge>
                             )}
                             {recording.has_light_stim && (

@@ -214,8 +214,9 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         # MEA-specific summary info
         n_electrodes = analysis_state.get("n_active_electrodes", 0)
         duration_sec = analysis_state.get("duration_s", 0)
-        has_light_stim = analysis_state.get("config", {}).get("light_enabled", False)
-        has_drug_analysis = bool(analysis_state.get("config", {}).get("drug_name"))
+        has_light_stim = analysis_state.get("lightEnabled", False) or analysis_state.get("config", {}).get("light_enabled", False)
+        has_drug_analysis = analysis_state.get("drugEnabled", False) or bool(analysis_state.get("selectedDrugs", []))
+        well_id = analysis_state.get("well_id", analysis_state.get("selectedWell", ""))
         n_beats = 0  # MEA doesn't have beats
     else:
         # SEM summary info (existing logic)
@@ -224,6 +225,7 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         has_light_stim = bool(analysis_state.get("light_pulses"))
         has_drug_analysis = bool(analysis_state.get("selected_drugs"))
         n_electrodes = 0
+        well_id = ""
     
     recording = {
         "folder_id": folder_id,
@@ -234,6 +236,7 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         "metrics_version": METRICS_VERSION,  # Track version for auto-updates
         "n_beats": n_beats,
         "n_electrodes": n_electrodes,  # MEA-specific
+        "well_id": well_id,  # MEA well identifier (A1, A2, etc.)
         "duration_sec": duration_sec,
         "has_light_stim": has_light_stim,
         "has_drug_analysis": has_drug_analysis,
@@ -254,6 +257,7 @@ async def create_recording(db, folder_id: str, name: str, filename: str, analysi
         "name": name,
         "filename": filename,
         "source_type": source_type,
+        "well_id": well_id,
         "created_at": now,
         "updated_at": now,
         "n_beats": n_beats,
@@ -277,6 +281,7 @@ async def get_recordings_in_folder(db, folder_id: str) -> List[dict]:
             "name": rec["name"],
             "filename": rec["filename"],
             "source_type": rec.get("source_type", "SEM"),  # Default to SEM for backward compatibility
+            "well_id": rec.get("well_id", ""),  # MEA well identifier
             "created_at": rec["created_at"],
             "updated_at": rec["updated_at"],
             "n_beats": rec.get("n_beats", 0),
@@ -327,11 +332,28 @@ async def update_recording(db, recording_id: str, name: Optional[str] = None, an
             if name is not None:
                 analysis_state['recordingName'] = name
             update_fields["analysis_state"] = analysis_state
-            # Update summary info
-            update_fields["n_beats"] = analysis_state.get("metrics", {}).get("n_filtered", 0)
-            update_fields["duration_sec"] = analysis_state.get("file_info", {}).get("duration_sec", 0)
-            update_fields["has_light_stim"] = bool(analysis_state.get("light_pulses"))
-            update_fields["has_drug_analysis"] = bool(analysis_state.get("selected_drugs"))
+            
+            # Determine source type
+            source_type = analysis_state.get("source_type", "SEM")
+            update_fields["source_type"] = source_type
+            
+            if source_type == "MEA":
+                # MEA-specific summary info
+                update_fields["n_electrodes"] = analysis_state.get("n_active_electrodes", 0)
+                update_fields["duration_sec"] = analysis_state.get("duration_s", 0)
+                update_fields["has_light_stim"] = analysis_state.get("lightEnabled", False) or analysis_state.get("config", {}).get("light_enabled", False)
+                update_fields["has_drug_analysis"] = analysis_state.get("drugEnabled", False) or bool(analysis_state.get("selectedDrugs", []))
+                update_fields["well_id"] = analysis_state.get("well_id", analysis_state.get("selectedWell", ""))
+                update_fields["n_beats"] = 0
+            else:
+                # SSE summary info
+                update_fields["n_beats"] = analysis_state.get("metrics", {}).get("n_filtered", 0)
+                update_fields["duration_sec"] = analysis_state.get("file_info", {}).get("duration_sec", 0)
+                update_fields["has_light_stim"] = bool(analysis_state.get("light_pulses"))
+                update_fields["has_drug_analysis"] = bool(analysis_state.get("selected_drugs"))
+                update_fields["n_electrodes"] = 0
+                update_fields["well_id"] = ""
+            
             # Update metrics version
             if update_version:
                 update_fields["metrics_version"] = METRICS_VERSION
