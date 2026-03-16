@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// API base URL
+const API = process.env.REACT_APP_BACKEND_URL || '';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
@@ -1244,6 +1247,21 @@ function App() {
           source_files: state.source_files || {},
         });
         setMeaConfig(state.config || {});
+        
+        // Set saved recording state for MEA (enables edit/cancel workflow)
+        setSavedRecordingId(recordingData.id);
+        setSavedFolderId(recordingData.folder_id);
+        setSavedRecordingData(recordingData);
+        setIsModified(false);
+        
+        // Fetch folder name in parallel
+        if (recordingData.folder_id) {
+          fetch(`${API}/api/folders/${recordingData.folder_id}`)
+            .then(res => res.json())
+            .then(data => setSavedFolderName(data.name))
+            .catch(() => {});
+        }
+        
         setAppView('mea-analysis');
         toast.success(`Loaded MEA recording: ${recordingData.name}`);
         setRecordingLoading(false);
@@ -1553,9 +1571,31 @@ function App() {
           toast.success('Save functionality coming soon!');
         }}
         onHome={() => {
+          // Reset saved recording state when going home
           setMeaData(null);
           setMeaConfig(null);
+          setSavedRecordingId(null);
+          setSavedFolderId(null);
+          setSavedFolderName(null);
+          setSavedRecordingData(null);
+          setIsModified(false);
           setAppView('home');
+        }}
+        // Saved recording props
+        savedRecordingId={savedRecordingId}
+        savedFolderId={savedFolderId}
+        savedFolderName={savedFolderName}
+        savedRecordingData={savedRecordingData}
+        isModified={isModified}
+        onModified={setIsModified}
+        onCancelEdit={async () => {
+          if (!savedRecordingData) {
+            toast.error('No saved version to revert to');
+            return;
+          }
+          // Reload the saved recording
+          await handleOpenRecording(savedRecordingData);
+          toast.success('Reverted to saved version');
         }}
       />
     );

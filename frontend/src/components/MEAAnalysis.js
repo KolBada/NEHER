@@ -891,7 +891,21 @@ const CorrelationScatter = memo(function CorrelationScatter({ spikeData, burstDa
 // Main MEA Analysis Component
 // ============================================================================
 
-export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
+export default function MEAAnalysis({ 
+  meaData, 
+  config, 
+  onSave, 
+  onHome,
+  // Saved recording props
+  savedRecordingId = null,
+  savedFolderId = null,
+  savedFolderName = null,
+  savedRecordingData = null,
+  isModified = false,
+  onModified = () => {},
+  onCancelEdit = () => {},
+  onUpdateSavedRecording = () => {},
+}) {
   // Well state
   const [selectedWell, setSelectedWell] = useState(Object.keys(meaData?.wells || {})[0] || null);
   const [wellNames, setWellNames] = useState({});
@@ -945,6 +959,93 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
   const [organoidInfo, setOrganoidInfo] = useState([{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }]);
   const [fusionDate, setFusionDate] = useState('');
   const [recordingDescription, setRecordingDescription] = useState('');
+
+  // Track initial state for modification detection
+  const [initialStateSnapshot, setInitialStateSnapshot] = useState(null);
+
+  // Initialize state from saved recording data
+  useEffect(() => {
+    if (savedRecordingData?.analysis_state) {
+      const state = savedRecordingData.analysis_state;
+      // Restore recording metadata
+      if (state.recordingName) setRecordingName(state.recordingName);
+      if (state.recordingDate) setRecordingDate(state.recordingDate);
+      if (state.organoidInfo) setOrganoidInfo(state.organoidInfo);
+      if (state.fusionDate) setFusionDate(state.fusionDate);
+      if (state.recordingDescription) setRecordingDescription(state.recordingDescription);
+      // Restore well params
+      if (state.wellParams) setWellParams(state.wellParams);
+      // Restore drug settings
+      if (state.drugEnabled !== undefined) setDrugEnabled(state.drugEnabled);
+      if (state.selectedDrugs) setSelectedDrugs(state.selectedDrugs);
+      if (state.drugSettings) setDrugSettings(state.drugSettings);
+      if (state.drugPerfTime !== undefined) setDrugPerfTime(state.drugPerfTime);
+      if (state.drugReadoutMinute !== undefined) setDrugReadoutMinute(state.drugReadoutMinute);
+      // Restore light settings
+      if (state.lightEnabled !== undefined) setLightEnabled(state.lightEnabled);
+      if (state.lightParams) setLightParams(state.lightParams);
+      if (state.lightPulses) setLightPulses(state.lightPulses);
+      // Restore baseline settings
+      if (state.baselineEnabled !== undefined) setBaselineEnabled(state.baselineEnabled);
+      if (state.baselineMinute !== undefined) setBaselineMinute(state.baselineMinute);
+      
+      // Store snapshot of the exact fields we track for modification detection
+      // Use a timeout to ensure all state updates have been applied
+      setTimeout(() => {
+        const snapshot = {
+          recordingName: state.recordingName || '',
+          recordingDate: state.recordingDate || '',
+          organoidInfo: state.organoidInfo || [{ cell_type: '', other_cell_type: '', line_name: '', birth_date: '', passage_number: '', transfection: null }],
+          fusionDate: state.fusionDate || '',
+          recordingDescription: state.recordingDescription || '',
+          wellParams: state.wellParams || {},
+          drugEnabled: state.drugEnabled ?? false,
+          selectedDrugs: state.selectedDrugs || [],
+          drugSettings: state.drugSettings || {},
+          drugPerfTime: state.drugPerfTime ?? 3,
+          drugReadoutMinute: state.drugReadoutMinute ?? 5,
+          lightEnabled: state.lightEnabled ?? false,
+          lightParams: state.lightParams || { startTime: 300, pulseDuration: 20, interval: 'decreasing', nPulses: 5, searchRange: 20, autoDetect: true },
+          lightPulses: state.lightPulses || null,
+          baselineEnabled: state.baselineEnabled ?? true,
+          baselineMinute: state.baselineMinute ?? 1,
+        };
+        setInitialStateSnapshot(JSON.stringify(snapshot));
+      }, 100);
+    }
+  }, [savedRecordingData]);
+
+  // Track modifications - notify parent when state changes
+  useEffect(() => {
+    if (!savedRecordingId || !initialStateSnapshot) return;
+    
+    const currentState = {
+      recordingName,
+      recordingDate,
+      organoidInfo,
+      fusionDate,
+      recordingDescription,
+      wellParams,
+      drugEnabled,
+      selectedDrugs,
+      drugSettings,
+      drugPerfTime,
+      drugReadoutMinute,
+      lightEnabled,
+      lightParams,
+      lightPulses,
+      baselineEnabled,
+      baselineMinute,
+    };
+    
+    const hasChanged = JSON.stringify(currentState) !== initialStateSnapshot;
+    onModified(hasChanged);
+  }, [
+    savedRecordingId, initialStateSnapshot, onModified,
+    recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription,
+    wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute,
+    lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute
+  ]);
 
   // Get current well's bin sizes (with defaults from config)
   const currentParams = useMemo(() => {
@@ -1071,14 +1172,23 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       wells: Object.keys(meaData?.wells || {}),
       config,
       wellParams,
+      // Recording metadata
+      recordingName,
+      recordingDate,
+      organoidInfo,
+      fusionDate,
+      recordingDescription,
+      // Drug settings
       drugEnabled,
       selectedDrugs,
       drugSettings,
       drugPerfTime,
       drugReadoutMinute,
+      // Light settings
       lightEnabled,
       lightParams,
       lightPulses,
+      // Baseline settings
       baselineEnabled,
       baselineMinute,
       // Include MEA-specific metadata for proper routing
@@ -1100,7 +1210,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       // Generate a readable filename for display (one per line)
       original_filename: Object.values(meaData?.source_files || {}).join('\n') || 'MEA Recording',
     };
-  }, [selectedWell, meaData, config, wellParams, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
+  }, [selectedWell, meaData, config, wellParams, recordingName, recordingDate, organoidInfo, fusionDate, recordingDescription, drugEnabled, selectedDrugs, drugSettings, drugPerfTime, drugReadoutMinute, lightEnabled, lightParams, lightPulses, baselineEnabled, baselineMinute, wellAnalysis, duration]);
 
   // Drug window for visualization
   // Perf. Start = when drug is added (purple box starts)
@@ -1346,17 +1456,56 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
               NEHER
             </h1>
-            <Badge 
-              variant="outline" 
-              className="h-7 text-[11px] px-3 rounded-lg"
-              style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.35)',
-                color: '#ef4444',
-              }}
-            >
-              Unsaved
-            </Badge>
+            <div className="h-5 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            {/* Status badge: Saved (emerald), Edit | Cancel (orange), Unsaved (red) */}
+            {savedRecordingId && !isModified && (
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#10b981',
+                }}
+              >
+                <Check className="w-3 h-3 mr-1.5" />
+                Saved
+              </Badge>
+            )}
+            {savedRecordingId && isModified && (
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg flex items-center gap-0"
+                style={{
+                  background: 'rgba(249, 115, 22, 0.12)',
+                  border: '1px solid rgba(249, 115, 22, 0.35)',
+                  color: '#f97316',
+                }}
+              >
+                <span>Editing</span>
+                <div className="h-3 w-px mx-2" style={{ background: 'rgba(249, 115, 22, 0.4)' }} />
+                <button 
+                  onClick={onCancelEdit}
+                  className="hover:text-orange-200 transition-colors"
+                  title="Revert to saved version"
+                >
+                  Cancel
+                </button>
+              </Badge>
+            )}
+            {!savedRecordingId && (
+              <Badge 
+                variant="outline" 
+                className="h-7 text-[11px] px-3 rounded-lg"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444',
+                }}
+              >
+                Unsaved
+              </Badge>
+            )}
             
             {/* Well selector chips - directly after Unsaved */}
             <div className="flex items-center gap-1">
@@ -2175,9 +2324,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
                         
-                        {/* Start: (value) < > - adjust by spike bin */}
-                        <span className="text-[9px] text-zinc-500">Start:</span>
-                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s)</span>
+                        {/* Start: value < > - adjust by spike bin */}
+                        <span className="text-[9px] text-zinc-500">Start</span>
+                        <span className="text-[9px] font-data text-zinc-300">{(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
                             onClick={() => handleAdjustPulseStart(currentParams.spikeBinS, -1)}
@@ -2193,9 +2342,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           </Button>
                         </div>
                         
-                        {/* End: (value) < > - adjust by spike bin */}
-                        <span className="text-[9px] text-zinc-500">End:</span>
-                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s)</span>
+                        {/* End: value < > - adjust by spike bin */}
+                        <span className="text-[9px] text-zinc-500">End</span>
+                        <span className="text-[9px] font-data text-zinc-300">{(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
                             onClick={() => handleAdjustPulseEnd(currentParams.spikeBinS, -1)}
@@ -2210,9 +2359,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             <ChevronRight className="w-3 h-3" />
                           </Button>
                         </div>
-                        
-                        <div className="h-4 w-px bg-zinc-700" />
-                        <span className="text-[9px] text-zinc-500">or Click</span>
                         
                         {/* Click Start/End buttons with info tooltip */}
                         <div className="flex items-center gap-1">
@@ -2335,9 +2481,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
                         
-                        {/* Start: (value) < > - adjust by burst bin */}
-                        <span className="text-[9px] text-zinc-500">Start:</span>
-                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s)</span>
+                        {/* Start: value < > - adjust by burst bin */}
+                        <span className="text-[9px] text-zinc-500">Start</span>
+                        <span className="text-[9px] font-data text-zinc-300">{(lightPulses[selectedPulseIdx].start_sec).toFixed(1)}s</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
                             onClick={() => handleAdjustPulseStart(currentParams.burstBinS, -1)}
@@ -2353,9 +2499,9 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                           </Button>
                         </div>
                         
-                        {/* End: (value) < > - adjust by burst bin */}
-                        <span className="text-[9px] text-zinc-500">End:</span>
-                        <span className="text-[9px] font-data text-zinc-300">({(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s)</span>
+                        {/* End: value < > - adjust by burst bin */}
+                        <span className="text-[9px] text-zinc-500">End</span>
+                        <span className="text-[9px] font-data text-zinc-300">{(lightPulses[selectedPulseIdx].end_sec).toFixed(1)}s</span>
                         <div className="flex items-center">
                           <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
                             onClick={() => handleAdjustPulseEnd(currentParams.burstBinS, -1)}
@@ -2370,9 +2516,6 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             <ChevronRight className="w-3 h-3" />
                           </Button>
                         </div>
-                        
-                        <div className="h-4 w-px bg-zinc-700" />
-                        <span className="text-[9px] text-zinc-500">or Click</span>
                         
                         {/* Click Start/End buttons with info tooltip */}
                         <div className="flex items-center gap-1">
