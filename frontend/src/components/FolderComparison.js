@@ -149,13 +149,17 @@ export default function FolderComparison({ folder, onBack, embedded = false, def
     try {
       // Get list of excluded recording IDs
       const excludedIds = Object.keys(excludedRecordings).filter(id => excludedRecordings[id]);
+      // Determine the active source type
+      const activeSourceType = sourceType || (typeCounts.mea > 0 ? 'MEA' : 'SSE');
       const { data } = await api.exportFolderComparisonXlsx(folder.id, {
         folder_id: folder.id,
         folder_name: folder.name,
         comparison_data: comparisonData,
         excluded_recording_ids: excludedIds,
+        source_type: activeSourceType,
       });
-      downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}_comparison.xlsx`);
+      const suffix = activeSourceType === 'MEA' ? '_MEA' : '_SSE';
+      downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}${suffix}_comparison.xlsx`);
       toast.success('Excel export downloaded');
     } catch (err) {
       toast.error('Failed to export Excel');
@@ -170,13 +174,17 @@ export default function FolderComparison({ folder, onBack, embedded = false, def
     try {
       // Get list of excluded recording IDs
       const excludedIds = Object.keys(excludedRecordings).filter(id => excludedRecordings[id]);
+      // Determine the active source type
+      const activeSourceType = sourceType || (typeCounts.mea > 0 ? 'MEA' : 'SSE');
       const { data } = await api.exportFolderComparisonPdf(folder.id, {
         folder_id: folder.id,
         folder_name: folder.name,
         comparison_data: comparisonData,
         excluded_recording_ids: excludedIds,
+        source_type: activeSourceType,
       });
-      downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}_comparison.pdf`);
+      const suffix = activeSourceType === 'MEA' ? '_MEA' : '_SSE';
+      downloadBlob(data, `${folder.name.replace(/\s+/g, '_')}${suffix}_comparison.pdf`);
       toast.success('PDF export downloaded');
     } catch (err) {
       toast.error('Failed to export PDF');

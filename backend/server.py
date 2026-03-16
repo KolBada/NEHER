@@ -1252,6 +1252,7 @@ class FolderComparisonExportRequest(BaseModel):
     folder_name: str
     comparison_data: dict
     excluded_recording_ids: list = []  # List of recording IDs to exclude from export
+    source_type: str = None  # 'SSE' or 'MEA' - which type to export
 
 
 def extract_comparison_metrics(recording: dict) -> dict:
@@ -2279,7 +2280,7 @@ async def get_folder_comparison(folder_id: str, source_type: str = None):
 
 @api_router.post("/folders/{folder_id}/export/xlsx")
 async def export_folder_comparison_xlsx(folder_id: str, request: FolderComparisonExportRequest):
-    """Export folder comparison data to Excel using the same structure as PDF."""
+    """Export folder comparison data to Excel - separate by source_type (SSE or MEA)."""
     # ALWAYS fetch fresh data from database to ensure exports are up-to-date
     folder = await storage.get_folder(db, folder_id)
     if not folder:
@@ -2288,19 +2289,34 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     # Get list of excluded recording IDs
     excluded_ids = set(request.excluded_recording_ids or [])
     
+    # Determine source type to export
+    export_source_type = request.source_type or 'SSE'  # Default to SSE if not specified
+    
     recordings_data = []
     async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
         rec_id = str(rec["_id"])
         # Skip excluded recordings
         if rec_id in excluded_ids:
             continue
+        
+        # Get source type from analysis_state
+        rec_source_type = rec.get("analysis_state", {}).get("source_type") or rec.get("analysis_state", {}).get("type", "SSE")
+        # Skip recordings that don't match the export source type
+        if rec_source_type != export_source_type:
+            continue
+            
         recording = {
             "id": rec_id,
             "name": rec["name"],
             "filename": rec["filename"],
             "analysis_state": rec.get("analysis_state", {}),
+            "source_type": rec_source_type,
         }
-        metrics = extract_comparison_metrics(recording)
+        
+        if export_source_type == 'MEA':
+            metrics = extract_mea_comparison_metrics(recording)
+        else:
+            metrics = extract_comparison_metrics(recording)
         recordings_data.append(metrics)
     
     # Compute age ranges
@@ -2308,38 +2324,70 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
     hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
     fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
     
-    # Compute averages
-    spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
-                          'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
-    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+    if export_source_type == 'MEA':
+        # MEA-specific averages
+        spike_metrics = ['baseline_spike_hz', 'drug_spike_hz']
+        burst_metrics = ['baseline_burst_bpm', 'drug_burst_bpm']
+        light_spike_metrics = ['light_baseline_spike_hz', 'light_avg_spike_hz', 'light_max_spike_hz', 
+                               'light_spike_delta_pct', 'light_spike_peak_delta_pct', 'light_ttp_spike']
+        light_burst_metrics = ['light_baseline_burst_bpm', 'light_avg_burst_bpm', 'light_max_burst_bpm',
+                               'light_burst_delta_pct', 'light_burst_peak_delta_pct', 'light_ttp_burst']
+        
+        spike_averages = compute_folder_averages(recordings_data, spike_metrics)
+        burst_averages = compute_folder_averages(recordings_data, burst_metrics)
+        light_spike_averages = compute_folder_averages(recordings_data, light_spike_metrics)
+        light_burst_averages = compute_folder_averages(recordings_data, light_burst_metrics)
+        
+        comparison_data = {
+            "folder": folder,
+            "source_type": "MEA",
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spike_averages": spike_averages,
+            "burst_averages": burst_averages,
+            "light_spike_averages": light_spike_averages,
+            "light_burst_averages": light_burst_averages,
+        }
+        
+        output = export_utils.create_mea_comparison_xlsx(request.folder_name, comparison_data)
+        filename = f"{request.folder_name}_MEA_comparison.xlsx".replace(' ', '_')
+    else:
+        # SSE-specific averages (original logic)
+        spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+                              'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
+        spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+        
+        light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+                            'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                            'light_amplitude', 'light_roc']
+        light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+        
+        light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+        light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+        
+        comparison_data = {
+            "folder": folder,
+            "source_type": "SSE",
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spontaneous_averages": spontaneous_averages,
+            "light_hra_averages": light_hra_averages,
+            "light_hrv_averages": light_hrv_averages,
+        }
+        
+        output = export_utils.create_comparison_xlsx(request.folder_name, comparison_data)
+        filename = f"{request.folder_name}_SSE_comparison.xlsx".replace(' ', '_')
     
-    light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
-                        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
-                        'light_amplitude', 'light_roc']
-    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
-    
-    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
-    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
-    
-    # Build fresh comparison data
-    comparison_data = {
-        "folder": folder,
-        "summary": {
-            "recording_count": len(recordings_data),
-            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
-            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
-            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
-        },
-        "recordings": recordings_data,
-        "spontaneous_averages": spontaneous_averages,
-        "light_hra_averages": light_hra_averages,
-        "light_hrv_averages": light_hrv_averages,
-    }
-    
-    # Use the new export function from export_utils
-    output = export_utils.create_comparison_xlsx(request.folder_name, comparison_data)
-    
-    filename = f"{request.folder_name}_comparison.xlsx".replace(' ', '_')
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2349,7 +2397,7 @@ async def export_folder_comparison_xlsx(folder_id: str, request: FolderCompariso
 
 @api_router.post("/folders/{folder_id}/export/pdf")
 async def export_folder_comparison_pdf(folder_id: str, request: FolderComparisonExportRequest):
-    """Export folder comparison data to PDF using the new Nature-style format."""
+    """Export folder comparison data to PDF - separate by source_type (SSE or MEA)."""
     # ALWAYS fetch fresh data from database to ensure exports are up-to-date
     folder = await storage.get_folder(db, folder_id)
     if not folder:
@@ -2358,19 +2406,34 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
     # Get list of excluded recording IDs
     excluded_ids = set(request.excluded_recording_ids or [])
     
+    # Determine source type to export
+    export_source_type = request.source_type or 'SSE'  # Default to SSE if not specified
+    
     recordings_data = []
     async for rec in db.recordings.find({"folder_id": folder_id}).limit(500):
         rec_id = str(rec["_id"])
         # Skip excluded recordings
         if rec_id in excluded_ids:
             continue
+        
+        # Get source type from analysis_state
+        rec_source_type = rec.get("analysis_state", {}).get("source_type") or rec.get("analysis_state", {}).get("type", "SSE")
+        # Skip recordings that don't match the export source type
+        if rec_source_type != export_source_type:
+            continue
+            
         recording = {
             "id": rec_id,
             "name": rec["name"],
             "filename": rec["filename"],
             "analysis_state": rec.get("analysis_state", {}),
+            "source_type": rec_source_type,
         }
-        metrics = extract_comparison_metrics(recording)
+        
+        if export_source_type == 'MEA':
+            metrics = extract_mea_comparison_metrics(recording)
+        else:
+            metrics = extract_comparison_metrics(recording)
         recordings_data.append(metrics)
     
     # Compute age ranges
@@ -2378,36 +2441,69 @@ async def export_folder_comparison_pdf(folder_id: str, request: FolderComparison
     hco_ages = [r['hco_age'] for r in recordings_data if r.get('hco_age') is not None]
     fusion_ages = [r['fusion_age'] for r in recordings_data if r.get('fusion_age') is not None]
     
-    # Compute averages
-    spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
-                          'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
-    spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
-    
-    light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
-                        'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
-                        'light_amplitude', 'light_roc']
-    light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
-    
-    light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
-    light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
-    
-    # Build fresh comparison data
-    comparison_data = {
-        "folder": folder,
-        "summary": {
-            "recording_count": len(recordings_data),
-            "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
-            "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
-            "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
-        },
-        "recordings": recordings_data,
-        "spontaneous_averages": spontaneous_averages,
-        "light_hra_averages": light_hra_averages,
-        "light_hrv_averages": light_hrv_averages,
-    }
-    
-    output = export_utils.create_comparison_pdf(request.folder_name, comparison_data)
-    filename = f"{request.folder_name}_comparison.pdf".replace(' ', '_')
+    if export_source_type == 'MEA':
+        # MEA-specific averages
+        spike_metrics = ['baseline_spike_hz', 'drug_spike_hz']
+        burst_metrics = ['baseline_burst_bpm', 'drug_burst_bpm']
+        light_spike_metrics = ['light_baseline_spike_hz', 'light_avg_spike_hz', 'light_max_spike_hz', 
+                               'light_spike_delta_pct', 'light_spike_peak_delta_pct', 'light_ttp_spike']
+        light_burst_metrics = ['light_baseline_burst_bpm', 'light_avg_burst_bpm', 'light_max_burst_bpm',
+                               'light_burst_delta_pct', 'light_burst_peak_delta_pct', 'light_ttp_burst']
+        
+        spike_averages = compute_folder_averages(recordings_data, spike_metrics)
+        burst_averages = compute_folder_averages(recordings_data, burst_metrics)
+        light_spike_averages = compute_folder_averages(recordings_data, light_spike_metrics)
+        light_burst_averages = compute_folder_averages(recordings_data, light_burst_metrics)
+        
+        comparison_data = {
+            "folder": folder,
+            "source_type": "MEA",
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spike_averages": spike_averages,
+            "burst_averages": burst_averages,
+            "light_spike_averages": light_spike_averages,
+            "light_burst_averages": light_burst_averages,
+        }
+        
+        output = export_utils.create_mea_comparison_pdf(request.folder_name, comparison_data)
+        filename = f"{request.folder_name}_MEA_comparison.pdf".replace(' ', '_')
+    else:
+        # SSE-specific averages (original logic)
+        spontaneous_metrics = ['baseline_bf', 'baseline_ln_rmssd70', 'baseline_ln_sdnn70', 'baseline_pnn50',
+                              'drug_bf', 'drug_ln_rmssd70', 'drug_ln_sdnn70', 'drug_pnn50']
+        spontaneous_averages = compute_folder_averages(recordings_data, spontaneous_metrics)
+        
+        light_hra_metrics = ['light_baseline_bf', 'light_avg_bf', 'light_peak_bf', 'light_peak_norm',
+                            'light_ttp_first', 'light_ttp_avg', 'light_recovery_bf', 'light_recovery_pct',
+                            'light_amplitude', 'light_roc']
+        light_hra_averages = compute_folder_averages(recordings_data, light_hra_metrics)
+        
+        light_hrv_metrics = ['light_hrv_ln_rmssd70', 'light_hrv_ln_sdnn70', 'light_hrv_pnn50']
+        light_hrv_averages = compute_folder_averages(recordings_data, light_hrv_metrics)
+        
+        comparison_data = {
+            "folder": folder,
+            "source_type": "SSE",
+            "summary": {
+                "recording_count": len(recordings_data),
+                "hspo_age_range": {"min": min(hspo_ages) if hspo_ages else None, "max": max(hspo_ages) if hspo_ages else None, "n": len(hspo_ages)},
+                "hco_age_range": {"min": min(hco_ages) if hco_ages else None, "max": max(hco_ages) if hco_ages else None, "n": len(hco_ages)},
+                "fusion_age_range": {"min": min(fusion_ages) if fusion_ages else None, "max": max(fusion_ages) if fusion_ages else None, "n": len(fusion_ages)},
+            },
+            "recordings": recordings_data,
+            "spontaneous_averages": spontaneous_averages,
+            "light_hra_averages": light_hra_averages,
+            "light_hrv_averages": light_hrv_averages,
+        }
+        
+        output = export_utils.create_comparison_pdf(request.folder_name, comparison_data)
+        filename = f"{request.folder_name}_SSE_comparison.pdf".replace(' ', '_')
     
     return StreamingResponse(
         output,
