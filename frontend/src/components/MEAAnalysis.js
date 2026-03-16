@@ -207,7 +207,7 @@ function buildBurstRaster(bursts, activeElectrodes) {
 // Memoized Chart Components
 // ============================================================================
 
-const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWindow }) {
+const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWindow, lightPulses }) {
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No spike data</div>;
   }
@@ -219,7 +219,12 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+          {/* Drug window overlay (purple) */}
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+          {/* Light pulse overlays (amber) */}
+          {lightPulses && lightPulses.map((pulse, i) => (
+            <ReferenceArea key={`st-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
+          ))}
           <Line type="monotone" dataKey="spike_rate_hz" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
@@ -227,7 +232,7 @@ const SpikeTraceChart = memo(function SpikeTraceChart({ data, duration, drugWind
   );
 });
 
-const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWindow }) {
+const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWindow, lightPulses }) {
   if (!data?.length) {
     return <div className="h-48 flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>No burst data</div>;
   }
@@ -239,7 +244,12 @@ const BurstTraceChart = memo(function BurstTraceChart({ data, duration, drugWind
           <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Time (s)', position: 'insideBottom', offset: -10, fontSize: 9, fill: '#71717a' }} />
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
           <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+          {/* Drug window overlay (purple) */}
           {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
+          {/* Light pulse overlays (amber) */}
+          {lightPulses && lightPulses.map((pulse, i) => (
+            <ReferenceArea key={`bt-pulse-${i}`} x1={pulse.start_sec} x2={pulse.end_sec} fill="#facc15" fillOpacity={0.18} />
+          ))}
           <Line type="monotone" dataKey="burst_rate_bpm" stroke="#f97316" strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
@@ -568,9 +578,11 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     const baselineSpikeHz = baselineEnabled ? computeWindowMean(spikeRateBins, 'spike_rate_hz', blStart, blEnd) : null;
     const baselineBurstBpm = baselineEnabled ? computeWindowMean(burstRateBins, 'burst_rate_bpm', blStart, blEnd) : null;
     
-    // Drug metrics (using shared readout minute)
-    const drugStart = (drugReadoutMinute - 1) * 60;
-    const drugEnd = drugReadoutMinute * 60;
+    // Drug metrics (Perf. Start + Perf. Time = actual readout time)
+    // e.g., if Perf. Start=3min and Perf. Time=4min, readout window is minute 7 (6-7min range)
+    const drugReadoutTimeMin = drugPerfTime + drugReadoutMinute;
+    const drugStart = (drugReadoutTimeMin - 1) * 60;
+    const drugEnd = drugReadoutTimeMin * 60;
     const drugSpikeHz = drugEnabled && selectedDrugs.length > 0 ? computeWindowMean(spikeRateBins, 'spike_rate_hz', drugStart, drugEnd) : null;
     const drugBurstBpm = drugEnabled && selectedDrugs.length > 0 ? computeWindowMean(burstRateBins, 'burst_rate_bpm', drugStart, drugEnd) : null;
     
@@ -609,17 +621,23 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
       correlation,
       perMinuteCombined,
     };
-  }, [selectedWell, meaData, currentParams, baselineEnabled, baselineMinute, drugEnabled, selectedDrugs, drugReadoutMinute]);
+  }, [selectedWell, meaData, currentParams, baselineEnabled, baselineMinute, drugEnabled, selectedDrugs, drugReadoutMinute, drugPerfTime]);
   
   const wells = useMemo(() => Object.keys(meaData?.wells || {}).sort(), [meaData]);
   const duration = wellAnalysis?.well?.duration_s || 0;
   const wellName = wellNames[selectedWell] || selectedWell || '';
 
   // Drug window for visualization
+  // Perf. Start = when drug is added (purple box starts)
+  // Perf. Time = offset after Perf. Start for readout (e.g., if Perf. Start=3min and Perf. Time=4min, readout at 7min)
+  // Purple box extends from Perf. Start to end of recording
   const drugWindow = drugEnabled && selectedDrugs.length > 0 ? {
     start: drugPerfTime * 60,
-    end: (drugReadoutMinute + 1) * 60,
+    end: duration, // extends to end of recording
   } : null;
+  
+  // Drug readout minute for metric calculation
+  const drugReadoutTime = drugPerfTime + drugReadoutMinute; // Combined time for readout
 
   // ===========================================================================
   // Light Stimulus Detection and Computation Handlers
@@ -781,6 +799,30 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
     newPulses[selectedPulseIdx] = {
       ...newPulses[selectedPulseIdx],
       start_sec: newPulses[selectedPulseIdx].start_sec + delta,
+      end_sec: newPulses[selectedPulseIdx].end_sec + delta,
+    };
+    setLightPulses(newPulses);
+  }, [selectedPulseIdx, lightPulses]);
+  
+  // SSE-style: adjust start boundary by bin size
+  const handleAdjustPulseStart = useCallback((binSize, direction) => {
+    if (selectedPulseIdx === null || !lightPulses) return;
+    const delta = direction * binSize;
+    const newPulses = [...lightPulses];
+    newPulses[selectedPulseIdx] = {
+      ...newPulses[selectedPulseIdx],
+      start_sec: Math.max(0, newPulses[selectedPulseIdx].start_sec + delta),
+    };
+    setLightPulses(newPulses);
+  }, [selectedPulseIdx, lightPulses]);
+  
+  // SSE-style: adjust end boundary by bin size
+  const handleAdjustPulseEnd = useCallback((binSize, direction) => {
+    if (selectedPulseIdx === null || !lightPulses) return;
+    const delta = direction * binSize;
+    const newPulses = [...lightPulses];
+    newPulses[selectedPulseIdx] = {
+      ...newPulses[selectedPulseIdx],
       end_sec: newPulses[selectedPulseIdx].end_sec + delta,
     };
     setLightPulses(newPulses);
@@ -1069,7 +1111,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       <div className="w-2 h-2 rounded-full" style={{ background: '#10b981' }} />
                       <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#10b981' }}>Spike</span>
                     </div>
-                    <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                    <SpikeTraceChart data={wellAnalysis?.spikeRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
                   </div>
                   {/* Burst Trace */}
                   <div>
@@ -1077,7 +1119,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} />
                       <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#f97316' }}>Burst</span>
                     </div>
-                    <BurstTraceChart data={wellAnalysis?.burstRateBins} duration={duration} drugWindow={drugWindow} />
+                    <BurstTraceChart data={wellAnalysis?.burstRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
                   </div>
                 </div>
               </div>
@@ -1185,7 +1227,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                     disabled={isComputing}
                   >
                     {isComputing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                    Validate Parameters
+                    Update Parameters
                   </Button>
                 </div>
               </div>
@@ -1198,7 +1240,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
           <TabsContent value="spontaneous" className="space-y-6">
             {wellAnalysis ? (
               <>
-                {/* Row 1: Spike Trace + Burst Trace */}
+                {/* Row 1: Spike Trace + Burst Trace with Drug and Light Overlays */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1208,7 +1250,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <SpikeTraceChart data={wellAnalysis.spikeRateBins} duration={duration} drugWindow={drugWindow} />
+                      <SpikeTraceChart data={wellAnalysis.spikeRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
                     </div>
                   </div>
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #f97316' }}>
@@ -1219,12 +1261,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     <div className="p-4">
-                      <BurstTraceChart data={wellAnalysis.burstRateBins} duration={duration} drugWindow={drugWindow} />
+                      <BurstTraceChart data={wellAnalysis.burstRateBins} duration={duration} drugWindow={drugWindow} lightPulses={lightEnabled ? lightPulses : null} />
                     </div>
                   </div>
                 </div>
                 
-                {/* Row 2: Spike Raster + Burst Raster with Drug Overlays */}
+                {/* Row 2: Spike Raster + Burst Raster with Drug and Light Overlays */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="glass-surface-subtle rounded-xl overflow-hidden" style={{ borderLeft: '3px solid #10b981' }}>
                     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1239,6 +1281,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         electrodes={wellAnalysis.well?.active_electrodes || []} 
                         duration={duration}
                         drugWindow={drugWindow}
+                        lightPulses={lightEnabled ? lightPulses : null}
                       />
                     </div>
                   </div>
@@ -1255,6 +1298,7 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                         electrodes={wellAnalysis.well?.active_electrodes || []} 
                         duration={duration}
                         drugWindow={drugWindow}
+                        lightPulses={lightEnabled ? lightPulses : null}
                       />
                     </div>
                   </div>
@@ -1609,6 +1653,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             />
                             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Spike Rate (Hz)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
                             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+                            {/* Drug window overlay (purple) */}
+                            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
                             {/* Light pulse regions */}
                             {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                               <ReferenceArea
@@ -1647,18 +1693,55 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     
-                    {/* Pulse adjustment controls for Spike Trace */}
+                    {/* SSE-style Pulse adjustment controls for Spike Trace */}
                     {selectedPulseIdx !== null && lightPulses && (
                       <div 
-                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg"
+                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg flex-wrap"
                         style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
                       >
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
-                        <span className="text-[10px] font-data text-yellow-400">
-                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
-                        </span>
+                        
+                        {/* Start: () < > - adjust by spike bin */}
+                        <span className="text-[9px] text-zinc-500">Start:</span>
+                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <div className="flex items-center">
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
+                            onClick={() => handleAdjustPulseStart(currentParams.spikeBinS, -1)}
+                            title={`-${currentParams.spikeBinS}s (spike bin)`}
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseStart(currentParams.spikeBinS, 1)}
+                            title={`+${currentParams.spikeBinS}s (spike bin)`}
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
+                        {/* End: () < > - adjust by spike bin */}
+                        <span className="text-[9px] text-zinc-500">End:</span>
+                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <div className="flex items-center">
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseEnd(currentParams.spikeBinS, -1)}
+                            title={`-${currentParams.spikeBinS}s (spike bin)`}
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseEnd(currentParams.spikeBinS, 1)}
+                            title={`+${currentParams.spikeBinS}s (spike bin)`}
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
                         <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[9px] text-zinc-500">or Click</span>
+                        
+                        {/* Click Start/End buttons */}
                         <div className="flex items-center gap-1">
                           <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
                             className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
@@ -1669,6 +1752,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
                         </div>
+                        
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[10px] font-data text-yellow-400">
+                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
+                        </span>
+                        
                         <Button variant="ghost" size="sm" className="h-6 text-[10px] text-zinc-500" onClick={() => { setSelectedPulseIdx(null); setEditMode(null); }}>
                           <X className="w-3 h-3 mr-1" /> Deselect
                         </Button>
@@ -1717,6 +1806,8 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             />
                             <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 9, fill: '#71717a' }} label={{ value: 'Burst Rate (bpm)', angle: -90, position: 'center', dx: -20, fontSize: 9, fill: '#71717a' }} />
                             <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 10 }} />
+                            {/* Drug window overlay (purple) */}
+                            {drugWindow && <ReferenceArea x1={drugWindow.start} x2={drugWindow.end} fill="#a855f7" fillOpacity={0.15} />}
                             {/* Light pulse regions */}
                             {lightEnabled && lightPulses && lightPulses.map((pulse, i) => (
                               <ReferenceArea
@@ -1755,18 +1846,55 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                       </div>
                     </div>
                     
-                    {/* Pulse adjustment controls for Burst Trace - SSE-style unified with Spike */}
+                    {/* SSE-style Pulse adjustment controls for Burst Trace - uses burst bin */}
                     {selectedPulseIdx !== null && lightPulses && (
                       <div 
-                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg"
+                        className="flex items-center justify-center gap-2 mx-4 mb-4 p-2 rounded-lg flex-wrap"
                         style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
                       >
                         <span className="text-[10px] text-zinc-400 font-medium">Stim {selectedPulseIdx + 1}</span>
                         <div className="h-4 w-px bg-zinc-700" />
-                        <span className="text-[10px] font-data text-yellow-400">
-                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
-                        </span>
+                        
+                        {/* Start: () < > - adjust by burst bin */}
+                        <span className="text-[9px] text-zinc-500">Start:</span>
+                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <div className="flex items-center">
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800" 
+                            onClick={() => handleAdjustPulseStart(currentParams.burstBinS, -1)}
+                            title={`-${currentParams.burstBinS}s (burst bin)`}
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseStart(currentParams.burstBinS, 1)}
+                            title={`+${currentParams.burstBinS}s (burst bin)`}
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
+                        {/* End: () < > - adjust by burst bin */}
+                        <span className="text-[9px] text-zinc-500">End:</span>
+                        <span className="text-[9px] font-data text-zinc-400">()</span>
+                        <div className="flex items-center">
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseEnd(currentParams.burstBinS, -1)}
+                            title={`-${currentParams.burstBinS}s (burst bin)`}
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-5 w-5 p-0 border-zinc-700 hover:bg-zinc-800"
+                            onClick={() => handleAdjustPulseEnd(currentParams.burstBinS, 1)}
+                            title={`+${currentParams.burstBinS}s (burst bin)`}
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
                         <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[9px] text-zinc-500">or Click</span>
+                        
+                        {/* Click Start/End buttons */}
                         <div className="flex items-center gap-1">
                           <Button variant={editMode === 'start' ? 'default' : 'outline'} size="sm" 
                             className={`h-6 px-2 text-[9px] ${editMode === 'start' ? 'bg-yellow-600 hover:bg-yellow-700 text-black' : 'border-zinc-700 hover:bg-zinc-800'}`}
@@ -1777,6 +1905,12 @@ export default function MEAAnalysis({ meaData, config, onSave, onHome }) {
                             onClick={() => setEditMode(editMode === 'end' ? null : 'end')}
                           >End</Button>
                         </div>
+                        
+                        <div className="h-4 w-px bg-zinc-700" />
+                        <span className="text-[10px] font-data text-yellow-400">
+                          {(lightPulses[selectedPulseIdx].start_sec / 60).toFixed(2)} - {(lightPulses[selectedPulseIdx].end_sec / 60).toFixed(2)} min
+                        </span>
+                        
                         <Button variant="ghost" size="sm" className="h-6 text-[10px] text-zinc-500" onClick={() => { setSelectedPulseIdx(null); setEditMode(null); }}>
                           <X className="w-3 h-3 mr-1" /> Deselect
                         </Button>
