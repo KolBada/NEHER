@@ -1644,7 +1644,7 @@ export default function MEAAnalysis({
           </div>
           
           {/* Right: Go to Folder + Comparison - only show when saved */}
-          {savedRecordingId && (
+          {savedRecordingId ? (
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -1680,6 +1680,8 @@ export default function MEAAnalysis({
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Comparison
               </Button>
             </div>
+          ) : (
+            <div /> /* Empty spacer to maintain layout */
           )}
         </div>
       </header>
