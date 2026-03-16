@@ -1377,44 +1377,6 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
           </div>
         )}
 
-      {/* Export buttons for embedded mode - smaller and inline */}
-      {embedded && (
-        <div className="flex items-center justify-end gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportXlsx}
-            disabled={exporting || !recordings?.length}
-            className="h-7 text-xs rounded-lg transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              color: 'var(--text-secondary)',
-            }}
-            data-testid="export-xlsx-btn"
-          >
-            <FileSpreadsheet className="w-3 h-3 mr-1" style={{ color: '#10b981' }} />
-            Excel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportPdf}
-            disabled={exporting || !recordings?.length}
-            className="h-7 text-xs rounded-lg transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              color: 'var(--text-secondary)',
-            }}
-            data-testid="export-pdf-btn"
-          >
-            <FileText className="w-3 h-3 mr-1" style={{ color: '#ef4444' }} />
-            PDF
-          </Button>
-        </div>
-      )}
-
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div 
@@ -3183,13 +3145,45 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
                                   />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
-                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  <Legend 
+                                    wrapperStyle={{ fontSize: '10px' }}
+                                    content={({ payload }) => {
+                                      const items = [...(payload || [])];
+                                      // Add baseline entry if showBaseline or showBaselinePct is true
+                                      if (metricData.showBaseline || metricData.showBaselinePct) {
+                                        items.push({
+                                          value: metricData.showBaseline ? 'Baseline' : '0% (Baseline)',
+                                          color: '#22d3ee',
+                                          type: 'line'
+                                        });
+                                      }
+                                      return (
+                                        <div className="flex justify-center gap-4 text-xs mt-2">
+                                          {items.map((entry, i) => (
+                                            <span key={i} className="flex items-center gap-1">
+                                              {entry.value === 'All Stims Average' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
+                                              ) : entry.value === 'Baseline' || entry.value === '0% (Baseline)' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${entry.color}` }} />
+                                              ) : (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                  <span style={{ width: 14, height: 0, borderTop: `2px solid ${entry.color}` }} />
+                                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: entry.color, marginLeft: -3 }} />
+                                                </span>
+                                              )}
+                                              <span style={{ color: entry.color }}>{entry.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }}
+                                  />
                                   {/* Baseline reference line (cyan) - for metrics that have showBaseline or showBaselinePct */}
                                   {metricData.showBaseline && (
-                                    <ReferenceLine y={meaLightSpikeAverages?.light_baseline_spike_hz || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} name="Baseline" label={{ value: 'Baseline', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                    <ReferenceLine y={meaLightSpikeAverages?.light_baseline_spike_hz || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   {metricData.showBaselinePct && (
-                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: '0% (Baseline)', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#6ee7b7" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />
@@ -3434,13 +3428,45 @@ export default function FolderComparison({ folder, onBack, embedded = false }) {
                                     label={{ value: metricData.label, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#a1a1aa' } }}
                                   />
                                   <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(24, 24, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} />
-                                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                  <Legend 
+                                    wrapperStyle={{ fontSize: '10px' }}
+                                    content={({ payload }) => {
+                                      const items = [...(payload || [])];
+                                      // Add baseline entry if showBaseline or showBaselinePct is true
+                                      if (metricData.showBaseline || metricData.showBaselinePct) {
+                                        items.push({
+                                          value: metricData.showBaseline ? 'Baseline' : '0% (Baseline)',
+                                          color: '#22d3ee',
+                                          type: 'line'
+                                        });
+                                      }
+                                      return (
+                                        <div className="flex justify-center gap-4 text-xs mt-2">
+                                          {items.map((entry, i) => (
+                                            <span key={i} className="flex items-center gap-1">
+                                              {entry.value === 'All Stims Average' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dotted ${entry.color}` }} />
+                                              ) : entry.value === 'Baseline' || entry.value === '0% (Baseline)' ? (
+                                                <span style={{ display: 'inline-block', width: 14, borderTop: `2px dashed ${entry.color}` }} />
+                                              ) : (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                  <span style={{ width: 14, height: 0, borderTop: `2px solid ${entry.color}` }} />
+                                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: entry.color, marginLeft: -3 }} />
+                                                </span>
+                                              )}
+                                              <span style={{ color: entry.color }}>{entry.value}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }}
+                                  />
                                   {/* Baseline reference line (cyan) - for metrics that have showBaseline or showBaselinePct */}
                                   {metricData.showBaseline && (
-                                    <ReferenceLine y={meaLightBurstAverages?.light_baseline_burst_bpm || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Baseline', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                    <ReferenceLine y={meaLightBurstAverages?.light_baseline_burst_bpm || 0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   {metricData.showBaselinePct && (
-                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} label={{ value: '0% (Baseline)', position: 'right', fill: '#22d3ee', fontSize: 10 }} />
+                                    <ReferenceLine y={0} stroke="#22d3ee" strokeDasharray="4 4" strokeWidth={2} />
                                   )}
                                   <Line type="monotone" dataKey="perStimAvg" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 4 }} name="Per Stim Average" />
                                   <Line type="monotone" dataKey="stimAvg" stroke="#fb923c" strokeWidth={2} strokeDasharray="2 2" dot={false} name="All Stims Average" />

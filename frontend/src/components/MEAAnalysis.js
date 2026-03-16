@@ -1772,13 +1772,17 @@ export default function MEAAnalysis({
               ))}
             </div>
             
-            {/* Editable well name */}
+            {/* Editable recording name */}
             <Input
-              value={wellName}
-              onChange={(e) => setWellNames(prev => ({ ...prev, [selectedWell]: e.target.value }))}
-              className="h-7 w-32 text-xs bg-transparent border-none px-2 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
-              style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--text-primary)' }}
-              placeholder="Well name..."
+              value={recordingName}
+              onChange={(e) => setRecordingName(e.target.value)}
+              className="h-7 w-40 text-xs bg-transparent border-none px-2 rounded-lg focus:bg-white/5 focus:ring-1 focus:ring-white/20"
+              style={{ 
+                fontFamily: 'var(--font-display)', 
+                fontWeight: 500, 
+                color: recordingName ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              }}
+              placeholder="Enter Recording name"
             />
           </div>
           
@@ -2289,7 +2293,7 @@ export default function MEAAnalysis({
                           </Button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Minute:</Label>
+                          <Label className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>Perf. Time:</Label>
                           <Input
                             type="number"
                             value={baselineMinute}
@@ -2358,7 +2362,7 @@ export default function MEAAnalysis({
                               />
                               <span className="text-[9px]" style={{ color: 'var(--text-tertiary)' }}>min</span>
                               <Badge variant="outline" className="text-[8px] px-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(168, 85, 247, 0.2)', color: 'rgba(168, 85, 247, 0.8)' }}>
-                                {drugPerfTime + drugReadoutMinute}–{drugPerfTime + drugReadoutMinute + 1}min
+                                {drugPerfTime + drugReadoutMinute - 1}–{drugPerfTime + drugReadoutMinute}min
                               </Badge>
                             </div>
                           </div>
@@ -3265,15 +3269,17 @@ export default function MEAAnalysis({
       {/* Comparison Modal */}
       <Dialog open={showComparisonModal} onOpenChange={setShowComparisonModal}>
         <DialogContent 
-          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 bg-zinc-950 border-zinc-800"
+          className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 [&>button]:hidden"
           style={{ 
-            background: 'linear-gradient(135deg, rgba(24, 24, 27, 0.98) 0%, rgba(9, 9, 11, 0.99) 100%)',
+            background: 'linear-gradient(135deg, rgba(2, 8, 23, 0.98) 0%, rgba(5, 12, 30, 0.99) 100%)',
+            border: '1px solid rgba(20, 184, 166, 0.15)',
+            boxShadow: '0 25px 80px -12px rgba(0, 0, 0, 0.6), 0 0 60px rgba(20, 184, 166, 0.08)',
           }}
         >
-          {/* Close button in top-right */}
+          {/* Single close button in top-right */}
           <button
             onClick={() => setShowComparisonModal(false)}
-            className="absolute top-4 right-4 z-50 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+            className="absolute top-4 right-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
             style={{ color: 'var(--text-secondary)' }}
             data-testid="close-comparison-modal"
           >
