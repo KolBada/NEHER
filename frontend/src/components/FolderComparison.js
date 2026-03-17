@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import api, { downloadBlob } from '../api';
+import { MEAPopulationTracesEmbedded } from './MEAPopulationAnalysis';
 
 // Helper component for inline info tooltips
 function InfoTip({ text, children }) {
@@ -2962,6 +2963,11 @@ export default function FolderComparison({ folder, onBack, embedded = false, def
                 </div>
               </div>
             </div>
+            
+            {/* MEA Population Analysis - Spike and Burst Population Traces */}
+            {comparisonData?.recordings && comparisonData.recordings.filter(r => r.source_type === 'MEA').length >= 2 && (
+              <MEAPopulationTracesEmbedded recordings={comparisonData.recordings.filter(r => r.source_type === 'MEA')} />
+            )}
           </div>
         </TabsContent>
 

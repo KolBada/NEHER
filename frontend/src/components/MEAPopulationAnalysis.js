@@ -96,8 +96,8 @@ function meanAndSEM(values) {
   return { mean, sem };
 }
 
-// Population Trace Plot Component
-function PopulationTracePlot({ recordings, metric = 'spike', binSize = 5 }) {
+// Population Trace Plot Component - can be used standalone or embedded
+function PopulationTracePlot({ recordings, metric = 'spike', binSize = 5, showLegend = true, legendPosition = 'top' }) {
   const data = useMemo(() => {
     if (!recordings.length) return [];
     
@@ -160,7 +160,7 @@ function PopulationTracePlot({ recordings, metric = 'spike', binSize = 5 }) {
   
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
+      <LineChart data={data} margin={{ bottom: legendPosition === 'bottom' ? 40 : 20 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis 
           dataKey="time" 
@@ -177,7 +177,12 @@ function PopulationTracePlot({ recordings, metric = 'spike', binSize = 5 }) {
           contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
           labelStyle={{ color: '#888' }}
         />
-        <Legend />
+        {showLegend && (
+          <Legend 
+            verticalAlign={legendPosition === 'bottom' ? 'bottom' : 'top'}
+            wrapperStyle={legendPosition === 'bottom' ? { paddingTop: '20px' } : {}}
+          />
+        )}
         
         {/* Individual recording traces (faint) */}
         {recordings.map((rec, idx) => (
@@ -189,6 +194,7 @@ function PopulationTracePlot({ recordings, metric = 'spike', binSize = 5 }) {
             strokeOpacity={0.3}
             dot={false}
             name={rec.name}
+            legendType={showLegend ? 'line' : 'none'}
           />
         ))}
         
@@ -460,7 +466,16 @@ export default function MEAPopulationAnalysis({ folderId, recordings: initialRec
   const hasDrugAnalysis = recordings.some(r => r.analysis_state?.config?.drug_name);
   
   return (
-    <Card className="bg-zinc-900/50 border-zinc-800">
+    <Card 
+      className="border-0"
+      style={{
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.05) 50%, rgba(2, 8, 15, 0.95) 100%)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+      }}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm text-zinc-300 flex items-center gap-2">
@@ -485,20 +500,16 @@ export default function MEAPopulationAnalysis({ folderId, recordings: initialRec
                 Comparisons
               </TabsTrigger>
             )}
-            <TabsTrigger value="coupling" className="text-xs">
-              <Activity className="w-3 h-3 mr-1" />
-              Spike-Burst Coupling
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="traces" className="space-y-4">
             <div>
               <h4 className="text-xs text-zinc-400 mb-2">Mean Spike Rate Trace</h4>
-              <PopulationTracePlot recordings={recordings} metric="spike" binSize={5} />
+              <PopulationTracePlot recordings={recordings} metric="spike" binSize={5} showLegend={false} />
             </div>
             <div>
               <h4 className="text-xs text-zinc-400 mb-2">Mean Burst Rate Trace</h4>
-              <PopulationTracePlot recordings={recordings} metric="burst" binSize={30} />
+              <PopulationTracePlot recordings={recordings} metric="burst" binSize={30} showLegend={true} legendPosition="bottom" />
             </div>
           </TabsContent>
           
@@ -518,18 +529,101 @@ export default function MEAPopulationAnalysis({ folderId, recordings: initialRec
               )}
             </TabsContent>
           )}
-          
-          <TabsContent value="coupling">
-            <div>
-              <h4 className="text-xs text-zinc-400 mb-2">Population Spike-Burst Coupling</h4>
-              <p className="text-[10px] text-zinc-500 mb-4">
-                All (spike rate, burst rate) bin pairs from all recordings
-              </p>
-              <PopulationCouplingPlot recordings={recordings} />
-            </div>
-          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+// Embedded version for use in FolderComparison - no Card wrapper, just the traces
+export function MEAPopulationTracesEmbedded({ recordings }) {
+  // Filter to only MEA recordings with valid spike data
+  // Comparison recordings may have spikes at top level or in analysis_state
+  const meaRecordings = useMemo(() => 
+    recordings.filter(r => {
+      if (r.source_type !== 'MEA') return false;
+      // Check for spikes in analysis_state or directly on the recording
+      const hasSpikes = (r.analysis_state?.spikes?.length > 0) || 
+                        (r.spikes?.length > 0) ||
+                        (r.spike_rate_bins?.length > 0);
+      return hasSpikes;
+    }).map(r => ({
+      ...r,
+      // Normalize the structure - ensure analysis_state has the data
+      analysis_state: r.analysis_state || {
+        spikes: r.spikes || [],
+        active_electrodes: r.active_electrodes || [],
+        electrode_bursts: r.electrode_bursts || r.bursts || [],
+        duration_s: r.duration_s || 300,
+      }
+    })),
+    [recordings]
+  );
+  
+  // Check if we have any MEA recordings at all
+  const meaCount = recordings.filter(r => r.source_type === 'MEA').length;
+  
+  if (meaCount < 2) {
+    return null; // Don't show anything if not enough MEA recordings
+  }
+  
+  if (meaRecordings.length < 2) {
+    // We have MEA recordings but not enough with spike data loaded
+    return (
+      <div 
+        className="rounded-2xl p-4 text-center"
+        style={{
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.04) 50%, rgba(2, 8, 15, 0.95) 100%)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+        }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium text-zinc-400">MEA Population Analysis</span>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Population traces are available in the folder view where full recording data is loaded.
+        </p>
+      </div>
+    );
+  }
+  
+  return (
+    <div 
+      className="rounded-2xl p-4 space-y-6"
+      style={{
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(16, 185, 129, 0.06) 50%, rgba(2, 8, 15, 0.98) 100%)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+            MEA Population Analysis
+          </span>
+        </div>
+        <Badge 
+          className="text-xs"
+          style={{ background: 'rgba(6, 182, 212, 0.2)', color: '#22d3ee' }}
+        >
+          {meaRecordings.length} recordings
+        </Badge>
+      </div>
+      
+      <div>
+        <h4 className="text-xs text-zinc-400 mb-2">Mean Spike Rate Trace</h4>
+        <PopulationTracePlot recordings={meaRecordings} metric="spike" binSize={5} showLegend={false} />
+      </div>
+      <div>
+        <h4 className="text-xs text-zinc-400 mb-2">Mean Burst Rate Trace</h4>
+        <PopulationTracePlot recordings={meaRecordings} metric="burst" binSize={30} showLegend={true} legendPosition="bottom" />
+      </div>
+    </div>
   );
 }
